@@ -1,0 +1,28 @@
+{
+  "root": "apps/sick-fansubs-e2e",
+  "sourceRoot": "apps/sick-fansubs-e2e/src",
+  "projectType": "application",
+  "targets": {
+    "e2e": {
+      "executor": "@nrwl/cypress:cypress",
+      "options": {
+        "cypressConfig": "apps/sick-fansubs-e2e/cypress.json",
+        "devServerTarget": "sick-fansubs:serve:development"
+      },
+      "configurations": {
+        "production": {
+          "devServerTarget": "sick-fansubs:serve:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/sick-fansubs-e2e/**/*.{js,ts}"]
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": ["sick-fansubs"]
+}

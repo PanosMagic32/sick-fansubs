@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "projects": {
+    "api": "apps/api",
+    "api-interfaces": "libs/api-interfaces",
+    "sick-fansubs": "apps/sick-fansubs",
+    "sick-fansubs-e2e": "apps/sick-fansubs-e2e"
+  }
+}
