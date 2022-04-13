@@ -1,0 +1,74 @@
+mat-toolbar.header-toolbar {
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+  box-shadow: 0 3px 5px -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
+
+  #header {
+    box-shadow: 0 3px 5px -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
+
+  a {
+    text-decoration: none;
+    color: $light-text;
+    padding: 5px 15px;
+  }
+
+  a:hover {
+    background-color: var(--accent-color);
+    border-radius: 1rem;
+    cursor: pointer;
+  }
+
+  a:active {
+    color: var(--accent-lighter-color);
+    background-color: var(--accent-darker-color);
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: var(--accent-color);
+  }
+
+  button:active {
+    color: var(--accent-lighter-color);
+    background-color: var(--accent-darker-color);
+  }
+}
+
+.active {
+  color: var(--accent-lighter-color);
+  background-color: var(--accent-darker-color);
+}
+
+.navigation-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  a {
+    text-decoration: none;
+    color: $light-text;
+  }
+
+  a:hover {
+    background-color: var(--accent-color);
+    cursor: pointer;
+  }
+
+  a:active {
+    color: var(--accent-lighter-color);
+    background-color: var(--accent-darker-color);
+    cursor: pointer;
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.search-full-width {
+  width: 80%;
+  margin: auto;
+}

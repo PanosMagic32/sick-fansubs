@@ -15,7 +15,11 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@sick/api-interfaces": ["libs/api-interfaces/src/index.ts"]
+      "@sick/api-interfaces": ["libs/api-interfaces/src/index.ts"],
+      "@sick/client/home/home": ["libs/client/home/src/index.ts"],
+      "@sick/client/shell": ["libs/client/shell/src/index.ts"],
+      "@sick/material": ["libs/material/src/index.ts"],
+      "@sick/shared": ["libs/shared/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

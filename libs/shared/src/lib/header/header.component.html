@@ -1,0 +1,55 @@
+<mat-toolbar color="primary" class="header-toolbar">
+  <mat-toolbar-row id="header">
+    <div class="logo">
+      <img src="assets/logo/logo.png" alt="logo" routerLink="/home" />
+    </div>
+
+    <button mat-icon-button (click)="onToggleSidenav()" fxHide.gt-xs>
+      <mat-icon>menu</mat-icon>
+    </button>
+
+    <a routerLink="/home"> Sick-Fansubs </a>
+
+    <span class="spacer"></span>
+
+    <div fxFlex fxLayout fxLayoutAlign="center" fxHide.xs>
+      <ul fxLayout fxLayoutGap="1.5rem" class="navigation-items">
+        <li>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base" routerLink="/projects">Projects</a>
+        </li>
+
+        <li>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="#">Tracker</a>
+        </li>
+
+        <li>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="/rules">Rules</a>
+        </li>
+
+        <li>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="/about">About</a>
+        </li>
+      </ul>
+    </div>
+
+    <span class="spacer"></span>
+
+    <button mat-icon-button routerLink="/account" class="mat-focus-indicator docs-button mat-button mat-button-base">
+      <mat-icon>person</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      (click)="isOpenSearch = !isOpenSearch"
+      class="mat-focus-indicator docs-button mat-button mat-button-base"
+    >
+      <mat-icon>search</mat-icon>
+    </button>
+  </mat-toolbar-row>
+
+  <mat-toolbar-row *ngIf="isOpenSearch">
+    <mat-form-field class="search-full-width">
+      <input matInput placeholder="Search..." />
+    </mat-form-field>
+  </mat-toolbar-row>
+</mat-toolbar>

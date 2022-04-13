@@ -1,0 +1,23 @@
+{
+  "projectType": "library",
+  "root": "libs/material",
+  "sourceRoot": "libs/material/src",
+  "prefix": "sick",
+  "targets": {
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/material"],
+      "options": {
+        "jestConfig": "libs/material/jest.config.js",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["libs/material/src/**/*.ts", "libs/material/src/**/*.html"]
+      }
+    }
+  },
+  "tags": []
+}

@@ -1,0 +1,23 @@
+{
+  "projectType": "library",
+  "root": "libs/client/shell",
+  "sourceRoot": "libs/client/shell/src",
+  "prefix": "sick",
+  "targets": {
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/client/shell"],
+      "options": {
+        "jestConfig": "libs/client/shell/jest.config.js",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["libs/client/shell/src/**/*.ts", "libs/client/shell/src/**/*.html"]
+      }
+    }
+  },
+  "tags": []
+}

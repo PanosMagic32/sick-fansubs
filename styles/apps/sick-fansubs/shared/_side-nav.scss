@@ -1,0 +1,39 @@
+mat-sidenav-container,
+mat-sidenav-content,
+mat-sidenav {
+  height: 100%;
+}
+
+mat-sidenav {
+  width: 25rem;
+}
+
+mat-toolbar.sidenav-toolbar {
+  border-radius: 0;
+  box-shadow: 0 3px 5px -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
+
+  span {
+    margin-left: 1rem;
+  }
+}
+
+mat-nav-list {
+  mat-list-item {
+    text-decoration: none;
+    color: $light-text;
+    border-left: 0.5rem solid #fff;
+  }
+
+  mat-list-item:hover,
+  mat-list-item:active {
+    border-left: 0.5rem solid var(--primary-color);
+    margin-right: 1.5rem;
+    background-color: var(--accent-lighter-color) !important;
+    cursor: pointer;
+  }
+
+  .nav-caption {
+    display: inline-block;
+    padding-left: 1rem;
+  }
+}

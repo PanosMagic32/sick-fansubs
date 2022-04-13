@@ -1,11 +1,12 @@
-<div style="text-align: center">
-  <h1>Welcome to Sick-Fansubs!</h1>
+<mat-sidenav-container>
+  <mat-sidenav #sidenav role="navigation">
+    <sick-sidenav (sidenavClose)="sidenav.close()"></sick-sidenav>
+  </mat-sidenav>
 
-  <img
-    width="450"
-    src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png"
-    alt="Nx - Smart, Fast and Extensible Build System"
-  />
-</div>
+  <mat-sidenav-content>
+    <sick-header (sidenavToggle)="sidenav.toggle()"></sick-header>
 
-<div>Message: {{ hello$ | async | json }}</div>
+    <sick-shell></sick-shell>
+    <!-- <router-outlet></router-outlet> -->
+  </mat-sidenav-content>
+</mat-sidenav-container>

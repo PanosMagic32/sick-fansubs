@@ -3,6 +3,9 @@
   "projects": {
     "api": "apps/api",
     "api-interfaces": "libs/api-interfaces",
+    "client-shell": "libs/client/shell",
+    "material": "libs/material",
+    "shared": "libs/shared",
     "sick-fansubs": "apps/sick-fansubs",
     "sick-fansubs-e2e": "apps/sick-fansubs-e2e"
   }
