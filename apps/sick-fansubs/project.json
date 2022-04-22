@@ -82,7 +82,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/apps/sick-fansubs"],
       "options": {
-        "jestConfig": "apps/sick-fansubs/jest.config.js",
+        "jestConfig": "apps/sick-fansubs/jest.config.ts",
         "passWithNoTests": true
       }
     }
