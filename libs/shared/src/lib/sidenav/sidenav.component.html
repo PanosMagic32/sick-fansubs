@@ -1,37 +1,47 @@
 <mat-toolbar color="primary" class="sidenav-toolbar">
   <div class="logo">
-    <img src="assets/logo/logo.png" alt="logo" routerLink="/home" />
+    <img src="assets/logo/logo.png" alt="logo" />
   </div>
 
   <span> Sick-Fansubs </span>
 </mat-toolbar>
 
 <mat-nav-list>
-  <mat-list-item routerLink="/home" (click)="onSidenavClose()">
+  <mat-list-item (click)="onSidenavClose()" [routerLink]="['/home']" routerLinkActive="active-sidenav">
     <mat-icon>home</mat-icon>
     <span class="nav-caption">Home</span>
   </mat-list-item>
 
-  <mat-list-item routerLink="/projects" (click)="onSidenavClose()">
-    <mat-icon>article</mat-icon>
+  <mat-list-item (click)="onSidenavClose()" [routerLink]="['/projects']" routerLinkActive="active-sidenav">
+    <mat-icon>grid_view</mat-icon>
     <span class="nav-caption">Projects</span>
   </mat-list-item>
 
-  <mat-list-item routerLink="/rules" (click)="onSidenavClose()">
-    <mat-icon>rule</mat-icon>
+  <mat-list-item (click)="onSidenavClose()" [routerLink]="['/rules']" routerLinkActive="active-sidenav">
+    <mat-icon>gavel</mat-icon>
     <span class="nav-caption">Rules</span>
   </mat-list-item>
 
-  <mat-list-item routerLink="/about" (click)="onSidenavClose()">
+  <mat-list-item (click)="onSidenavClose()" [routerLink]="['/about']" routerLinkActive="active-sidenav">
     <mat-icon>info</mat-icon>
     <span class="nav-caption">About</span>
   </mat-list-item>
 
   <mat-divider></mat-divider>
 
-  <mat-list-item href="https://nyaa.si" (click)="onSidenavClose()">
-    <mat-icon>format_list_bulleted</mat-icon>
+  <mat-list-item (click)="onGoToTracker()">
+    <mat-icon>feed</mat-icon>
     <span class="nav-caption">Tracker</span>
     <mat-icon style="margin-left: auto">launch</mat-icon>
   </mat-list-item>
 </mat-nav-list>
+
+<mat-toolbar color="primary" class="sidenav-toolbar-bottom">
+  <span>v1.0.0</span>
+
+  <div class="logo-social">
+    <img src="assets/images/discord.svg" alt="discord" />
+    <img src="assets/images/facebook.svg" alt="facebook" />
+    <img src="assets/images/github.svg" alt="github" />
+  </div>
+</mat-toolbar>

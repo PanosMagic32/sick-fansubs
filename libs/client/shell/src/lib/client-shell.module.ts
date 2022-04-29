@@ -1,16 +1,11 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+
+import { ClientShellRoutingModule } from './client-shell-routing.module';
 import { ShellComponent } from './shell/shell.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-
-    RouterModule.forChild([
-      /* {path: '', pathMatch: 'full', component: InsertYourComponentHere} */
-    ]),
-  ],
+  imports: [CommonModule, ClientShellRoutingModule],
   declarations: [ShellComponent],
   exports: [ShellComponent],
 })

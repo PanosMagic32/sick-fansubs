@@ -15,4 +15,10 @@ export class SidenavComponent implements OnInit {
   onSidenavClose() {
     this.sidenavClose.emit();
   }
+
+  onGoToTracker() {
+    window.open('https://nyaa.si/user/Sick-Fansubs', '_blank');
+
+    this.onSidenavClose();
+  }
 }

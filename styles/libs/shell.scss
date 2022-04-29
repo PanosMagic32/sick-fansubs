@@ -1,0 +1,25 @@
+.shell {
+  // height: 100%;
+  margin: 0.5rem 0;
+
+  display: grid;
+  grid-template-columns: 20% auto 20%;
+  grid-template-areas: 'left main right';
+  gap: 1.5rem;
+
+  .section {
+    height: 100%;
+  }
+
+  .left {
+    grid-area: left;
+  }
+
+  .main {
+    grid-area: main;
+  }
+
+  .right {
+    grid-area: right;
+  }
+}

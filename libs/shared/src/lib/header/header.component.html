@@ -1,32 +1,42 @@
 <mat-toolbar color="primary" class="header-toolbar">
   <mat-toolbar-row id="header">
     <div class="logo">
-      <img src="assets/logo/logo.png" alt="logo" routerLink="/home" />
+      <img src="assets/logo/logo.png" alt="logo" [routerLink]="['/home']" />
     </div>
 
     <button mat-icon-button (click)="onToggleSidenav()" fxHide.gt-xs>
       <mat-icon>menu</mat-icon>
     </button>
 
-    <a routerLink="/home"> Sick-Fansubs </a>
+    <a [routerLink]="['/home']"> Sick-Fansubs </a>
 
     <span class="spacer"></span>
 
-    <div fxFlex fxLayout fxLayoutAlign="center" fxHide.xs>
-      <ul fxLayout fxLayoutGap="1.5rem" class="navigation-items">
-        <li>
-          <a class="mat-focus-indicator docs-button mat-button mat-button-base" routerLink="/projects">Projects</a>
+    <div fxFlex fxLayout fxLayoutAlign="center" fxHide.lt-md>
+      <ul fxLayout fxLayoutGap="1rem" class="navigation-items">
+        <li [routerLink]="['/projects']" routerLinkActive="active">
+          <mat-icon>grid_view</mat-icon>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base">Projects</a>
         </li>
 
         <li>
-          <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="#">Tracker</a>
+          <mat-icon>feed</mat-icon>
+          <a
+            class="mat-focus-indicator docs-button mat-button mat-button-base"
+            href="https://nyaa.si/user/Sick-Fansubs"
+            target="_system"
+          >
+            Tracker
+          </a>
         </li>
 
-        <li>
+        <li [routerLink]="['/rules']" routerLinkActive="active">
+          <mat-icon>gavel</mat-icon>
           <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="/rules">Rules</a>
         </li>
 
-        <li>
+        <li [routerLink]="['/about']" routerLinkActive="active">
+          <mat-icon>info</mat-icon>
           <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="/about">About</a>
         </li>
       </ul>
@@ -34,7 +44,12 @@
 
     <span class="spacer"></span>
 
-    <button mat-icon-button routerLink="/account" class="mat-focus-indicator docs-button mat-button mat-button-base">
+    <button
+      mat-icon-button
+      [routerLink]="['/account']"
+      routerLinkActive="active"
+      class="mat-focus-indicator docs-button mat-button mat-button-base"
+    >
       <mat-icon>person</mat-icon>
     </button>
 
@@ -45,6 +60,12 @@
     >
       <mat-icon>search</mat-icon>
     </button>
+
+    <div class="logo-social" fxHide.lt-md>
+      <img src="assets/images/discord.svg" alt="discord" />
+      <img src="assets/images/facebook.svg" alt="facebook" />
+      <img src="assets/images/github.svg" alt="github" />
+    </div>
   </mat-toolbar-row>
 
   <mat-toolbar-row *ngIf="isOpenSearch">

@@ -15,6 +15,14 @@ mat-toolbar.sidenav-toolbar {
   span {
     margin-left: 1rem;
   }
+
+  &-bottom {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 
 mat-nav-list {
@@ -36,4 +44,11 @@ mat-nav-list {
     display: inline-block;
     padding-left: 1rem;
   }
+}
+
+.active-sidenav {
+  border-left: 0.5rem solid var(--primary-color);
+  margin-right: 1.5rem;
+  background-color: var(--accent-lighter-color) !important;
+  cursor: pointer;
 }

@@ -19,6 +19,17 @@
 // Libs
 @import './apps/sick-fansubs/shared/side-nav';
 @import './apps/sick-fansubs/shared/header';
+@import './apps/sick-fansubs/shared/footer';
+
+@import './libs/shell.scss';
+
+@import './libs/projects/feature/project-list';
+@import './libs/projects/feature/project-detail';
+@import './libs/projects/ui/project-item';
+
+@import './libs/home/feature/post-list';
+@import './libs/home/feature/post-detail';
+@import './libs/home/ui/post-item';
 
 html,
 body {
@@ -34,4 +45,22 @@ body {
     height: 40px;
     border-radius: 50%;
   }
+
+  &-social {
+    margin-top: auto;
+    cursor: pointer;
+
+    img {
+      width: 45px;
+      height: 45px;
+    }
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.mat-drawer-inner-container {
+  overflow: hidden !important;
 }

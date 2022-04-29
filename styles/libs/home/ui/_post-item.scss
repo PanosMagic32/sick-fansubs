@@ -1,0 +1,30 @@
+.post-card {
+  margin: 1rem;
+  // max-width: 40%;
+
+  mat-card-header {
+    .post-header-image {
+      background-image: url('../../../../apps/sick-fansubs/src/assets/logo/logo.png');
+      background-size: cover;
+      margin: 0.2rem;
+    }
+
+    .mat-card-avatar {
+      height: 3rem;
+      width: 3rem;
+    }
+  }
+
+  img {
+    max-width: 80%;
+    margin: 0 auto;
+    border-radius: 0.5rem;
+  }
+
+  mat-card-content {
+    .post-description {
+      margin: 2rem;
+      text-align: center;
+    }
+  }
+}
