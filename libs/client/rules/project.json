@@ -1,0 +1,22 @@
+{
+  "projectType": "library",
+  "sourceRoot": "libs/client/rules/src",
+  "prefix": "sick",
+  "targets": {
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/client/rules"],
+      "options": {
+        "jestConfig": "libs/client/rules/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["libs/client/rules/**/*.ts", "libs/client/rules/**/*.html"]
+      }
+    }
+  },
+  "tags": []
+}
