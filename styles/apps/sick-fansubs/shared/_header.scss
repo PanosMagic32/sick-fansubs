@@ -1,10 +1,10 @@
 mat-toolbar.header-toolbar {
   border-bottom-left-radius: 1rem;
   border-bottom-right-radius: 1rem;
-  box-shadow: 0 3px 5px -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
+  box-shadow: 0 0.3rem 0.5rem -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
 
   #header {
-    box-shadow: 0 3px 5px -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
+    box-shadow: 0 0.3rem 0.5rem -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
     border-bottom-left-radius: 1rem;
     border-bottom-right-radius: 1rem;
   }
@@ -12,7 +12,7 @@ mat-toolbar.header-toolbar {
   a {
     text-decoration: none;
     color: $light-text;
-    padding: 5px 15px;
+    padding: 0.5rem 1.5rem;
   }
 
   a:hover {
@@ -68,6 +68,27 @@ mat-toolbar.header-toolbar {
     color: var(--accent-lighter-color);
     background-color: var(--primary-darker-color);
     cursor: pointer;
+  }
+
+  &-icons-only {
+    li {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      border-radius: 1rem;
+      margin: 0 1rem;
+    }
+
+    li:hover {
+      background-color: var(--primary-darker-color);
+      cursor: pointer;
+    }
+
+    li:active {
+      color: var(--accent-lighter-color);
+      background-color: var(--primary-darker-color);
+      cursor: pointer;
+    }
   }
 }
 

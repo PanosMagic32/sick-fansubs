@@ -1,6 +1,5 @@
 {
   "projectType": "library",
-  "root": "libs/shared",
   "sourceRoot": "libs/shared/src",
   "prefix": "sick",
   "targets": {

@@ -1,5 +1,4 @@
 {
-  "root": "apps/sick-fansubs-e2e",
   "sourceRoot": "apps/sick-fansubs-e2e/src",
   "projectType": "application",
   "targets": {

@@ -31,10 +31,43 @@
 @import './libs/home/feature/post-detail';
 @import './libs/home/ui/post-item';
 
-html,
-body {
-  height: 100%;
+@import './libs/rules/feature/rules';
+@import './libs/about/feature/about';
+
+* {
   margin: 0;
+  padding: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+html {
+  box-sizing: border-box;
+  font-size: 62.5%; // 1rem = 10px, 10px/16px = 62.5%
+
+  @media only screen and (max-width: $bp-large) {
+    font-size: 50%;
+  }
+}
+
+body {
+  font-family: 'Roboto';
+  font-weight: 400;
+  line-height: 1.6;
+
+  min-height: 100vh;
+}
+
+mat-sidenav {
+  overflow: unset !important;
+}
+
+mat-sidenav-container {
+  min-height: 100%;
 }
 
 .logo {
@@ -59,8 +92,4 @@ body {
 
 .spacer {
   flex: 1 1 auto;
-}
-
-.mat-drawer-inner-container {
-  overflow: hidden !important;
 }

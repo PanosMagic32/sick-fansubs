@@ -1,17 +1,22 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-import { PostListComponent } from '@sick/client/home';
-import { ProjectListComponent } from '@sick/client/projects';
-
 const routes: Routes = [
   {
-    path: 'home',
-    component: PostListComponent,
+    path: '',
+    loadChildren: () => import('@sick/client/home').then((m) => m.ClientHomeModule),
   },
   {
     path: 'projects',
-    component: ProjectListComponent,
+    loadChildren: () => import('@sick/client/projects').then((m) => m.ClientProjectsModule),
+  },
+  {
+    path: 'rules',
+    loadChildren: () => import('@sick/client/rules').then((m) => m.ClientRulesModule),
+  },
+  {
+    path: 'about',
+    loadChildren: () => import('@sick/client/about').then((m) => m.ClientAboutModule),
   },
 ];
 

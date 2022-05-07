@@ -3,8 +3,10 @@
   "projects": {
     "api": "apps/api",
     "api-interfaces": "libs/api-interfaces",
+    "client-about": "libs/client/about",
     "client-home": "libs/client/home",
     "client-projects": "libs/client/projects",
+    "client-rules": "libs/client/rules",
     "client-shell": "libs/client/shell",
     "material": "libs/material",
     "shared": "libs/shared",

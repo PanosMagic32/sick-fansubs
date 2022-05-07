@@ -32,12 +32,32 @@
 
         <li [routerLink]="['/rules']" routerLinkActive="active">
           <mat-icon>gavel</mat-icon>
-          <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="/rules">Rules</a>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base">Rules</a>
         </li>
 
         <li [routerLink]="['/about']" routerLinkActive="active">
           <mat-icon>info</mat-icon>
-          <a class="mat-focus-indicator docs-button mat-button mat-button-base" href="/about">About</a>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base">About</a>
+        </li>
+      </ul>
+    </div>
+
+    <div fxFlex fxLayout fxLayoutAlign="center" fxHide.lt-sm fxHide.gt-sm>
+      <ul fxLayout fxLayoutGap="1rem" class="navigation-items-icons-only">
+        <li [routerLink]="['/projects']" routerLinkActive="active">
+          <mat-icon>grid_view</mat-icon>
+        </li>
+
+        <li>
+          <mat-icon>feed</mat-icon>
+        </li>
+
+        <li [routerLink]="['/rules']" routerLinkActive="active">
+          <mat-icon>gavel</mat-icon>
+        </li>
+
+        <li [routerLink]="['/about']" routerLinkActive="active">
+          <mat-icon>info</mat-icon>
         </li>
       </ul>
     </div>

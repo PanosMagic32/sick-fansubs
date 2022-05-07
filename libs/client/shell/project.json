@@ -1,6 +1,5 @@
 {
   "projectType": "library",
-  "root": "libs/client/shell",
   "sourceRoot": "libs/client/shell/src",
   "prefix": "sick",
   "targets": {

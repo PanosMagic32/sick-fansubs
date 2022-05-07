@@ -1,6 +1,5 @@
 {
   "projectType": "application",
-  "root": "apps/sick-fansubs",
   "sourceRoot": "apps/sick-fansubs/src",
   "prefix": "sick",
   "targets": {
