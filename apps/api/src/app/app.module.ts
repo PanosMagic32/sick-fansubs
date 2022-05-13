@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ApiBlogPostModule } from '@sick/api/blog-post';
+
+const url = process.env.MONGO_URL || 'localhost';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [ApiBlogPostModule, MongooseModule.forRoot(`mongodb://${url}:27017`)],
 })
 export class AppModule {}

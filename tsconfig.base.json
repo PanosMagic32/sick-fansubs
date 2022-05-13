@@ -15,7 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@sick/api-interfaces": ["libs/api-interfaces/src/index.ts"],
+      "@sick/api/blog-post": ["libs/api/blog-post/src/index.ts"],
       "@sick/client/about": ["libs/client/about/src/index.ts"],
       "@sick/client/home": ["libs/client/home/src/index.ts"],
       "@sick/client/home/home": ["libs/client/home/src/index.ts"],
