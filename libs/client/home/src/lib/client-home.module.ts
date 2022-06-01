@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
 
 import { MaterialModule } from '@sick/material';
 
@@ -9,7 +10,7 @@ import { PostDetailComponent } from './feature/post-detail/post-detail.component
 import { PostItemComponent } from './ui/post-item/post-item.component';
 
 @NgModule({
-  imports: [CommonModule, ClientHomeRoutingModule, MaterialModule],
+  imports: [CommonModule, ClientHomeRoutingModule, MaterialModule, HttpClientModule],
   declarations: [PostListComponent, PostDetailComponent, PostItemComponent],
   exports: [PostListComponent, PostDetailComponent],
 })

@@ -9,7 +9,19 @@ export class BlogPost {
   title!: string;
 
   @Prop({ required: true })
+  subtitle!: string;
+
+  @Prop({ required: true })
   description!: string;
+
+  @Prop({ required: true })
+  thumbnail!: string;
+
+  @Prop({ required: true })
+  downloadLink!: string;
+
+  // @Prop({ type: Date })
+  // dateTime!: Date;
 }
 
 export const BlogPostSchema = SchemaFactory.createForClass(BlogPost);

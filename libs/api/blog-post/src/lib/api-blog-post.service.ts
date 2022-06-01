@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
+import { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
 import { BlogPost, BlogPostDocument } from './schemas/blog-post.schema';
 
 @Injectable()
@@ -24,12 +25,22 @@ export class ApiBlogPostService {
     if (blogPost) {
       return blogPost;
     } else {
-      return undefined;
+      throw new NotFoundException();
+    }
+  }
+
+  async update(id: string, updateBlogPostDto: UpdateBlogPostDto): Promise<BlogPost | undefined | null> {
+    const blogPost = await this.findOne(id);
+
+    if (blogPost) {
+      return this.blogPostModel.findByIdAndUpdate({ _id: id }, updateBlogPostDto).exec();
+    } else {
+      throw new NotFoundException();
     }
   }
 
   async delete(id: string) {
-    const deletedCat = await this.blogPostModel.findByIdAndRemove({ _id: id }).exec();
-    return deletedCat;
+    const deletedBlogPost = await this.blogPostModel.findByIdAndRemove({ _id: id }).exec();
+    return deletedBlogPost;
   }
 }

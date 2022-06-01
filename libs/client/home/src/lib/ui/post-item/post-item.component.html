@@ -1,24 +1,20 @@
 <mat-card class="post-card">
   <mat-card-header>
     <div mat-card-avatar class="post-header-image"></div>
-    <mat-card-title>One Piece</mat-card-title>
-    <mat-card-subtitle>Επεισόδιο 1015</mat-card-subtitle>
+    <mat-card-title>{{ post.title }}</mat-card-title>
+    <mat-card-subtitle>{{ post.subtitle }}</mat-card-subtitle>
   </mat-card-header>
 
-  <img
-    mat-card-image
-    src="https://cdn.discordapp.com/attachments/660525275930558504/967720079594762250/op1015.png"
-    alt="One Piece"
-  />
+  <img mat-card-image [src]="post.thumbnail" alt="One Piece" />
 
   <mat-card-content>
-    <h3 class="post-description">«Mugiwara Luffy! Ο Άντρας που θα Γίνει ο Βασιλιάς των Πειρατών!»</h3>
+    <h3 class="post-description">{{ post.description }}»</h3>
   </mat-card-content>
 
   <mat-divider inset></mat-divider>
 
   <mat-card-actions align="end">
-    <button mat-button>Download</button>
+    <button mat-button (click)="onDownload(post.downloadLink)">Download</button>
     <button mat-button>Comment</button>
     <button mat-button>Share</button>
   </mat-card-actions>
