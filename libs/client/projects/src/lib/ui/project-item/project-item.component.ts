@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'sick-project-item',
@@ -6,7 +7,11 @@ import { Component, OnInit } from '@angular/core';
   styles: [],
 })
 export class ProjectItemComponent implements OnInit {
-  constructor() {}
+  constructor(private router: Router) {}
 
   ngOnInit(): void {}
+
+  onMore() {
+    this.router.navigate(['/projects/detail']);
+  }
 }

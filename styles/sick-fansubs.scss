@@ -34,6 +34,11 @@
 @import './libs/rules/feature/rules';
 @import './libs/about/feature/about';
 
+@import './libs/auth/feature/login';
+@import './libs/auth/feature/signup';
+@import './libs/auth/ui/login-form';
+@import './libs/auth/ui/signup-form';
+
 * {
   margin: 0;
   padding: 0;

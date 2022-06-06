@@ -18,6 +18,10 @@ const routes: Routes = [
     path: 'about',
     loadChildren: () => import('@sick/client/about').then((m) => m.ClientAboutModule),
   },
+  {
+    path: 'auth',
+    loadChildren: () => import('@sick/client/auth').then((m) => m.ClientAuthModule),
+  },
 ];
 
 @NgModule({

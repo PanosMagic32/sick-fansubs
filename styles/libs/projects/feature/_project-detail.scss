@@ -1,0 +1,33 @@
+.project-detail-card {
+  margin: 2rem;
+  // max-width: 40%;
+
+  mat-card-header {
+    .project-detail-header-image {
+      background-image: url('../../../../apps/sick-fansubs/src/assets/logo/logo.png');
+      background-size: cover;
+    }
+  }
+
+  img {
+    max-width: 80%;
+    margin: 0 auto;
+    border-radius: 1rem;
+  }
+
+  mat-card-content {
+    .project-detail-description {
+      margin: 2rem 1rem;
+    }
+  }
+
+  .links {
+    font-size: 20px;
+    margin: 2rem 1rem;
+
+    a {
+      text-decoration: none;
+      color: black;
+    }
+  }
+}

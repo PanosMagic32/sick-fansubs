@@ -19,6 +19,7 @@
       "@sick/api/project": ["libs/api/project/src/index.ts"],
       "@sick/api/user": ["libs/api/user/src/index.ts"],
       "@sick/client/about": ["libs/client/about/src/index.ts"],
+      "@sick/client/auth": ["libs/client/auth/src/index.ts"],
       "@sick/client/home": ["libs/client/home/src/index.ts"],
       "@sick/client/home/home": ["libs/client/home/src/index.ts"],
       "@sick/client/projects": ["libs/client/projects/src/index.ts"],

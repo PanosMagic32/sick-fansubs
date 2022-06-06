@@ -65,6 +65,22 @@
     <span class="spacer"></span>
 
     <button
+      [routerLink]="['/auth/login']"
+      routerLinkActive="active"
+      class="mat-focus-indicator docs-button mat-button mat-button-base"
+    >
+      Login
+    </button>
+
+    <button
+      [routerLink]="['/auth/signup']"
+      routerLinkActive="active"
+      class="mat-focus-indicator docs-button mat-button mat-button-base"
+    >
+      Signup
+    </button>
+
+    <button
       mat-icon-button
       [routerLink]="['/account']"
       routerLinkActive="active"
