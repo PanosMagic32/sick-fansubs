@@ -3,15 +3,12 @@ import mongoose, { Document } from 'mongoose';
 
 import { User } from '@sick/api/user';
 
-export type BlogPostDocument = BlogPost & Document;
+export type ProjectDocument = Project & Document;
 
 @Schema()
-export class BlogPost {
+export class Project {
   @Prop({ required: true })
   title!: string;
-
-  @Prop({ required: true })
-  subtitle!: string;
 
   @Prop({ required: true })
   description!: string;
@@ -20,13 +17,13 @@ export class BlogPost {
   thumbnail!: string;
 
   @Prop({ required: true })
-  downloadLink!: string;
-
-  @Prop({ required: true })
   dateTimeCreated!: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   creator!: User;
+
+  @Prop()
+  batchDownloadLinks!: string[];
 }
 
-export const BlogPostSchema = SchemaFactory.createForClass(BlogPost);
+export const ProjectSchema = SchemaFactory.createForClass(Project);

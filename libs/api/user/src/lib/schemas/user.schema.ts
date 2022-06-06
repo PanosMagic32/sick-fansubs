@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { BlogPost } from '@sick/api/blog-post';
-import mongoose, { Document } from 'mongoose';
+import { Document } from 'mongoose';
+
+// import { BlogPost } from '@sick/api/blog-post';
 
 export type UserDocument = User & Document;
 
@@ -15,8 +16,8 @@ export class User {
   @Prop()
   avatar!: string;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BlogPost' })
-  blogPosts: BlogPost[];
+  // @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BlogPost' })
+  // blogPosts: BlogPost[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

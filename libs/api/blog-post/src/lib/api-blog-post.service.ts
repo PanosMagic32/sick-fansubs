@@ -11,8 +11,8 @@ export class ApiBlogPostService {
   constructor(@InjectModel(BlogPost.name) private readonly blogPostModel: Model<BlogPostDocument>) {}
 
   async create(createBlogPostDto: CreateBlogPostDto): Promise<BlogPost> {
-    const createdCat = await this.blogPostModel.create(createBlogPostDto);
-    return createdCat;
+    const createdBlogPost = await this.blogPostModel.create(createBlogPostDto);
+    return createdBlogPost;
   }
 
   async findAll(): Promise<BlogPost[]> {

@@ -1,8 +1,7 @@
-export class CreateBlogPostDto {
+export class CreateProjectDto {
   readonly title!: string;
-  readonly subtitle!: string;
   readonly description!: string;
   readonly thumbnail!: string;
-  readonly downloadLink!: string;
+  readonly batchDownloadLinks!: string[];
   readonly dateTimeCreated!: string;
 }

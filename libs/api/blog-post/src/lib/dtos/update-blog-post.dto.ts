@@ -1,4 +1,5 @@
 import { PartialType } from '@nestjs/swagger';
+
 import { CreateBlogPostDto } from './create-blog-post.dto';
 
 export class UpdateBlogPostDto extends PartialType(CreateBlogPostDto) {
@@ -7,5 +8,5 @@ export class UpdateBlogPostDto extends PartialType(CreateBlogPostDto) {
   override readonly description!: string;
   override readonly thumbnail!: string;
   override readonly downloadLink!: string;
-  // override readonly dateTime!: Date;
+  override readonly dateTimeCreated!: string;
 }
