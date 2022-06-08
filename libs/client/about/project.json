@@ -1,11 +1,14 @@
 {
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "sourceRoot": "libs/client/about/src",
   "prefix": "sick",
   "targets": {
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/libs/client/about"],
+      "outputs": [
+        "coverage/libs/client/about"
+      ],
       "options": {
         "jestConfig": "libs/client/about/jest.config.ts",
         "passWithNoTests": true
@@ -14,7 +17,10 @@
     "lint": {
       "executor": "@nrwl/linter:eslint",
       "options": {
-        "lintFilePatterns": ["libs/client/about/**/*.ts", "libs/client/about/**/*.html"]
+        "lintFilePatterns": [
+          "libs/client/about/**/*.ts",
+          "libs/client/about/**/*.html"
+        ]
       }
     }
   },

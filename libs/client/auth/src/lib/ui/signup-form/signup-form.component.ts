@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { UntypedFormControl, Validators } from '@angular/forms';
 
 @Component({
   selector: 'sick-signup-form',
@@ -7,11 +7,11 @@ import { FormControl, Validators } from '@angular/forms';
   styleUrls: [],
 })
 export class SignupFormComponent implements OnInit {
-  firstName = new FormControl('');
-  lastName = new FormControl('');
-  email = new FormControl('', [Validators.required, Validators.email]);
-  password = new FormControl('', [Validators.required]);
-  confirmPassword = new FormControl('', [Validators.required]);
+  firstName = new UntypedFormControl('');
+  lastName = new UntypedFormControl('');
+  email = new UntypedFormControl('', [Validators.required, Validators.email]);
+  password = new UntypedFormControl('', [Validators.required]);
+  confirmPassword = new UntypedFormControl('', [Validators.required]);
 
   constructor() {}
 

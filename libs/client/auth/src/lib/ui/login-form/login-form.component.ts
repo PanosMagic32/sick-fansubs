@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { UntypedFormControl, Validators } from '@angular/forms';
 
 @Component({
   selector: 'sick-login-form',
@@ -7,8 +7,8 @@ import { FormControl, Validators } from '@angular/forms';
   styleUrls: [],
 })
 export class LoginFormComponent implements OnInit {
-  email = new FormControl('', [Validators.required, Validators.email]);
-  password = new FormControl('', [Validators.required]);
+  email = new UntypedFormControl('', [Validators.required, Validators.email]);
+  password = new UntypedFormControl('', [Validators.required]);
 
   constructor() {}
 
