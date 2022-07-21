@@ -4,7 +4,7 @@
       <img src="assets/logo/logo.png" alt="logo" [routerLink]="['/home']" />
     </div>
 
-    <button mat-icon-button (click)="onToggleSidenav()" fxHide.gt-xs>
+    <button mat-icon-button (click)="onToggleSidenav()" *ngIf="(isSmall$ | async) || (isHandset$ | async) ? true : false">
       <mat-icon>menu</mat-icon>
     </button>
 
@@ -12,8 +12,8 @@
 
     <span class="spacer"></span>
 
-    <div fxFlex fxLayout fxLayoutAlign="center" fxHide.lt-md>
-      <ul fxLayout fxLayoutGap="1rem" class="navigation-items">
+    <div *ngIf="(isSmall$ | async) || (isMedium$ | async) || (isHandset$ | async) ? false : true">
+      <ul class="navigation-items">
         <li [routerLink]="['/projects']" routerLinkActive="active">
           <mat-icon>grid_view</mat-icon>
           <a class="mat-focus-indicator docs-button mat-button mat-button-base">Projects</a>
@@ -42,8 +42,8 @@
       </ul>
     </div>
 
-    <div fxFlex fxLayout fxLayoutAlign="center" fxHide.lt-sm fxHide.gt-sm>
-      <ul fxLayout fxLayoutGap="1rem" class="navigation-items-icons-only">
+    <div class="menu-icons-only" *ngIf="(isMedium$ | async) ? true : false">
+      <ul class="navigation-items-icons-only">
         <li [routerLink]="['/projects']" routerLinkActive="active">
           <mat-icon>grid_view</mat-icon>
         </li>
@@ -64,30 +64,20 @@
 
     <span class="spacer"></span>
 
-    <button
-      [routerLink]="['/auth/login']"
-      routerLinkActive="active"
-      class="mat-focus-indicator docs-button mat-button mat-button-base"
-    >
-      Login
-    </button>
-
-    <button
-      [routerLink]="['/auth/signup']"
-      routerLinkActive="active"
-      class="mat-focus-indicator docs-button mat-button mat-button-base"
-    >
-      Signup
-    </button>
-
+    <!-- TODO - implement different menu for loggedin/out user -->
     <button
       mat-icon-button
-      [routerLink]="['/account']"
       routerLinkActive="active"
+      [matMenuTriggerFor]="userMenu"
       class="mat-focus-indicator docs-button mat-button mat-button-base"
     >
       <mat-icon>person</mat-icon>
     </button>
+
+    <mat-menu #userMenu="matMenu">
+      <button mat-menu-item [routerLink]="['/auth/login']">Login</button>
+      <button mat-menu-item [routerLink]="['/auth/signup']">Signup</button>
+    </mat-menu>
 
     <button
       mat-icon-button
@@ -97,7 +87,7 @@
       <mat-icon>search</mat-icon>
     </button>
 
-    <div class="logo-social" fxHide.lt-md>
+    <div class="logo-social" *ngIf="(isSmall$ | async) || (isHandset$ | async) ? false : true">
       <img src="assets/images/discord.svg" alt="discord" />
       <img src="assets/images/facebook.svg" alt="facebook" />
       <img src="assets/images/github.svg" alt="github" />

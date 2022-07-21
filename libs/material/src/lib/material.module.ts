@@ -1,7 +1,5 @@
 import { NgModule } from '@angular/core';
 
-import { FlexLayoutModule } from '@angular/flex-layout';
-
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,7 +15,6 @@ import { MatPaginatorModule } from '@angular/material/paginator';
 
 @NgModule({
   imports: [
-    FlexLayoutModule,
     MatInputModule,
     MatCardModule,
     MatButtonModule,
@@ -32,7 +29,6 @@ import { MatPaginatorModule } from '@angular/material/paginator';
     MatPaginatorModule,
   ],
   exports: [
-    FlexLayoutModule,
     MatInputModule,
     MatCardModule,
     MatButtonModule,

@@ -42,7 +42,12 @@ mat-toolbar.header-toolbar {
   background-color: var(--primary-darker-color);
 }
 
+.menu-icons-only {
+  display: flex;
+}
+
 .navigation-items {
+  display: flex;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -71,6 +76,8 @@ mat-toolbar.header-toolbar {
   }
 
   &-icons-only {
+    display: flex;
+
     li {
       display: flex;
       align-items: center;
