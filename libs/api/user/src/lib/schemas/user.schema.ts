@@ -13,8 +13,14 @@ export class User {
   @Prop({ required: true })
   email!: string;
 
+  @Prop({ required: true })
+  password!: string;
+
   @Prop()
   avatar!: string;
+
+  @Prop()
+  isAdmin!: boolean;
 
   // @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BlogPost' })
   // blogPosts: BlogPost[];

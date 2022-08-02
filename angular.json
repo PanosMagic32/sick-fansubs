@@ -2,6 +2,7 @@
   "version": 2,
   "projects": {
     "api": "apps/api",
+    "api-auth": "libs/api/auth",
     "api-blog-post": "libs/api/blog-post",
     "api-project": "libs/api/project",
     "api-user": "libs/api/user",

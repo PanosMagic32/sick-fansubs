@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@sick/api/auth": ["libs/api/auth/src/index.ts"],
       "@sick/api/blog-post": ["libs/api/blog-post/src/index.ts"],
       "@sick/api/project": ["libs/api/project/src/index.ts"],
       "@sick/api/user": ["libs/api/user/src/index.ts"],

@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { UntypedFormControl, Validators } from '@angular/forms';
 
+import { AuthService } from '../../data-access/auth.service';
+
 @Component({
   selector: 'sick-login-form',
   templateUrl: './login-form.component.html',
@@ -10,7 +12,7 @@ export class LoginFormComponent implements OnInit {
   email = new UntypedFormControl('', [Validators.required, Validators.email]);
   password = new UntypedFormControl('', [Validators.required]);
 
-  constructor() {}
+  constructor(private authService: AuthService) {}
 
   ngOnInit(): void {}
 
