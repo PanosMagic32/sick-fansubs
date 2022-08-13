@@ -1,3 +1,4 @@
+/* eslint-disable */
 export default {
   displayName: 'client-home',
   preset: '../../../jest.preset.js',
