@@ -10,9 +10,9 @@ import { BlogPost, BlogPostDocument } from './schemas/blog-post.schema';
 export class ApiBlogPostService {
   constructor(@InjectModel(BlogPost.name) private readonly blogPostModel: Model<BlogPostDocument>) {}
 
-  async create(createBlogPostDto: CreateBlogPostDto): Promise<BlogPost> {
+  async create(createBlogPostDto: CreateBlogPostDto): Promise<{ id: string }> {
     const createdBlogPost = await this.blogPostModel.create(createBlogPostDto);
-    return createdBlogPost;
+    return { id: createdBlogPost._id };
   }
 
   async findAll(): Promise<BlogPost[]> {

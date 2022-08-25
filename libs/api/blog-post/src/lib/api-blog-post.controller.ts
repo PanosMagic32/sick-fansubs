@@ -11,7 +11,7 @@ export class ApiBlogPostController {
 
   @Post()
   async create(@Body() createBlogPostDto: CreateBlogPostDto) {
-    await this.apiBlogPostService.create(createBlogPostDto);
+    return this.apiBlogPostService.create(createBlogPostDto);
   }
 
   @Get()
