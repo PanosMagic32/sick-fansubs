@@ -98,3 +98,14 @@ mat-sidenav-container {
 .spacer {
   flex: 1 1 auto;
 }
+
+.no-content {
+  background-color: var(--warn-lighter-color);
+  padding: 3rem 0;
+  border-radius: 1rem;
+  width: 60%;
+  margin: 10% auto;
+
+  text-align: center;
+  font-size: 1.5rem;
+}

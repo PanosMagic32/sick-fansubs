@@ -27,4 +27,19 @@
       text-align: center;
     }
   }
+
+  mat-card-actions.post-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .post-actions-date {
+      margin-left: 1rem;
+      display: flex;
+
+      p {
+        padding: 0 1rem;
+      }
+    }
+  }
 }
