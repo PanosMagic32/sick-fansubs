@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 
 import { ApiBlogPostService } from './api-blog-post.service';
 import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
@@ -15,7 +15,27 @@ export class ApiBlogPostController {
   }
 
   @Get()
-  async findAll(): Promise<BlogPost[]> {
+  async findAll(
+    @Query() params: { skip: number; limit: number; startId?: string }
+  ): Promise<{ posts: BlogPost[]; count: number }> {
+    return this.apiBlogPostService.findAll(params.skip, params.limit, params.startId);
+  }
+
+  @Get('search')
+  async search(@Query() s: string) {
+    let options = {};
+    console.log(s);
+
+    if (s) {
+      options = {
+        $or: [{ title: new RegExp(s, 'i') }, { subtitle: new RegExp(s, 'i') }, { description: new RegExp(s, 'i') }],
+      };
+
+      const query = this.apiBlogPostService.search(options);
+
+      return query;
+    }
+
     return this.apiBlogPostService.findAll();
   }
 

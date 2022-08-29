@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 
 import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
@@ -15,8 +15,30 @@ export class ApiBlogPostService {
     return { id: createdBlogPost._id };
   }
 
-  async findAll(): Promise<BlogPost[]> {
-    return this.blogPostModel.find().exec();
+  async findAll(
+    documentsToSkip = 0,
+    limitOfDocuments?: number,
+    // startId?: string
+  ): Promise<{ posts: BlogPost[]; count: number }> {
+    const query = this.blogPostModel
+      // The below commented-out object in find is a possible way to improve performance in database search
+      // .find({
+      //   _id: {
+      //     $gt: startId,
+      //   },
+      // })
+      .find()
+      .sort({ dateTimeCreated: 'desc' })
+      .skip(documentsToSkip);
+
+    if (limitOfDocuments) {
+      query.limit(limitOfDocuments);
+    }
+
+    const posts = await query.exec();
+    const count = await this.blogPostModel.count();
+
+    return { posts, count };
   }
 
   async findOne(id: string): Promise<BlogPost | undefined> {
@@ -27,6 +49,10 @@ export class ApiBlogPostService {
     } else {
       throw new NotFoundException();
     }
+  }
+
+  async search(options: FilterQuery<BlogPostDocument>) {
+    return this.blogPostModel.find(options).sort({ dateTimeCreated: 'desc' }).exec();
   }
 
   async update(id: string, updateBlogPostDto: UpdateBlogPostDto): Promise<BlogPost | undefined | null> {
@@ -42,5 +68,9 @@ export class ApiBlogPostService {
   async delete(id: string) {
     const deletedBlogPost = await this.blogPostModel.findByIdAndRemove({ _id: id }).exec();
     return deletedBlogPost;
+  }
+
+  async count(options: FilterQuery<BlogPostDocument>) {
+    return this.blogPostModel.count(options).sort({ dateTimeCreated: 'desc' }).exec();
   }
 }
