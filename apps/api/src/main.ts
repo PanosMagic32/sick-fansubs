@@ -8,6 +8,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const globalPrefix = 'api';
 
+  app.setGlobalPrefix(globalPrefix);
+  app.useGlobalPipes(new ValidationPipe());
+  app.enableCors();
+
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Sick-Fansubs API')
     .setDescription('Sick-Fansubs ReST API documentation')
@@ -17,10 +21,6 @@ async function bootstrap() {
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions);
 
   SwaggerModule.setup('api-docs', app, swaggerDocument);
-
-  app.setGlobalPrefix(globalPrefix);
-  app.useGlobalPipes(new ValidationPipe());
-  app.enableCors();
 
   const port = process.env.PORT || 3333;
 
