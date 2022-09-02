@@ -4,14 +4,14 @@ import { IsEmail, IsNotEmpty } from 'class-validator';
 import { CreateUserDto } from './create-user.dto';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
-  @ApiProperty()
+  @ApiProperty({ type: String })
   @IsNotEmpty()
   override readonly username!: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: String })
   @IsEmail()
   override readonly email!: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: String })
   override readonly avatar!: string;
 }

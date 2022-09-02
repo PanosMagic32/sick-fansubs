@@ -51,3 +51,9 @@ More info and Documentation can be found to [mongodb.com](https://www.mongodb.co
 ## - Docker/Docker Compose (Containerization)
 
 More info and Documentation can be found to [docker.com](https://www.docker.com/).
+
+## - Swagger (ReST API documentation)
+
+The ReST API documentation can be accessed through `/api-docs`.
+
+More info and Documentation can be found to [swagger.io](https://swagger.io/).
