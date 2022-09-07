@@ -13,6 +13,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 @NgModule({
   imports: [
@@ -29,6 +30,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     MatTableModule,
     MatSelectModule,
     MatPaginatorModule,
+    MatSnackBarModule,
   ],
   exports: [
     MatInputModule,
@@ -44,6 +46,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     MatTableModule,
     MatSelectModule,
     MatPaginatorModule,
+    MatSnackBarModule,
   ],
 })
 export class MaterialModule {}

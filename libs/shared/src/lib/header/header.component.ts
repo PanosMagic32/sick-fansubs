@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 
 import { MenuService } from '../data-access/menu.service';
 
@@ -7,7 +7,7 @@ import { MenuService } from '../data-access/menu.service';
   templateUrl: './header.component.html',
   styles: [],
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent {
   @Output() sidenavToggle = new EventEmitter();
 
   isHandset$ = this.menuService.isHandset$;
@@ -18,9 +18,11 @@ export class HeaderComponent implements OnInit {
 
   constructor(private menuService: MenuService) {}
 
-  ngOnInit(): void {}
-
   onToggleSidenav() {
     this.sidenavToggle.emit();
+  }
+
+  onOpenSocial(url: string) {
+    window.open(url, '_system');
   }
 }

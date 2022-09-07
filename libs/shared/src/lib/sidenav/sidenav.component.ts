@@ -1,16 +1,12 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 
 @Component({
   selector: 'sick-sidenav',
   templateUrl: './sidenav.component.html',
   styles: [],
 })
-export class SidenavComponent implements OnInit {
+export class SidenavComponent {
   @Output() sidenavClose = new EventEmitter();
-
-  constructor() {}
-
-  ngOnInit(): void {}
 
   onSidenavClose() {
     this.sidenavClose.emit();
@@ -20,5 +16,9 @@ export class SidenavComponent implements OnInit {
     window.open('https://nyaa.si/user/Sick-Fansubs', '_blank');
 
     this.onSidenavClose();
+  }
+
+  onOpenSocial(url: string) {
+    window.open(url, '_system');
   }
 }

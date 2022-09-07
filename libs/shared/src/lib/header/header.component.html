@@ -88,9 +88,13 @@
     </button>
 
     <div class="logo-social" *ngIf="(isSmall$ | async) || (isHandset$ | async) ? false : true">
-      <img src="assets/images/discord.svg" alt="discord" />
-      <img src="assets/images/facebook.svg" alt="facebook" />
-      <img src="assets/images/github.svg" alt="github" />
+      <img src="assets/images/discord.svg" alt="discord" (click)="onOpenSocial('https://discord.gg/5bPmEepP')" />
+      <img src="assets/images/facebook.svg" alt="facebook" (click)="onOpenSocial('https://www.facebook.com/SickFansubs/')" />
+      <img
+        src="assets/images/github.svg"
+        alt="github"
+        (click)="onOpenSocial('https://github.com/PanosMagic32/sick-fansubs')"
+      />
     </div>
   </mat-toolbar-row>
 
