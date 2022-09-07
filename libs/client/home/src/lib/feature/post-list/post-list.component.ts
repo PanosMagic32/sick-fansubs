@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subscription } from 'rxjs';
 
 import { BlogPost } from '@sick/api/blog-post';
 
@@ -10,15 +12,22 @@ import { BlogPostService } from '../../data-access/blog-post.service';
   templateUrl: './post-list.component.html',
   styles: [],
 })
-export class PostListComponent implements OnInit {
+export class PostListComponent implements OnInit, OnDestroy {
+  blogPostSubscription!: Subscription;
   posts: BlogPost[] = [];
   totalCount = -1;
   isLoading = false;
 
-  constructor(private blogPostService: BlogPostService) {}
+  constructor(private blogPostService: BlogPostService, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
     this.fetchBlogPosts();
+  }
+
+  ngOnDestroy(): void {
+    if (this.blogPostSubscription) {
+      this.blogPostSubscription.unsubscribe();
+    }
   }
 
   onPageEvent(event: PageEvent) {
@@ -27,7 +36,7 @@ export class PostListComponent implements OnInit {
 
   private fetchBlogPosts(skip = 0, limit = 5) {
     this.isLoading = true;
-    this.blogPostService.getBlogPosts(skip, limit).subscribe({
+    this.blogPostSubscription = this.blogPostService.getBlogPosts(skip, limit).subscribe({
       next: (res) => {
         console.log(res);
         this.posts = res.posts;
@@ -36,8 +45,13 @@ export class PostListComponent implements OnInit {
       },
       error: (err) => {
         this.isLoading = false;
-        console.log(err);
+
+        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
       },
     });
+  }
+
+  private openSnackBar(message: string, action: string) {
+    this.snackBar.open(message, action, { duration: 3000 });
   }
 }
