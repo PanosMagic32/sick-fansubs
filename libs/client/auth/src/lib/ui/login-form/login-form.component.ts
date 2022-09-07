@@ -1,30 +1,51 @@
-import { Component, OnInit } from '@angular/core';
-import { UntypedFormControl, Validators } from '@angular/forms';
+import { Component } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AuthService } from '../../data-access/auth.service';
+import { LoginForm } from '../../data-access/login-form.interface';
 
 @Component({
   selector: 'sick-login-form',
   templateUrl: './login-form.component.html',
   styleUrls: [],
 })
-export class LoginFormComponent implements OnInit {
-  email = new UntypedFormControl('', [Validators.required, Validators.email]);
-  password = new UntypedFormControl('', [Validators.required]);
+export class LoginFormComponent {
+  loginForm = new FormGroup<LoginForm>({
+    username: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(6)] }),
+  });
 
-  constructor(private authService: AuthService) {}
+  // Alternative was of typed forms with FormBuilder/NonNullableFormBuilder
+  // The form builder must be injected in the constructor
+  // loginForm = this.fb.group({
+  //   username: ['', Validators.required],
+  //   password: ['', [Validators.required, Validators.minLength(6)]],
+  // });
 
-  ngOnInit(): void {}
+  get formControl() {
+    return this.loginForm.controls;
+  }
 
-  getErrorMessage(field: string) {
-    if (field === 'email') {
-      if (this.email.hasError('required')) {
-        return 'You must enter an email';
-      }
+  constructor(private authService: AuthService, private snackBar: MatSnackBar) {}
 
-      return this.email.hasError('email') ? 'Not a valid email' : '';
-    } else {
-      return 'You must enter a password';
+  onLogin() {
+    if (!this.loginForm.value.username || !this.loginForm.value.password) {
+      return;
     }
+
+    this.authService.login(this.loginForm.value.username, this.loginForm.value.password).subscribe({
+      next: (res) => {
+        console.log(res);
+        // TODO - handle successfull response
+      },
+      error: (err) => {
+        this.openSnackBar(err.error.message, 'OK');
+      },
+    });
+  }
+
+  private openSnackBar(message: string, action: string) {
+    this.snackBar.open(message, action, { duration: 3000 });
   }
 }

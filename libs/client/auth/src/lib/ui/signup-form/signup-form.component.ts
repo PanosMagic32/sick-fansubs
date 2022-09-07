@@ -1,33 +1,83 @@
-import { Component, OnInit } from '@angular/core';
-import { UntypedFormControl, Validators } from '@angular/forms';
+import { Component } from '@angular/core';
+import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
+
+import { AuthService } from '../../data-access/auth.service';
+import { SignupForm } from '../../data-access/signup-form.interface';
 
 @Component({
   selector: 'sick-signup-form',
   templateUrl: './signup-form.component.html',
   styleUrls: [],
 })
-export class SignupFormComponent implements OnInit {
-  firstName = new UntypedFormControl('');
-  lastName = new UntypedFormControl('');
-  email = new UntypedFormControl('', [Validators.required, Validators.email]);
-  password = new UntypedFormControl('', [Validators.required]);
-  confirmPassword = new UntypedFormControl('', [Validators.required]);
+export class SignupFormComponent {
+  signupForm = new FormGroup<SignupForm>(
+    {
+      username: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
+      password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(6)] }),
+      confirmPassword: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required, Validators.minLength(6)],
+      }),
+      // avatar: new FormControl(''),
+    },
+    { validators: this.checkPasswords('password', 'confirmPassword') }
+  );
 
-  constructor() {}
+  get formControl() {
+    return this.signupForm.controls;
+  }
 
-  ngOnInit(): void {}
+  constructor(private authService: AuthService, private snackBar: MatSnackBar) {}
 
-  getErrorMessage(field: string) {
-    if (field === 'email') {
-      if (this.email.hasError('required')) {
-        return 'You must enter an email';
+  onSignup() {
+    if (
+      !this.signupForm.value.username ||
+      !this.signupForm.value.email ||
+      !this.signupForm.value.password ||
+      !this.signupForm.value.confirmPassword
+    ) {
+      return;
+    }
+
+    this.authService
+      .signUp(this.signupForm.value.username, this.signupForm.value.email, this.signupForm.value.password)
+      .subscribe({
+        next: (res) => {
+          console.log(res);
+          // TODO - handle successfull response
+        },
+        error: (err) => {
+          this.openSnackBar(err.error.message, 'OK');
+        },
+      });
+  }
+
+  private openSnackBar(message: string, action: string) {
+    this.snackBar.open(message, action, { duration: 3000 });
+  }
+
+  private checkPasswords(password: string, confirmPassword: string): ValidatorFn {
+    return (formGroup: AbstractControl): { [key: string]: any } | null => {
+      const passwordControl = formGroup.get(password);
+      const confirmPasswordControl = formGroup.get(confirmPassword);
+
+      if (!passwordControl || !confirmPasswordControl) {
+        return null;
       }
 
-      return this.email.hasError('email') ? 'Not a valid email' : '';
-    } else if (field === 'password') {
-      return 'You must enter a password';
-    } else {
-      return 'You must enter a password';
-    }
+      if (confirmPasswordControl.errors && !confirmPasswordControl.errors['passwordMismatch']) {
+        return null;
+      }
+
+      if (passwordControl.value !== confirmPasswordControl.value) {
+        confirmPasswordControl.setErrors({ passwordMismatch: true });
+        return { passwordMismatch: true };
+      } else {
+        confirmPasswordControl.setErrors(null);
+        return null;
+      }
+    };
   }
 }

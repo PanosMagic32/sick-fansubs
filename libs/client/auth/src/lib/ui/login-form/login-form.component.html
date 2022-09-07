@@ -3,19 +3,32 @@
     <div class="login-form">
       <h1 class="login-title">Login</h1>
 
-      <mat-form-field class="login-input email-input" appearance="fill">
-        <mat-label>Email</mat-label>
-        <input matInput [formControl]="email" required />
-        <mat-error *ngIf="email.invalid">{{ getErrorMessage('email') }}</mat-error>
-      </mat-form-field>
+      <form [formGroup]="loginForm" (submit)="onLogin()">
+        <mat-form-field class="login-input username-input" appearance="fill">
+          <mat-label>Username</mat-label>
+          <input matInput type="text" placeholder="Username" formControlName="username" required />
+          <mat-error *ngIf="formControl.username.touched && formControl.username.hasError('required')">
+            Username is required
+          </mat-error>
+        </mat-form-field>
 
-      <mat-form-field class="login-input password-input" appearance="fill">
-        <mat-label>Password</mat-label>
-        <input type="password" matInput [formControl]="password" required />
-        <mat-error *ngIf="password.invalid">{{ getErrorMessage('password') }}</mat-error>
-      </mat-form-field>
+        <mat-form-field class="login-input password-input" appearance="fill">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" placeholder="Password" formControlName="password" minlength="6" required />
+          <mat-error
+            *ngIf="
+              formControl.password.touched &&
+              (formControl.password.hasError('required') || formControl.password.hasError('minlength'))
+            "
+          >
+            Password is required & must be at least 6 characters long
+          </mat-error>
+        </mat-form-field>
 
-      <button mat-raised-button class="login-btn" color="primary">Login</button>
+        <button mat-raised-button class="login-btn" color="primary" type="submit" [disabled]="!loginForm.valid">
+          Login
+        </button>
+      </form>
     </div>
   </mat-card>
 </div>
