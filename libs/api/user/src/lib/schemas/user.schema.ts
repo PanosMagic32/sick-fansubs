@@ -11,15 +11,15 @@ export class User {
   username!: string;
 
   @Prop({ required: true })
-  email!: string;
+  password!: string;
 
   @Prop({ required: true })
-  password!: string;
+  email!: string;
 
   @Prop()
   avatar!: string;
 
-  @Prop()
+  @Prop({ default: false })
   isAdmin!: boolean;
 
   // @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BlogPost' })
