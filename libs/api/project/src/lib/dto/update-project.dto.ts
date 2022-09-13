@@ -4,17 +4,17 @@ import { CreateProjectDto } from './create-project.dto';
 
 export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   @ApiProperty({ type: String })
-  readonly title!: string;
+  override readonly title!: string;
 
   @ApiProperty({ type: String })
-  readonly description!: string;
+  override readonly description!: string;
 
   @ApiProperty({ type: String })
-  readonly thumbnail!: string;
+  override readonly thumbnail!: string;
 
   @ApiProperty({ type: [String] })
-  readonly batchDownloadLinks!: string[];
+  override readonly batchDownloadLinks!: string[];
 
   @ApiProperty({ type: String })
-  readonly dateTimeCreated!: string;
+  override readonly dateTimeCreated!: string;
 }
