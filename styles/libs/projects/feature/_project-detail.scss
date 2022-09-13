@@ -25,9 +25,9 @@
     font-size: 20px;
     margin: 2rem 1rem;
 
-    a {
-      text-decoration: none;
-      color: black;
+    mat-icon {
+      padding-top: 0.5rem;
+      cursor: pointer;
     }
   }
 }

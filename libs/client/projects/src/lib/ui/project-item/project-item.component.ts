@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+
+import { Project } from '../../data-access/project.interface';
 
 @Component({
   selector: 'sick-project-item',
@@ -7,11 +9,13 @@ import { Router } from '@angular/router';
   styles: [],
 })
 export class ProjectItemComponent implements OnInit {
+  @Input() project!: Project;
+
   constructor(private router: Router) {}
 
   ngOnInit(): void {}
 
   onMore() {
-    this.router.navigate(['/projects/detail']);
+    this.router.navigate(['/projects/detail'], { state: { project: this.project } });
   }
 }

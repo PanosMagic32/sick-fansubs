@@ -1,9 +1,9 @@
-<div class="project-list">
-  <sick-project-item></sick-project-item>
-  <!-- <sick-project-item></sick-project-item> -->
-</div>
+<ng-container *ngIf="projects$; else elseTemplate">
+  <div class="project-list" *ngFor="let project of projects$ | async">
+    <sick-project-item [project]="project"></sick-project-item>
+  </div>
+</ng-container>
 
-<div class="project-list">
-  <sick-project-item></sick-project-item>
-  <sick-project-item></sick-project-item>
-</div>
+<ng-template #elseTemplate>
+  <p>No content</p>
+</ng-template>

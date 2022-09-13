@@ -25,4 +25,8 @@ export class HeaderComponent {
   onOpenSocial(url: string) {
     window.open(url, '_system');
   }
+
+  onOpenTracker() {
+    window.open('https://nyaa.si/user/Sick-Fansubs', '_system');
+  }
 }

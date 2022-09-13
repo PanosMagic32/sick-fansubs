@@ -1,56 +1,26 @@
-<mat-card class="project-detail-card">
+<mat-card class="project-detail-card" *ngIf="project">
   <mat-card-header>
     <div mat-card-avatar class="project-detail-header-image"></div>
-    <mat-card-title>One Piece</mat-card-title>
-    <!-- <mat-card-subtitle>Dog Breed</mat-card-subtitle> -->
+    <mat-card-title>{{ project.title }}</mat-card-title>
   </mat-card-header>
 
-  <img
-    mat-card-image
-    src="https://cdn.discordapp.com/attachments/660525275930558504/967720079594762250/op1015.png"
-    alt="One Piece"
-  />
+  <img mat-card-image [src]="project.thumbnail" [alt]="project.title" />
 
   <mat-card-content>
     <p class="project-detail-description">
-      One Piece (stylized in all caps) is a Japanese manga series written and illustrated by Eiichiro Oda. It has been
-      serialized in Shueisha's shōnen manga magazine Weekly Shōnen Jump since July 1997, with its individual chapters
-      compiled into 102 tankōbon volumes as of April 2022. The story follows the adventures of Monkey D. Luffy, a boy whose
-      body gained the properties of rubber after unintentionally eating a Devil Fruit. With his pirate crew, the Straw Hat
-      Pirates, Luffy explores the Grand Line in search of the deceased King of the Pirates Gol D. Roger's ultimate treasure
-      known as the "One Piece" in order to become the next King of the Pirates. The manga spawned a media franchise, having
-      been adapted into a festival film produced by Production I.G, and an anime series produced by Toei Animation, which
-      began broadcasting in Japan in 1999. Additionally, Toei has developed fourteen animated feature films, one OVA and
-      thirteen television specials. Several companies have developed various types of merchandising and media, such as a
-      trading card game and numerous video games. The manga series was licensed for an English language release in North
-      America and the United Kingdom by Viz Media and in Australia by Madman Entertainment. The anime series was licensed by
-      4Kids Entertainment for an English-language release in North America in 2004, before the license was dropped and
-      subsequently acquired by Funimation in 2007. One Piece has received praise for its storytelling, art, characterization,
-      and humor. It has received many awards and is ranked by critics, reviewers, and readers as one of the best manga of all
-      time. Several volumes of the manga have broken publishing records, including the highest initial print run of any book
-      in Japan. In 2015, One Piece set the Guinness World Record for "the most copies published for the same comic book
-      series by a single author". It was the best-selling manga for eleven consecutive years from 2008 to 2018, and is the
-      only manga that had an initial print of volumes of above 3 million continuously for more than 10 years, as well as the
-      only that had achieved more than 1 million copies sold in all of its 100 published tankōbon volumes. Furthermore, One
-      Piece is the only manga whose volumes have ranked first every year in fourteen years of Oricon's Manga Sales Ranking
-      existence. As of July 2021, One Piece had over 490 million copies in circulation in 58 countries and regions worldwide,
-      making it the best-selling manga series in history, and the best-selling comic series printed in book volume. It is
-      also one of the highest-grossing media franchises of all time.
+      {{ project.description }}
     </p>
   </mat-card-content>
 
   <mat-divider inset></mat-divider>
 
-  <div class="links">
-    <a href="http://www.google.gr" target="_blank">Download Batch 1</a>
-  </div>
-  <div class="links">
-    <a href="http://www.google.gr" target="_blank">Download Batch 2</a>
-  </div>
-  <div class="links">
-    <a href="http://www.google.gr" target="_blank">Download Batch 3</a>
-  </div>
-  <div class="links">
-    <a href="http://www.google.gr" target="_blank">Download Batch 4</a>
-  </div>
+  <ng-container *ngIf="project.batchDownloadLinks && project.batchDownloadLinks.length > 0">
+    <div class="links" *ngFor="let link of project.batchDownloadLinks; let i = index">
+      <!-- <a [href]="link" target="_blank">Download Batch {{ i + 1 }}</a> -->
+      <p>
+        Download Batch {{ i + 1 }}
+        <mat-icon (click)="onDownload(link)">link</mat-icon>
+      </p>
+    </div>
+  </ng-container>
 </mat-card>
