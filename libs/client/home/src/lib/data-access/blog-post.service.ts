@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Subject } from 'rxjs';
+
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { BlogPost } from '@sick/api/blog-post';
 
@@ -8,11 +10,35 @@ import { BlogPost } from '@sick/api/blog-post';
   providedIn: 'root',
 })
 export class BlogPostService {
-  constructor(private http: HttpClient) {}
+  private posts: BlogPost[] = [];
+  private postsUpdated = new Subject<{ posts: BlogPost[]; count: number }>();
 
-  getBlogPosts(skip: number, limit: number): Observable<{ posts: BlogPost[]; count: number }> {
-    return this.http.get<{ posts: BlogPost[]; count: number }>(
-      `http://localhost:3333/api/blog-post?skip=${skip}&limit=${limit}`
-    );
+  constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
+
+  getBlogPosts(postsPerPage: number, currentPage: number) {
+    this.http
+      .get<{ posts: BlogPost[]; count: number }>(
+        `http://localhost:3333/api/blog-post?pagesize=${postsPerPage}&page=${currentPage}`
+      )
+      .subscribe({
+        next: (res) => {
+          this.posts = res.posts;
+          this.postsUpdated.next({
+            posts: [...this.posts],
+            count: res.count,
+          });
+        },
+        error: (err) => {
+          this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        },
+      });
+  }
+
+  getPostUpdateListener() {
+    return this.postsUpdated.asObservable();
+  }
+
+  private openSnackBar(message: string, action: string) {
+    this.snackBar.open(message, action, { duration: 3000 });
   }
 }

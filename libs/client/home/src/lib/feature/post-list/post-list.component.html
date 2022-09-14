@@ -6,10 +6,10 @@
   <sick-post-item *ngFor="let post of posts" [post]="post"></sick-post-item>
 
   <mat-paginator
-    (page)="onPageEvent($event)"
-    [length]="totalCount"
-    [pageSize]="5"
-    [pageSizeOptions]="[5, 10]"
+    [length]="totalPosts"
+    [pageSize]="postsPerPage"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="onChangedPage($event)"
     aria-label="Select page of posts"
   ></mat-paginator>
 </ng-container>
