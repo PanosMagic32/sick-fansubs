@@ -18,9 +18,9 @@ export class ApiBlogPostController {
 
   @Get()
   async findAll(
-    @Query() params: { skip: number; limit: number; startId?: string }
+    @Query() params: { pagesize: number; page: number; startId?: string }
   ): Promise<{ posts: BlogPost[]; count: number }> {
-    return this.apiBlogPostService.findAll(params.skip, params.limit);
+    return this.apiBlogPostService.findAll(params.pagesize, params.page);
   }
 
   @Get('search')
@@ -38,7 +38,7 @@ export class ApiBlogPostController {
       return query;
     }
 
-    return this.apiBlogPostService.findAll();
+    return this.apiBlogPostService.findAll(5, 0);
   }
 
   @ApiParam({ name: 'id' })

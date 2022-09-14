@@ -16,8 +16,8 @@ export class ApiBlogPostService {
   }
 
   async findAll(
-    documentsToSkip = 0,
-    limitOfDocuments?: number,
+    pageSize: number,
+    currentPage: number
     // startId?: string
   ): Promise<{ posts: BlogPost[]; count: number }> {
     const query = this.blogPostModel
@@ -28,11 +28,10 @@ export class ApiBlogPostService {
       //   },
       // })
       .find()
-      .sort({ dateTimeCreated: 'desc' })
-      .skip(documentsToSkip);
+      .sort({ dateTimeCreated: 'desc' });
 
-    if (limitOfDocuments) {
-      query.limit(limitOfDocuments);
+    if (pageSize && currentPage) {
+      query.skip(pageSize * currentPage).limit(pageSize);
     }
 
     const posts = await query.exec();
