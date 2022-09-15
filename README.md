@@ -2,6 +2,10 @@
 
 This project was generated using [Nx](https://nx.dev). A smart, fast and extensible build system.
 
+The project structure was implemented as described [here](https://gist.github.com/trungk18/7ef8766cafc05bc8fd87be22de6c5b12).
+
+---
+
 ## -- Project Info --
 ## - NX (Monorepo)
 
