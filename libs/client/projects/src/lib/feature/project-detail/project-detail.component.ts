@@ -27,4 +27,8 @@ export class ProjectDetailComponent implements OnInit {
   onDownload(link: string) {
     window.open(link, '_system');
   }
+
+  onBackToProjects() {
+    this.router.navigate(['/projects'], { replaceUrl: true });
+  }
 }

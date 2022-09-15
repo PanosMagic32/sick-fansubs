@@ -15,7 +15,7 @@ async function bootstrap() {
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Sick-Fansubs API')
     .setDescription('Sick-Fansubs ReST API documentation')
-    .setVersion('0.1.0')
+    .setVersion(process.env.APP_VERSION)
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions);

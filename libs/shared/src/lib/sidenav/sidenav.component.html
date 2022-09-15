@@ -57,15 +57,15 @@
 </mat-nav-list>
 
 <mat-toolbar color="primary" class="sidenav-toolbar-bottom">
-  <small>v0.1.0</small>
+  <small>v{{ appVersion }}</small>
 
   <div class="logo-social">
-    <img src="assets/images/discord.svg" alt="discord" (click)="onOpenSocial('https://discord.gg/5bPmEepP')" />
-    <img src="assets/images/facebook.svg" alt="facebook" (click)="onOpenSocial('https://www.facebook.com/SickFansubs/')" />
+    <img src="assets/images/discord.svg" alt="discord" (click)="onOpenSocial('discord')" />
+    <img src="assets/images/facebook.svg" alt="facebook" (click)="onOpenSocial('facebook')" />
     <img
       src="assets/images/github.svg"
       alt="github"
-      (click)="onOpenSocial('https://github.com/PanosMagic32/sick-fansubs')"
+      (click)="onOpenSocial('github')"
     />
   </div>
 </mat-toolbar>

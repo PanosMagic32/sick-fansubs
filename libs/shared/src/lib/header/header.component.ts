@@ -1,5 +1,7 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 
+import { ConfigService } from '../data-access/config.service';
+
 import { MenuService } from '../data-access/menu.service';
 
 @Component({
@@ -16,17 +18,32 @@ export class HeaderComponent {
 
   isOpenSearch = false;
 
-  constructor(private menuService: MenuService) {}
+  constructor(private menuService: MenuService, private configService: ConfigService) {}
 
   onToggleSidenav() {
     this.sidenavToggle.emit();
   }
 
-  onOpenSocial(url: string) {
-    window.open(url, '_system');
+  onOpenTracker() {
+    window.open(this.configService.TRACKER_URL, '_blank');
   }
 
-  onOpenTracker() {
-    window.open('https://nyaa.si/user/Sick-Fansubs', '_system');
+  onOpenSocial(url: string) {
+    switch (url) {
+      case 'discord':
+        window.open(this.configService.DISCORD_URL, '_system');
+        break;
+
+      case 'facebook':
+        window.open(this.configService.FACEBOOK_URL, '_system');
+        break;
+
+      case 'github':
+        window.open(this.configService.GITHUB_URL, '_system');
+        break;
+
+      default:
+        break;
+    }
   }
 }

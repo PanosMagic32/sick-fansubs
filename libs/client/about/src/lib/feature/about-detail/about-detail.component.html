@@ -18,7 +18,7 @@
         <mat-icon mat-list-icon>arrow_right</mat-icon>
         <p>
           Για να παρακολουθείς τα νέα και τις εξελίξεις μας, μπορείς να μας βρεις στο
-          <a href="https://www.facebook.com/SickFansubs/" targe="_system"> Facebook</a>.
+          <a [href]="facebookUrl" targe="_system"> Facebook</a>.
         </p>
       </mat-list-item>
       <mat-divider></mat-divider>
@@ -27,7 +27,7 @@
         <mat-icon mat-list-icon>arrow_right</mat-icon>
         <p>
           Για να συμμετέχεις στις συζητήσεις μας και να γίνεις μέλος της ομάδας, μπορείς να μας βρεις στο
-          <a href="https://discord.gg/5bPmEepP" targe="_system"> Discord</a>.
+          <a [href]="discordUrl" targe="_system"> Discord</a>.
         </p>
       </mat-list-item>
       <mat-divider></mat-divider>
@@ -37,9 +37,23 @@
         <p>
           Είσαι προγραμματιστής ή έχεις κάποια ιδέα που μπορεί να κάνει τη σελίδα μας καλύτερη;<br />
           Μπορείς να βρεις το αποθετήριο της σελίδας στο
-          <a href="https://github.com/PanosMagic32/sick-fansubs" targe="_system"> Github</a>.
+          <a [href]="githubUrl" targe="_system"> Github</a>.
+        </p>
+      </mat-list-item>
+      <mat-divider></mat-divider>
+
+      <mat-list-item>
+        <mat-icon mat-list-icon>arrow_right</mat-icon>
+        <p>
+          Αν θέλεις να δεις όλη τη δουλειά της ομάδας μας, μπορείς να την βρεις και στον
+          <a [href]="trackerUrl" targe="_system"> tracker</a> μας.
         </p>
       </mat-list-item>
     </mat-list>
   </mat-card-content>
+  <mat-divider></mat-divider>
+
+  <mat-card-footer>
+    <p>Έκδοση εφαρμογής: {{ appVersion }}</p>
+  </mat-card-footer>
 </mat-card>

@@ -1,12 +1,26 @@
 import { Component, OnInit } from '@angular/core';
 
+import { ConfigService } from '@sick/shared';
+
 @Component({
   selector: 'sick-about-detail',
   templateUrl: './about-detail.component.html',
   styles: [],
 })
 export class AboutDetailComponent implements OnInit {
-  constructor() {}
+  facebookUrl: string | undefined = '';
+  discordUrl: string | undefined = '';
+  githubUrl: string | undefined = '';
+  trackerUrl: string | undefined = '';
+  appVersion: string | undefined = '';
 
-  ngOnInit(): void {}
+  constructor(private configService: ConfigService) {}
+
+  ngOnInit(): void {
+    this.facebookUrl = this.configService.FACEBOOK_URL;
+    this.discordUrl = this.configService.DISCORD_URL;
+    this.githubUrl = this.configService.GITHUB_URL;
+    this.trackerUrl = this.configService.TRACKER_URL;
+    this.appVersion = this.configService.APP_VERSION;
+  }
 }
