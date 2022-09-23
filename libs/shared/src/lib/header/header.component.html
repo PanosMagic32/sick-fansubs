@@ -30,14 +30,14 @@
           </a>
         </li>
 
-        <li [routerLink]="['/rules']" routerLinkActive="active">
+        <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
           <mat-icon>gavel</mat-icon>
           <a class="mat-focus-indicator docs-button mat-button mat-button-base">Rules</a>
-        </li>
+        </li> -->
 
         <li [routerLink]="['/about']" routerLinkActive="active">
           <mat-icon>info</mat-icon>
-          <a class="mat-focus-indicator docs-button mat-button mat-button-base">About</a>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base">Η ομάδα</a>
         </li>
       </ul>
     </div>
@@ -52,9 +52,9 @@
           <mat-icon (click)="onOpenTracker()">feed</mat-icon>
         </li>
 
-        <li [routerLink]="['/rules']" routerLinkActive="active">
+        <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
           <mat-icon>gavel</mat-icon>
-        </li>
+        </li> -->
 
         <li [routerLink]="['/about']" routerLinkActive="active">
           <mat-icon>info</mat-icon>
@@ -65,7 +65,7 @@
     <span class="spacer"></span>
 
     <!-- TODO - implement different menu for loggedin/out user -->
-    <button
+    <!-- <button
       mat-icon-button
       routerLinkActive="active"
       [matMenuTriggerFor]="userMenu"
@@ -85,7 +85,7 @@
       class="mat-focus-indicator docs-button mat-button mat-button-base"
     >
       <mat-icon>search</mat-icon>
-    </button>
+    </button> -->
 
     <div class="logo-social" *ngIf="(isSmall$ | async) || (isHandset$ | async) ? false : true">
       <img src="assets/images/discord.svg" alt="discord" (click)="onOpenSocial('discord')" />

@@ -16,14 +16,17 @@
   <mat-card-actions class="post-actions">
     <div class="post-actions-date">
       <p>{{ post.dateTimeCreated | date: 'd/M/yyyy, hh:mm' }}</p>
-      |
-      <p>Kushoyarou</p>
+      <!-- |
+      <p>Kushoyarou</p> -->
     </div>
 
     <div>
-      <button mat-button (click)="onDownload(post.downloadLink)">Download</button>
-      <button mat-button>Comment</button>
-      <button mat-button>Share</button>
+      <button mat-button (click)="onDownload(post.downloadLink)">
+        <mat-icon>file_download</mat-icon>
+        Λήψη
+      </button>
+      <!-- <button mat-button>Comment</button>
+      <button mat-button>Share</button> -->
     </div>
   </mat-card-actions>
 </mat-card>
