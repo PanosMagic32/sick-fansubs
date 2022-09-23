@@ -1,22 +1,28 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { ApiBlogPostModule } from '@sick/api/blog-post';
-import { ApiUserModule } from '@sick/api/user';
+// import { ApiUserModule } from '@sick/api/user';
 import { ApiProjectModule } from '@sick/api/project';
 import { ApiAuthModule } from '@sick/api/auth';
 
 @Module({
   imports: [
     ApiBlogPostModule,
-    ApiUserModule,
+    // ApiUserModule,
     ApiProjectModule,
     ApiAuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    MongooseModule.forRoot(process.env.DATABASE_URL),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('DATABASE_URL'),
+      }),
+      inject: [ConfigService],
+    }),
   ],
 })
 export class AppModule {}
