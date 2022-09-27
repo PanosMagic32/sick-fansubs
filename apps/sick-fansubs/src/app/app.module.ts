@@ -2,6 +2,7 @@ import { APP_INITIALIZER, inject, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { catchError, of, tap } from 'rxjs';
 
 import { MaterialModule } from '@sick/material';
 import { ConfigService, SharedModule } from '@sick/shared';
@@ -10,7 +11,6 @@ import { JwtInterceptor } from '@sick/client/auth';
 
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
-import { catchError, of, tap } from 'rxjs';
 import { environment } from '../environments/environment';
 
 @NgModule({

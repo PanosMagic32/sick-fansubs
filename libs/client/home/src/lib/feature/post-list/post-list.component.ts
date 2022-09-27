@@ -28,7 +28,7 @@ export class PostListComponent implements OnInit, OnDestroy {
 
     this.blogPostSubscription = this.blogPostService.getPostUpdateListener().subscribe({
       next: (res) => {
-        console.log(res);
+        // console.log(res);
         this.posts = res.posts;
         this.totalPosts = res.count;
         this.isLoading = false;
