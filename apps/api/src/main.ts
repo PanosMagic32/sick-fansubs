@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app/app.module';
+import { environment } from './environments/environment';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,7 +11,10 @@ async function bootstrap() {
 
   app.setGlobalPrefix(globalPrefix);
   app.useGlobalPipes(new ValidationPipe());
-  app.enableCors();
+
+  if (!environment.production) {
+    app.enableCors();
+  }
 
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Sick-Fansubs API')
