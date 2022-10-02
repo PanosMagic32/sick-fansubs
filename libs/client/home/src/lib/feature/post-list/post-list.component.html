@@ -1,8 +1,8 @@
-<ng-container *ngIf="isLoading">
-  <mat-progress-bar mode="indeterminate" *ngIf="isLoading"></mat-progress-bar>
+<ng-container *ngIf="isLoading$ | async">
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 </ng-container>
 
-<ng-container *ngIf="posts && posts.length > 0 && !isLoading; else noPosts">
+<ng-container *ngIf="posts && posts.length > 0 && (isLoading$ | async) === false; else noPosts">
   <sick-post-item *ngFor="let post of posts" [post]="post"></sick-post-item>
 
   <mat-paginator
@@ -15,5 +15,5 @@
 </ng-container>
 
 <ng-template #noPosts>
-  <sick-no-content *ngIf="!isLoading"></sick-no-content>
+  <sick-no-content *ngIf="(isLoading$ | async) === false"></sick-no-content>
 </ng-template>

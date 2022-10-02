@@ -1,9 +1,13 @@
-<ng-container *ngIf="projects$; else elseTemplate">
-  <div class="project-list" *ngFor="let project of projects$ | async">
+<ng-container *ngIf="isLoading$ | async">
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-container>
+
+<ng-container *ngIf="projects && projects.length > 0 && (isLoading$ | async) === false; else noProjects">
+  <div class="project-list" *ngFor="let project of projects">
     <sick-project-item [project]="project"></sick-project-item>
   </div>
 </ng-container>
 
-<ng-template #elseTemplate>
-  <p>No content</p>
+<ng-template #noProjects>
+  <sick-no-content *ngIf="(isLoading$ | async) === false"></sick-no-content>
 </ng-template>

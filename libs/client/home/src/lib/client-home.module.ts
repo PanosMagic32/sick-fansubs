@@ -7,12 +7,11 @@ import { SharedModule } from '@sick/shared';
 
 import { ClientHomeRoutingModule } from './client-home-routing.module';
 import { PostListComponent } from './feature/post-list/post-list.component';
-import { PostDetailComponent } from './feature/post-detail/post-detail.component';
 import { PostItemComponent } from './ui/post-item/post-item.component';
 
 @NgModule({
   imports: [CommonModule, ClientHomeRoutingModule, MaterialModule, HttpClientModule, SharedModule],
-  declarations: [PostListComponent, PostDetailComponent, PostItemComponent],
-  exports: [PostListComponent, PostDetailComponent],
+  declarations: [PostListComponent, PostItemComponent],
+  exports: [PostListComponent],
 })
 export class ClientHomeModule {}

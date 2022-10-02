@@ -1,7 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
+import { Observable } from 'rxjs';
 
 import { Project } from '../../data-access/project.interface';
+import { ProjectsService } from '../../data-access/projects.service';
 
 @Component({
   selector: 'sick-project-detail',
@@ -9,19 +12,18 @@ import { Project } from '../../data-access/project.interface';
   styles: [],
 })
 export class ProjectDetailComponent implements OnInit {
-  project!: Project;
+  project$!: Observable<Project>;
 
-  constructor(private router: Router) {}
+  constructor(private route: ActivatedRoute, private location: Location, private projectService: ProjectsService) {}
 
   ngOnInit(): void {
-    const state = history.state.project;
+    const heroId = this.route.snapshot.paramMap.get('id');
 
-    if (!state || state === undefined) {
-      this.router.navigate(['/projects'], { replaceUrl: true });
-      return;
+    if (!heroId || heroId === undefined) {
+      this.onBackToProjects();
+    } else {
+      this.project$ = this.projectService.getProjectById(heroId);
     }
-
-    this.project = state;
   }
 
   onDownload(link: string) {
@@ -29,6 +31,7 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   onBackToProjects() {
-    this.router.navigate(['/projects'], { replaceUrl: true });
+    this.location.back();
+    return;
   }
 }

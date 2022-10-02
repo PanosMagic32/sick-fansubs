@@ -12,27 +12,25 @@ import { BlogPostService } from '../../data-access/blog-post.service';
   styles: [],
 })
 export class PostListComponent implements OnInit, OnDestroy {
-  blogPostSubscription!: Subscription;
   posts: BlogPost[] = [];
   totalPosts = 0;
   postsPerPage = 5;
   currentPage = 0;
   pageSizeOptions = [5, 10];
-  isLoading = false;
+
+  isLoading$ = this.blogPostService.isLoading$;
+
+  private blogPostSubscription!: Subscription;
 
   constructor(private blogPostService: BlogPostService) {}
 
   ngOnInit(): void {
-    this.isLoading = true;
     this.blogPostService.getBlogPosts(this.postsPerPage, this.currentPage);
 
-    this.blogPostSubscription = this.blogPostService.getPostUpdateListener().subscribe({
-      next: (res) => {
-        // console.log(res);
-        this.posts = res.posts;
-        this.totalPosts = res.count;
-        this.isLoading = false;
-      },
+    this.blogPostSubscription = this.blogPostService.getPostUpdateListener().subscribe((res) => {
+      // console.log(res);
+      this.posts = res.posts;
+      this.totalPosts = res.count;
     });
   }
 

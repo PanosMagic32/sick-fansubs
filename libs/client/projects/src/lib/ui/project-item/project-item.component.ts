@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Project } from '../../data-access/project.interface';
@@ -8,14 +8,12 @@ import { Project } from '../../data-access/project.interface';
   templateUrl: './project-item.component.html',
   styles: [],
 })
-export class ProjectItemComponent implements OnInit {
+export class ProjectItemComponent {
   @Input() project!: Project;
 
   constructor(private router: Router) {}
 
-  ngOnInit(): void {}
-
   onMore() {
-    this.router.navigate(['/projects/detail'], { state: { project: this.project } });
+    this.router.navigate(['/', 'projects', this.project._id]);
   }
 }

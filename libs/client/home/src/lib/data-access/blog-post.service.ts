@@ -1,24 +1,29 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { BlogPost } from '@sick/api/blog-post';
+import { ConfigService } from '@sick/shared';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BlogPostService {
+  isLoading$ = new BehaviorSubject(false);
+
   private posts: BlogPost[] = [];
   private postsUpdated = new Subject<{ posts: BlogPost[]; count: number }>();
 
-  constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
+  constructor(private http: HttpClient, private snackBar: MatSnackBar, private configService: ConfigService) {}
 
   getBlogPosts(postsPerPage: number, currentPage: number) {
+    this.isLoading$.next(true);
+
     this.http
       .get<{ posts: BlogPost[]; count: number }>(
-        `http://localhost:3333/api/blog-post?pagesize=${postsPerPage}&page=${currentPage}`
+        `${this.configService.API_URL}/blog-post?pagesize=${postsPerPage}&page=${currentPage}`
       )
       .subscribe({
         next: (res) => {
@@ -27,9 +32,12 @@ export class BlogPostService {
             posts: [...this.posts],
             count: res.count,
           });
+
+          this.isLoading$.next(false);
         },
         error: (err) => {
           this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+          this.isLoading$.next(false);
         },
       });
   }

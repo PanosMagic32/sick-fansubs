@@ -5,7 +5,7 @@
   </button>
 </div>
 
-<mat-card class="project-detail-card" *ngIf="project">
+<mat-card class="project-detail-card" *ngIf="project$ | async as project">
   <mat-card-header>
     <div mat-card-avatar class="project-detail-header-image"></div>
     <mat-card-title>{{ project.title }}</mat-card-title>
