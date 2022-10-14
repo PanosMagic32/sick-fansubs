@@ -4,15 +4,16 @@
 
 <ng-container *ngIf="posts && posts.length > 0 && (isLoading$ | async) === false; else noPosts">
   <sick-post-item *ngFor="let post of posts" [post]="post"></sick-post-item>
-
-  <mat-paginator
-    [length]="totalPosts"
-    [pageSize]="postsPerPage"
-    [pageSizeOptions]="pageSizeOptions"
-    (page)="onChangedPage($event)"
-    aria-label="Select page of posts"
-  ></mat-paginator>
 </ng-container>
+
+<mat-paginator
+  *ngIf="posts && posts.length > 0"
+  [length]="totalPosts"
+  [pageSize]="postsPerPage"
+  [pageSizeOptions]="pageSizeOptions"
+  (page)="onChangedPage($event)"
+  aria-label="Select page of posts"
+></mat-paginator>
 
 <ng-template #noPosts>
   <sick-no-content *ngIf="(isLoading$ | async) === false"></sick-no-content>
