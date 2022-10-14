@@ -28,7 +28,7 @@ import { environment } from '../environments/environment';
     {
       provide: APP_INITIALIZER,
       useFactory: () => {
-        const configSerevice = inject(ConfigService);
+        const configService = inject(ConfigService);
         const http = inject(HttpClient);
 
         return () =>
@@ -39,17 +39,17 @@ import { environment } from '../environments/environment';
                 .get('.config.json')
                 .pipe(
                   tap((config: any) => {
-                    configSerevice.API_URL = config.API_URL;
-                    configSerevice.APP_VERSION = config.APP_VERSION;
-                    configSerevice.FACEBOOK_URL = config.FACEBOOK_URL;
-                    configSerevice.DISCORD_URL = config.DISCORD_URL;
-                    configSerevice.GITHUB_URL = config.GITHUB_URL;
-                    configSerevice.TRACKER_URL = config.TRACKER_URL;
+                    configService.API_URL = config.API_URL;
+                    configService.APP_VERSION = config.APP_VERSION;
+                    configService.FACEBOOK_URL = config.FACEBOOK_URL;
+                    configService.DISCORD_URL = config.DISCORD_URL;
+                    configService.GITHUB_URL = config.GITHUB_URL;
+                    configService.TRACKER_URL = config.TRACKER_URL;
 
                     resolve(true);
                   }),
                   catchError(() => {
-                    configSerevice.API_URL = 'http://localhost:3333/api'; // TODO - default URL to be added here
+                    configService.API_URL = 'http://localhost:3333/api'; // TODO - default URL to be added here
 
                     resolve(true);
                     return of(null);
@@ -61,12 +61,12 @@ import { environment } from '../environments/environment';
               // eslint-disable-next-line @typescript-eslint/no-var-requires
               const config = require('.config.json');
 
-              configSerevice.API_URL = 'http://localhost:3333/api';
-              configSerevice.APP_VERSION = config.APP_VERSION;
-              configSerevice.FACEBOOK_URL = config.FACEBOOK_URL;
-              configSerevice.DISCORD_URL = config.DISCORD_URL;
-              configSerevice.GITHUB_URL = config.GITHUB_URL;
-              configSerevice.TRACKER_URL = config.TRACKER_URL;
+              configService.API_URL = 'http://localhost:3333/api';
+              configService.APP_VERSION = config.APP_VERSION;
+              configService.FACEBOOK_URL = config.FACEBOOK_URL;
+              configService.DISCORD_URL = config.DISCORD_URL;
+              configService.GITHUB_URL = config.GITHUB_URL;
+              configService.TRACKER_URL = config.TRACKER_URL;
 
               resolve(true);
             }
