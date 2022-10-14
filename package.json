@@ -11,7 +11,8 @@
     "dev": "nx run-many --target=serve --projects=api,sick-fansubs --parallel",
     "build": "nx build",
     "build:all": "nx run-many --target=build --projects=api,sick-fansubs --parallel --prod",
-    "test": "nx test"
+    "test": "nx test",
+    "deploy:docker": "npm run build:all && cp .env dist/apps/api/ && cp .env dist/apps/sick-fansubs/ && cp .config.json dist/apps/sick-fansubs/ && docker compose up"
   },
   "private": true,
   "dependencies": {
@@ -86,4 +87,3 @@
     "typescript": "~4.8.4"
   }
 }
-
