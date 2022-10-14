@@ -6,9 +6,7 @@
   "targets": {
     "build": {
       "executor": "@angular-devkit/build-angular:browser",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/sick-fansubs",
         "index": "apps/sick-fansubs/src/index.html",
@@ -16,13 +14,8 @@
         "polyfills": "apps/sick-fansubs/src/polyfills.ts",
         "tsConfig": "apps/sick-fansubs/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
-        "assets": [
-          "apps/sick-fansubs/src/favicon.ico",
-          "apps/sick-fansubs/src/assets"
-        ],
-        "styles": [
-          "apps/sick-fansubs/src/styles.scss"
-        ],
+        "assets": ["apps/sick-fansubs/src/favicon.ico", "apps/sick-fansubs/src/assets"],
+        "styles": ["apps/sick-fansubs/src/styles.scss"],
         "scripts": []
       },
       "configurations": {
@@ -82,17 +75,12 @@
     "lint": {
       "executor": "@nrwl/linter:eslint",
       "options": {
-        "lintFilePatterns": [
-          "apps/sick-fansubs/src/**/*.ts",
-          "apps/sick-fansubs/src/**/*.html"
-        ]
+        "lintFilePatterns": ["apps/sick-fansubs/src/**/*.ts", "apps/sick-fansubs/src/**/*.html"]
       }
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": [
-        "coverage/apps/sick-fansubs"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/apps/sick-fansubs"],
       "options": {
         "jestConfig": "apps/sick-fansubs/jest.config.ts",
         "passWithNoTests": true
