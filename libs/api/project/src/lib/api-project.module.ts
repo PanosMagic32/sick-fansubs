@@ -3,10 +3,19 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { ProjectController } from './project.controller';
 import { ProjectService } from './project.service';
-import { ProjectSchema } from './schemas/project.schema';
+import { Project, ProjectSchema } from './schemas/project.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: 'Project', schema: ProjectSchema }])],
+  imports: [
+    MongooseModule.forFeatureAsync([
+      {
+        name: Project.name,
+        useFactory: () => {
+          return ProjectSchema;
+        },
+      },
+    ]),
+  ],
   controllers: [ProjectController],
   providers: [ProjectService],
 })

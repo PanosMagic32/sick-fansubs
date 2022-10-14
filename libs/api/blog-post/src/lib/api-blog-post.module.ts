@@ -3,10 +3,19 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { ApiBlogPostController } from './api-blog-post.controller';
 import { ApiBlogPostService } from './api-blog-post.service';
-import { BlogPostSchema } from './schemas/blog-post.schema';
+import { BlogPost, BlogPostSchema } from './schemas/blog-post.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: 'BlogPost', schema: BlogPostSchema }])],
+  imports: [
+    MongooseModule.forFeatureAsync([
+      {
+        name: BlogPost.name,
+        useFactory: () => {
+          return BlogPostSchema;
+        },
+      },
+    ]),
+  ],
   controllers: [ApiBlogPostController],
   providers: [ApiBlogPostService],
 })
