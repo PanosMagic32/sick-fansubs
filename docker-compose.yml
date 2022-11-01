@@ -1,15 +1,29 @@
-####################################
-# APP WITH NODE & NGINX CONTAINERS #
-####################################
+#############################################
+# APP WITH MONGODB, NODE & NGINX CONTAINERS #
+#############################################
 
 version: '3.9'
 services:
-  api:
+  # sick-db:
+  #   image: mongo:latest
+  #   restart: always
+  #   container_name: sick-db
+  #   environment:
+  #     - MONGO_INITDB_DATABASE=sick-db
+  #     - MONGO_INITDB_ROOT_USERNAME=root
+  #     - MONGO_INITDB_ROOT_PASSWORD=root_password
+  #   networks:
+  #     - sick-nw
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - ./sick-db:/data/db
+  nest-api:
     image: node:lts-alpine
     restart: unless-stopped
     container_name: nest-api
     user: "node"
-    working_dir: /home/node/app
+    working_dir: /usr/src/app
     environment:
       - NODE_ENV=production
     networks:
@@ -17,9 +31,11 @@ services:
     ports:
       - "3333:3333"
     volumes:
-      - ./dist/apps/api:/home/node/app
-      - ./node_modules:/home/node/app/node_modules
-    command: "node /home/node/app/main.js"
+      - ./dist/apps/api:/usr/src/app
+      - ./node_modules:/usr/src/app/node_modules
+    # depends_on:
+    #   - sick-db
+    command: "node /usr/src/app/main.js"
   client:
     image: nginx:stable-alpine
     restart: unless-stopped
@@ -31,13 +47,16 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "80:80"
+    # depends_on:
+    #   - nest-api
+
 networks:
   sick-nw:
     driver: bridge
 
-###################################################
+# ##################################################
 # APP WITH NODE, HTTPD & NGINX MANAGER CONTAINERS #
-###################################################
+# ##################################################
 
 # version: '3.9'
 # services:
