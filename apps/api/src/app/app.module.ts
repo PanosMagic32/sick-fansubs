@@ -16,10 +16,14 @@ import { ApiProjectModule } from '@sick/api/project';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // MongooseModule.forRoot(process.env.DATABASE_URL, { useNewUrlParser: true, useUnifiedTopology: true }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('DATABASE_URL'),
+        dbName: 'sick-db',
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
       }),
       inject: [ConfigService],
     }),
