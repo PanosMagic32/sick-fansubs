@@ -10,7 +10,7 @@ services:
     volumes:
       - mongo_db:/data/db
   api:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
       target: api
@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
     container_name: nest-api
   client:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
       target: app
