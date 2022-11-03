@@ -12,7 +12,9 @@
     "build": "nx build",
     "build:all": "nx run-many --target=build --projects=api,sick-fansubs --parallel --prod",
     "test": "nx test",
-    "deploy:docker": "npm run build:all && cp .env dist/apps/api/ && cp .env dist/apps/sick-fansubs/ && cp .config.json dist/apps/sick-fansubs/ && docker compose up"
+    "deploy:docker": "npm run build:all && cp .env dist/apps/api/ && cp .env dist/apps/sick-fansubs/ && cp .config.json dist/apps/sick-fansubs/ && docker compose up",
+    "prepack": "rm -rf dist/ && npm run build:all",
+    "pack": "docker compose up -d --always-recreate-deps --force-recreate"
   },
   "private": true,
   "dependencies": {

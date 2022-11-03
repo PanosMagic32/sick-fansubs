@@ -1,129 +1,41 @@
-#############################################
-# APP WITH MONGODB, NODE & NGINX CONTAINERS #
-#############################################
-
 version: '3.9'
 services:
-  # sick-db:
-  #   image: mongo:latest
-  #   restart: always
-  #   container_name: sick-db
-  #   environment:
-  #     - MONGO_INITDB_DATABASE=sick-db
-  #     - MONGO_INITDB_ROOT_USERNAME=root
-  #     - MONGO_INITDB_ROOT_PASSWORD=root_password
-  #   networks:
-  #     - sick-nw
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - ./sick-db:/data/db
-  nest-api:
-    image: node:lts-alpine
-    restart: unless-stopped
-    container_name: nest-api
-    user: "node"
-    working_dir: /usr/src/app
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      - MONGO_INITDB_DATABASE=sick-db
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root_password
+    volumes:
+      - mongo_db:/data/db
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
-    networks:
-      - sick-nw
     ports:
-      - "3333:3333"
-    volumes:
-      - ./dist/apps/api:/usr/src/app
-      - ./node_modules:/usr/src/app/node_modules
-    # depends_on:
-    #   - sick-db
-    command: "node /usr/src/app/main.js"
-  client:
-    image: nginx:stable-alpine
+      - 3333:3333
+    depends_on:
+      - mongodb
     restart: unless-stopped
-    container_name: client
-    networks:
-      - sick-nw
-    volumes:
-      - ./dist/apps/sick-fansubs:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/nginx.conf
+    container_name: nest-api
+  client:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    env_file:
+      - .env
     ports:
-      - "80:80"
-    # depends_on:
-    #   - nest-api
+      - 80:80
+    depends_on:
+      - api
+    restart: unless-stopped
 
-networks:
-  sick-nw:
-    driver: bridge
-
-# ##################################################
-# APP WITH NODE, HTTPD & NGINX MANAGER CONTAINERS #
-# ##################################################
-
-# version: '3.9'
-# services:
-#   api:
-#     image: node:lts-alpine
-#     restart: unless-stopped
-#     container_name: nest-api
-#     user: "node"
-#     working_dir: /home/node/app
-#     environment:
-#       - NODE_ENV=production
-#     networks:
-#       - sick-nw
-#     ports:
-#       - "3333:3333"
-#     volumes:
-#       - ./dist/apps/api:/home/node/app
-#       - ./node_modules:/home/node/app/node_modules
-#     command: "node /home/node/app/main.js"
-#   client:
-#     image: httpd:alpine
-#     restart: unless-stopped
-#     container_name: client
-#     networks:
-#       - sick-nw
-#     volumes:
-#       - ./dist/apps/sick-fansubs:/usr/local/apache2/htdocs/
-#     # ports:
-#     #   - "80:80"
-#   app:
-#     image: 'jc21/nginx-proxy-manager:latest'
-#     restart: unless-stopped
-#     ports:
-#       # These ports are in format <host-port>:<container-port>
-#       - '80:80' # Public HTTP Port
-#       - '443:443' # Public HTTPS Port
-#       - '81:81' # Admin Web Port
-#       # Add any other Stream port you want to expose
-#       # - '21:21' # FTP
-#     environment:
-#       DB_MYSQL_HOST: "db"
-#       DB_MYSQL_PORT: 3306
-#       DB_MYSQL_USER: "npm"
-#       DB_MYSQL_PASSWORD: "npm"
-#       DB_MYSQL_NAME: "npm"
-#       # Uncomment this if IPv6 is not enabled on your host
-#       # DISABLE_IPV6: 'true'
-#     volumes:
-#       - ./data:/data
-#       - ./letsencrypt:/etc/letsencrypt
-#     networks:
-#      - sick-nw
-#     depends_on:
-#       - db
-
-#   db:
-#     image: 'jc21/mariadb-aria:latest'
-#     restart: unless-stopped
-#     environment:
-#       MYSQL_ROOT_PASSWORD: 'npm'
-#       MYSQL_DATABASE: 'npm'
-#       MYSQL_USER: 'npm'
-#       MYSQL_PASSWORD: 'npm'
-#     networks:
-#     - sick-nw
-#     volumes:
-#       - ./data/mysql:/var/lib/mysql
-# networks:
-#   sick-nw:
-#     driver: bridge
+volumes:
+  mongo_db: {}

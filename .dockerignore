@@ -1,0 +1,10 @@
+# Ignore everything
+*
+
+# Except necessery files/folders
+!dist
+!nginx.conf
+!package*.json
+!decorate-angular-cli.js
+!.env*
+!.config.json
