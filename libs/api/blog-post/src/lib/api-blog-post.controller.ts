@@ -26,7 +26,6 @@ export class ApiBlogPostController {
   @Get('search')
   async search(@Query() s: string) {
     let options = {};
-    console.log(s);
 
     if (s) {
       options = {
