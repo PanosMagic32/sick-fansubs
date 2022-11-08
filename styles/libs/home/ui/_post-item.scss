@@ -16,6 +16,8 @@
   }
 
   img {
+    max-height: 40vh;
+    object-fit: cover;
     max-width: 80%;
     margin: 0 auto;
     border-radius: 0.5rem;
