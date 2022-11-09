@@ -1,4 +1,5 @@
 {
+  "name": "client-rules",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "sourceRoot": "libs/client/rules/src",

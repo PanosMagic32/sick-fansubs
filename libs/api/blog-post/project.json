@@ -1,4 +1,5 @@
 {
+  "name": "api-blog-post",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/api/blog-post/src",
   "projectType": "library",

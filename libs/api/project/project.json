@@ -1,4 +1,5 @@
 {
+  "name": "api-project",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/api/project/src",
   "projectType": "library",

@@ -1,4 +1,5 @@
 {
+  "name": "sick-fansubs-e2e",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/sick-fansubs-e2e/src",
   "projectType": "application",
@@ -17,18 +18,12 @@
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
-      "outputs": [
-        "{options.outputFile}"
-      ],
+      "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "apps/sick-fansubs-e2e/**/*.{js,ts}"
-        ]
+        "lintFilePatterns": ["apps/sick-fansubs-e2e/**/*.{js,ts}"]
       }
     }
   },
   "tags": [],
-  "implicitDependencies": [
-    "sick-fansubs"
-  ]
+  "implicitDependencies": ["sick-fansubs"]
 }
