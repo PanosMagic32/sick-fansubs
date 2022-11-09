@@ -5,7 +5,7 @@ import { User } from '@sick/api/user';
 
 export type ProjectDocument = Project & Document;
 
-@Schema()
+@Schema({ collection: 'projects' })
 export class Project {
   @Prop({ required: true })
   title!: string;

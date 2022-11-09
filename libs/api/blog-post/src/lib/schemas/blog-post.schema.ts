@@ -5,7 +5,7 @@ import { User } from '@sick/api/user';
 
 export type BlogPostDocument = BlogPost & Document;
 
-@Schema()
+@Schema({ collection: 'blogposts' })
 export class BlogPost {
   @Prop({ required: true })
   title!: string;
