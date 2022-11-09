@@ -1,14 +1,14 @@
 version: '3.9'
 services:
-  mongodb:
-    image: mongo:latest
-    restart: always
-    environment:
-      - MONGO_INITDB_DATABASE=sick-db
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=root_password
-    volumes:
-      - mongo_db:/data/db
+  # mongodb:
+  #   image: mongo:latest
+  #   restart: always
+  #   environment:
+  #     - MONGO_INITDB_DATABASE=sick-db
+  #     - MONGO_INITDB_ROOT_USERNAME=root
+  #     - MONGO_INITDB_ROOT_PASSWORD=root_password
+  #   volumes:
+  #     - mongo_db:/data/db
   api:
     build:
       context: .
@@ -20,8 +20,8 @@ services:
       - NODE_ENV=production
     ports:
       - 3333:3333
-    depends_on:
-      - mongodb
+    # depends_on:
+    #   - mongodb
     restart: unless-stopped
     container_name: nest-api
   client:
@@ -37,5 +37,5 @@ services:
       - api
     restart: unless-stopped
 
-volumes:
-  mongo_db: {}
+# volumes:
+#   mongo_db: {}
