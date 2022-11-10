@@ -11,8 +11,9 @@ async function bootstrap() {
   app.setGlobalPrefix(globalPrefix);
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({
-    origin: '*',
-    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept',
+    origin: 'http://localhost,https://sickfansubs.com',
+    allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   });
 
   const swaggerOptions = new DocumentBuilder()

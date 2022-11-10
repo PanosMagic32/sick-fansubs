@@ -18,12 +18,14 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-    ports:
-      - 3333:3333
+    # ports:
+    #   - 3333:3333
     # depends_on:
     #   - mongodb
     restart: unless-stopped
     container_name: nest-api
+    networks:
+      - sick-nw
   client:
     build:
       context: .
@@ -33,9 +35,15 @@ services:
       - .env
     ports:
       - 80:80
+      - 443:443
     depends_on:
       - api
     restart: unless-stopped
+    networks:
+      - sick-nw
 
 # volumes:
 #   mongo_db: {}
+networks:
+  sick-nw:
+    driver: bridge
