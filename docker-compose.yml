@@ -18,8 +18,8 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-    # ports:
-    #   - 3333:3333
+    ports:
+      - 3333:3333
     # depends_on:
     #   - mongodb
     restart: unless-stopped
