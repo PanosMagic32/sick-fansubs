@@ -49,7 +49,7 @@ import { environment } from '../environments/environment';
                     resolve(true);
                   }),
                   catchError(() => {
-                    configService.API_URL = 'https://nest-api:3333/api'; // TODO - default URL to be added here
+                    configService.API_URL = 'https://sickfansubs.com/api';
 
                     resolve(true);
                     return of(null);
