@@ -9,7 +9,7 @@ services:
   #     - MONGO_INITDB_ROOT_PASSWORD=root_password
   #   volumes:
   #     - mongo_db:/data/db
-  api:
+  nest-api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -23,7 +23,6 @@ services:
     # depends_on:
     #   - mongodb
     restart: unless-stopped
-    container_name: nest-api
     networks:
       - sick-nw
   client:
@@ -37,7 +36,7 @@ services:
       - 80:80
       - 443:443
     depends_on:
-      - api
+      - nest-api
     restart: unless-stopped
     networks:
       - sick-nw
