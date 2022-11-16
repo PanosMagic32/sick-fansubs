@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app/app.module';
+import { environment } from './environments/environment.prod';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,11 +11,16 @@ async function bootstrap() {
 
   app.setGlobalPrefix(globalPrefix);
   app.useGlobalPipes(new ValidationPipe());
-  app.enableCors({
-    origin: '*',
-    allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  });
+
+  if (environment.production) {
+    app.enableCors({
+      origin: 'http://localhost,https://sickfansubs.com',
+      allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    });
+  } else {
+    app.enableCors();
+  }
 
   const swaggerOptions = new DocumentBuilder()
     .setTitle('Sick-Fansubs API')
