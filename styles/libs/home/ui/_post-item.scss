@@ -1,6 +1,5 @@
 .post-card {
   margin: 2rem 1rem;
-  // max-width: 40%;
 
   mat-card-header {
     .post-header-image {
@@ -16,9 +15,9 @@
   }
 
   img {
+    width: auto;
     max-height: 40vh;
     object-fit: cover;
-    max-width: 80%;
     margin: 0 auto;
     border-radius: 0.5rem;
   }

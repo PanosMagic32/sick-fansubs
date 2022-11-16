@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 
 import { MaterialModule } from '@sick/material';
 
@@ -11,7 +11,7 @@ import { ProjectDetailComponent } from './feature/project-detail/project-detail.
 import { ProjectItemComponent } from './ui/project-item/project-item.component';
 
 @NgModule({
-  imports: [CommonModule, ClientProjectsRoutingModule, MaterialModule, SharedModule],
+  imports: [CommonModule, ClientProjectsRoutingModule, MaterialModule, SharedModule, NgOptimizedImage],
   declarations: [ProjectListComponent, ProjectDetailComponent, ProjectItemComponent],
   exports: [ProjectListComponent, ProjectDetailComponent, ProjectItemComponent],
 })

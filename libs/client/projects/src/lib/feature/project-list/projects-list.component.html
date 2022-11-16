@@ -3,8 +3,8 @@
 </ng-container>
 
 <ng-container *ngIf="projects && projects.length > 0 && (isLoading$ | async) === false; else noProjects">
-  <div class="project-list" *ngFor="let project of projects">
-    <sick-project-item [project]="project"></sick-project-item>
+  <div class="project-list" *ngFor="let project of projects; let i = index">
+    <sick-project-item [project]="project" [index]="i"></sick-project-item>
   </div>
 </ng-container>
 

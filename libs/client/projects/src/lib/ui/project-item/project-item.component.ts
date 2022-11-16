@@ -10,6 +10,7 @@ import { Project } from '../../data-access/project.interface';
 })
 export class ProjectItemComponent {
   @Input() project!: Project;
+  @Input() index!: number;
 
   constructor(private router: Router) {}
 

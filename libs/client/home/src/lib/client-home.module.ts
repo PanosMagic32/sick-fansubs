@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 
 import { MaterialModule } from '@sick/material';
@@ -10,7 +10,7 @@ import { PostListComponent } from './feature/post-list/post-list.component';
 import { PostItemComponent } from './ui/post-item/post-item.component';
 
 @NgModule({
-  imports: [CommonModule, ClientHomeRoutingModule, MaterialModule, HttpClientModule, SharedModule],
+  imports: [CommonModule, ClientHomeRoutingModule, MaterialModule, HttpClientModule, SharedModule, NgOptimizedImage],
   declarations: [PostListComponent, PostItemComponent],
   exports: [PostListComponent],
 })

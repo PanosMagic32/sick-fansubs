@@ -1,6 +1,5 @@
 .project-card {
   margin: 1rem;
-  // max-width: 40%;
 
   mat-card-header {
     .project-header-image {
@@ -10,9 +9,11 @@
   }
 
   img {
-    max-width: 80%;
+    width: auto;
+    max-height: 40vh;
+    object-fit: cover;
     margin: 0 auto;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
   }
 
   mat-card-content {
