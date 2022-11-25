@@ -22,4 +22,8 @@
       padding: 1rem 0;
     }
   }
+
+  a:visited {
+    color: var(--background-primary-color-active-light);
+  }
 }
