@@ -13,23 +13,33 @@ import { ConfigService } from '@sick/shared';
 export class ProjectsService {
   isLoading$ = new BehaviorSubject(false);
 
-  private projects = new Subject<Project[]>();
+  private projects: Project[] = [];
+  private projectsUpdated = new Subject<{ projects: Project[]; count: number }>();
 
   constructor(private http: HttpClient, private snackBar: MatSnackBar, private configService: ConfigService) {}
 
-  getProjects() {
+  getProjects(projectsPerPage: number, currentPage: number) {
     this.isLoading$.next(true);
 
-    this.http.get<Project[]>(`${this.configService.API_URL}/project`).subscribe({
-      next: (res) => {
-        this.projects.next(res);
-        this.isLoading$.next(false);
-      },
-      error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
-        this.isLoading$.next(false);
-      },
-    });
+    this.http
+      .get<{ projects: Project[]; count: number }>(
+        `${this.configService.API_URL}/project?pagesize=${projectsPerPage}&page=${currentPage}`
+      )
+      .subscribe({
+        next: (res) => {
+          this.projects = res.projects;
+          this.projectsUpdated.next({
+            projects: [...this.projects],
+            count: res.count,
+          });
+
+          this.isLoading$.next(false);
+        },
+        error: (err) => {
+          this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+          this.isLoading$.next(false);
+        },
+      });
   }
 
   getProjectById(id: string): Observable<Project> {
@@ -37,7 +47,7 @@ export class ProjectsService {
   }
 
   getProjectUpdateListener() {
-    return this.projects.asObservable();
+    return this.projectsUpdated.asObservable();
   }
 
   private openSnackBar(message: string, action: string) {

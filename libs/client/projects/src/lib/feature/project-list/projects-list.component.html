@@ -3,10 +3,17 @@
 </ng-container>
 
 <ng-container *ngIf="projects && projects.length > 0 && (isLoading$ | async) === false; else noProjects">
-  <div class="project-list" *ngFor="let project of projects; let i = index">
-    <sick-project-item [project]="project" [index]="i"></sick-project-item>
-  </div>
+  <sick-project-item *ngFor="let project of projects; let i = index" [project]="project" [index]="i"></sick-project-item>
 </ng-container>
+
+<mat-paginator
+  *ngIf="projects && projects.length > 0"
+  [length]="totalProjects"
+  [pageSize]="projectsPerPage"
+  [pageSizeOptions]="pageSizeOptions"
+  (page)="onChangedPage($event)"
+  aria-label="Select page of projects"
+></mat-paginator>
 
 <ng-template #noProjects>
   <sick-no-content *ngIf="(isLoading$ | async) === false"></sick-no-content>
