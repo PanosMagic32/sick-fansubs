@@ -1,6 +1,8 @@
+$bp-large: 68.75em; // 1100px
+
 .shell {
   height: 100%;
-  margin: 0.5rem 0 6rem 0;
+  margin: 0.5rem 0;
 
   display: grid;
   grid-template-columns: 20% auto 20%;

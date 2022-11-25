@@ -7,7 +7,7 @@ import { MenuService } from '../data-access/menu.service';
 @Component({
   selector: 'sick-header',
   templateUrl: './header.component.html',
-  styles: [],
+  styleUrls: ['./header.component.scss'],
 })
 export class HeaderComponent {
   @Output() sidenavToggle = new EventEmitter();

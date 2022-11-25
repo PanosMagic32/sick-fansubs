@@ -1,10 +1,19 @@
+$bp-large: 68.75em; // 1100px
+
 .project-card {
-  margin: 1rem;
+  margin: 2rem 0rem;
 
   mat-card-header {
     .project-header-image {
-      background-image: url('../../../../apps/sick-fansubs/src/assets/logo/logo.png');
+      background-image: url('../../../../../../../apps/sick-fansubs/src/assets/logo/logo.png');
       background-size: cover;
+      margin: 0.5rem;
+    }
+
+    .mat-card-avatar {
+      height: 3rem;
+      width: 3rem;
+      margin-top: -0.5rem;
     }
   }
 
@@ -18,7 +27,7 @@
 
   mat-card-content {
     .project-description {
-      margin: 1rem;
+      margin: 2rem;
     }
 
     .line-clamp {
@@ -44,5 +53,11 @@
         padding: 0 1rem;
       }
     }
+  }
+}
+
+@media only screen and (max-width: $bp-large) {
+  .project-card {
+    margin: 2rem;
   }
 }

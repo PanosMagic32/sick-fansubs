@@ -1,9 +1,11 @@
+$bp-large: 68.75em; // 1100px
+
 .post-card {
-  margin: 2rem 1rem;
+  margin: 2rem 0rem;
 
   mat-card-header {
     .post-header-image {
-      background-image: url('../../../../apps/sick-fansubs/src/assets/logo/logo.png');
+      background-image: url('../../../../../../../apps/sick-fansubs/src/assets/logo/logo.png');
       background-size: cover;
       margin: 0.2rem;
     }
@@ -42,5 +44,11 @@
         padding: 0 1rem;
       }
     }
+  }
+}
+
+@media only screen and (max-width: $bp-large) {
+  .post-card {
+    margin: 2rem;
   }
 }

@@ -1,12 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'sick-rules-detail',
   templateUrl: './rules-detail.component.html',
-  styles: [],
+  styleUrls: ['./rules-detail.component.scss'],
 })
-export class RulesDetailComponent implements OnInit {
-  constructor() {}
-
-  ngOnInit(): void {}
-}
+export class RulesDetailComponent {}

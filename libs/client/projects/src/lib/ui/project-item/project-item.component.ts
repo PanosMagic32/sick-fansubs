@@ -6,7 +6,7 @@ import { Project } from '../../data-access/project.interface';
 @Component({
   selector: 'sick-project-item',
   templateUrl: './project-item.component.html',
-  styles: [],
+  styleUrls: ['./project-item.component.scss'],
 })
 export class ProjectItemComponent {
   @Input() project!: Project;

@@ -8,7 +8,7 @@ import { LoginForm } from '../../data-access/login-form.interface';
 @Component({
   selector: 'sick-login-form',
   templateUrl: './login-form.component.html',
-  styleUrls: [],
+  styleUrls: ['./login-form.component.scss'],
 })
 export class LoginFormComponent {
   loginForm = new FormGroup<LoginForm>({

@@ -5,7 +5,7 @@ import { ConfigService } from '@sick/shared';
 @Component({
   selector: 'sick-about-detail',
   templateUrl: './about-detail.component.html',
-  styles: [],
+  styleUrls: ['./about-detail.component.scss'],
 })
 export class AboutDetailComponent implements OnInit {
   facebookUrl: string | undefined = '';

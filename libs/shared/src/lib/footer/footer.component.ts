@@ -5,7 +5,7 @@ import { ConfigService } from '../data-access/config.service';
 @Component({
   selector: 'sick-footer',
   templateUrl: './footer.component.html',
-  styles: [],
+  styleUrls: ['./footer.component.scss'],
 })
 export class FooterComponent implements OnInit {
   appVersion: string | undefined = '';

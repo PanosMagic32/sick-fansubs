@@ -9,7 +9,7 @@ import { ProjectsService } from '../../data-access/projects.service';
 @Component({
   selector: 'sick-project-detail',
   templateUrl: './project-detail.component.html',
-  styles: [],
+  styleUrls: ['./project-detail.component.scss'],
 })
 export class ProjectDetailComponent implements OnInit {
   project$!: Observable<Project>;

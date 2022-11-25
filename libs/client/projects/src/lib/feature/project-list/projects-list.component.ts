@@ -8,7 +8,7 @@ import { ProjectsService } from '../../data-access/projects.service';
 @Component({
   selector: 'sick-projects-list',
   templateUrl: './projects-list.component.html',
-  styles: [],
+  styleUrls: ['./projects-list.component.scss'],
 })
 export class ProjectListComponent implements OnInit, OnDestroy {
   projects: Project[] = [];

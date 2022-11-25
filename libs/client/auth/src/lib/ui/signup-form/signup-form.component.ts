@@ -8,7 +8,7 @@ import { SignupForm } from '../../data-access/signup-form.interface';
 @Component({
   selector: 'sick-signup-form',
   templateUrl: './signup-form.component.html',
-  styleUrls: [],
+  styleUrls: ['./signup-form.component.scss'],
 })
 export class SignupFormComponent {
   signupForm = new FormGroup<SignupForm>(

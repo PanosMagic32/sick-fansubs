@@ -5,7 +5,7 @@ import { ConfigService } from '../data-access/config.service';
 @Component({
   selector: 'sick-sidenav',
   templateUrl: './sidenav.component.html',
-  styles: [],
+  styleUrls: ['./sidenav.component.scss'],
 })
 export class SidenavComponent implements OnInit {
   @Output() sidenavClose = new EventEmitter();

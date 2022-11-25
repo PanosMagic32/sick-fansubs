@@ -16,7 +16,7 @@
         "tsConfig": "apps/sick-fansubs/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": ["apps/sick-fansubs/src/favicon.ico", "apps/sick-fansubs/src/assets"],
-        "styles": ["apps/sick-fansubs/src/styles.scss"],
+        "styles": ["apps/sick-fansubs/src/assets/themes/blue-bluegrey.css", "apps/sick-fansubs/src/styles.scss"],
         "scripts": []
       },
       "configurations": {

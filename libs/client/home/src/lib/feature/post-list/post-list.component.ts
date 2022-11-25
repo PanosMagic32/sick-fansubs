@@ -9,7 +9,7 @@ import { BlogPostService } from '../../data-access/blog-post.service';
 @Component({
   selector: 'sick-post-list',
   templateUrl: './post-list.component.html',
-  styles: [],
+  styleUrls: ['./post-list.component.scss'],
 })
 export class PostListComponent implements OnInit, OnDestroy {
   posts: BlogPost[] = [];
