@@ -3,6 +3,7 @@
   --background-dark-color: #424242;
   --background-primary-color-active: #2b5cb6;
   --background-primary-color-active-light: #6494ed56;
+  --background-error-color: #ff000028;
 
   $bp-largest: 75em; // 1200px
   $bp-medium: 56.25em; // 900px
@@ -74,7 +75,7 @@ mat-sidenav-container {
 }
 
 .no-content {
-  background-color: var(--warn-lighter-color);
+  background-color: var(--background-error-color);
   padding: 3rem 0;
   border-radius: 1rem;
   width: 60%;
