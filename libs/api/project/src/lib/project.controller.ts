@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ProjectService } from './project.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { Project } from './schemas/project.schema';
 
 @ApiTags('Project')
 @Controller('project')
@@ -16,8 +17,10 @@ export class ProjectController {
   }
 
   @Get()
-  async findAll() {
-    return this.projectService.findAll();
+  async findAll(
+    @Query() params: { pagesize: number; page: number; startId?: string }
+  ): Promise<{ projects: Project[]; count: number }> {
+    return this.projectService.findAll(params.pagesize, params.page);
   }
 
   @ApiParam({ name: 'id' })

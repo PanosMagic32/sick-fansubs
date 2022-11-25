@@ -15,8 +15,29 @@ export class ProjectService {
     return createProject;
   }
 
-  async findAll(): Promise<Project[]> {
-    return this.projectModel.find().exec();
+  async findAll(
+    pageSize: number,
+    currentPage: number
+    // startId?: string
+  ): Promise<{ projects: Project[]; count: number }> {
+    const query = this.projectModel
+      // The below commented-out object in find is a possible way to improve performance in database search
+      // .find({
+      //   _id: {
+      //     $gt: startId,
+      //   },
+      // })
+      .find()
+      .sort({ dateTimeCreated: 'desc' });
+
+    if (pageSize && currentPage) {
+      query.skip(pageSize * currentPage).limit(pageSize);
+    }
+
+    const projects = await query.exec();
+    const count = await this.projectModel.count();
+
+    return { projects, count };
   }
 
   async findOne(id: string): Promise<Project | undefined> {
