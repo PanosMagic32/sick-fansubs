@@ -9,3 +9,8 @@ export interface Project {
   creator?: User;
   batchDownloadLinks?: string[];
 }
+
+export interface ProjectResponse {
+  projects: Project[];
+  count: number;
+}

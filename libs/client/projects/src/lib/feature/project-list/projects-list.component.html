@@ -2,13 +2,17 @@
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 </ng-container>
 
-<ng-container *ngIf="projects && projects.length > 0 && (isLoading$ | async) === false; else noProjects">
-  <sick-project-item *ngFor="let project of projects; let i = index" [project]="project" [index]="i"></sick-project-item>
+<ng-container *ngIf="(projects$ | async) && (isLoading$ | async) === false; else noProjects">
+  <sick-project-item
+    *ngFor="let project of (projects$ | async)?.projects; let i = index"
+    [project]="project"
+    [index]="i"
+  ></sick-project-item>
 </ng-container>
 
 <mat-paginator
-  *ngIf="projects && projects.length > 0"
-  [length]="totalProjects"
+  *ngIf="projects$ | async"
+  [length]="(projects$ | async)?.count"
   [pageSize]="projectsPerPage"
   [pageSizeOptions]="pageSizeOptions"
   (page)="onChangedPage($event)"

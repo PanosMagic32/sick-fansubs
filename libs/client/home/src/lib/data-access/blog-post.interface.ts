@@ -10,3 +10,8 @@ export interface BlogPost {
   dateTimeCreated: string;
   creator?: User;
 }
+
+export interface BlogPostResponse {
+  posts: BlogPost[];
+  count: number;
+}
