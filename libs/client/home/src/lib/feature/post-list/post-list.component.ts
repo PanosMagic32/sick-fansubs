@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
+import { tap } from 'rxjs';
 
 import { BlogPostService } from '../../data-access/blog-post.service';
 
@@ -15,7 +16,7 @@ export class PostListComponent implements OnInit {
   pageSizeOptions = [5, 10];
 
   isLoading$ = this.blogPostService.isLoading$;
-  posts$ = this.blogPostService.posts$;
+  posts$ = this.blogPostService.posts$.pipe(tap((response) => (this.totalPosts = response.count)));
 
   constructor(private blogPostService: BlogPostService) {}
 

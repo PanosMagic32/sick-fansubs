@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
+import { tap } from 'rxjs';
 
 import { ProjectsService } from '../../data-access/projects.service';
 
@@ -15,7 +16,7 @@ export class ProjectListComponent implements OnInit {
   pageSizeOptions = [5, 10];
 
   isLoading$ = this.projectsService.isLoading$;
-  projects$ = this.projectsService.projects$;
+  projects$ = this.projectsService.projects$.pipe(tap((response) => (this.totalProjects = response.count)));
 
   constructor(private projectsService: ProjectsService) {}
 
