@@ -1,5 +1,6 @@
 {
   "singleQuote": true,
   "printWidth": 125,
-  "jsxSingleQuote": true
+  "jsxSingleQuote": true,
+  "tabWidth": 4
 }

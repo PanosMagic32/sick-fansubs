@@ -7,8 +7,8 @@ import { ClientRulesRoutingModule } from './client-rules-routing.module';
 import { RulesDetailComponent } from './feature/rules-detail/rules-detail.component';
 
 @NgModule({
-  imports: [CommonModule, ClientRulesRoutingModule, MaterialModule],
-  declarations: [RulesDetailComponent],
-  exports: [],
+    imports: [CommonModule, ClientRulesRoutingModule, MaterialModule],
+    declarations: [RulesDetailComponent],
+    exports: [],
 })
 export class ClientRulesModule {}

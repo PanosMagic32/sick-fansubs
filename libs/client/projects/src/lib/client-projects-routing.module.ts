@@ -5,18 +5,18 @@ import { ProjectDetailComponent } from './feature/project-detail/project-detail.
 import { ProjectListComponent } from './feature/project-list/projects-list.component';
 
 const routes: Routes = [
-  {
-    path: '',
-    component: ProjectListComponent,
-  },
-  {
-    path: ':id',
-    component: ProjectDetailComponent,
-  },
+    {
+        path: '',
+        component: ProjectListComponent,
+    },
+    {
+        path: ':id',
+        component: ProjectDetailComponent,
+    },
 ];
 
 @NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule],
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule],
 })
 export class ClientProjectsRoutingModule {}

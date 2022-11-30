@@ -8,68 +8,68 @@ import { BlogPost, BlogPostDocument } from './schemas/blog-post.schema';
 
 @Injectable()
 export class ApiBlogPostService {
-  constructor(@InjectModel(BlogPost.name) private readonly blogPostModel: Model<BlogPostDocument>) {}
+    constructor(@InjectModel(BlogPost.name) private readonly blogPostModel: Model<BlogPostDocument>) {}
 
-  async create(createBlogPostDto: CreateBlogPostDto): Promise<{ id: string }> {
-    const createdBlogPost = await this.blogPostModel.create(createBlogPostDto);
-    return { id: createdBlogPost._id };
-  }
-
-  async findAll(
-    pageSize: number,
-    currentPage: number
-    // startId?: string
-  ): Promise<{ posts: BlogPost[]; count: number }> {
-    const query = this.blogPostModel
-      // The below commented-out object in find is a possible way to improve performance in database search
-      // .find({
-      //   _id: {
-      //     $gt: startId,
-      //   },
-      // })
-      .find()
-      .sort({ dateTimeCreated: 'desc' });
-
-    if (pageSize && currentPage) {
-      query.skip(pageSize * currentPage).limit(pageSize);
+    async create(createBlogPostDto: CreateBlogPostDto): Promise<{ id: string }> {
+        const createdBlogPost = await this.blogPostModel.create(createBlogPostDto);
+        return { id: createdBlogPost._id };
     }
 
-    const posts = await query.exec();
-    const count = await this.blogPostModel.count();
+    async findAll(
+        pageSize: number,
+        currentPage: number
+        // startId?: string
+    ): Promise<{ posts: BlogPost[]; count: number }> {
+        const query = this.blogPostModel
+            // The below commented-out object in find is a possible way to improve performance in database search
+            // .find({
+            //   _id: {
+            //     $gt: startId,
+            //   },
+            // })
+            .find()
+            .sort({ dateTimeCreated: 'desc' });
 
-    return { posts, count };
-  }
+        if (pageSize && currentPage) {
+            query.skip(pageSize * currentPage).limit(pageSize);
+        }
 
-  async findOne(id: string): Promise<BlogPost | undefined> {
-    const blogPost = await this.blogPostModel.findOne({ _id: id });
+        const posts = await query.exec();
+        const count = await this.blogPostModel.count();
 
-    if (blogPost) {
-      return blogPost;
-    } else {
-      throw new NotFoundException();
+        return { posts, count };
     }
-  }
 
-  async search(options: FilterQuery<BlogPostDocument>) {
-    return this.blogPostModel.find(options).sort({ dateTimeCreated: 'desc' }).exec();
-  }
+    async findOne(id: string): Promise<BlogPost | undefined> {
+        const blogPost = await this.blogPostModel.findOne({ _id: id });
 
-  async update(id: string, updateBlogPostDto: UpdateBlogPostDto): Promise<BlogPost | undefined | null> {
-    const blogPost = await this.findOne(id);
-
-    if (blogPost) {
-      return this.blogPostModel.findByIdAndUpdate({ _id: id }, updateBlogPostDto).exec();
-    } else {
-      throw new NotFoundException();
+        if (blogPost) {
+            return blogPost;
+        } else {
+            throw new NotFoundException();
+        }
     }
-  }
 
-  async delete(id: string) {
-    const deletedBlogPost = await this.blogPostModel.findByIdAndRemove({ _id: id }).exec();
-    return deletedBlogPost;
-  }
+    async search(options: FilterQuery<BlogPostDocument>) {
+        return this.blogPostModel.find(options).sort({ dateTimeCreated: 'desc' }).exec();
+    }
 
-  async count(options: FilterQuery<BlogPostDocument>) {
-    return this.blogPostModel.count(options).sort({ dateTimeCreated: 'desc' }).exec();
-  }
+    async update(id: string, updateBlogPostDto: UpdateBlogPostDto): Promise<BlogPost | undefined | null> {
+        const blogPost = await this.findOne(id);
+
+        if (blogPost) {
+            return this.blogPostModel.findByIdAndUpdate({ _id: id }, updateBlogPostDto).exec();
+        } else {
+            throw new NotFoundException();
+        }
+    }
+
+    async delete(id: string) {
+        const deletedBlogPost = await this.blogPostModel.findByIdAndRemove({ _id: id }).exec();
+        return deletedBlogPost;
+    }
+
+    async count(options: FilterQuery<BlogPostDocument>) {
+        return this.blogPostModel.count(options).sort({ dateTimeCreated: 'desc' }).exec();
+    }
 }

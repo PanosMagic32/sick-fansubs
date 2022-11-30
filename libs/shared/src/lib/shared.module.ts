@@ -7,8 +7,8 @@ import { FooterModule } from './footer/footer.module';
 import { NoContentComponent } from './no-content/no-content.component';
 
 @NgModule({
-  imports: [CommonModule, HeaderModule, SidenavModule, FooterModule],
-  exports: [HeaderModule, SidenavModule, FooterModule, NoContentComponent],
-  declarations: [NoContentComponent],
+    imports: [CommonModule, HeaderModule, SidenavModule, FooterModule],
+    exports: [HeaderModule, SidenavModule, FooterModule, NoContentComponent],
+    declarations: [NoContentComponent],
 })
 export class SharedModule {}

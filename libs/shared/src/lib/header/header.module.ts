@@ -7,8 +7,8 @@ import { MaterialModule } from '@sick/material';
 import { HeaderComponent } from './header.component';
 
 @NgModule({
-  declarations: [HeaderComponent],
-  imports: [CommonModule, MaterialModule, RouterModule],
-  exports: [HeaderComponent],
+    declarations: [HeaderComponent],
+    imports: [CommonModule, MaterialModule, RouterModule],
+    exports: [HeaderComponent],
 })
 export class HeaderModule {}

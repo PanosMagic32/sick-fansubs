@@ -1,92 +1,92 @@
 {
-  "name": "sick-fansubs",
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "projectType": "application",
-  "sourceRoot": "apps/sick-fansubs/src",
-  "prefix": "sick",
-  "targets": {
-    "build": {
-      "executor": "@angular-devkit/build-angular:browser",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/apps/sick-fansubs",
-        "index": "apps/sick-fansubs/src/index.html",
-        "main": "apps/sick-fansubs/src/main.ts",
-        "polyfills": "apps/sick-fansubs/src/polyfills.ts",
-        "tsConfig": "apps/sick-fansubs/tsconfig.app.json",
-        "inlineStyleLanguage": "scss",
-        "assets": ["apps/sick-fansubs/src/favicon.ico", "apps/sick-fansubs/src/assets"],
-        "styles": ["apps/sick-fansubs/src/assets/themes/blue-bluegrey.css", "apps/sick-fansubs/src/styles.scss"],
-        "scripts": []
-      },
-      "configurations": {
-        "production": {
-          "budgets": [
-            {
-              "type": "initial",
-              "maximumWarning": "500kb",
-              "maximumError": "1mb"
+    "name": "sick-fansubs",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "projectType": "application",
+    "sourceRoot": "apps/sick-fansubs/src",
+    "prefix": "sick",
+    "targets": {
+        "build": {
+            "executor": "@angular-devkit/build-angular:browser",
+            "outputs": ["{options.outputPath}"],
+            "options": {
+                "outputPath": "dist/apps/sick-fansubs",
+                "index": "apps/sick-fansubs/src/index.html",
+                "main": "apps/sick-fansubs/src/main.ts",
+                "polyfills": "apps/sick-fansubs/src/polyfills.ts",
+                "tsConfig": "apps/sick-fansubs/tsconfig.app.json",
+                "inlineStyleLanguage": "scss",
+                "assets": ["apps/sick-fansubs/src/favicon.ico", "apps/sick-fansubs/src/assets"],
+                "styles": ["apps/sick-fansubs/src/assets/themes/blue-bluegrey.css", "apps/sick-fansubs/src/styles.scss"],
+                "scripts": []
             },
-            {
-              "type": "anyComponentStyle",
-              "maximumWarning": "2kb",
-              "maximumError": "4kb"
-            }
-          ],
-          "fileReplacements": [
-            {
-              "replace": "apps/sick-fansubs/src/environments/environment.ts",
-              "with": "apps/sick-fansubs/src/environments/environment.prod.ts"
-            }
-          ],
-          "outputHashing": "all"
+            "configurations": {
+                "production": {
+                    "budgets": [
+                        {
+                            "type": "initial",
+                            "maximumWarning": "500kb",
+                            "maximumError": "1mb"
+                        },
+                        {
+                            "type": "anyComponentStyle",
+                            "maximumWarning": "2kb",
+                            "maximumError": "4kb"
+                        }
+                    ],
+                    "fileReplacements": [
+                        {
+                            "replace": "apps/sick-fansubs/src/environments/environment.ts",
+                            "with": "apps/sick-fansubs/src/environments/environment.prod.ts"
+                        }
+                    ],
+                    "outputHashing": "all"
+                },
+                "development": {
+                    "buildOptimizer": false,
+                    "optimization": false,
+                    "vendorChunk": true,
+                    "extractLicenses": false,
+                    "sourceMap": true,
+                    "namedChunks": true
+                }
+            },
+            "defaultConfiguration": "production"
         },
-        "development": {
-          "buildOptimizer": false,
-          "optimization": false,
-          "vendorChunk": true,
-          "extractLicenses": false,
-          "sourceMap": true,
-          "namedChunks": true
-        }
-      },
-      "defaultConfiguration": "production"
-    },
-    "serve": {
-      "executor": "@angular-devkit/build-angular:dev-server",
-      "configurations": {
-        "production": {
-          "browserTarget": "sick-fansubs:build:production"
+        "serve": {
+            "executor": "@angular-devkit/build-angular:dev-server",
+            "configurations": {
+                "production": {
+                    "browserTarget": "sick-fansubs:build:production"
+                },
+                "development": {
+                    "browserTarget": "sick-fansubs:build:development"
+                }
+            },
+            "defaultConfiguration": "development",
+            "options": {
+                "proxyConfig": "apps/sick-fansubs/proxy.conf.json"
+            }
         },
-        "development": {
-          "browserTarget": "sick-fansubs:build:development"
+        "extract-i18n": {
+            "executor": "@angular-devkit/build-angular:extract-i18n",
+            "options": {
+                "browserTarget": "sick-fansubs:build"
+            }
+        },
+        "lint": {
+            "executor": "@nrwl/linter:eslint",
+            "options": {
+                "lintFilePatterns": ["apps/sick-fansubs/src/**/*.ts", "apps/sick-fansubs/src/**/*.html"]
+            }
+        },
+        "test": {
+            "executor": "@nrwl/jest:jest",
+            "outputs": ["{workspaceRoot}/coverage/apps/sick-fansubs"],
+            "options": {
+                "jestConfig": "apps/sick-fansubs/jest.config.ts",
+                "passWithNoTests": true
+            }
         }
-      },
-      "defaultConfiguration": "development",
-      "options": {
-        "proxyConfig": "apps/sick-fansubs/proxy.conf.json"
-      }
     },
-    "extract-i18n": {
-      "executor": "@angular-devkit/build-angular:extract-i18n",
-      "options": {
-        "browserTarget": "sick-fansubs:build"
-      }
-    },
-    "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "options": {
-        "lintFilePatterns": ["apps/sick-fansubs/src/**/*.ts", "apps/sick-fansubs/src/**/*.html"]
-      }
-    },
-    "test": {
-      "executor": "@nrwl/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/apps/sick-fansubs"],
-      "options": {
-        "jestConfig": "apps/sick-fansubs/jest.config.ts",
-        "passWithNoTests": true
-      }
-    }
-  },
-  "tags": []
+    "tags": []
 }

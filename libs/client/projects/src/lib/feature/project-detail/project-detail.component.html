@@ -1,33 +1,33 @@
 <div class="back-button">
-  <button mat-button (click)="onBackToProjects()">
-    <mat-icon>arrow_back</mat-icon>
-    Projects
-  </button>
+    <button mat-button (click)="onBackToProjects()">
+        <mat-icon>arrow_back</mat-icon>
+        Projects
+    </button>
 </div>
 
 <mat-card class="project-detail-card" *ngIf="project$ | async as project">
-  <mat-card-header>
-    <div mat-card-avatar class="project-detail-header-image"></div>
-    <mat-card-title>{{ project.title }}</mat-card-title>
-  </mat-card-header>
+    <mat-card-header>
+        <div mat-card-avatar class="project-detail-header-image"></div>
+        <mat-card-title>{{ project.title }}</mat-card-title>
+    </mat-card-header>
 
-  <img mat-card-image [src]="project.thumbnail" [alt]="project.title" />
+    <img mat-card-image [src]="project.thumbnail" [alt]="project.title" />
 
-  <mat-card-content>
-    <p class="project-detail-description">
-      {{ project.description }}
-    </p>
-  </mat-card-content>
+    <mat-card-content>
+        <p class="project-detail-description">
+            {{ project.description }}
+        </p>
+    </mat-card-content>
 
-  <mat-divider inset></mat-divider>
+    <mat-divider inset></mat-divider>
 
-  <ng-container *ngIf="project.batchDownloadLinks && project.batchDownloadLinks.length > 0">
-    <div class="links" *ngFor="let link of project.batchDownloadLinks; let i = index">
-      <!-- <a [href]="link" target="_blank">Download Batch {{ i + 1 }}</a> -->
-      <p>
-        Download Batch {{ i + 1 }}
-        <mat-icon (click)="onDownload(link)">link</mat-icon>
-      </p>
-    </div>
-  </ng-container>
+    <ng-container *ngIf="project.batchDownloadLinks && project.batchDownloadLinks.length > 0">
+        <div class="links" *ngFor="let link of project.batchDownloadLinks; let i = index">
+            <!-- <a [href]="link" target="_blank">Download Batch {{ i + 1 }}</a> -->
+            <p>
+                Download Batch {{ i + 1 }}
+                <mat-icon (click)="onDownload(link)">link</mat-icon>
+            </p>
+        </div>
+    </ng-container>
 </mat-card>

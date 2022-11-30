@@ -4,14 +4,14 @@ import { RouterModule, Routes } from '@angular/router';
 import { PostListComponent } from './feature/post-list/post-list.component';
 
 const routes: Routes = [
-  {
-    path: '',
-    component: PostListComponent,
-  },
+    {
+        path: '',
+        component: PostListComponent,
+    },
 ];
 
 @NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule],
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule],
 })
 export class ClientHomeRoutingModule {}

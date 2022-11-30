@@ -8,60 +8,60 @@ import { Project, ProjectDocument } from './schemas/project.schema';
 
 @Injectable()
 export class ProjectService {
-  constructor(@InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>) {}
+    constructor(@InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>) {}
 
-  async create(createProjectDto: CreateProjectDto): Promise<Project> {
-    const createProject = await this.projectModel.create(createProjectDto);
-    return createProject;
-  }
-
-  async findAll(
-    pageSize: number,
-    currentPage: number
-    // startId?: string
-  ): Promise<{ projects: Project[]; count: number }> {
-    const query = this.projectModel
-      // The below commented-out object in find is a possible way to improve performance in database search
-      // .find({
-      //   _id: {
-      //     $gt: startId,
-      //   },
-      // })
-      .find()
-      .sort({ dateTimeCreated: 'desc' });
-
-    if (pageSize && currentPage) {
-      query.skip(pageSize * currentPage).limit(pageSize);
+    async create(createProjectDto: CreateProjectDto): Promise<Project> {
+        const createProject = await this.projectModel.create(createProjectDto);
+        return createProject;
     }
 
-    const projects = await query.exec();
-    const count = await this.projectModel.count();
+    async findAll(
+        pageSize: number,
+        currentPage: number
+        // startId?: string
+    ): Promise<{ projects: Project[]; count: number }> {
+        const query = this.projectModel
+            // The below commented-out object in find is a possible way to improve performance in database search
+            // .find({
+            //   _id: {
+            //     $gt: startId,
+            //   },
+            // })
+            .find()
+            .sort({ dateTimeCreated: 'desc' });
 
-    return { projects, count };
-  }
+        if (pageSize && currentPage) {
+            query.skip(pageSize * currentPage).limit(pageSize);
+        }
 
-  async findOne(id: string): Promise<Project | undefined> {
-    const project = await this.projectModel.findOne({ _id: id });
+        const projects = await query.exec();
+        const count = await this.projectModel.count();
 
-    if (project) {
-      return project;
-    } else {
-      throw new NotFoundException();
+        return { projects, count };
     }
-  }
 
-  async update(id: string, updateProjectDto: UpdateProjectDto): Promise<Project | undefined | null> {
-    const project = await this.findOne(id);
+    async findOne(id: string): Promise<Project | undefined> {
+        const project = await this.projectModel.findOne({ _id: id });
 
-    if (project) {
-      return this.projectModel.findByIdAndUpdate({ _id: id }, updateProjectDto).exec();
-    } else {
-      throw new NotFoundException();
+        if (project) {
+            return project;
+        } else {
+            throw new NotFoundException();
+        }
     }
-  }
 
-  async remove(id: string) {
-    const deletedProject = await this.projectModel.findByIdAndRemove({ _id: id }).exec();
-    return deletedProject;
-  }
+    async update(id: string, updateProjectDto: UpdateProjectDto): Promise<Project | undefined | null> {
+        const project = await this.findOne(id);
+
+        if (project) {
+            return this.projectModel.findByIdAndUpdate({ _id: id }, updateProjectDto).exec();
+        } else {
+            throw new NotFoundException();
+        }
+    }
+
+    async remove(id: string) {
+        const deletedProject = await this.projectModel.findByIdAndRemove({ _id: id }).exec();
+        return deletedProject;
+    }
 }

@@ -1,54 +1,54 @@
 $bp-large: 68.75em; // 1100px
 
 .post-card {
-  margin: 2rem 0rem;
+    margin: 2rem 0rem;
 
-  mat-card-header {
-    .post-header-image {
-      background-image: url('../../../../../../../apps/sick-fansubs/src/assets/logo/logo.png');
-      background-size: cover;
-      margin: 0.2rem;
+    mat-card-header {
+        .post-header-image {
+            background-image: url('../../../../../../../apps/sick-fansubs/src/assets/logo/logo.png');
+            background-size: cover;
+            margin: 0.2rem;
+        }
+
+        .mat-card-avatar {
+            height: 3rem;
+            width: 3rem;
+        }
     }
 
-    .mat-card-avatar {
-      height: 3rem;
-      width: 3rem;
+    img {
+        width: 100%;
+        max-height: 40vh;
+        object-fit: cover;
+        margin: 0 auto;
+        border-radius: 0.5rem;
     }
-  }
 
-  img {
-    width: 100%;
-    max-height: 40vh;
-    object-fit: cover;
-    margin: 0 auto;
-    border-radius: 0.5rem;
-  }
-
-  mat-card-content {
-    .post-description {
-      margin: 2rem;
-      text-align: center;
+    mat-card-content {
+        .post-description {
+            margin: 2rem;
+            text-align: center;
+        }
     }
-  }
 
-  mat-card-actions.post-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    mat-card-actions.post-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
 
-    .post-actions-date {
-      margin-left: 1rem;
-      display: flex;
+        .post-actions-date {
+            margin-left: 1rem;
+            display: flex;
 
-      p {
-        margin: 1rem 0;
-      }
+            p {
+                margin: 1rem 0;
+            }
+        }
     }
-  }
 }
 
 @media only screen and (max-width: $bp-large) {
-  .post-card {
-    margin: 2rem;
-  }
+    .post-card {
+        margin: 2rem;
+    }
 }

@@ -6,78 +6,78 @@ import { AuthService } from '../../data-access/auth.service';
 import { SignupForm } from '../../data-access/signup-form.interface';
 
 @Component({
-  selector: 'sick-signup-form',
-  templateUrl: './signup-form.component.html',
-  styleUrls: ['./signup-form.component.scss'],
+    selector: 'sick-signup-form',
+    templateUrl: './signup-form.component.html',
+    styleUrls: ['./signup-form.component.scss'],
 })
 export class SignupFormComponent {
-  signupForm = new FormGroup<SignupForm>(
-    {
-      username: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-      email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
-      password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(6)] }),
-      confirmPassword: new FormControl('', {
-        nonNullable: true,
-        validators: [Validators.required, Validators.minLength(6)],
-      }),
-      // avatar: new FormControl(''),
-    },
-    { validators: this.checkPasswords('password', 'confirmPassword') }
-  );
+    signupForm = new FormGroup<SignupForm>(
+        {
+            username: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+            email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
+            password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(6)] }),
+            confirmPassword: new FormControl('', {
+                nonNullable: true,
+                validators: [Validators.required, Validators.minLength(6)],
+            }),
+            // avatar: new FormControl(''),
+        },
+        { validators: this.checkPasswords('password', 'confirmPassword') }
+    );
 
-  get formControl() {
-    return this.signupForm.controls;
-  }
-
-  constructor(private authService: AuthService, private snackBar: MatSnackBar) {}
-
-  onSignup() {
-    if (
-      !this.signupForm.value.username ||
-      !this.signupForm.value.email ||
-      !this.signupForm.value.password ||
-      !this.signupForm.value.confirmPassword
-    ) {
-      return;
+    get formControl() {
+        return this.signupForm.controls;
     }
 
-    this.authService
-      .signUp(this.signupForm.value.username, this.signupForm.value.email, this.signupForm.value.password)
-      .subscribe({
-        next: (res) => {
-          console.log(res);
-          // TODO - handle successfull response
-        },
-        error: (err) => {
-          this.openSnackBar(err.error.message, 'OK');
-        },
-      });
-  }
+    constructor(private authService: AuthService, private snackBar: MatSnackBar) {}
 
-  private openSnackBar(message: string, action: string) {
-    this.snackBar.open(message, action, { duration: 3000 });
-  }
+    onSignup() {
+        if (
+            !this.signupForm.value.username ||
+            !this.signupForm.value.email ||
+            !this.signupForm.value.password ||
+            !this.signupForm.value.confirmPassword
+        ) {
+            return;
+        }
 
-  private checkPasswords(password: string, confirmPassword: string): ValidatorFn {
-    return (formGroup: AbstractControl): { [key: string]: any } | null => {
-      const passwordControl = formGroup.get(password);
-      const confirmPasswordControl = formGroup.get(confirmPassword);
+        this.authService
+            .signUp(this.signupForm.value.username, this.signupForm.value.email, this.signupForm.value.password)
+            .subscribe({
+                next: (res) => {
+                    console.log(res);
+                    // TODO - handle successfull response
+                },
+                error: (err) => {
+                    this.openSnackBar(err.error.message, 'OK');
+                },
+            });
+    }
 
-      if (!passwordControl || !confirmPasswordControl) {
-        return null;
-      }
+    private openSnackBar(message: string, action: string) {
+        this.snackBar.open(message, action, { duration: 3000 });
+    }
 
-      if (confirmPasswordControl.errors && !confirmPasswordControl.errors['passwordMismatch']) {
-        return null;
-      }
+    private checkPasswords(password: string, confirmPassword: string): ValidatorFn {
+        return (formGroup: AbstractControl): { [key: string]: any } | null => {
+            const passwordControl = formGroup.get(password);
+            const confirmPasswordControl = formGroup.get(confirmPassword);
 
-      if (passwordControl.value !== confirmPasswordControl.value) {
-        confirmPasswordControl.setErrors({ passwordMismatch: true });
-        return { passwordMismatch: true };
-      } else {
-        confirmPasswordControl.setErrors(null);
-        return null;
-      }
-    };
-  }
+            if (!passwordControl || !confirmPasswordControl) {
+                return null;
+            }
+
+            if (confirmPasswordControl.errors && !confirmPasswordControl.errors['passwordMismatch']) {
+                return null;
+            }
+
+            if (passwordControl.value !== confirmPasswordControl.value) {
+                confirmPasswordControl.setErrors({ passwordMismatch: true });
+                return { passwordMismatch: true };
+            } else {
+                confirmPasswordControl.setErrors(null);
+                return null;
+            }
+        };
+    }
 }

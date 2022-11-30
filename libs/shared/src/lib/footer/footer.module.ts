@@ -6,8 +6,8 @@ import { MaterialModule } from '@sick/material';
 import { FooterComponent } from './footer.component';
 
 @NgModule({
-  declarations: [FooterComponent],
-  imports: [CommonModule, MaterialModule],
-  exports: [FooterComponent],
+    declarations: [FooterComponent],
+    imports: [CommonModule, MaterialModule],
+    exports: [FooterComponent],
 })
 export class FooterModule {}

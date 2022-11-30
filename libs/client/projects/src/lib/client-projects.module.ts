@@ -11,8 +11,8 @@ import { ProjectDetailComponent } from './feature/project-detail/project-detail.
 import { ProjectItemComponent } from './ui/project-item/project-item.component';
 
 @NgModule({
-  imports: [CommonModule, ClientProjectsRoutingModule, MaterialModule, SharedModule, NgOptimizedImage],
-  declarations: [ProjectListComponent, ProjectDetailComponent, ProjectItemComponent],
-  exports: [ProjectListComponent, ProjectDetailComponent, ProjectItemComponent],
+    imports: [CommonModule, ClientProjectsRoutingModule, MaterialModule, SharedModule, NgOptimizedImage],
+    declarations: [ProjectListComponent, ProjectDetailComponent, ProjectItemComponent],
+    exports: [ProjectListComponent, ProjectDetailComponent, ProjectItemComponent],
 })
 export class ClientProjectsModule {}

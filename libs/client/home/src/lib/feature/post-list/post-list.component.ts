@@ -5,29 +5,29 @@ import { tap } from 'rxjs';
 import { BlogPostService } from '../../data-access/blog-post.service';
 
 @Component({
-  selector: 'sick-post-list',
-  templateUrl: './post-list.component.html',
-  styleUrls: ['./post-list.component.scss'],
+    selector: 'sick-post-list',
+    templateUrl: './post-list.component.html',
+    styleUrls: ['./post-list.component.scss'],
 })
 export class PostListComponent implements OnInit {
-  totalPosts = 0;
-  postsPerPage = 5;
-  currentPage = 0;
-  pageSizeOptions = [5, 10];
+    totalPosts = 0;
+    postsPerPage = 5;
+    currentPage = 0;
+    pageSizeOptions = [5, 10];
 
-  isLoading$ = this.blogPostService.isLoading$;
-  posts$ = this.blogPostService.posts$.pipe(tap((response) => (this.totalPosts = response.count)));
+    isLoading$ = this.blogPostService.isLoading$;
+    posts$ = this.blogPostService.posts$.pipe(tap((response) => (this.totalPosts = response.count)));
 
-  constructor(private blogPostService: BlogPostService) {}
+    constructor(private blogPostService: BlogPostService) {}
 
-  ngOnInit(): void {
-    this.blogPostService.getBlogPosts(this.postsPerPage, this.currentPage);
-  }
+    ngOnInit(): void {
+        this.blogPostService.getBlogPosts(this.postsPerPage, this.currentPage);
+    }
 
-  onChangedPage(pageData: PageEvent) {
-    this.currentPage = pageData.pageIndex;
-    this.postsPerPage = pageData.pageSize;
+    onChangedPage(pageData: PageEvent) {
+        this.currentPage = pageData.pageIndex;
+        this.postsPerPage = pageData.pageSize;
 
-    this.blogPostService.getBlogPosts(this.postsPerPage, this.currentPage);
-  }
+        this.blogPostService.getBlogPosts(this.postsPerPage, this.currentPage);
+    }
 }

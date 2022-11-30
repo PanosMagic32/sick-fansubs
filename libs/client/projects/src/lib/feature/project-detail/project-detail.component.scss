@@ -1,37 +1,37 @@
 .back-button {
-  margin: 1rem 2rem;
+    margin: 1rem 2rem;
 }
 
 .project-detail-card {
-  margin: 2rem;
-  // max-width: 40%;
+    margin: 2rem;
+    // max-width: 40%;
 
-  mat-card-header {
-    .project-detail-header-image {
-      background-image: url('../../../../../../../apps/sick-fansubs/src/assets/logo/logo.png');
-      background-size: cover;
+    mat-card-header {
+        .project-detail-header-image {
+            background-image: url('../../../../../../../apps/sick-fansubs/src/assets/logo/logo.png');
+            background-size: cover;
+        }
     }
-  }
 
-  img {
-    max-width: 80%;
-    margin: 0 auto;
-    border-radius: 1rem;
-  }
-
-  mat-card-content {
-    .project-detail-description {
-      margin: 2rem 1rem;
+    img {
+        max-width: 80%;
+        margin: 0 auto;
+        border-radius: 1rem;
     }
-  }
 
-  .links {
-    font-size: 20px;
-    margin: 2rem 1rem;
-
-    mat-icon {
-      padding-top: 0.5rem;
-      cursor: pointer;
+    mat-card-content {
+        .project-detail-description {
+            margin: 2rem 1rem;
+        }
     }
-  }
+
+    .links {
+        font-size: 20px;
+        margin: 2rem 1rem;
+
+        mat-icon {
+            padding-top: 0.5rem;
+            cursor: pointer;
+        }
+    }
 }

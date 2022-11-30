@@ -1,99 +1,99 @@
 mat-toolbar.header-toolbar {
-  position: fixed;
-  top: 0;
-  z-index: 1;
+    position: fixed;
+    top: 0;
+    z-index: 1;
 
-  a {
-    text-decoration: none;
-    color: #fff;
-    padding: 0.5rem 1.5rem;
-  }
+    a {
+        text-decoration: none;
+        color: #fff;
+        padding: 0.5rem 1.5rem;
+    }
 
-  a:hover {
-    background-color: var(--background-primary-color-active);
-    border-radius: 1rem;
-    cursor: pointer;
-  }
+    a:hover {
+        background-color: var(--background-primary-color-active);
+        border-radius: 1rem;
+        cursor: pointer;
+    }
 
-  a:active {
-    // color: #b8ddeb;
-    background-color: var(--background-primary-color-active);
-    cursor: pointer;
-  }
+    a:active {
+        // color: #b8ddeb;
+        background-color: var(--background-primary-color-active);
+        cursor: pointer;
+    }
 
-  button:hover {
-    background-color: var(--background-primary-color-active);
-  }
+    button:hover {
+        background-color: var(--background-primary-color-active);
+    }
 
-  button:active {
-    // color: #b8ddeb;
-    background-color: var(--background-primary-color-active);
-  }
+    button:active {
+        // color: #b8ddeb;
+        background-color: var(--background-primary-color-active);
+    }
 }
 
 .active {
-  // color: #b8ddeb;
-  background-color: var(--background-primary-color-active);
+    // color: #b8ddeb;
+    background-color: var(--background-primary-color-active);
 }
 
 .menu-icons-only {
-  display: flex;
+    display: flex;
 }
 
 .navigation-items {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-
-  li {
     display: flex;
-    align-items: center;
-    padding: 0 0.5rem;
-    border-radius: 1rem;
-
-    a {
-      text-decoration: none;
-      color: #fff;
-    }
-  }
-
-  li:hover {
-    background-color: var(--background-primary-color-active);
-    cursor: pointer;
-  }
-
-  li:active {
-    color: #b8ddeb;
-    background-color: var(--background-primary-color-active);
-    cursor: pointer;
-  }
-
-  &-icons-only {
-    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 
     li {
-      display: flex;
-      align-items: center;
-      padding: 1rem;
-      border-radius: 1rem;
-      margin: 0 1rem;
+        display: flex;
+        align-items: center;
+        padding: 0 0.5rem;
+        border-radius: 1rem;
+
+        a {
+            text-decoration: none;
+            color: #fff;
+        }
     }
 
     li:hover {
-      background-color: var(--background-primary-color-active);
-      cursor: pointer;
+        background-color: var(--background-primary-color-active);
+        cursor: pointer;
     }
 
     li:active {
-      color: #b8ddeb;
-      background-color: var(--background-primary-color-active);
-      cursor: pointer;
+        color: #b8ddeb;
+        background-color: var(--background-primary-color-active);
+        cursor: pointer;
     }
-  }
+
+    &-icons-only {
+        display: flex;
+
+        li {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin: 0 1rem;
+        }
+
+        li:hover {
+            background-color: var(--background-primary-color-active);
+            cursor: pointer;
+        }
+
+        li:active {
+            color: #b8ddeb;
+            background-color: var(--background-primary-color-active);
+            cursor: pointer;
+        }
+    }
 }
 
 .search-full-width {
-  width: 80%;
-  margin: auto;
+    width: 80%;
+    margin: auto;
 }

@@ -7,31 +7,31 @@ import { Project } from '../../data-access/project.interface';
 import { ProjectsService } from '../../data-access/projects.service';
 
 @Component({
-  selector: 'sick-project-detail',
-  templateUrl: './project-detail.component.html',
-  styleUrls: ['./project-detail.component.scss'],
+    selector: 'sick-project-detail',
+    templateUrl: './project-detail.component.html',
+    styleUrls: ['./project-detail.component.scss'],
 })
 export class ProjectDetailComponent implements OnInit {
-  project$!: Observable<Project>;
+    project$!: Observable<Project>;
 
-  constructor(private route: ActivatedRoute, private location: Location, private projectService: ProjectsService) {}
+    constructor(private route: ActivatedRoute, private location: Location, private projectService: ProjectsService) {}
 
-  ngOnInit(): void {
-    const heroId = this.route.snapshot.paramMap.get('id');
+    ngOnInit(): void {
+        const heroId = this.route.snapshot.paramMap.get('id');
 
-    if (!heroId || heroId === undefined) {
-      this.onBackToProjects();
-    } else {
-      this.project$ = this.projectService.getProjectById(heroId);
+        if (!heroId || heroId === undefined) {
+            this.onBackToProjects();
+        } else {
+            this.project$ = this.projectService.getProjectById(heroId);
+        }
     }
-  }
 
-  onDownload(link: string) {
-    window.open(link, '_system');
-  }
+    onDownload(link: string) {
+        window.open(link, '_system');
+    }
 
-  onBackToProjects() {
-    this.location.back();
-    return;
-  }
+    onBackToProjects() {
+        this.location.back();
+        return;
+    }
 }
