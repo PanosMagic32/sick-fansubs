@@ -102,8 +102,8 @@
     "hooks": "npm run pretty-quick && npx validate-branch-name && .git/hooks/commit-msg \\$1 && npx lint-staged"
   },
   "validate-branch-name": {
-    "pattern": "^(main|feature|fix|hotfix|release)/.+",
-    "errorMsg": "Branch name has to start with main/, feature/, fix/, release/ or hotfix/"
+    "pattern": "^(main|develop){1}$|^(feature|bugfix|hotfix|release)-.+$/g",
+    "errorMsg": "Branch name has to be main or develop or has to start with feature-, bugfix-, hotfix- or release-"
   },
   "lint-staged": {
     "**/*.{ts,html,scss}": "prettier --write --ignore-unknown"

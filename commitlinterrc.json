@@ -1,11 +1,4 @@
 {
-    "types": {
-        "feat": "Description about feat",
-        "build": "Description about build",
-        "deps": "Description about deps",
-        "temp": "Description about temp",
-        "chore": "Description about chore"
-    },
     "min-len": 10,
     "max-len": 100,
     "debug": false
