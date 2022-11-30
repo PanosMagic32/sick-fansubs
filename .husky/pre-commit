@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# npm run pretty-quick
-# npx validate-branch-name
+npm run pretty-quick
+npx validate-branch-name
 .git/hooks/commit-msg \$1
