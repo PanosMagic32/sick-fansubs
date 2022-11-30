@@ -5,14 +5,9 @@
     <mat-card-subtitle>{{ post.subtitle }}</mat-card-subtitle>
   </mat-card-header>
 
-  <img
-    mat-card-image
-    [ngSrc]="post.thumbnail"
-    width="1280"
-    height="720"
-    [priority]="index === 0 ? true : false"
-    [alt]="post.title"
-  />
+  <!-- [ngSrc]="post.thumbnail" -->
+  <!-- [priority]="index === 0 ? true : false" -->
+  <img mat-card-image width="1280" height="720" [alt]="post.title" />
 
   <mat-card-content>
     <h3 class="post-description">{{ post.description }}</h3>
@@ -22,7 +17,7 @@
 
   <mat-card-actions class="post-actions">
     <div class="post-actions-date">
-      <p>{{ post.dateTimeCreated | date: 'd/M/yyyy, hh:mm' }}</p>
+      <p>{{ post.dateTimeCreated | date : 'd/M/yyyy, hh:mm' }}</p>
       <!-- |
       <p>Kushoyarou</p> -->
     </div>
