@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# npm run format:fix
+npm run format:fix
 npx validate-branch-name
-# .git/hooks/commit-msg \$1
+.git/hooks/commit-msg \$1
 npx lint-staged
