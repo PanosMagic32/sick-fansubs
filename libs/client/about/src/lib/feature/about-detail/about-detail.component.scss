@@ -1,29 +1,29 @@
 .about-card {
-    margin: 3rem 1rem;
+  margin: 3rem 1rem;
 
-    mat-list-item {
-        margin: 0.5rem 0;
-        height: fit-content !important;
+  mat-list-item {
+    margin: 0.5rem 0;
+    height: fit-content !important;
+  }
+
+  .subtitle-info {
+    margin: 1rem 1rem 0 1.5rem;
+
+    p {
+      padding: 1rem 0rem;
     }
+  }
 
-    .subtitle-info {
-        margin: 1rem 1rem 0 1.5rem;
+  mat-card-footer {
+    display: flex;
+    justify-content: center;
 
-        p {
-            padding: 1rem 0rem;
-        }
+    p {
+      padding: 1rem 0;
     }
+  }
 
-    mat-card-footer {
-        display: flex;
-        justify-content: center;
-
-        p {
-            padding: 1rem 0;
-        }
-    }
-
-    a {
-        color: var(--background-primary-color-active-light);
-    }
+  a {
+    color: var(--background-primary-color-active-light);
+  }
 }

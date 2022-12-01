@@ -1,35 +1,35 @@
 <mat-card class="project-card">
-    <mat-card-header>
-        <div mat-card-avatar class="project-header-image"></div>
-        <mat-card-title>{{ project.title }}</mat-card-title>
-    </mat-card-header>
+  <mat-card-header>
+    <div mat-card-avatar class="project-header-image"></div>
+    <mat-card-title>{{ project.title }}</mat-card-title>
+  </mat-card-header>
 
-    <img
-        mat-card-image
-        [ngSrc]="project.thumbnail"
-        width="1280"
-        height="720"
-        [priority]="index === 0 ? true : false"
-        [alt]="project.title"
-    />
+  <img
+    mat-card-image
+    [ngSrc]="project.thumbnail"
+    width="1280"
+    height="720"
+    [priority]="index === 0 ? true : false"
+    [alt]="project.title"
+  />
 
-    <mat-card-content>
-        <p class="project-description line-clamp">
-            {{ project.description }}
-        </p>
-    </mat-card-content>
+  <mat-card-content>
+    <p class="project-description line-clamp">
+      {{ project.description }}
+    </p>
+  </mat-card-content>
 
-    <mat-divider inset></mat-divider>
+  <mat-divider inset></mat-divider>
 
-    <mat-card-actions class="project-actions">
-        <div class="project-actions-date">
-            <p>{{ project.dateTimeCreated | date : 'd/M/yyyy, hh:mm' }}</p>
-            <!-- |
+  <mat-card-actions class="project-actions">
+    <div class="project-actions-date">
+      <p>{{ project.dateTimeCreated | date : 'd/M/yyyy, hh:mm' }}</p>
+      <!-- |
       <p>Kushoyarou</p> -->
-        </div>
+    </div>
 
-        <div>
-            <button mat-button (click)="onMore()">Περισσότερα...</button>
-        </div>
-    </mat-card-actions>
+    <div>
+      <button mat-button (click)="onMore()">Περισσότερα...</button>
+    </div>
+  </mat-card-actions>
 </mat-card>

@@ -1,24 +1,24 @@
 <ng-container *ngIf="isLoading$ | async">
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 </ng-container>
 
 <ng-container *ngIf="(projects$ | async) && totalProjects > 0 && (isLoading$ | async) === false; else noProjects">
-    <sick-project-item
-        *ngFor="let project of (projects$ | async)?.projects; let i = index"
-        [project]="project"
-        [index]="i"
-    ></sick-project-item>
+  <sick-project-item
+    *ngFor="let project of (projects$ | async)?.projects; let i = index"
+    [project]="project"
+    [index]="i"
+  ></sick-project-item>
 </ng-container>
 
 <mat-paginator
-    *ngIf="(projects$ | async) && totalProjects > 0"
-    [length]="(projects$ | async)?.count"
-    [pageSize]="projectsPerPage"
-    [pageSizeOptions]="pageSizeOptions"
-    (page)="onChangedPage($event)"
-    aria-label="Select page of projects"
+  *ngIf="(projects$ | async) && totalProjects > 0"
+  [length]="(projects$ | async)?.count"
+  [pageSize]="projectsPerPage"
+  [pageSizeOptions]="pageSizeOptions"
+  (page)="onChangedPage($event)"
+  aria-label="Select page of projects"
 ></mat-paginator>
 
 <ng-template #noProjects>
-    <sick-no-content *ngIf="(isLoading$ | async) === false"></sick-no-content>
+  <sick-no-content *ngIf="(isLoading$ | async) === false"></sick-no-content>
 </ng-template>

@@ -1,84 +1,75 @@
 <div class="signup-container">
-    <mat-card>
-        <div class="signup-form">
-            <h1 class="signup-title">Sign Up</h1>
+  <mat-card>
+    <div class="signup-form">
+      <h1 class="signup-title">Sign Up</h1>
 
-            <form [formGroup]="signupForm" (submit)="onSignup()">
-                <mat-form-field class="signup-input" appearance="fill">
-                    <mat-label>Username</mat-label>
-                    <input matInput type="text" placeholder="Username" formControlName="username" required />
-                    <mat-error *ngIf="formControl.username.touched && formControl.username.hasError('required')">
-                        Username is required
-                    </mat-error>
-                </mat-form-field>
+      <form [formGroup]="signupForm" (submit)="onSignup()">
+        <mat-form-field class="signup-input" appearance="fill">
+          <mat-label>Username</mat-label>
+          <input matInput type="text" placeholder="Username" formControlName="username" required />
+          <mat-error *ngIf="formControl.username.touched && formControl.username.hasError('required')">
+            Username is required
+          </mat-error>
+        </mat-form-field>
 
-                <mat-form-field class="signup-input" appearance="fill">
-                    <mat-label>Email</mat-label>
-                    <input matInput type="email" placeholder="email" formControlName="email" required />
-                    <mat-error
-                        *ngIf="
-                            formControl.email.touched &&
-                            (formControl.email.hasError('required') || formControl.email.hasError('email'))
-                        "
-                    >
-                        Email is required & must be in the form of 'someone@example.com'
-                    </mat-error>
-                </mat-form-field>
+        <mat-form-field class="signup-input" appearance="fill">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" placeholder="email" formControlName="email" required />
+          <mat-error
+            *ngIf="
+              formControl.email.touched && (formControl.email.hasError('required') || formControl.email.hasError('email'))
+            "
+          >
+            Email is required & must be in the form of 'someone@example.com'
+          </mat-error>
+        </mat-form-field>
 
-                <mat-form-field class="signup-input" appearance="fill">
-                    <mat-label>Password</mat-label>
-                    <input
-                        matInput
-                        type="password"
-                        placeholder="Password"
-                        formControlName="password"
-                        minlength="6"
-                        required
-                    />
-                    <mat-error
-                        *ngIf="
-                            formControl.password.touched &&
-                            (formControl.password.hasError('required') || formControl.password.hasError('minlength'))
-                        "
-                    >
-                        Password is required & must be at least 6 characters long
-                    </mat-error>
-                </mat-form-field>
+        <mat-form-field class="signup-input" appearance="fill">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" placeholder="Password" formControlName="password" minlength="6" required />
+          <mat-error
+            *ngIf="
+              formControl.password.touched &&
+              (formControl.password.hasError('required') || formControl.password.hasError('minlength'))
+            "
+          >
+            Password is required & must be at least 6 characters long
+          </mat-error>
+        </mat-form-field>
 
-                <mat-form-field class="signup-input" appearance="fill">
-                    <mat-label>Confirm password</mat-label>
-                    <input
-                        matInput
-                        type="password"
-                        placeholder="Confirm password"
-                        formControlName="confirmPassword"
-                        minlength="6"
-                        required
-                    />
-                    <mat-error
-                        *ngIf="
-                            formControl.confirmPassword.touched &&
-                            (formControl.confirmPassword.hasError('minlength') ||
-                                formControl.confirmPassword.hasError('required'))
-                        "
-                    >
-                        Reenter your password
-                    </mat-error>
+        <mat-form-field class="signup-input" appearance="fill">
+          <mat-label>Confirm password</mat-label>
+          <input
+            matInput
+            type="password"
+            placeholder="Confirm password"
+            formControlName="confirmPassword"
+            minlength="6"
+            required
+          />
+          <mat-error
+            *ngIf="
+              formControl.confirmPassword.touched &&
+              (formControl.confirmPassword.hasError('minlength') || formControl.confirmPassword.hasError('required'))
+            "
+          >
+            Reenter your password
+          </mat-error>
 
-                    <mat-error *ngIf="formControl.confirmPassword.touched && signupForm.hasError('passwordMismatch')">
-                        Passwords do not match
-                    </mat-error>
-                </mat-form-field>
+          <mat-error *ngIf="formControl.confirmPassword.touched && signupForm.hasError('passwordMismatch')">
+            Passwords do not match
+          </mat-error>
+        </mat-form-field>
 
-                <!-- <mat-form-field class="signup-input" appearance="fill">
+        <!-- <mat-form-field class="signup-input" appearance="fill">
           <mat-label>Avatar</mat-label>
           <input matInput type="text" placeholder="avatar" formControlName="avatar" />
         </mat-form-field> -->
 
-                <button mat-raised-button class="signup-btn" color="primary" type="submit" [disabled]="!signupForm.valid">
-                    Signup
-                </button>
-            </form>
-        </div>
-    </mat-card>
+        <button mat-raised-button class="signup-btn" color="primary" type="submit" [disabled]="!signupForm.valid">
+          Signup
+        </button>
+      </form>
+    </div>
+  </mat-card>
 </div>

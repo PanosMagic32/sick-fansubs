@@ -1,75 +1,71 @@
 <mat-toolbar color="primary" class="header-toolbar">
-    <mat-toolbar-row>
-        <div class="logo">
-            <img src="assets/logo/logo.png" alt="logo" [routerLink]="['/home']" />
-        </div>
+  <mat-toolbar-row>
+    <div class="logo">
+      <img src="assets/logo/logo.png" alt="logo" [routerLink]="['/home']" />
+    </div>
 
-        <button
-            mat-icon-button
-            (click)="onToggleSidenav()"
-            *ngIf="(isSmall$ | async) || (isHandset$ | async) ? true : false"
-        >
-            <mat-icon>menu</mat-icon>
-        </button>
+    <button mat-icon-button (click)="onToggleSidenav()" *ngIf="(isSmall$ | async) || (isHandset$ | async) ? true : false">
+      <mat-icon>menu</mat-icon>
+    </button>
 
-        <a [routerLink]="['/home']"> Sick-Fansubs </a>
+    <a [routerLink]="['/home']"> Sick-Fansubs </a>
 
-        <span class="spacer"></span>
+    <span class="spacer"></span>
 
-        <div *ngIf="(isSmall$ | async) || (isMedium$ | async) || (isHandset$ | async) ? false : true">
-            <ul class="navigation-items">
-                <li [routerLink]="['/projects']" routerLinkActive="active">
-                    <mat-icon>grid_view</mat-icon>
-                    <a class="mat-focus-indicator docs-button mat-button mat-button-base">Projects</a>
-                </li>
+    <div *ngIf="(isSmall$ | async) || (isMedium$ | async) || (isHandset$ | async) ? false : true">
+      <ul class="navigation-items">
+        <li [routerLink]="['/projects']" routerLinkActive="active">
+          <mat-icon>grid_view</mat-icon>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base">Projects</a>
+        </li>
 
-                <li>
-                    <mat-icon>feed</mat-icon>
-                    <a
-                        class="mat-focus-indicator docs-button mat-button mat-button-base"
-                        href="https://nyaa.si/user/Sick-Fansubs"
-                        target="_system"
-                    >
-                        Tracker
-                    </a>
-                </li>
+        <li>
+          <mat-icon>feed</mat-icon>
+          <a
+            class="mat-focus-indicator docs-button mat-button mat-button-base"
+            href="https://nyaa.si/user/Sick-Fansubs"
+            target="_system"
+          >
+            Tracker
+          </a>
+        </li>
 
-                <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
+        <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
           <mat-icon>gavel</mat-icon>
           <a class="mat-focus-indicator docs-button mat-button mat-button-base">Rules</a>
         </li> -->
 
-                <li [routerLink]="['/about']" routerLinkActive="active">
-                    <mat-icon>info</mat-icon>
-                    <a class="mat-focus-indicator docs-button mat-button mat-button-base">Η ομάδα</a>
-                </li>
-            </ul>
-        </div>
+        <li [routerLink]="['/about']" routerLinkActive="active">
+          <mat-icon>info</mat-icon>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base">Η ομάδα</a>
+        </li>
+      </ul>
+    </div>
 
-        <div class="menu-icons-only" *ngIf="(isMedium$ | async) ? true : false">
-            <ul class="navigation-items-icons-only">
-                <li [routerLink]="['/projects']" routerLinkActive="active">
-                    <mat-icon>grid_view</mat-icon>
-                </li>
+    <div class="menu-icons-only" *ngIf="(isMedium$ | async) ? true : false">
+      <ul class="navigation-items-icons-only">
+        <li [routerLink]="['/projects']" routerLinkActive="active">
+          <mat-icon>grid_view</mat-icon>
+        </li>
 
-                <li>
-                    <mat-icon (click)="onOpenTracker()">feed</mat-icon>
-                </li>
+        <li>
+          <mat-icon (click)="onOpenTracker()">feed</mat-icon>
+        </li>
 
-                <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
+        <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
           <mat-icon>gavel</mat-icon>
         </li> -->
 
-                <li [routerLink]="['/about']" routerLinkActive="active">
-                    <mat-icon>info</mat-icon>
-                </li>
-            </ul>
-        </div>
+        <li [routerLink]="['/about']" routerLinkActive="active">
+          <mat-icon>info</mat-icon>
+        </li>
+      </ul>
+    </div>
 
-        <span class="spacer"></span>
+    <span class="spacer"></span>
 
-        <!-- TODO - implement different menu for loggedin/out user -->
-        <!-- <button
+    <!-- TODO - implement different menu for loggedin/out user -->
+    <!-- <button
       mat-icon-button
       routerLinkActive="active"
       [matMenuTriggerFor]="userMenu"
@@ -91,16 +87,16 @@
       <mat-icon>search</mat-icon>
     </button> -->
 
-        <div class="logo-social" *ngIf="(isSmall$ | async) || (isHandset$ | async) ? false : true">
-            <img src="assets/images/discord.svg" alt="discord" (click)="onOpenSocial('discord')" />
-            <img src="assets/images/facebook.svg" alt="facebook" (click)="onOpenSocial('facebook')" />
-            <img src="assets/images/github.svg" alt="github" (click)="onOpenSocial('github')" />
-        </div>
-    </mat-toolbar-row>
+    <div class="logo-social" *ngIf="(isSmall$ | async) || (isHandset$ | async) ? false : true">
+      <img src="assets/images/discord.svg" alt="discord" (click)="onOpenSocial('discord')" />
+      <img src="assets/images/facebook.svg" alt="facebook" (click)="onOpenSocial('facebook')" />
+      <img src="assets/images/github.svg" alt="github" (click)="onOpenSocial('github')" />
+    </div>
+  </mat-toolbar-row>
 
-    <mat-toolbar-row *ngIf="isOpenSearch">
-        <mat-form-field class="search-full-width">
-            <input matInput placeholder="Search..." />
-        </mat-form-field>
-    </mat-toolbar-row>
+  <mat-toolbar-row *ngIf="isOpenSearch">
+    <mat-form-field class="search-full-width">
+      <input matInput placeholder="Search..." />
+    </mat-form-field>
+  </mat-toolbar-row>
 </mat-toolbar>

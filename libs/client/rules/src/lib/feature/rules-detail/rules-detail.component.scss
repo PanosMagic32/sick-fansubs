@@ -1,28 +1,28 @@
 .rules-card {
-    margin: 3rem 1rem;
-    padding: 0 !important;
+  margin: 3rem 1rem;
+  padding: 0 !important;
 
-    mat-card-header {
-        background-color: #fff5ec;
-        padding: 1rem 1rem 0 1rem;
+  mat-card-header {
+    background-color: #fff5ec;
+    padding: 1rem 1rem 0 1rem;
+  }
+
+  mat-card-content {
+    padding: 1rem;
+  }
+
+  .rules-ifo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .rules-info-icon {
+      margin: 0 2rem 0 0;
     }
+  }
 
-    mat-card-content {
-        padding: 1rem;
-    }
-
-    .rules-ifo {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        .rules-info-icon {
-            margin: 0 2rem 0 0;
-        }
-    }
-
-    mat-list-item {
-        margin: 0.5rem 0;
-        height: auto !important;
-    }
+  mat-list-item {
+    margin: 0.5rem 0;
+    height: auto !important;
+  }
 }

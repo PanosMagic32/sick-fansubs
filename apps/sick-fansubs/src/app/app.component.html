@@ -1,12 +1,12 @@
 <mat-sidenav-container>
-    <mat-sidenav #sidenav role="navigation" fixedInViewport="true">
-        <sick-sidenav (sidenavClose)="sidenav.close()"></sick-sidenav>
-    </mat-sidenav>
+  <mat-sidenav #sidenav role="navigation" fixedInViewport="true">
+    <sick-sidenav (sidenavClose)="sidenav.close()"></sick-sidenav>
+  </mat-sidenav>
 
-    <mat-sidenav-content>
-        <sick-header (sidenavToggle)="sidenav.toggle()"></sick-header>
+  <mat-sidenav-content>
+    <sick-header (sidenavToggle)="sidenav.toggle()"></sick-header>
 
-        <sick-shell></sick-shell>
-        <!-- <sick-footer></sick-footer> -->
-    </mat-sidenav-content>
+    <sick-shell></sick-shell>
+    <!-- <sick-footer></sick-footer> -->
+  </mat-sidenav-content>
 </mat-sidenav-container>
