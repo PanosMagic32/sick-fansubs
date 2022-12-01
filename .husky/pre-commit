@@ -3,5 +3,4 @@
 
 npm run format:fix
 npx validate-branch-name
-.git/hooks/commit-msg \$1
 npx lint-staged

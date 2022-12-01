@@ -16,8 +16,8 @@
     "prepack": "rm -rf dist/ && npm run build:all",
     "pack": "docker compose up -d --always-recreate-deps --force-recreate",
     "prepare": "husky install",
-    "format:check": "prettier apps/**/*.{ts,html,scss,json} libs/**/*.{ts,html,scss,json} tools/**/*.{ts,html,scss,json} --check",
-    "format:fix": "prettier apps/**/*.{ts,html,scss,json} libs/**/*.{ts,html,scss,json} tools/**/*.{ts,html,scss,json} --write",
+    "format:check": "prettier apps/**/*.{ts,html,scss,json} libs/**/*.{ts,html,scss,json} --check",
+    "format:fix": "prettier apps/**/*.{ts,html,scss,json} libs/**/*.{ts,html,scss,json} --write",
     "pretty-quick": "pretty-quick --pattern \"**/*.*(js|ts|css|scss|html)\" --staged"
   },
   "private": true,
@@ -83,7 +83,6 @@
     "eslint": "^8.28.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-cypress": "^2.12.1",
-    "git-commit-msg-linter": "^4.4.0",
     "husky": "^8.0.0",
     "jest": "^28.1.3",
     "jest-environment-jsdom": "^28.1.3",
@@ -99,13 +98,13 @@
     "validate-branch-name": "^1.3.0"
   },
   "husky": {
-    "hooks": "npm run pretty-quick && npx validate-branch-name && .git/hooks/commit-msg \\$1 && npx lint-staged"
+    "hooks": "npm run format:fix && npx validate-branch-name && npx lint-staged"
   },
   "validate-branch-name": {
     "pattern": "^(main|develop){1}$|^(feature|bugfix|hotfix|release)-.+$/g",
     "errorMsg": "Branch name has to be main or develop or has to start with feature-, bugfix-, hotfix- or release-"
   },
   "lint-staged": {
-    "**/*.{ts,html,scss}": "prettier --write --ignore-unknown"
+    "**/*.{ts,html,scss,json}": "prettier --write --ignore-unknown"
   }
 }
