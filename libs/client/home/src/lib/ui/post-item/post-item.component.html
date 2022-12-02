@@ -5,9 +5,14 @@
     <mat-card-subtitle>{{ post.subtitle }}</mat-card-subtitle>
   </mat-card-header>
 
-  <!-- [ngSrc]="post.thumbnail" -->
-  <!-- [priority]="index === 0 ? true : false" -->
-  <img mat-card-image width="1280" height="720" [alt]="post.title" />
+  <img
+    mat-card-image
+    width="1280"
+    height="720"
+    [alt]="post.title"
+    [ngSrc]="post.thumbnail"
+    [priority]="index === 0 ? true : false"
+  />
 
   <mat-card-content>
     <h3 class="post-description">{{ post.description }}</h3>
