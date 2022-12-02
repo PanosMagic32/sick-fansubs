@@ -26,10 +26,6 @@ html {
   height: 100%;
   box-sizing: border-box;
   font-size: 62.5%; // 1rem = 10px, 10px/16px = 62.5%
-
-  // @media only screen and (max-width: $bp-large) {
-  //   font-size: 50%;
-  // }
 }
 
 body {
@@ -42,12 +38,17 @@ body {
   font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
 
-mat-sidenav {
-  overflow: unset !important;
-}
-
 mat-sidenav-container {
   min-height: 100vh;
+}
+
+mat-sidenav-content,
+mat-sidenav {
+  height: 100%;
+}
+
+mat-sidenav {
+  width: 25rem;
 }
 
 .logo {
@@ -85,25 +86,7 @@ mat-sidenav-container {
   font-size: 1.5rem;
 }
 
-.mat-raised-button,
-.mat-stroked-button,
-.mat-flat-button {
-  padding: 0 1.15em;
-  margin: 0 0.65em;
-  min-width: 3em;
-  line-height: 36.4px;
-}
-
-.mat-standard-chip {
-  padding: 0.5em 0.85em;
-  min-height: 2.5em;
-}
-
-.material-icons {
-  font-size: 24px;
-  font-family: 'Material Icons', 'Material Icons';
-
-  .mat-badge-content {
-    font-family: 'Roboto';
-  }
+.mdc-list-item__content,
+.mdc-list-item__primary-text {
+  white-space: inherit !important;
 }

@@ -1,9 +1,15 @@
 .back-button {
-  margin: 1rem 2rem;
+  margin: 1rem 0;
+
+  mat-icon {
+    font-size: 2rem;
+    height: 2rem;
+    width: 2rem;
+  }
 }
 
 .project-detail-card {
-  margin: 2rem;
+  margin: 2rem 0;
   // max-width: 40%;
 
   mat-card-header {
@@ -14,9 +20,11 @@
   }
 
   img {
-    max-width: 80%;
-    margin: 0 auto;
-    border-radius: 1rem;
+    width: 85%;
+    max-height: 40vh;
+    object-fit: cover;
+    margin: 1rem auto 0 auto;
+    border-radius: 0.5rem;
   }
 
   mat-card-content {
@@ -26,8 +34,8 @@
   }
 
   .links {
-    font-size: 20px;
-    margin: 2rem 1rem;
+    font-size: 2rem;
+    margin: 1rem;
 
     mat-icon {
       padding-top: 0.5rem;

@@ -13,14 +13,19 @@ $bp-large: 68.75em; // 1100px
     .mat-card-avatar {
       height: 3rem;
       width: 3rem;
+      margin-top: -0.5rem;
+    }
+
+    mat-card-title {
+      margin-bottom: 0.5rem;
     }
   }
 
   img {
-    width: 100%;
+    width: 85%;
     max-height: 40vh;
     object-fit: cover;
-    margin: 0 auto;
+    margin: 1rem auto 0 auto;
     border-radius: 0.5rem;
   }
 
@@ -43,6 +48,12 @@ $bp-large: 68.75em; // 1100px
       p {
         margin: 1rem 0;
       }
+    }
+
+    mat-icon {
+      font-size: 2rem;
+      height: 2rem;
+      width: 2rem;
     }
   }
 }
