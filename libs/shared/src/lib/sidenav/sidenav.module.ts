@@ -7,8 +7,8 @@ import { MaterialModule } from '@sick/material';
 import { SidenavComponent } from './sidenav.component';
 
 @NgModule({
-    declarations: [SidenavComponent],
-    imports: [CommonModule, MaterialModule, RouterModule],
-    exports: [SidenavComponent],
+  declarations: [SidenavComponent],
+  imports: [CommonModule, MaterialModule, RouterModule],
+  exports: [SidenavComponent],
 })
 export class SidenavModule {}

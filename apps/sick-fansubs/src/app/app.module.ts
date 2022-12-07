@@ -14,67 +14,68 @@ import { AppRoutingModule } from './app-routing.module';
 import { environment } from '../environments/environment';
 
 @NgModule({
-    declarations: [AppComponent],
-    imports: [
-        BrowserModule,
-        BrowserAnimationsModule,
-        HttpClientModule,
-        AppRoutingModule,
-        MaterialModule,
-        SharedModule,
-        ClientShellModule,
-    ],
-    providers: [
-        {
-            provide: APP_INITIALIZER,
-            useFactory: () => {
-                const configService = inject(ConfigService);
-                const http = inject(HttpClient);
+  declarations: [AppComponent],
+  imports: [
+    BrowserModule,
+    BrowserAnimationsModule,
+    HttpClientModule,
+    AppRoutingModule,
+    MaterialModule,
+    SharedModule,
+    ClientShellModule,
+  ],
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => {
+        const configService = inject(ConfigService);
+        const http = inject(HttpClient);
 
-                return () =>
-                    new Promise((resolve) => {
-                        if (environment.production) {
-                            // load config for a deployed app
-                            http.get('.config.json')
-                                .pipe(
-                                    tap((config: any) => {
-                                        configService.API_URL = config.API_URL;
-                                        configService.APP_VERSION = config.APP_VERSION;
-                                        configService.FACEBOOK_URL = config.FACEBOOK_URL;
-                                        configService.DISCORD_URL = config.DISCORD_URL;
-                                        configService.GITHUB_URL = config.GITHUB_URL;
-                                        configService.TRACKER_URL = config.TRACKER_URL;
+        return () =>
+          new Promise((resolve) => {
+            if (environment.production) {
+              // load config for a deployed app
+              http
+                .get('.config.json')
+                .pipe(
+                  tap((config: any) => {
+                    configService.API_URL = config.API_URL;
+                    configService.APP_VERSION = config.APP_VERSION;
+                    configService.FACEBOOK_URL = config.FACEBOOK_URL;
+                    configService.DISCORD_URL = config.DISCORD_URL;
+                    configService.GITHUB_URL = config.GITHUB_URL;
+                    configService.TRACKER_URL = config.TRACKER_URL;
 
-                                        resolve(true);
-                                    }),
-                                    catchError(() => {
-                                        configService.API_URL = 'https://sickfansubs.com/api';
+                    resolve(true);
+                  }),
+                  catchError(() => {
+                    configService.API_URL = 'https://sickfansubs.com/api';
 
-                                        resolve(true);
-                                        return of(null);
-                                    })
-                                )
-                                .subscribe();
-                        } else {
-                            // load config for a local app
-                            // eslint-disable-next-line @typescript-eslint/no-var-requires
-                            const config = require('.config.json');
+                    resolve(true);
+                    return of(null);
+                  })
+                )
+                .subscribe();
+            } else {
+              // load config for a local app
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const config = require('.config.json');
 
-                            configService.API_URL = 'http://localhost:3333/api';
-                            configService.APP_VERSION = config.APP_VERSION;
-                            configService.FACEBOOK_URL = config.FACEBOOK_URL;
-                            configService.DISCORD_URL = config.DISCORD_URL;
-                            configService.GITHUB_URL = config.GITHUB_URL;
-                            configService.TRACKER_URL = config.TRACKER_URL;
+              configService.API_URL = 'http://localhost:3333/api';
+              configService.APP_VERSION = config.APP_VERSION;
+              configService.FACEBOOK_URL = config.FACEBOOK_URL;
+              configService.DISCORD_URL = config.DISCORD_URL;
+              configService.GITHUB_URL = config.GITHUB_URL;
+              configService.TRACKER_URL = config.TRACKER_URL;
 
-                            resolve(true);
-                        }
-                    });
-            },
-            multi: true,
-        },
-        { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
-    ],
-    bootstrap: [AppComponent],
+              resolve(true);
+            }
+          });
+      },
+      multi: true,
+    },
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+  ],
+  bootstrap: [AppComponent],
 })
 export class AppModule {}

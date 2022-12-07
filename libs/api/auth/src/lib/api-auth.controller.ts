@@ -8,10 +8,10 @@ import { ApiAuthService } from './api-auth.service';
 @ApiTags('Auth')
 @Controller('auth')
 export class ApiAuthController {
-    constructor(private readonly apiAuthService: ApiAuthService) {}
+  constructor(private readonly apiAuthService: ApiAuthService) {}
 
-    @Post('login')
-    async login(@Body() loginUserDto: LoginUserDto): Promise<{ username: string; accessToken: string }> {
-        return this.apiAuthService.login(loginUserDto);
-    }
+  @Post('login')
+  async login(@Body() loginUserDto: LoginUserDto): Promise<{ username: string; accessToken: string }> {
+    return this.apiAuthService.login(loginUserDto);
+  }
 }

@@ -11,8 +11,8 @@ import { LoginFormComponent } from './ui/login-form/login-form.component';
 import { SignupFormComponent } from './ui/signup-form/signup-form.component';
 
 @NgModule({
-    imports: [CommonModule, ClientAuthRoutingModule, MaterialModule, ReactiveFormsModule],
-    declarations: [LoginComponent, SignupComponent, LoginFormComponent, SignupFormComponent],
-    exports: [LoginComponent, SignupComponent, LoginFormComponent, SignupFormComponent],
+  imports: [CommonModule, ClientAuthRoutingModule, MaterialModule, ReactiveFormsModule],
+  declarations: [LoginComponent, SignupComponent, LoginFormComponent, SignupFormComponent],
+  exports: [LoginComponent, SignupComponent, LoginFormComponent, SignupFormComponent],
 })
 export class ClientAuthModule {}

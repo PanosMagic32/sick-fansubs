@@ -1,5 +1,5 @@
 {
-    "min-len": 10,
-    "max-len": 100,
-    "debug": false
+  "min-len": 10,
+  "max-len": 100,
+  "debug": false
 }

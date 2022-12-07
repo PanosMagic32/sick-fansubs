@@ -10,8 +10,8 @@ import { PostListComponent } from './feature/post-list/post-list.component';
 import { PostItemComponent } from './ui/post-item/post-item.component';
 
 @NgModule({
-    imports: [CommonModule, ClientHomeRoutingModule, MaterialModule, HttpClientModule, SharedModule, NgOptimizedImage],
-    declarations: [PostListComponent, PostItemComponent],
-    exports: [PostListComponent],
+  imports: [CommonModule, ClientHomeRoutingModule, MaterialModule, HttpClientModule, SharedModule, NgOptimizedImage],
+  declarations: [PostListComponent, PostItemComponent],
+  exports: [PostListComponent],
 })
 export class ClientHomeModule {}

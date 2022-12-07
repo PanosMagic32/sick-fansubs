@@ -5,8 +5,8 @@ import { ClientShellRoutingModule } from './client-shell-routing.module';
 import { ShellComponent } from './shell/shell.component';
 
 @NgModule({
-    imports: [CommonModule, ClientShellRoutingModule],
-    declarations: [ShellComponent],
-    exports: [ShellComponent],
+  imports: [CommonModule, ClientShellRoutingModule],
+  declarations: [ShellComponent],
+  exports: [ShellComponent],
 })
 export class ClientShellModule {}

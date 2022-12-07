@@ -4,17 +4,17 @@ import { Router } from '@angular/router';
 import { Project } from '../../data-access/project.interface';
 
 @Component({
-    selector: 'sick-project-item',
-    templateUrl: './project-item.component.html',
-    styleUrls: ['./project-item.component.scss'],
+  selector: 'sick-project-item',
+  templateUrl: './project-item.component.html',
+  styleUrls: ['./project-item.component.scss'],
 })
 export class ProjectItemComponent {
-    @Input() project!: Project;
-    @Input() index!: number;
+  @Input() project!: Project;
+  @Input() index!: number;
 
-    constructor(private router: Router) {}
+  constructor(private router: Router) {}
 
-    onMore() {
-        this.router.navigate(['/', 'projects', this.project._id]);
-    }
+  onMore() {
+    this.router.navigate(['/', 'projects', this.project._id]);
+  }
 }
