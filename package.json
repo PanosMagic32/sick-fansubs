@@ -12,6 +12,7 @@
     "build": "nx build",
     "build:all": "nx run-many --target=build --projects=api,sick-fansubs --parallel --prod --skip-nx-cache",
     "test": "nx test",
+    "lint-staged": "lint-staged --allow-empty",
     "deploy:docker": "npm run build:all && cp .env dist/apps/api/ && cp .env dist/apps/sick-fansubs/ && cp .config.json dist/apps/sick-fansubs/ && docker compose up",
     "prepack": "rm -rf dist/ && npm run build:all",
     "pack": "docker compose up -d --always-recreate-deps --force-recreate",
@@ -27,8 +28,20 @@
     "pattern": "^(main|develop){1}$|^(feature|bugfix|hotfix|release)-.+$/g",
     "errorMsg": "Branch name has to be main or develop or has to start with feature-, bugfix-, hotfix- or release-"
   },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "body-max-line-length": [
+        1,
+        "always",
+        100
+      ]
+    }
+  },
   "lint-staged": {
-    "**/*.{ts,html,scss,json}": "prettier --write --ignore-unknown"
+    "*.{ts,js,html,css,scss,less,md,json}": "prettier --write --ignore-unknown"
   },
   "private": true,
   "dependencies": {
@@ -72,6 +85,8 @@
     "@angular/cli": "^15.0.4",
     "@angular/compiler-cli": "^15.0.4",
     "@angular/language-service": "^15.0.4",
+    "@commitlint/cli": "^17.3.0",
+    "@commitlint/config-conventional": "^17.3.0",
     "@nestjs/schematics": "^9.0.3",
     "@nestjs/testing": "^9.2.1",
     "@nrwl/cli": "15.3.3",
