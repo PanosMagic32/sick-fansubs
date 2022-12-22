@@ -19,6 +19,10 @@ mat-nav-list {
   mat-list-item {
     text-decoration: none;
     border-left: 0.5rem solid var(--background-dark-color);
+
+    mat-icon {
+      margin-bottom: -0.5rem;
+    }
   }
 
   mat-list-item:hover,
