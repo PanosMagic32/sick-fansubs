@@ -8,7 +8,7 @@
     "api-user": "libs/api/user",
     "client-about": "libs/client/about",
     "client-auth": "libs/client/auth",
-    "client-home": "libs/client/home",
+    "client-blog-posts": "libs/client/blog-posts",
     "client-projects": "libs/client/projects",
     "client-rules": "libs/client/rules",
     "client-shell": "libs/client/shell",
@@ -16,5 +16,6 @@
     "shared": "libs/shared",
     "sick-fansubs": "apps/sick-fansubs",
     "sick-fansubs-e2e": "apps/sick-fansubs-e2e"
-  }
+  },
+  "defaultProject": "sick-fansubs"
 }

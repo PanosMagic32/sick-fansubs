@@ -5,13 +5,13 @@ import { HttpClientModule } from '@angular/common/http';
 import { MaterialModule } from '@sick/material';
 import { SharedModule } from '@sick/shared';
 
-import { ClientHomeRoutingModule } from './client-home-routing.module';
+import { ClientBlogPostsRoutingModule } from './client-blog-post-routing.module';
 import { PostListComponent } from './feature/post-list/post-list.component';
 import { PostItemComponent } from './ui/post-item/post-item.component';
 
 @NgModule({
-  imports: [CommonModule, ClientHomeRoutingModule, MaterialModule, HttpClientModule, SharedModule, NgOptimizedImage],
+  imports: [CommonModule, ClientBlogPostsRoutingModule, MaterialModule, HttpClientModule, SharedModule, NgOptimizedImage],
   declarations: [PostListComponent, PostItemComponent],
   exports: [PostListComponent],
 })
-export class ClientHomeModule {}
+export class ClientBlogPostsModule {}
