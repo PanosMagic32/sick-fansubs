@@ -1,14 +1,14 @@
 <div class="signup-container">
   <mat-card>
     <div class="signup-form">
-      <h1 class="signup-title">Sign Up</h1>
+      <h1 class="signup-title">Εγγραφή</h1>
 
       <form [formGroup]="signupForm" (submit)="onSignup()">
         <mat-form-field class="signup-input" appearance="fill">
-          <mat-label>Username</mat-label>
-          <input matInput type="text" placeholder="Username" formControlName="username" required />
+          <mat-label>Όνομα χρήστη</mat-label>
+          <input matInput type="text" placeholder="Όνομα χρήστη" formControlName="username" required />
           <mat-error *ngIf="formControl.username.touched && formControl.username.hasError('required')">
-            Username is required
+            Το όνομα χρήστη είναι υποχρεωτικό.
           </mat-error>
         </mat-form-field>
 
@@ -20,29 +20,29 @@
               formControl.email.touched && (formControl.email.hasError('required') || formControl.email.hasError('email'))
             "
           >
-            Email is required & must be in the form of 'someone@example.com'
+            Το email είναι υποχρεωτικό και πρέπει να είναι της μορφής 'someone@example.com'.
           </mat-error>
         </mat-form-field>
 
         <mat-form-field class="signup-input" appearance="fill">
-          <mat-label>Password</mat-label>
-          <input matInput type="password" placeholder="Password" formControlName="password" minlength="6" required />
+          <mat-label>Κωδικός</mat-label>
+          <input matInput type="password" placeholder="Κωδικός" formControlName="password" minlength="6" required />
           <mat-error
             *ngIf="
               formControl.password.touched &&
               (formControl.password.hasError('required') || formControl.password.hasError('minlength'))
             "
           >
-            Password is required & must be at least 6 characters long
+            Ο κωδικός είναι υποχρεωτικός και πρέπει να είναι τουλάχιστον 6 χαρακτήρες.
           </mat-error>
         </mat-form-field>
 
         <mat-form-field class="signup-input" appearance="fill">
-          <mat-label>Confirm password</mat-label>
+          <mat-label>Επιβεβαίωση κωδικού</mat-label>
           <input
             matInput
             type="password"
-            placeholder="Confirm password"
+            placeholder="Επιβεβαίωση κωδικού"
             formControlName="confirmPassword"
             minlength="6"
             required
@@ -53,11 +53,11 @@
               (formControl.confirmPassword.hasError('minlength') || formControl.confirmPassword.hasError('required'))
             "
           >
-            Reenter your password
+            Εισάγετε ξανά τον κωδικό σας.
           </mat-error>
 
           <mat-error *ngIf="formControl.confirmPassword.touched && signupForm.hasError('passwordMismatch')">
-            Passwords do not match
+            Οι κωδικοί δεν ταιριάζουν.
           </mat-error>
         </mat-form-field>
 
@@ -67,9 +67,13 @@
         </mat-form-field> -->
 
         <button mat-raised-button class="signup-btn" color="primary" type="submit" [disabled]="!signupForm.valid">
-          Signup
+          Εγγραφή
         </button>
       </form>
     </div>
+
+    <ng-container *ngIf="isLoading">
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </ng-container>
   </mat-card>
 </div>

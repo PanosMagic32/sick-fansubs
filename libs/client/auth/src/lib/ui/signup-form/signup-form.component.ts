@@ -11,6 +11,8 @@ import { SignupForm } from '../../data-access/signup-form.interface';
   styleUrls: ['./signup-form.component.scss'],
 })
 export class SignupFormComponent {
+  isLoading = false;
+
   signupForm = new FormGroup<SignupForm>(
     {
       username: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -41,14 +43,18 @@ export class SignupFormComponent {
       return;
     }
 
+    this.isLoading = true;
+
     this.authService
       .signUp(this.signupForm.value.username, this.signupForm.value.email, this.signupForm.value.password)
       .subscribe({
         next: (res) => {
           console.log(res);
+          this.isLoading = false;
           // TODO - handle successfull response
         },
         error: (err) => {
+          this.isLoading = false;
           this.openSnackBar(err.error.message, 'OK');
         },
       });
@@ -59,7 +65,7 @@ export class SignupFormComponent {
   }
 
   private checkPasswords(password: string, confirmPassword: string): ValidatorFn {
-    return (formGroup: AbstractControl): { [key: string]: any } | null => {
+    return (formGroup: AbstractControl): { [key: string]: boolean } | null => {
       const passwordControl = formGroup.get(password);
       const confirmPasswordControl = formGroup.get(confirmPassword);
 

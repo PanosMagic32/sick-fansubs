@@ -11,6 +11,8 @@ import { LoginForm } from '../../data-access/login-form.interface';
   styleUrls: ['./login-form.component.scss'],
 })
 export class LoginFormComponent {
+  isLoading = false;
+
   loginForm = new FormGroup<LoginForm>({
     username: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(6)] }),
@@ -34,12 +36,16 @@ export class LoginFormComponent {
       return;
     }
 
+    this.isLoading = true;
+
     this.authService.login(this.loginForm.value.username, this.loginForm.value.password).subscribe({
       next: (res) => {
         console.log(res);
+        this.isLoading = false;
         // TODO - handle successfull response
       },
       error: (err) => {
+        this.isLoading = false;
         this.openSnackBar(err.error.message, 'OK');
       },
     });
