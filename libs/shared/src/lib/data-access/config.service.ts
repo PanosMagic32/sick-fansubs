@@ -9,6 +9,7 @@ export class ConfigService {
   private facebookUrl: string | undefined = '';
   private discordUrl: string | undefined = '';
   private githubUrl: string | undefined = '';
+  private paypalUrl: string | undefined = '';
   private trackerUrl: string | undefined = '';
 
   get API_URL() {
@@ -49,6 +50,14 @@ export class ConfigService {
 
   set GITHUB_URL(githubUrl) {
     this.githubUrl = githubUrl;
+  }
+
+  get PAYPAL_URL() {
+    return this.paypalUrl;
+  }
+
+  set PAYPAL_URL(paypalUrl) {
+    this.paypalUrl = paypalUrl;
   }
 
   get TRACKER_URL() {

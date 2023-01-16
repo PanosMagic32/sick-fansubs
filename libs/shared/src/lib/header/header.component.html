@@ -92,6 +92,11 @@
       <img src="assets/images/facebook.svg" alt="facebook" (click)="onOpenSocial('facebook')" />
       <img src="assets/images/github.svg" alt="github" (click)="onOpenSocial('github')" />
     </div>
+
+    <div class="donate" (click)="onOpenSocial('paypal')">
+      <span>Donate</span>
+      <img src="assets/images/paypal.svg" alt="paypal" />
+    </div>
   </mat-toolbar-row>
 
   <mat-toolbar-row *ngIf="isOpenSearch">
