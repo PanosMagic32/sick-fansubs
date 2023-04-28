@@ -6,7 +6,7 @@
   "prefix": "sick",
   "targets": {
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/libs/client/projects"],
       "options": {
         "jestConfig": "libs/client/projects/jest.config.ts",
@@ -14,7 +14,7 @@
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
+      "executor": "@nx/linter:eslint",
       "options": {
         "lintFilePatterns": ["libs/client/projects/**/*.ts", "libs/client/projects/**/*.html"]
       }
