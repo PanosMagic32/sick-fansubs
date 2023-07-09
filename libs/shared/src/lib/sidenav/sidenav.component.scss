@@ -1,6 +1,9 @@
 mat-toolbar.sidenav-toolbar {
   border-radius: 0;
-  box-shadow: 0 3px 5px -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f;
+  box-shadow:
+    0 3px 5px -1px #0003,
+    0 6px 10px #00000024,
+    0 1px 18px #0000001f;
 
   span {
     margin-left: 1rem;
@@ -19,6 +22,7 @@ mat-nav-list {
   mat-list-item {
     text-decoration: none;
     border-left: 0.5rem solid var(--background-dark-color);
+    padding: 1.2rem;
 
     mat-icon {
       margin-bottom: -0.5rem;
