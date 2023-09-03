@@ -14,15 +14,19 @@ import { ProjectsService } from '../../data-access/projects.service';
 export class ProjectDetailComponent implements OnInit {
   project$!: Observable<Project>;
 
-  constructor(private route: ActivatedRoute, private location: Location, private projectService: ProjectsService) {}
+  constructor(
+    private route: ActivatedRoute,
+    private location: Location,
+    private projectService: ProjectsService,
+  ) {}
 
   ngOnInit(): void {
-    const heroId = this.route.snapshot.paramMap.get('id');
+    const projectId = this.route.snapshot.paramMap.get('id');
 
-    if (!heroId || heroId === undefined) {
+    if (!projectId || projectId === undefined) {
       this.onBackToProjects();
     } else {
-      this.project$ = this.projectService.getProjectById(heroId);
+      this.project$ = this.projectService.getProjectById(projectId);
     }
   }
 
