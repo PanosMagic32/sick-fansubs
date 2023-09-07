@@ -18,7 +18,7 @@ export class ApiBlogPostController {
 
   @Get()
   async findAll(
-    @Query() params: { pagesize: number; page: number; startId?: string }
+    @Query() params: { pagesize: number; page: number; startId?: string },
   ): Promise<{ posts: BlogPost[]; count: number }> {
     return this.apiBlogPostService.findAll(params.pagesize, params.page);
   }

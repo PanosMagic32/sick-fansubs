@@ -8,7 +8,10 @@ import { TokenService } from './token.service';
   providedIn: 'root',
 })
 export class AuthGuard {
-  constructor(private router: Router, private tokenService: TokenService) {}
+  constructor(
+    private router: Router,
+    private tokenService: TokenService,
+  ) {}
 
   canActivate(): boolean | UrlTree | Observable<boolean | UrlTree> | Promise<boolean | UrlTree> {
     const token = this.tokenService.getToken();

@@ -17,7 +17,10 @@ export class HeaderComponent {
 
   isOpenSearch = false;
 
-  constructor(private menuService: MenuService, private configService: ConfigService) {}
+  constructor(
+    private menuService: MenuService,
+    private configService: ConfigService,
+  ) {}
 
   onToggleSidenav() {
     this.sidenavToggle.emit();

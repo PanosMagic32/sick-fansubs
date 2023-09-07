@@ -29,7 +29,10 @@ export class LoginFormComponent {
     return this.loginForm.controls;
   }
 
-  constructor(private authService: AuthService, private snackBar: MatSnackBar) {}
+  constructor(
+    private authService: AuthService,
+    private snackBar: MatSnackBar,
+  ) {}
 
   onLogin() {
     if (!this.loginForm.value.username || !this.loginForm.value.password) {

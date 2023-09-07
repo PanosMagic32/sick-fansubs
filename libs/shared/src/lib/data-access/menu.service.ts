@@ -8,17 +8,17 @@ import { Observable, map, shareReplay } from 'rxjs';
 export class MenuService {
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
     map((result) => result.matches),
-    shareReplay()
+    shareReplay(),
   );
 
   isSmall$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Small).pipe(
     map((result) => result.matches),
-    shareReplay()
+    shareReplay(),
   );
 
   isMedium$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Medium).pipe(
     map((result) => result.matches),
-    shareReplay()
+    shareReplay(),
   );
 
   constructor(private breakpointObserver: BreakpointObserver) {}

@@ -54,7 +54,7 @@ import { environment } from '../environments/environment';
 
                     resolve(true);
                     return of(null);
-                  })
+                  }),
                 )
                 .subscribe();
             } else {

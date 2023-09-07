@@ -18,7 +18,7 @@ export class ProjectController {
 
   @Get()
   async findAll(
-    @Query() params: { pagesize: number; page: number; startId?: string }
+    @Query() params: { pagesize: number; page: number; startId?: string },
   ): Promise<{ projects: Project[]; count: number }> {
     return this.projectService.findAll(params.pagesize, params.page);
   }

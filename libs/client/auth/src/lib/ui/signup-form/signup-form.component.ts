@@ -24,14 +24,17 @@ export class SignupFormComponent {
       }),
       // avatar: new FormControl(''),
     },
-    { validators: this.checkPasswords('password', 'confirmPassword') }
+    { validators: this.checkPasswords('password', 'confirmPassword') },
   );
 
   get formControl() {
     return this.signupForm.controls;
   }
 
-  constructor(private authService: AuthService, private snackBar: MatSnackBar) {}
+  constructor(
+    private authService: AuthService,
+    private snackBar: MatSnackBar,
+  ) {}
 
   onSignup() {
     if (

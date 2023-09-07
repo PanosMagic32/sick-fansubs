@@ -10,7 +10,7 @@ export class User {
     private _accessToken?: string,
     private _oneSignalId?: string,
     private _pushId?: string,
-    private _pushToken?: string
+    private _pushToken?: string,
   ) {}
 
   get isAdmin() {

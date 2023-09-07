@@ -17,7 +17,7 @@ export class ApiBlogPostService {
 
   async findAll(
     pageSize: number,
-    currentPage: number
+    currentPage: number,
     // startId?: string
   ): Promise<{ posts: BlogPost[]; count: number }> {
     const query = this.blogPostModel

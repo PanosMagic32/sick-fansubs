@@ -24,7 +24,11 @@ export class ProjectsService {
     return this.projects.asObservable();
   }
 
-  constructor(private http: HttpClient, private snackBar: MatSnackBar, private configService: ConfigService) {}
+  constructor(
+    private http: HttpClient,
+    private snackBar: MatSnackBar,
+    private configService: ConfigService,
+  ) {}
 
   getProjects(projectsPerPage: number, currentPage: number) {
     this.isLoading.next(true);

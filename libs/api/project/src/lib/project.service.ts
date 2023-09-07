@@ -17,7 +17,7 @@ export class ProjectService {
 
   async findAll(
     pageSize: number,
-    currentPage: number
+    currentPage: number,
     // startId?: string
   ): Promise<{ projects: Project[]; count: number }> {
     const query = this.projectModel

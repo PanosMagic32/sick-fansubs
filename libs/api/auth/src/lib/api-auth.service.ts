@@ -6,7 +6,10 @@ import { LoginUserDto, UserService } from '@sick/api/user';
 
 @Injectable()
 export class ApiAuthService {
-  constructor(private readonly jwtService: JwtService, private readonly userService: UserService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly userService: UserService,
+  ) {}
 
   async generateJwt(payload: { username: string; email: string; isAdmin: boolean }): Promise<string> {
     return this.jwtService.signAsync(payload);

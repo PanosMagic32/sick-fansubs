@@ -16,7 +16,7 @@ export class AuthService {
     username: string,
     email: string,
     password: string,
-    avatar?: string
+    avatar?: string,
   ): Observable<{ id: string; username: string; email: string }> {
     return this.http.post<{ id: string; username: string; email: string; isAdmin: boolean }>('/api/user', {
       username,

@@ -23,7 +23,11 @@ export class BlogPostService {
     return this.posts.asObservable();
   }
 
-  constructor(private http: HttpClient, private snackBar: MatSnackBar, private configService: ConfigService) {}
+  constructor(
+    private http: HttpClient,
+    private snackBar: MatSnackBar,
+    private configService: ConfigService,
+  ) {}
 
   getBlogPosts(postsPerPage: number, currentPage: number) {
     this.isLoading.next(true);
