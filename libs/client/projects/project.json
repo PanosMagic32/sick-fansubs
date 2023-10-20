@@ -14,7 +14,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": ["libs/client/projects/**/*.ts", "libs/client/projects/**/*.html"]
       }

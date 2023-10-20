@@ -74,7 +74,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": ["apps/sick-fansubs/src/**/*.ts", "apps/sick-fansubs/src/**/*.html"]
       }
