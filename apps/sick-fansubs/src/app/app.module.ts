@@ -44,7 +44,7 @@ import { environment } from '../environments/environment';
                     configService.FACEBOOK_URL = config.FACEBOOK_URL;
                     configService.DISCORD_URL = config.DISCORD_URL;
                     configService.GITHUB_URL = config.GITHUB_URL;
-                    configService.PAYPAL_URL = config.PAYPAL_URL;
+                    configService.BUY_ME_A_COFFEE_URL = config.BUY_ME_A_COFFEE_URL;
                     configService.TRACKER_URL = config.TRACKER_URL;
 
                     resolve(true);
@@ -67,7 +67,7 @@ import { environment } from '../environments/environment';
               configService.FACEBOOK_URL = config.FACEBOOK_URL;
               configService.DISCORD_URL = config.DISCORD_URL;
               configService.GITHUB_URL = config.GITHUB_URL;
-              configService.PAYPAL_URL = config.PAYPAL_URL;
+              configService.BUY_ME_A_COFFEE_URL = config.BUY_ME_A_COFFEE_URL;
               configService.TRACKER_URL = config.TRACKER_URL;
 
               resolve(true);

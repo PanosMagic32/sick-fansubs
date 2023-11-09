@@ -44,8 +44,8 @@ export class HeaderComponent {
         window.open(this.configService.GITHUB_URL, '_system');
         break;
 
-      case 'paypal':
-        window.open(this.configService.PAYPAL_URL, '_system');
+      case 'buymeacoffee':
+        window.open(this.configService.BUY_ME_A_COFFEE_URL, '_system');
         break;
 
       default:

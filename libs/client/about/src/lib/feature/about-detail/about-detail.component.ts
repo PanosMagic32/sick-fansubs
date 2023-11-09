@@ -11,7 +11,7 @@ export class AboutDetailComponent implements OnInit {
   facebookUrl: string | undefined = '';
   discordUrl: string | undefined = '';
   githubUrl: string | undefined = '';
-  paypalUrl: string | undefined = '';
+  buyMeACofeeUrl: string | undefined = '';
   trackerUrl: string | undefined = '';
   appVersion: string | undefined = '';
 
@@ -21,7 +21,7 @@ export class AboutDetailComponent implements OnInit {
     this.facebookUrl = this.configService.FACEBOOK_URL;
     this.discordUrl = this.configService.DISCORD_URL;
     this.githubUrl = this.configService.GITHUB_URL;
-    this.paypalUrl = this.configService.PAYPAL_URL;
+    this.buyMeACofeeUrl = this.configService.BUY_ME_A_COFFEE_URL;
     this.trackerUrl = this.configService.TRACKER_URL;
     this.appVersion = this.configService.APP_VERSION;
   }

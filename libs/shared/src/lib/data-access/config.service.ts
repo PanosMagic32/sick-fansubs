@@ -9,7 +9,7 @@ export class ConfigService {
   private facebookUrl: string | undefined = '';
   private discordUrl: string | undefined = '';
   private githubUrl: string | undefined = '';
-  private paypalUrl: string | undefined = '';
+  private buyMeACofeeUrl: string | undefined = '';
   private trackerUrl: string | undefined = '';
 
   get API_URL() {
@@ -52,12 +52,12 @@ export class ConfigService {
     this.githubUrl = githubUrl;
   }
 
-  get PAYPAL_URL() {
-    return this.paypalUrl;
+  get BUY_ME_A_COFFEE_URL() {
+    return this.buyMeACofeeUrl;
   }
 
-  set PAYPAL_URL(paypalUrl) {
-    this.paypalUrl = paypalUrl;
+  set BUY_ME_A_COFFEE_URL(buyMeACofeeUrl) {
+    this.buyMeACofeeUrl = buyMeACofeeUrl;
   }
 
   get TRACKER_URL() {
