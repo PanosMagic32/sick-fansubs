@@ -13,7 +13,7 @@ export class PostListComponent implements OnInit {
   totalPosts = 0;
   postsPerPage = 5;
   currentPage = 0;
-  pageSizeOptions = [5, 10];
+  pageSizeOptions = [5, 10, 20];
 
   isLoading$ = this.blogPostService.isLoading$;
   posts$ = this.blogPostService.posts$.pipe(tap((response) => (this.totalPosts = response.count)));
