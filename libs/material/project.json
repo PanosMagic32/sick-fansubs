@@ -13,10 +13,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": {
-        "lintFilePatterns": ["libs/material/src/**/*.ts", "libs/material/src/**/*.html"]
-      }
+      "executor": "@nx/eslint:lint"
     }
   },
   "tags": []

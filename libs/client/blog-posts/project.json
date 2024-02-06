@@ -14,10 +14,7 @@
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["libs/client/blog-posts/**/*.ts", "libs/client/blog-posts/**/*.html"]
-      }
+      "outputs": ["{options.outputFile}"]
     }
   },
   "tags": []
