@@ -1,8 +1,11 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { ProjectDetailComponent } from './feature/project-detail/project-detail.component';
+
+import { AuthGuard } from '@sick/client/auth';
 
 import { ProjectListComponent } from './feature/project-list/projects-list.component';
+import { ProjectDetailComponent } from './feature/project-detail/project-detail.component';
+import { ProjectDetailEditComponent } from './feature/project-detail-edit/project-detail-edit.component';
 
 const routes: Routes = [
   {
@@ -12,6 +15,11 @@ const routes: Routes = [
   {
     path: ':id',
     component: ProjectDetailComponent,
+  },
+  {
+    path: ':id/edit',
+    canActivate: [AuthGuard],
+    component: ProjectDetailEditComponent,
   },
 ];
 

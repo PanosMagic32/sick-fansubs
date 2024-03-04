@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AuthService } from '../../data-access/auth.service';
@@ -32,8 +33,9 @@ export class SignupFormComponent {
   }
 
   constructor(
-    private authService: AuthService,
-    private snackBar: MatSnackBar,
+    private readonly authService: AuthService,
+    private readonly snackBar: MatSnackBar,
+    private readonly router: Router,
   ) {}
 
   onSignup() {
@@ -52,15 +54,19 @@ export class SignupFormComponent {
       .signUp(this.signupForm.value.username, this.signupForm.value.email, this.signupForm.value.password)
       .subscribe({
         next: (res) => {
-          console.log(res);
           this.isLoading = false;
-          // TODO - handle successfull response
+          this.saveUser(res);
+          this.router.navigate(['/'], { replaceUrl: true });
         },
         error: (err) => {
           this.isLoading = false;
           this.openSnackBar(err.error.message, 'OK');
         },
       });
+  }
+
+  private saveUser(res: { id: string; username: string; email: string }) {
+    localStorage.setItem('USER', JSON.stringify(res));
   }
 
   private openSnackBar(message: string, action: string) {

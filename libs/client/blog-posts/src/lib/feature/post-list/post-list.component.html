@@ -3,7 +3,12 @@
 </ng-container>
 
 <ng-container *ngIf="(posts$ | async) && totalPosts > 0 && (isLoading$ | async) === false; else noPosts">
-  <sick-post-item *ngFor="let post of (posts$ | async)?.posts; let i = index" [post]="post" [index]="i"></sick-post-item>
+  <sick-post-item
+    *ngFor="let post of (posts$ | async)?.posts; let i = index"
+    [post]="post"
+    [index]="i"
+    [isAdmin]="(isAdmin$ | async) ?? false"
+  ></sick-post-item>
 </ng-container>
 
 <mat-paginator

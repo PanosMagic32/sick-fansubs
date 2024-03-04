@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
-import { LoginUserDto, UserService } from '@sick/api/user';
+import { LoginUserDto, User, UserService } from '@sick/api/user';
 
 @Injectable()
 export class ApiAuthService {
@@ -23,11 +23,11 @@ export class ApiAuthService {
     return this.jwtService.verifyAsync(jwt);
   }
 
-  async validateUser(username: string, pass: string): Promise<any> {
+  async validateUser(username: string, pass: string): Promise<Omit<User, 'password'>> {
     const user = await this.userService.findOneByUsername(username);
 
     if (user && (await this.comparePasswords(pass, user.password))) {
-      const { password, avatar, ...result } = user;
+      const { password, ...result } = user;
       return result;
     } else if (!user) {
       throw new NotFoundException('User not found.');

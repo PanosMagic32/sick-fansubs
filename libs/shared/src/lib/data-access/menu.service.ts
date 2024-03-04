@@ -21,5 +21,5 @@ export class MenuService {
     shareReplay(),
   );
 
-  constructor(private breakpointObserver: BreakpointObserver) {}
+  constructor(private readonly breakpointObserver: BreakpointObserver) {}
 }

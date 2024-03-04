@@ -12,7 +12,7 @@ export class SidenavComponent implements OnInit {
 
   appVersion: string | undefined = '';
 
-  constructor(private configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {}
 
   ngOnInit(): void {
     this.appVersion = this.configService.APP_VERSION;

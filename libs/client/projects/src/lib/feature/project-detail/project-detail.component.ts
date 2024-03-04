@@ -15,9 +15,9 @@ export class ProjectDetailComponent implements OnInit {
   project$!: Observable<Project>;
 
   constructor(
-    private route: ActivatedRoute,
-    private location: Location,
-    private projectService: ProjectsService,
+    private readonly route: ActivatedRoute,
+    private readonly location: Location,
+    private readonly projectService: ProjectsService,
   ) {}
 
   ngOnInit(): void {

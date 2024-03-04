@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root',
 })
 export class AuthService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   login(username: string, password: string): Observable<{ username: string; accessToken: string }> {
     return this.http.post<{ username: string; accessToken: string }>('/api/auth/login', { username, password });

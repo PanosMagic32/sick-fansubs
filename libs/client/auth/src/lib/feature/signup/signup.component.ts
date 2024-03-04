@@ -1,14 +1,8 @@
-import { Component, OnInit } from '@angular/core';
-
-import { AuthService } from '../../data-access/auth.service';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'sick-signup',
   templateUrl: './signup.component.html',
   styleUrls: [],
 })
-export class SignupComponent implements OnInit {
-  constructor(private authService: AuthService) {}
-
-  ngOnInit(): void {}
-}
+export class SignupComponent {}

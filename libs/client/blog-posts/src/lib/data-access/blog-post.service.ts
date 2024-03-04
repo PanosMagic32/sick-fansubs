@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ConfigService } from '@sick/shared';
 
-import { BlogPostResponse } from './blog-post.interface';
+import { BlogPost, BlogPostResponse } from './blog-post.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -24,9 +25,10 @@ export class BlogPostService {
   }
 
   constructor(
-    private http: HttpClient,
-    private snackBar: MatSnackBar,
-    private configService: ConfigService,
+    private readonly http: HttpClient,
+    private readonly snackBar: MatSnackBar,
+    private readonly configService: ConfigService,
+    private readonly router: Router,
   ) {}
 
   getBlogPosts(postsPerPage: number, currentPage: number) {
@@ -48,6 +50,29 @@ export class BlogPostService {
           this.isLoading.next(false);
         },
       });
+  }
+
+  getBlogPostById(id: string) {
+    return this.http.get<BlogPost>(`${this.configService.API_URL}/blog-post/${id}`);
+  }
+
+  updateBlogPost(id: string, updateBlogPost: BlogPost) {
+    this.isLoading.next(true);
+
+    this.http.patch<BlogPost>(`${this.configService.API_URL}/blog-post/${id}`, updateBlogPost).subscribe({
+      next: () => {
+        this.isLoading.next(false);
+        this.router.navigate(['/'], { replaceUrl: true });
+      },
+      error: (err) => {
+        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.isLoading.next(false);
+      },
+    });
+  }
+
+  deleteBlogPost(id: string) {
+    return this.http.delete(`${this.configService.API_URL}/blog-post/${id}`);
   }
 
   private openSnackBar(message: string, action: string) {

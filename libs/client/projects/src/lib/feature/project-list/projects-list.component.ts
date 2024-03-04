@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
 import { tap } from 'rxjs';
 
+import { TokenService } from '@sick/client/auth';
+
 import { ProjectsService } from '../../data-access/projects.service';
 
 @Component({
@@ -14,11 +16,15 @@ export class ProjectListComponent implements OnInit {
   projectsPerPage = 5;
   currentPage = 0;
   pageSizeOptions = [5, 10, 20];
+  isAdmin$ = this.tokenService.isAdmin$;
 
   isLoading$ = this.projectsService.isLoading$;
   projects$ = this.projectsService.projects$.pipe(tap((response) => (this.totalProjects = response.count)));
 
-  constructor(private projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   ngOnInit(): void {
     this.projectsService.getProjects(this.projectsPerPage, this.currentPage);

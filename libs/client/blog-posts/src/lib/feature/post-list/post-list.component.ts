@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
 import { tap } from 'rxjs';
 
+import { TokenService } from '@sick/client/auth';
+
 import { BlogPostService } from '../../data-access/blog-post.service';
 
 @Component({
@@ -14,11 +16,15 @@ export class PostListComponent implements OnInit {
   postsPerPage = 5;
   currentPage = 0;
   pageSizeOptions = [5, 10, 20];
+  isAdmin$ = this.tokenService.isAdmin$;
 
   isLoading$ = this.blogPostService.isLoading$;
   posts$ = this.blogPostService.posts$.pipe(tap((response) => (this.totalPosts = response.count)));
 
-  constructor(private blogPostService: BlogPostService) {}
+  constructor(
+    private readonly blogPostService: BlogPostService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   ngOnInit(): void {
     this.blogPostService.getBlogPosts(this.postsPerPage, this.currentPage);

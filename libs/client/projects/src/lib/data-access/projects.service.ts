@@ -1,13 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { Project } from '@sick/api/project';
 import { ConfigService } from '@sick/shared';
 
-import { ProjectResponse } from './project.interface';
+import { Project, ProjectResponse } from './project.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -25,9 +25,10 @@ export class ProjectsService {
   }
 
   constructor(
-    private http: HttpClient,
-    private snackBar: MatSnackBar,
-    private configService: ConfigService,
+    private readonly http: HttpClient,
+    private readonly snackBar: MatSnackBar,
+    private readonly configService: ConfigService,
+    private readonly router: Router,
   ) {}
 
   getProjects(projectsPerPage: number, currentPage: number) {
@@ -53,6 +54,25 @@ export class ProjectsService {
 
   getProjectById(id: string): Observable<Project> {
     return this.http.get<Project>(`${this.configService.API_URL}/project/${id}`);
+  }
+
+  updateProject(id: string, updateProject: Project) {
+    this.isLoading.next(true);
+
+    this.http.patch<Project>(`${this.configService.API_URL}/project/${id}`, updateProject).subscribe({
+      next: () => {
+        this.isLoading.next(false);
+        this.router.navigate(['/projects'], { replaceUrl: true });
+      },
+      error: (err) => {
+        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.isLoading.next(false);
+      },
+    });
+  }
+
+  deleteProject(id: string) {
+    return this.http.delete(`${this.configService.API_URL}/projects/${id}`);
   }
 
   private openSnackBar(message: string, action: string) {

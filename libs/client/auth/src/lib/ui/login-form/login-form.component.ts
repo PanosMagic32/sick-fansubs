@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AuthService } from '../../data-access/auth.service';
 import { LoginForm } from '../../data-access/login-form.interface';
+import { TokenService } from '../../data-access/token.service';
 
 @Component({
   selector: 'sick-login-form',
@@ -18,20 +20,15 @@ export class LoginFormComponent {
     password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(6)] }),
   });
 
-  // Alternative was of typed forms with FormBuilder/NonNullableFormBuilder
-  // The form builder must be injected in the constructor
-  // loginForm = this.fb.group({
-  //   username: ['', Validators.required],
-  //   password: ['', [Validators.required, Validators.minLength(6)]],
-  // });
-
   get formControl() {
     return this.loginForm.controls;
   }
 
   constructor(
-    private authService: AuthService,
-    private snackBar: MatSnackBar,
+    private readonly authService: AuthService,
+    private readonly snackBar: MatSnackBar,
+    private readonly tokenService: TokenService,
+    private readonly router: Router,
   ) {}
 
   onLogin() {
@@ -43,9 +40,10 @@ export class LoginFormComponent {
 
     this.authService.login(this.loginForm.value.username, this.loginForm.value.password).subscribe({
       next: (res) => {
-        console.log(res);
         this.isLoading = false;
-        // TODO - handle successfull response
+
+        this.tokenService.setToken(res.accessToken);
+        this.router.navigate(['/'], { replaceUrl: true });
       },
       error: (err) => {
         this.isLoading = false;

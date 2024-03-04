@@ -30,15 +30,30 @@
           </a>
         </li>
 
-        <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
-          <mat-icon>gavel</mat-icon>
-          <a class="mat-focus-indicator docs-button mat-button mat-button-base">Rules</a>
-        </li> -->
-
         <li [routerLink]="['/about']" routerLinkActive="active">
           <mat-icon>info</mat-icon>
           <a class="mat-focus-indicator docs-button mat-button mat-button-base">Η ομάδα</a>
         </li>
+
+        <!-- TODO - implement different menu for loggedin/out user -->
+        <!-- <li routerLinkActive="active" [matMenuTriggerFor]="userMenu">
+          <mat-icon>person</mat-icon>
+          <a class="mat-focus-indicator docs-button mat-button mat-button-base">Λογαριασμός</a>
+        </li> -->
+
+        <!-- <button
+          mat-icon-button
+          routerLinkActive="active"
+          [matMenuTriggerFor]="userMenu"
+          class="mat-focus-indicator docs-button mat-button mat-button-base"
+        >
+          <mat-icon>person</mat-icon>
+        </button> -->
+
+        <!-- <mat-menu #userMenu="matMenu">
+          <button mat-menu-item [routerLink]="['/auth/login']">Σύνδεση</button>
+          <button mat-menu-item [routerLink]="['/auth/signup']">Εγγραφή</button>
+        </mat-menu> -->
       </ul>
     </div>
 
@@ -52,10 +67,6 @@
           <mat-icon (click)="onOpenTracker()">feed</mat-icon>
         </li>
 
-        <!-- <li [routerLink]="['/rules']" routerLinkActive="active">
-          <mat-icon>gavel</mat-icon>
-        </li> -->
-
         <li [routerLink]="['/about']" routerLinkActive="active">
           <mat-icon>info</mat-icon>
         </li>
@@ -63,21 +74,6 @@
     </div>
 
     <span class="spacer"></span>
-
-    <!-- TODO - implement different menu for loggedin/out user -->
-    <!-- <button
-      mat-icon-button
-      routerLinkActive="active"
-      [matMenuTriggerFor]="userMenu"
-      class="mat-focus-indicator docs-button mat-button mat-button-base"
-    >
-      <mat-icon>person</mat-icon>
-    </button>
-
-    <mat-menu #userMenu="matMenu">
-      <button mat-menu-item [routerLink]="['/auth/login']">Σύνδεση</button>
-      <button mat-menu-item [routerLink]="['/auth/signup']">Εγγραφή</button>
-    </mat-menu> -->
 
     <!-- <button
       mat-icon-button
@@ -97,6 +93,12 @@
       <span>Donate</span>
       <img src="assets/images/buymeacoffee.svg" alt="buymeacoffee" />
     </div>
+
+    <ng-container *ngIf="isAdmin$ | async">
+      <button mat-icon-button (click)="onLogout()" class="mat-focus-indicator docs-button mat-button mat-button-base">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </ng-container>
   </mat-toolbar-row>
 
   <mat-toolbar-row *ngIf="isOpenSearch">

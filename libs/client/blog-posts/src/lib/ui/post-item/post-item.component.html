@@ -3,6 +3,12 @@
     <div mat-card-avatar class="post-header-image"></div>
     <mat-card-title>{{ post.title }}</mat-card-title>
     <mat-card-subtitle>{{ post.subtitle }}</mat-card-subtitle>
+
+    <div class="edit-btn" *ngIf="isAdmin">
+      <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
+        <mat-icon>edit</mat-icon>
+      </button>
+    </div>
   </mat-card-header>
 
   <img

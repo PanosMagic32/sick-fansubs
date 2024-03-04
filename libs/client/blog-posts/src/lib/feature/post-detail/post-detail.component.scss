@@ -1,0 +1,24 @@
+$bp-large: 68.75em; // 1100px
+
+.edit-card {
+  margin: 2rem 0rem;
+
+  mat-card-content {
+    .edit-input {
+      display: block;
+      min-height: 4rem;
+    }
+  }
+
+  mat-card-actions.edit-actions {
+    display: flex;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
+
+@media only screen and (max-width: $bp-large) {
+  .post-card {
+    margin: 2rem;
+  }
+}

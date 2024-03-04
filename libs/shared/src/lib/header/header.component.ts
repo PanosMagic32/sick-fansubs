@@ -1,5 +1,7 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 
+import { TokenService } from '@sick/client/auth';
+
 import { ConfigService } from '../data-access/config.service';
 import { MenuService } from '../data-access/menu.service';
 
@@ -15,12 +17,19 @@ export class HeaderComponent {
   isMedium$ = this.menuService.isMedium$;
   isSmall$ = this.menuService.isSmall$;
 
+  isAdmin$ = this.tokenService.isAdmin$;
+
   isOpenSearch = false;
 
   constructor(
-    private menuService: MenuService,
-    private configService: ConfigService,
+    private readonly menuService: MenuService,
+    private readonly configService: ConfigService,
+    private readonly tokenService: TokenService,
   ) {}
+
+  onLogout() {
+    this.tokenService.removeToken();
+  }
 
   onToggleSidenav() {
     this.sidenavToggle.emit();

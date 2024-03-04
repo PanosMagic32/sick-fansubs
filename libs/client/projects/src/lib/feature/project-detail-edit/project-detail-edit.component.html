@@ -1,0 +1,69 @@
+<mat-card class="edit-card">
+  <mat-card-header>
+    <p>Επεξεργασία στοιχείων</p>
+  </mat-card-header>
+
+  <mat-card-content>
+    <form [formGroup]="editForm">
+      <mat-form-field class="edit-input" appearance="fill">
+        <mat-label>Τίτλος</mat-label>
+        <input matInput type="text" placeholder="Τίτλος" formControlName="title" required />
+        <mat-error *ngIf="formControl.title.touched && formControl.title.hasError('required')">
+          Το πεδίο είναι υποχρεωτικό.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="edit-input" appearance="fill">
+        <mat-label>Περιγραφή</mat-label>
+        <input matInput type="text" placeholder="Περιγραφή" formControlName="description" required />
+        <mat-error *ngIf="formControl.description.touched && formControl.description.hasError('required')">
+          Το πεδίο είναι υποχρεωτικό.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="edit-input" appearance="fill">
+        <mat-label>Thumbnail</mat-label>
+        <textarea matInput type="text" placeholder="Thumbnail" formControlName="thumbnail" required></textarea>
+        <mat-error *ngIf="formControl.thumbnail.touched && formControl.thumbnail.hasError('required')">
+          Το πεδίο είναι υποχρεωτικό.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-label>Batch links</mat-label>
+      <ng-container formArrayName="batchDownloadLinks">
+        <ng-container *ngFor="let linkForm of batchDownloadLinks.controls; let i = index">
+          <div class="form-row">
+            <mat-form-field appearance="fill">
+              <mat-label>Link: {{ i + 1 }}</mat-label>
+              <textarea matInput [formControlName]="i" type="text"></textarea>
+            </mat-form-field>
+
+            <button mat-mini-fab color="warn" class="delete-btn" (click)="onDeleteBatchDownloadLink(i)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <button
+        mat-raised-button
+        color="primary"
+        class="add-btn"
+        [disabled]="!editForm.valid"
+        (click)="onAddBatchDownloadLink()"
+      >
+        <mat-icon>add</mat-icon>
+        Προσθήκη batch
+      </button>
+    </form>
+  </mat-card-content>
+
+  <mat-divider></mat-divider>
+
+  <mat-card-actions class="edit-actions">
+    <button mat-raised-button color="primary" [disabled]="!editForm.valid" (click)="onSave()">
+      <mat-icon>save</mat-icon>
+      Αποθήκευση
+    </button>
+  </mat-card-actions>
+</mat-card>

@@ -14,6 +14,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTableModule } from '@angular/material/table';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 
 @NgModule({
   imports: [
@@ -31,6 +32,7 @@ import { MatTableModule } from '@angular/material/table';
     MatSelectModule,
     MatPaginatorModule,
     MatSnackBarModule,
+    MatDatepickerModule,
   ],
   exports: [
     MatInputModule,
@@ -47,6 +49,7 @@ import { MatTableModule } from '@angular/material/table';
     MatSelectModule,
     MatPaginatorModule,
     MatSnackBarModule,
+    MatDatepickerModule,
   ],
 })
 export class MaterialModule {}

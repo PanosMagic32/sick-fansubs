@@ -15,7 +15,7 @@ export class AboutDetailComponent implements OnInit {
   trackerUrl: string | undefined = '';
   appVersion: string | undefined = '';
 
-  constructor(private configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {}
 
   ngOnInit(): void {
     this.facebookUrl = this.configService.FACEBOOK_URL;

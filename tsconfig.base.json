@@ -23,7 +23,6 @@
       "@sick/client/auth": ["libs/client/auth/src/index.ts"],
       "@sick/client/blog-posts": ["libs/client/blog-posts/src/index.ts"],
       "@sick/client/projects": ["libs/client/projects/src/index.ts"],
-      "@sick/client/rules": ["libs/client/rules/src/index.ts"],
       "@sick/client/shell": ["libs/client/shell/src/index.ts"],
       "@sick/material": ["libs/material/src/index.ts"],
       "@sick/shared": ["libs/shared/src/index.ts"]

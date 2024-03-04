@@ -11,10 +11,15 @@ import { Project } from '../../data-access/project.interface';
 export class ProjectItemComponent {
   @Input() project!: Project;
   @Input() index!: number;
+  @Input() isAdmin!: boolean;
 
-  constructor(private router: Router) {}
+  constructor(private readonly router: Router) {}
 
   onMore() {
     this.router.navigate(['/', 'projects', this.project._id]);
+  }
+
+  onEdit() {
+    this.router.navigate(['/', 'projects', this.project._id, 'edit'], { replaceUrl: true });
   }
 }
