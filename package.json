@@ -13,8 +13,8 @@
     "build:all": "nx run-many --target=build --projects=api,sick-fansubs --parallel --prod --skip-nx-cache",
     "test": "nx test",
     "lint-staged": "lint-staged --allow-empty",
-    "deploy:docker": "pnpm run build:all && cp .env dist/apps/api/ && cp .env dist/apps/sick-fansubs/ && cp .config.json dist/apps/sick-fansubs/ && docker compose up",
-    "prepack": "rm -rf dist/ && pnpm run build:all",
+    "deploy:docker": "npm run build:all && cp .env dist/apps/api/ && cp .env dist/apps/sick-fansubs/ && cp .config.json dist/apps/sick-fansubs/ && docker compose up",
+    "prepack": "rm -rf dist/ && npm run build:all",
     "pack": "docker compose up -d --always-recreate-deps --force-recreate",
     "prepare": "husky install",
     "format:check": "prettier apps/**/*.{ts,html,scss,json} libs/**/*.{ts,html,scss,json} --check",
@@ -22,7 +22,7 @@
     "pretty-quick": "pretty-quick --pattern \"**/*.*(js|ts|css|scss|html)\" --staged"
   },
   "husky": {
-    "hooks": "pnpm run format:fix && npx validate-branch-name && npx lint-staged"
+    "hooks": "npm run format:fix && npx validate-branch-name && npx lint-staged"
   },
   "validate-branch-name": {
     "pattern": "^(main|develop){1}$|^(feature|bugfix|hotfix|release)-.+$/g",
