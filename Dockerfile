@@ -1,6 +1,6 @@
 FROM node:lts-alpine AS api
 WORKDIR /usr/share/app
-COPY ["dist/apps/api", "package.json", "package-lock.json", "decorate-angular-cli.js", ".env", "./"] 
+COPY ["dist/apps/api", "package.json", "pnpm-lock.json", "decorate-angular-cli.js", ".env", "./"] 
 RUN npm ci
 CMD ["node", "main.js"]
 
