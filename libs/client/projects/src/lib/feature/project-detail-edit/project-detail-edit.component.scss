@@ -3,6 +3,13 @@ $bp-large: 68.75em; // 1100px
 .edit-card {
   margin: 2rem 0rem;
 
+  mat-card-header {
+    button {
+      margin-left: auto;
+      margin-bottom: 1rem;
+    }
+  }
+
   mat-card-content {
     .edit-input {
       display: block;

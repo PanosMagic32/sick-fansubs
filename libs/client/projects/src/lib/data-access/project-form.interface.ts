@@ -1,6 +1,6 @@
 import { FormArray, FormControl } from '@angular/forms';
 
-export interface EditProjectForm {
+export interface ProjectForm {
   title: FormControl<string>;
   description: FormControl<string>;
   thumbnail: FormControl<string>;

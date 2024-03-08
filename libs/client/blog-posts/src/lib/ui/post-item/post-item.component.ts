@@ -20,6 +20,6 @@ export class PostItemComponent {
   }
 
   onEdit() {
-    this.router.navigate(['/blog-post/', this.post._id], { replaceUrl: true });
+    this.router.navigate(['blog-post', this.post._id, 'edit'], { replaceUrl: true });
   }
 }

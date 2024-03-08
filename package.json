@@ -1,6 +1,6 @@
 {
   "name": "sick",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "license": "MIT",
   "scripts": {
     "ng": "nx",
@@ -101,7 +101,7 @@
     "@schematics/angular": "17.2.2",
     "@types/bcrypt": "^5.0.2",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.24",
+    "@types/node": "^20.11.25",
     "@types/passport-jwt": "^3.0.13",
     "@types/passport-local": "^1.0.38",
     "@typescript-eslint/eslint-plugin": "^6.21.0",

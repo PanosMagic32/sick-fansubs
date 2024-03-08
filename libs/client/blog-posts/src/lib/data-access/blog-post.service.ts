@@ -31,6 +31,19 @@ export class BlogPostService {
     private readonly router: Router,
   ) {}
 
+  createBlogPost(post: BlogPost) {
+    this.http.post(`${this.configService.API_URL}/blog-post`, post).subscribe({
+      next: () => {
+        this.isLoading.next(false);
+        this.router.navigate(['/'], { replaceUrl: true });
+      },
+      error: (err) => {
+        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.isLoading.next(false);
+      },
+    });
+  }
+
   getBlogPosts(postsPerPage: number, currentPage: number) {
     this.isLoading.next(true);
 
@@ -72,7 +85,16 @@ export class BlogPostService {
   }
 
   deleteBlogPost(id: string) {
-    return this.http.delete(`${this.configService.API_URL}/blog-post/${id}`);
+    this.http.delete(`${this.configService.API_URL}/blog-post/${id}`).subscribe({
+      next: () => {
+        this.isLoading.next(false);
+        this.router.navigate(['/'], { replaceUrl: true });
+      },
+      error: (err) => {
+        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.isLoading.next(false);
+      },
+    });
   }
 
   private openSnackBar(message: string, action: string) {

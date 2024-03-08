@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
-import { EditForm } from '../../data-access/edit-form.interface';
+import { PostForm } from '../../data-access/post-form.interface';
 import { BlogPostService } from '../../data-access/blog-post.service';
 import { BlogPost } from '../../data-access/blog-post.interface';
 import { map } from 'rxjs';
@@ -15,7 +15,7 @@ import { map } from 'rxjs';
 export class PostDetailComponent implements OnInit {
   private id = '';
 
-  editForm = new FormGroup<EditForm>({
+  editForm = new FormGroup<PostForm>({
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     subtitle: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     description: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -56,5 +56,9 @@ export class PostDetailComponent implements OnInit {
 
   onSave() {
     this.blogPostService.updateBlogPost(this.id, this.editForm.value as BlogPost);
+  }
+
+  onDelete() {
+    this.blogPostService.deleteBlogPost(this.id);
   }
 }

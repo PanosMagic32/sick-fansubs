@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 
 import { ProjectsService } from '../../data-access/projects.service';
-import { EditProjectForm } from '../../data-access/edit-project.interface';
+import { ProjectForm } from '../../data-access/project-form.interface';
 import { Project } from '../../data-access/project.interface';
 
 @Component({
@@ -15,7 +15,7 @@ import { Project } from '../../data-access/project.interface';
 export class ProjectDetailEditComponent implements OnInit {
   private id = '';
 
-  editForm = this.fb.group<EditProjectForm>({
+  editForm = this.fb.group<ProjectForm>({
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     description: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     thumbnail: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -72,5 +72,9 @@ export class ProjectDetailEditComponent implements OnInit {
 
   onSave() {
     this.projectsService.updateProject(this.id, this.editForm.value as Project);
+  }
+
+  onDelete() {
+    this.projectsService.deleteProject(this.id);
   }
 }

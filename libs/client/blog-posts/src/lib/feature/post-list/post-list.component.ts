@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { PageEvent } from '@angular/material/paginator';
+import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 
 import { TokenService } from '@sick/client/auth';
@@ -24,6 +25,7 @@ export class PostListComponent implements OnInit {
   constructor(
     private readonly blogPostService: BlogPostService,
     private readonly tokenService: TokenService,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -35,5 +37,9 @@ export class PostListComponent implements OnInit {
     this.postsPerPage = pageData.pageSize;
 
     this.blogPostService.getBlogPosts(this.postsPerPage, this.currentPage);
+  }
+
+  onCreatePost() {
+    this.router.navigate(['blog-post', 'create']);
   }
 }

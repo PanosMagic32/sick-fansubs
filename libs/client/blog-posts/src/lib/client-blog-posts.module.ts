@@ -8,6 +8,7 @@ import { SharedModule } from '@sick/shared';
 import { ClientBlogPostsRoutingModule } from './client-blog-post-routing.module';
 import { PostListComponent } from './feature/post-list/post-list.component';
 import { PostDetailComponent } from './feature/post-detail/post-detail.component';
+import { PostCreateComponent } from './feature/post-create/post-create.component';
 import { PostItemComponent } from './ui/post-item/post-item.component';
 
 @NgModule({
@@ -20,7 +21,7 @@ import { PostItemComponent } from './ui/post-item/post-item.component';
     NgOptimizedImage,
     ReactiveFormsModule,
   ],
-  declarations: [PostListComponent, PostItemComponent, PostDetailComponent],
+  declarations: [PostListComponent, PostItemComponent, PostDetailComponent, PostCreateComponent],
   exports: [PostListComponent],
 })
 export class ClientBlogPostsModule {}

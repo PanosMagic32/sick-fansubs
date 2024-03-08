@@ -5,6 +5,7 @@ import { AuthGuard } from '@sick/client/auth';
 
 import { PostListComponent } from './feature/post-list/post-list.component';
 import { PostDetailComponent } from './feature/post-detail/post-detail.component';
+import { PostCreateComponent } from './feature/post-create/post-create.component';
 
 const routes: Routes = [
   {
@@ -12,7 +13,12 @@ const routes: Routes = [
     component: PostListComponent,
   },
   {
-    path: ':id',
+    path: 'create',
+    canActivate: [AuthGuard],
+    component: PostCreateComponent,
+  },
+  {
+    path: ':id/edit',
     canActivate: [AuthGuard],
     component: PostDetailComponent,
   },

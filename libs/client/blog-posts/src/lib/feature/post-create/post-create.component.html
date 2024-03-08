@@ -1,16 +1,11 @@
-<mat-card class="edit-card">
+<mat-card class="create-card">
   <mat-card-header>
-    <p>Επεξεργασία στοιχείων</p>
-
-    <button mat-raised-button color="warn" (click)="onDelete()">
-      <mat-icon>delete</mat-icon>
-      Διαγραφή post
-    </button>
+    <p>Δημιουργία νέου post</p>
   </mat-card-header>
 
   <mat-card-content>
-    <form [formGroup]="editForm">
-      <mat-form-field class="edit-input" appearance="fill">
+    <form [formGroup]="createForm">
+      <mat-form-field class="create-input" appearance="fill">
         <mat-label>Τίτλος</mat-label>
         <input matInput type="text" placeholder="Τίτλος" formControlName="title" required />
         <mat-error *ngIf="formControl.title.touched && formControl.title.hasError('required')">
@@ -18,7 +13,7 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field class="edit-input" appearance="fill">
+      <mat-form-field class="create-input" appearance="fill">
         <mat-label>Υπότιτλος</mat-label>
         <input matInput type="text" placeholder="Υπότιτλος" formControlName="subtitle" required />
         <mat-error *ngIf="formControl.subtitle.touched && formControl.subtitle.hasError('required')">
@@ -26,7 +21,7 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field class="edit-input" appearance="fill">
+      <mat-form-field class="create-input" appearance="fill">
         <mat-label>Περιγραφή</mat-label>
         <input matInput type="text" placeholder="Περιγραφή" formControlName="description" required />
         <mat-error *ngIf="formControl.description.touched && formControl.description.hasError('required')">
@@ -34,7 +29,7 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field class="edit-input" appearance="fill">
+      <mat-form-field class="create-input" appearance="fill">
         <mat-label>Thumbnail</mat-label>
         <textarea matInput type="text" placeholder="Thumbnail" formControlName="thumbnail" required></textarea>
         <mat-error *ngIf="formControl.thumbnail.touched && formControl.thumbnail.hasError('required')">
@@ -42,7 +37,7 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field class="edit-input" appearance="fill">
+      <mat-form-field class="create-input" appearance="fill">
         <mat-label>Σύνδεσμος λήψης</mat-label>
         <textarea matInput type="text" placeholder="Σύνδεσμος λήψης" formControlName="downloadLink" required></textarea>
         <mat-error *ngIf="formControl.downloadLink.touched && formControl.downloadLink.hasError('required')">
@@ -54,8 +49,8 @@
 
   <mat-divider></mat-divider>
 
-  <mat-card-actions class="edit-actions">
-    <button mat-raised-button color="primary" [disabled]="!editForm.valid" (click)="onSave()">
+  <mat-card-actions class="create-actions">
+    <button mat-raised-button color="primary" [disabled]="!createForm.valid" (click)="onSubmit()">
       <mat-icon>save</mat-icon>
       Αποθήκευση
     </button>

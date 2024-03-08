@@ -2,6 +2,13 @@
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 </ng-container>
 
+<div class="create-post-btn">
+  <button mat-fab extended color="primary" *ngIf="isAdmin$ | async" (click)="onCreateProject()">
+    <mat-icon>add</mat-icon>
+    Προσθήκη νέου project
+  </button>
+</div>
+
 <ng-container *ngIf="(projects$ | async) && totalProjects > 0 && (isLoading$ | async) === false; else noProjects">
   <sick-project-item
     *ngFor="let project of (projects$ | async)?.projects; let i = index"

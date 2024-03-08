@@ -5,7 +5,7 @@ export interface Project {
   title: string;
   description: string;
   thumbnail: string;
-  dateTimeCreated: string;
+  dateTimeCreated: Date;
   creator?: User;
   batchDownloadLinks?: string[];
 }

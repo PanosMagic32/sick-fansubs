@@ -31,6 +31,19 @@ export class ProjectsService {
     private readonly router: Router,
   ) {}
 
+  createProject(project: Project) {
+    this.http.post(`${this.configService.API_URL}/project`, project).subscribe({
+      next: () => {
+        this.isLoading.next(false);
+        this.router.navigate(['/', 'projects'], { replaceUrl: true });
+      },
+      error: (err) => {
+        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.isLoading.next(false);
+      },
+    });
+  }
+
   getProjects(projectsPerPage: number, currentPage: number) {
     this.isLoading.next(true);
 
@@ -62,7 +75,7 @@ export class ProjectsService {
     this.http.patch<Project>(`${this.configService.API_URL}/project/${id}`, updateProject).subscribe({
       next: () => {
         this.isLoading.next(false);
-        this.router.navigate(['/projects'], { replaceUrl: true });
+        this.router.navigate(['/', 'projects'], { replaceUrl: true });
       },
       error: (err) => {
         this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
@@ -72,7 +85,16 @@ export class ProjectsService {
   }
 
   deleteProject(id: string) {
-    return this.http.delete(`${this.configService.API_URL}/projects/${id}`);
+    this.http.delete(`${this.configService.API_URL}/project/${id}`).subscribe({
+      next: () => {
+        this.isLoading.next(false);
+        this.router.navigate(['/', 'projects'], { replaceUrl: true });
+      },
+      error: (err) => {
+        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.isLoading.next(false);
+      },
+    });
   }
 
   private openSnackBar(message: string, action: string) {

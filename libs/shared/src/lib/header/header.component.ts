@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Output } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { TokenService } from '@sick/client/auth';
 
@@ -25,10 +26,12 @@ export class HeaderComponent {
     private readonly menuService: MenuService,
     private readonly configService: ConfigService,
     private readonly tokenService: TokenService,
+    private readonly router: Router,
   ) {}
 
   onLogout() {
     this.tokenService.removeToken();
+    this.router.navigate(['/'], { replaceUrl: true });
   }
 
   onToggleSidenav() {

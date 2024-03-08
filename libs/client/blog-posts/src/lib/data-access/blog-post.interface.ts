@@ -7,7 +7,7 @@ export interface BlogPost {
   description: string;
   thumbnail: string;
   downloadLink: string;
-  dateTimeCreated: string;
+  dateTimeCreated: Date;
   creator?: User;
 }
 
