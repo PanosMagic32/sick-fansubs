@@ -7,6 +7,8 @@ import { ApiUserModule } from '@sick/api/user';
 import { ApiProjectModule } from '@sick/api/project';
 import { ApiAuthModule } from '@sick/api/auth';
 
+import { environment } from '../environments/environment';
+
 @Module({
   imports: [
     ApiBlogPostModule,
@@ -16,12 +18,11 @@ import { ApiAuthModule } from '@sick/api/auth';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    // MongooseModule.forRoot(process.env.DATABASE_URL, { useNewUrlParser: true, useUnifiedTopology: true }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('DATABASE_URL'),
-        dbName: 'sick-db',
+        uri: configService.get<string>(environment.production ? 'DATABASE_URL' : 'DATABASE_URL_DEV'),
+        dbName: environment.production ? 'sick-db' : 'dev-sick-db',
         useNewUrlParser: true,
         useUnifiedTopology: true,
       }),
@@ -29,4 +30,8 @@ import { ApiAuthModule } from '@sick/api/auth';
     }),
   ],
 })
-export class AppModule {}
+export class AppModule {
+  constructor() {
+    console.log(environment);
+  }
+}
