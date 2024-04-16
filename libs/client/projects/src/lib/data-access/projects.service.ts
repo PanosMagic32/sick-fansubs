@@ -75,7 +75,7 @@ export class ProjectsService {
     this.http.patch<Project>(`${this.configService.API_URL}/project/${id}`, updateProject).subscribe({
       next: () => {
         this.isLoading.next(false);
-        this.router.navigate(['/', 'projects'], { replaceUrl: true });
+        this.router.navigate(['..'], { replaceUrl: true });
       },
       error: (err) => {
         this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');

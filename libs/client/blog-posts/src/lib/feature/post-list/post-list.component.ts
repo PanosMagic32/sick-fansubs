@@ -16,7 +16,7 @@ export class PostListComponent implements OnInit {
   totalPosts = 0;
   postsPerPage = 5;
   currentPage = 0;
-  pageSizeOptions = [5, 10, 20];
+  pageSizeOptions = [5, 10, 20, 50, 100];
   isAdmin$ = this.tokenService.isAdmin$;
 
   isLoading$ = this.blogPostService.isLoading$;

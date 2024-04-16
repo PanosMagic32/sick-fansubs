@@ -16,7 +16,7 @@ export class ProjectListComponent implements OnInit {
   totalProjects = 0;
   projectsPerPage = 5;
   currentPage = 0;
-  pageSizeOptions = [5, 10, 20];
+  pageSizeOptions = [5, 10, 20, 50, 100];
   isAdmin$ = this.tokenService.isAdmin$;
 
   isLoading$ = this.projectsService.isLoading$;
