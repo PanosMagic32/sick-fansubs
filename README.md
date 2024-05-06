@@ -20,7 +20,7 @@ The project structure was implemented as described [here](https://gist.github.co
 
 ### Development server
 
-Run `npm run dev` for a dev server. Navigate to http://localhost:4200/. The app will automatically reload if you change any of the source files.
+Run `pnpm run dev` for a dev server. Navigate to http://localhost:4200/. The app will automatically reload if you change any of the source files.
 
 ### Code scaffolding
 
@@ -28,7 +28,7 @@ It is recommended to use the Nx console VSCode plugin to generate whatever you w
 
 ### Build
 
-Run `npm run build:all` to build the projects (both `api` and `sick-fansubs`) for production. The build artifacts will be stored in the `dist/` directory. You can build an individual project with `nx build {{app-name}}` and you can use the `--prod` flag for a production build, like `nx build {{app-name}} --prod`.
+Run `pnpm run build:all` to build the projects (both `api` and `sick-fansubs`) for production. The build artifacts will be stored in the `dist/` directory. You can build an individual project with `nx build {{app-name}}` and you can use the `--prod` flag for a production build, like `nx build {{app-name}} --prod`.
 
 ### Running unit tests
 

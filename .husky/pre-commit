@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npm run format:fix
+pnpm run format:fix
 npx validate-branch-name
 npx lint-staged
