@@ -5052,8 +5052,8 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  libphonenumber-js@1.10.62:
-    resolution: {integrity: sha512-zbLf2yhgrs+TN4rHT7ral38WQEXjS4TWKp8QD3P5fJmHh3lCtTiPyr8XDPGaA7T41HDz2qxR7x3uwr+aNbShJQ==}
+  libphonenumber-js@1.11.0:
+    resolution: {integrity: sha512-8gX0ZAdOvJxN4UudGdsOkoCU5DGVrOptye7uQpjR01iys3wfB9RWdkZg/M4hGp63tKe94TR7ntDlacg50+zjxA==}
 
   license-webpack-plugin@4.0.2:
     resolution: {integrity: sha512-771TFWFD70G1wLTC4oU2Cw4qvtmNrIw+wRvBtn+okgHl7slJVi7zfNcdmqDL72BojM30VNJ2UHylr1o77U37Jw==}
@@ -12310,7 +12310,7 @@ snapshots:
   class-validator@0.14.1:
     dependencies:
       '@types/validator': 13.11.9
-      libphonenumber-js: 1.10.62
+      libphonenumber-js: 1.11.0
       validator: 13.11.0
 
   clean-stack@2.2.0: {}
@@ -14555,7 +14555,7 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  libphonenumber-js@1.10.62: {}
+  libphonenumber-js@1.11.0: {}
 
   license-webpack-plugin@4.0.2(webpack@5.90.3(esbuild@0.20.1)):
     dependencies:
