@@ -6,13 +6,13 @@
   "prefix": "sick",
   "targets": {
     "build": {
-      "executor": "@angular-devkit/build-angular:application",
+      "executor": "@angular-devkit/build-angular:browser-esbuild",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/sick-fansubs",
         "index": "apps/sick-fansubs/src/index.html",
-        "browser": "apps/sick-fansubs/src/main.ts",
-        "polyfills": ["zone.js"],
+        "main": "apps/sick-fansubs/src/main.ts",
+        "polyfills": "apps/sick-fansubs/src/polyfills.ts",
         "tsConfig": "apps/sick-fansubs/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": ["apps/sick-fansubs/src/favicon.ico", "apps/sick-fansubs/src/assets"],
