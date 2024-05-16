@@ -5,6 +5,5 @@
 !dist
 !nginx.conf
 !package*.json
-!decorate-angular-cli.js
 !.env*
 !.config.json

@@ -3,7 +3,6 @@ WORKDIR /usr/share/app
 COPY dist/apps/api ./
 COPY package.json ./
 COPY pnpm-*.yaml ./
-COPY decorate-angular-cli.js ./
 COPY .env ./
 RUN npm i -g pnpm
 RUN pnpm i
