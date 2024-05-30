@@ -4,20 +4,23 @@
   "projectType": "application",
   "sourceRoot": "apps/sick-fansubs/src",
   "prefix": "sick",
+  "tags": [],
   "targets": {
     "build": {
-      "executor": "@angular-devkit/build-angular:browser-esbuild",
-      "outputs": ["{options.outputPath}"],
+      "executor": "@nx/angular:application",
+      "outputs": ["{options.outputPath.base}"],
       "options": {
-        "outputPath": "dist/apps/sick-fansubs",
+        "outputPath": {
+          "base": "dist/apps/sick-fansubs"
+        },
         "index": "apps/sick-fansubs/src/index.html",
-        "main": "apps/sick-fansubs/src/main.ts",
-        "polyfills": "apps/sick-fansubs/src/polyfills.ts",
+        "polyfills": ["apps/sick-fansubs/src/polyfills.ts"],
         "tsConfig": "apps/sick-fansubs/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": ["apps/sick-fansubs/src/favicon.ico", "apps/sick-fansubs/src/assets"],
         "styles": ["apps/sick-fansubs/src/assets/themes/blue-bluegrey.css", "apps/sick-fansubs/src/styles.scss"],
-        "scripts": []
+        "scripts": [],
+        "browser": "apps/sick-fansubs/src/main.ts"
       },
       "configurations": {
         "production": {
@@ -42,9 +45,7 @@
           "outputHashing": "all"
         },
         "development": {
-          "buildOptimizer": false,
           "optimization": false,
-          "vendorChunk": true,
           "extractLicenses": false,
           "sourceMap": true,
           "namedChunks": true
@@ -53,7 +54,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@angular-devkit/build-angular:dev-server",
+      "executor": "@nx/angular:dev-server",
       "configurations": {
         "production": {
           "buildTarget": "sick-fansubs:build:production"
@@ -83,6 +84,5 @@
         "jestConfig": "apps/sick-fansubs/jest.config.ts"
       }
     }
-  },
-  "tags": []
+  }
 }

@@ -1,7 +1,7 @@
 import { APP_INITIALIZER, inject, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HttpClient, HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { catchError, of, tap } from 'rxjs';
 
 import { MaterialModule } from '@sick/material';
@@ -15,22 +15,14 @@ import { environment } from '../environments/environment';
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    HttpClientModule,
-    AppRoutingModule,
-    MaterialModule,
-    SharedModule,
-    ClientShellModule,
-  ],
+  bootstrap: [AppComponent],
+  imports: [BrowserModule, BrowserAnimationsModule, AppRoutingModule, MaterialModule, SharedModule, ClientShellModule],
   providers: [
     {
       provide: APP_INITIALIZER,
       useFactory: () => {
         const configService = inject(ConfigService);
         const http = inject(HttpClient);
-
         return () =>
           new Promise((resolve) => {
             if (environment.production) {
@@ -46,12 +38,10 @@ import { environment } from '../environments/environment';
                     configService.GITHUB_URL = config.GITHUB_URL;
                     configService.BUY_ME_A_COFFEE_URL = config.BUY_ME_A_COFFEE_URL;
                     configService.TRACKER_URL = config.TRACKER_URL;
-
                     resolve(true);
                   }),
                   catchError(() => {
                     configService.API_URL = 'https://sickfansubs.com/api';
-
                     resolve(true);
                     return of(null);
                   }),
@@ -61,7 +51,6 @@ import { environment } from '../environments/environment';
               // load config for a local app
               // eslint-disable-next-line @typescript-eslint/no-var-requires
               const config = require('.config.json');
-
               configService.API_URL = 'http://localhost:3333/api';
               configService.APP_VERSION = config.APP_VERSION;
               configService.FACEBOOK_URL = config.FACEBOOK_URL;
@@ -69,7 +58,6 @@ import { environment } from '../environments/environment';
               configService.GITHUB_URL = config.GITHUB_URL;
               configService.BUY_ME_A_COFFEE_URL = config.BUY_ME_A_COFFEE_URL;
               configService.TRACKER_URL = config.TRACKER_URL;
-
               resolve(true);
             }
           });
@@ -77,7 +65,7 @@ import { environment } from '../environments/environment';
       multi: true,
     },
     { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+    provideHttpClient(withInterceptorsFromDi()),
   ],
-  bootstrap: [AppComponent],
 })
 export class AppModule {}
