@@ -3,11 +3,13 @@
     <div mat-card-avatar class="project-header-image"></div>
     <mat-card-title>{{ project.title }}</mat-card-title>
 
-    <div class="edit-btn" *ngIf="isAdmin">
-      <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
-        <mat-icon>edit</mat-icon>
-      </button>
-    </div>
+    @if (isAdmin) {
+      <div class="edit-btn">
+        <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </div>
+    }
   </mat-card-header>
 
   <img

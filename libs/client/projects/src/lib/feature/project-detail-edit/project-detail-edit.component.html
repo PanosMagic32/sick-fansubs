@@ -13,30 +13,33 @@
       <mat-form-field class="edit-input" appearance="fill">
         <mat-label>Τίτλος</mat-label>
         <input matInput type="text" placeholder="Τίτλος" formControlName="title" required />
-        <mat-error *ngIf="formControl.title.touched && formControl.title.hasError('required')">
-          Το πεδίο είναι υποχρεωτικό.
-        </mat-error>
+
+        @if (formControl.title.touched && formControl.title.hasError('required')) {
+          <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field class="edit-input" appearance="fill">
         <mat-label>Περιγραφή</mat-label>
         <input matInput type="text" placeholder="Περιγραφή" formControlName="description" required />
-        <mat-error *ngIf="formControl.description.touched && formControl.description.hasError('required')">
-          Το πεδίο είναι υποχρεωτικό.
-        </mat-error>
+
+        @if (formControl.description.touched && formControl.description.hasError('required')) {
+          <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field class="edit-input" appearance="fill">
         <mat-label>Thumbnail</mat-label>
         <textarea matInput type="text" placeholder="Thumbnail" formControlName="thumbnail" required></textarea>
-        <mat-error *ngIf="formControl.thumbnail.touched && formControl.thumbnail.hasError('required')">
-          Το πεδίο είναι υποχρεωτικό.
-        </mat-error>
+
+        @if (formControl.thumbnail.touched && formControl.thumbnail.hasError('required')) {
+          <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+        }
       </mat-form-field>
 
       <mat-label>Batch links</mat-label>
       <ng-container formArrayName="batchDownloadLinks">
-        <ng-container *ngFor="let linkForm of batchDownloadLinks.controls; let i = index">
+        @for (linkForm of batchDownloadLinks.controls; track linkForm; let i = $index) {
           <div class="form-row">
             <mat-form-field appearance="fill">
               <mat-label>Link: {{ i + 1 }}</mat-label>
@@ -47,7 +50,7 @@
               <mat-icon>delete</mat-icon>
             </button>
           </div>
-        </ng-container>
+        }
       </ng-container>
 
       <button
