@@ -1,0 +1,33 @@
+.signup-container {
+  margin: 5rem 1rem;
+
+  .signup-title {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .signup-form {
+    width: 60%;
+    margin: 2rem auto !important;
+  }
+
+  .signup-input {
+    display: block;
+    height: 2rem;
+    margin-bottom: 4rem;
+  }
+
+  .username-input {
+    margin-top: 3rem;
+  }
+
+  .password-input {
+    margin-top: 5rem;
+  }
+
+  .signup-btn {
+    display: flex;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}

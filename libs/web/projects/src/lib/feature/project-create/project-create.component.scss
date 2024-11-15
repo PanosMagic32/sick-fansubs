@@ -1,0 +1,17 @@
+$bp-large: 68.75em; // 1100px
+
+.create-card {
+  margin: 2rem 0rem;
+
+  mat-card-actions.create-actions {
+    display: flex;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
+
+@media only screen and (max-width: $bp-large) {
+  .post-card {
+    margin: 2rem;
+  }
+}

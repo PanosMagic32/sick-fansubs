@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     networks:
       - sick-nw
-  client:
+  web:
     build:
       context: .
       dockerfile: Dockerfile

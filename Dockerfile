@@ -10,6 +10,6 @@ CMD ["node", "main.js"]
 
 FROM nginx AS app
 ADD ["nginx.conf", "/etc/nginx/"]
-COPY dist/apps/sick-fansubs/browser /usr/share/nginx/html/
+COPY dist/apps/web/browser /usr/share/nginx/html/
 COPY .config.json /usr/share/nginx/html/
 COPY .env /usr/share/nginx/html/

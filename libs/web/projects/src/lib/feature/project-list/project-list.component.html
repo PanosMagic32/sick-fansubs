@@ -1,0 +1,32 @@
+@if (isLoading()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+<div class="create-post-btn">
+  @if (isAdmin()) {
+    <button mat-fab extended color="primary" (click)="onCreateProject()">
+      <mat-icon>add</mat-icon>
+      Προσθήκη νέου project
+    </button>
+  }
+</div>
+
+@if (projects() && totalProjects() > 0 && !isLoading()) {
+  @for (project of projects().projects; track project._id) {
+    <sf-project-item [project]="project" [index]="$index" [isAdmin]="isAdmin()" />
+  }
+} @else {
+  @if (!isLoading()) {
+    <sf-no-content />
+  }
+}
+
+@if (projects() && totalProjects() > 0) {
+  <mat-paginator
+    [length]="projects().count"
+    [pageSize]="projectsPerPage"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="onChangedPage($event)"
+    aria-label="Select page of projects"
+  ></mat-paginator>
+}

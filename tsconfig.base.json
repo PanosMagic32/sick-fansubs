@@ -19,13 +19,11 @@
       "@sick/api/blog-post": ["libs/api/blog-post/src/index.ts"],
       "@sick/api/project": ["libs/api/project/src/index.ts"],
       "@sick/api/user": ["libs/api/user/src/index.ts"],
-      "@sick/client/about": ["libs/client/about/src/index.ts"],
-      "@sick/client/auth": ["libs/client/auth/src/index.ts"],
-      "@sick/client/blog-posts": ["libs/client/blog-posts/src/index.ts"],
-      "@sick/client/projects": ["libs/client/projects/src/index.ts"],
-      "@sick/client/shell": ["libs/client/shell/src/index.ts"],
-      "@sick/material": ["libs/material/src/index.ts"],
-      "@sick/shared": ["libs/shared/src/index.ts"]
+      "@web/about": ["libs/web/about/src/index.ts"],
+      "@web/auth": ["libs/web/auth/src/index.ts"],
+      "@web/blog-post": ["libs/web/blog-post/src/index.ts"],
+      "@web/projects": ["libs/web/projects/src/index.ts"],
+      "@web/shared": ["libs/web/shared/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

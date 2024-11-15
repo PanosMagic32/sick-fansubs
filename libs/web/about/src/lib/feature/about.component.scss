@@ -1,0 +1,29 @@
+.about-card {
+  margin: 3rem 1rem;
+
+  mat-card-header {
+    margin-bottom: 1rem;
+  }
+
+  mat-list-item {
+    margin: 1rem 0;
+    height: fit-content !important;
+  }
+
+  .subtitle-info {
+    margin: 1rem;
+  }
+
+  mat-card-footer {
+    display: flex;
+    justify-content: center;
+
+    p {
+      padding: 1rem;
+    }
+  }
+
+  a {
+    color: #c3d6ff;
+  }
+}

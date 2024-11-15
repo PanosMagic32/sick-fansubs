@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import type { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
-import { LoginUserDto, User, UserService } from '@sick/api/user';
+import type { LoginUserDto, User, UserService } from '@sick/api/user';
 
 @Injectable()
 export class ApiAuthService {
@@ -29,11 +29,11 @@ export class ApiAuthService {
     if (user && (await this.comparePasswords(pass, user.password))) {
       const { password, ...result } = user;
       return result;
-    } else if (!user) {
-      throw new NotFoundException('User not found.');
-    } else {
-      throw new ForbiddenException('Invalid user credentials.');
     }
+
+    if (!user) throw new NotFoundException('User not found.');
+
+    throw new ForbiddenException('Invalid user credentials.');
   }
 
   async login(loginUserDto: LoginUserDto) {

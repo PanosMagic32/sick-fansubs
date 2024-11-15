@@ -1,0 +1,69 @@
+$bp-large: 68.75em; // 1100px
+
+.post-card {
+  margin: 2rem 0rem;
+
+  mat-card-header {
+    .post-header-image {
+      background-image: url('/logo/logo.png');
+      background-size: cover;
+      margin: 0.2rem;
+    }
+
+    .mat-card-avatar {
+      height: 3rem;
+      width: 3rem;
+      margin-top: -0.5rem;
+    }
+
+    mat-card-title {
+      margin-bottom: 0.5rem;
+    }
+
+    .edit-btn {
+      margin-left: auto;
+    }
+  }
+
+  img {
+    width: 85%;
+    max-height: 40vh;
+    object-fit: cover;
+    margin: 1rem auto 0 auto;
+    border-radius: 0.5rem;
+  }
+
+  mat-card-content {
+    .post-description {
+      margin: 2rem;
+      text-align: center;
+    }
+  }
+
+  mat-card-actions.post-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .post-actions-date {
+      margin-left: 1rem;
+      display: flex;
+
+      p {
+        margin: 1rem 0;
+      }
+    }
+
+    mat-icon {
+      font-size: 1.5rem;
+      height: 1.5rem;
+      width: 1.5rem;
+    }
+  }
+}
+
+@media only screen and (max-width: $bp-large) {
+  .post-card {
+    margin: 2rem;
+  }
+}

@@ -1,0 +1,43 @@
+<mat-card class="project-card">
+  <mat-card-header>
+    <div mat-card-avatar class="project-header-image"></div>
+    <mat-card-title>{{ project().title }}</mat-card-title>
+
+    @if (isAdmin()) {
+      <div class="edit-btn">
+        <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </div>
+    }
+  </mat-card-header>
+
+  <img
+    mat-card-image
+    width="1280"
+    height="720"
+    [alt]="project().title"
+    [ngSrc]="project().thumbnail"
+    [priority]="imgDownloadPriority()"
+  />
+
+  <mat-card-content>
+    <p class="project-description line-clamp">
+      {{ project().description }}
+    </p>
+  </mat-card-content>
+
+  <mat-divider />
+
+  <mat-card-actions class="project-actions">
+    <div class="project-actions-date">
+      <p>{{ project().dateTimeCreated | date: 'd/M/yyyy, hh:mm' }}</p>
+      <!-- |
+      <p>Kushoyarou</p> -->
+    </div>
+
+    <div>
+      <button mat-button (click)="onMore()">Περισσότερα...</button>
+    </div>
+  </mat-card-actions>
+</mat-card>

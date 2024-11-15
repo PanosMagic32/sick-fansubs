@@ -1,0 +1,32 @@
+@if (isLoading()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+<div class="create-post-btn">
+  @if (isAdmin()) {
+    <button mat-fab extended color="primary" (click)="onCreatePost()">
+      <mat-icon>add</mat-icon>
+      Προσθήκη νέου post
+    </button>
+  }
+</div>
+
+@if (posts() && totalPosts() > 0 && !isLoading()) {
+  @for (post of posts().posts; track post._id) {
+    <sf-blog-post-item [blogPost]="post" [index]="$index" [isAdmin]="isAdmin()" />
+  }
+} @else {
+  @if (!isLoading()) {
+    <sf-no-content />
+  }
+}
+
+@if (posts() && totalPosts() > 0) {
+  <mat-paginator
+    [length]="posts().count"
+    [pageSize]="postsPerPage"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="onChangedPage($event)"
+    aria-label="Select page of posts"
+  ></mat-paginator>
+}

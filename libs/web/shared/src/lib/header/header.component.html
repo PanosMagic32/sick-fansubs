@@ -1,0 +1,99 @@
+<mat-toolbar color="primary" class="header-toolbar">
+  <mat-toolbar-row>
+    <div class="logo">
+      <img src="logo/logo.png" alt="logo" [routerLink]="['/home']" />
+    </div>
+
+    @if ((isSmall$ | async) || (isHandset$ | async) ? true : false) {
+      <button mat-icon-button (click)="onToggleSidenav()">
+        <mat-icon>menu</mat-icon>
+      </button>
+    }
+
+    <a [routerLink]="['/home']"> Sick-Fansubs </a>
+
+    <span class="spacer"></span>
+
+    @if ((isSmall$ | async) || (isMedium$ | async) || (isHandset$ | async) ? false : true) {
+      <div>
+        <ul class="navigation-items">
+          <li [routerLink]="['/projects']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>grid_view</mat-icon>
+            <a class="mat-focus-indicator docs-button mat-button mat-button-base">Projects</a>
+          </li>
+
+          <li>
+            <mat-icon>feed</mat-icon>
+            <a
+              class="mat-focus-indicator docs-button mat-button mat-button-base"
+              href="https://nyaa.si/user/Sick-Fansubs"
+              target="_system"
+            >
+              Tracker
+            </a>
+          </li>
+
+          <li [routerLink]="['/about']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>info</mat-icon>
+            <a class="mat-focus-indicator docs-button mat-button mat-button-base">Η ομάδα</a>
+          </li>
+        </ul>
+      </div>
+    }
+
+    @if ((isMedium$ | async) ? true : false) {
+      <div class="menu-icons-only">
+        <ul class="navigation-items-icons-only">
+          <li [routerLink]="['/projects']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>grid_view</mat-icon>
+          </li>
+
+          <li>
+            <mat-icon (click)="onOpenTracker()">feed</mat-icon>
+          </li>
+
+          <li [routerLink]="['/about']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>info</mat-icon>
+          </li>
+        </ul>
+      </div>
+    }
+
+    <span class="spacer"></span>
+
+    <!-- <button
+      mat-icon-button
+      (click)="isOpenSearch.set(!isOpenSearch())"
+      class="mat-focus-indicator docs-button mat-button mat-button-base"
+    >
+      <mat-icon>search</mat-icon>
+    </button> -->
+
+    @if ((isSmall$ | async) || (isHandset$ | async) ? false : true) {
+      <div class="logo-social">
+        <img src="images/discord.svg" alt="discord" (click)="onOpenSocial('discord')" />
+        <img src="images/facebook.svg" alt="facebook" (click)="onOpenSocial('facebook')" />
+        <img src="images/github.svg" alt="github" (click)="onOpenSocial('github')" />
+      </div>
+    }
+
+    <div class="donate" (click)="onOpenSocial('buymeacoffee')">
+      <span>Donate</span>
+      <img src="images/buymeacoffee.svg" alt="buymeacoffee" />
+    </div>
+
+    @if (isAdmin()) {
+      <button mat-icon-button (click)="onLogout()" class="mat-focus-indicator docs-button mat-button mat-button-base">
+        <mat-icon>logout</mat-icon>
+      </button>
+    }
+  </mat-toolbar-row>
+
+  <!-- @if (isOpenSearch()) {
+    <mat-toolbar-row>
+      <mat-form-field class="search-full-width">
+        <input matInput placeholder="Search..." />
+      </mat-form-field>
+    </mat-toolbar-row>
+  } -->
+</mat-toolbar>

@@ -1,0 +1,18 @@
+.input {
+  display: block;
+  min-height: 4rem;
+}
+
+.form-row {
+  mat-form-field {
+    width: 92%;
+  }
+
+  .delete-btn {
+    margin-left: 1rem;
+  }
+}
+
+.add-btn {
+  margin: 1rem 0;
+}

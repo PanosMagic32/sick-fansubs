@@ -1,0 +1,51 @@
+<form [formGroup]="form()">
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Τίτλος</mat-label>
+    <input matInput type="text" placeholder="Τίτλος" formControlName="title" required />
+
+    @if (formControls.title.touched && formControls.title.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Περιγραφή</mat-label>
+    <input matInput type="text" placeholder="Περιγραφή" formControlName="description" required />
+
+    @if (formControls.description.touched && formControls.description.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Thumbnail</mat-label>
+    <textarea matInput type="text" placeholder="Thumbnail" formControlName="thumbnail" required></textarea>
+
+    @if (formControls.thumbnail.touched && formControls.thumbnail.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-label>Batch links</mat-label>
+  <ng-container formArrayName="batchDownloadLinks">
+    @for (linkForm of batchDownloadLinks.controls; track linkForm; let i = $index) {
+      <div class="form-row">
+        <mat-form-field appearance="fill">
+          <mat-label>Link: {{ i + 1 }}</mat-label>
+          <textarea matInput [formControlName]="i" type="text"></textarea>
+        </mat-form-field>
+
+        @if (batchDownloadLinks.controls.length > 1) {
+          <button mat-mini-fab color="warn" class="delete-btn" (click)="onDeleteBatchDownloadLink(i)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+      </div>
+    }
+  </ng-container>
+
+  <button mat-raised-button color="primary" class="add-btn" (click)="onAddBatchDownloadLink()">
+    <mat-icon>add</mat-icon>
+    Προσθήκη batch
+  </button>
+</form>

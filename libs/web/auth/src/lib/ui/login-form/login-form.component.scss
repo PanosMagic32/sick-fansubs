@@ -1,0 +1,26 @@
+.login-container {
+  margin: 5rem 1rem;
+
+  .login-title {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .login-form {
+    width: 60%;
+    margin: 2rem auto !important;
+  }
+
+  .login-input {
+    display: block;
+    height: 2rem;
+    margin-top: 5rem;
+    margin-bottom: 4rem;
+  }
+
+  .login-btn {
+    display: flex;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}

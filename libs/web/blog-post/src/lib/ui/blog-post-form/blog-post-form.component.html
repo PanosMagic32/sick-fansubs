@@ -1,0 +1,46 @@
+<form [formGroup]="form()">
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Τίτλος</mat-label>
+    <input matInput type="text" placeholder="Τίτλος" formControlName="title" required />
+
+    @if (formControls.title.touched && formControls.title.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Υπότιτλος</mat-label>
+    <input matInput type="text" placeholder="Υπότιτλος" formControlName="subtitle" required />
+
+    @if (formControls.subtitle.touched && formControls.subtitle.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Περιγραφή</mat-label>
+    <input matInput type="text" placeholder="Περιγραφή" formControlName="description" required />
+
+    @if (formControls.description.touched && formControls.description.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Thumbnail</mat-label>
+    <textarea matInput type="text" placeholder="Thumbnail" formControlName="thumbnail" required></textarea>
+
+    @if (formControls.thumbnail.touched && formControls.thumbnail.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Σύνδεσμος λήψης</mat-label>
+    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης" formControlName="downloadLink" required></textarea>
+
+    @if (formControls.downloadLink.touched && formControls.downloadLink.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+</form>

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 
-import { ApiBlogPostModule } from '@sick/api/blog-post';
-import { ApiUserModule } from '@sick/api/user';
-import { ApiProjectModule } from '@sick/api/project';
 import { ApiAuthModule } from '@sick/api/auth';
+import { ApiBlogPostModule } from '@sick/api/blog-post';
+import { ApiProjectModule } from '@sick/api/project';
+import { ApiUserModule } from '@sick/api/user';
 
 import { environment } from '../environments/environment';
 
@@ -30,8 +30,4 @@ import { environment } from '../environments/environment';
     }),
   ],
 })
-export class AppModule {
-  constructor() {
-    console.log(environment);
-  }
-}
+export class AppModule {}

@@ -1,0 +1,56 @@
+mat-toolbar.sidenav-toolbar {
+  border-radius: 0;
+  box-shadow:
+    0 3px 5px -1px #0003,
+    0 6px 10px #00000024,
+    0 1px 18px #0000001f;
+
+  span {
+    margin-left: 1rem;
+  }
+
+  &-bottom {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+mat-nav-list {
+  mat-list-item {
+    text-decoration: none;
+    border-left: 0.5rem solid var(--background-dark-color);
+    padding: 1.2rem;
+    margin-bottom: 10px;
+
+    mat-icon {
+      margin-bottom: -0.5rem;
+    }
+  }
+
+  mat-list-item:hover,
+  mat-list-item:active {
+    border-left: 0.5rem solid var(--primary-color);
+    margin-right: 1.5rem;
+    background-color: var(--background-primary-color-active-light) !important;
+    cursor: pointer;
+  }
+
+  .nav-caption {
+    display: inline-block;
+    padding-left: 1rem;
+  }
+}
+
+.active-sidenav {
+  border-left: 0.5rem solid var(--primary-color) !important;
+  margin-right: 1.5rem;
+  background-color: var(--background-primary-color-active-light) !important;
+  cursor: pointer;
+}
+
+.mat-mdc-list-item-interactive::before {
+  background: none;
+}
