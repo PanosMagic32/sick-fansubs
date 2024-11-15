@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
-import type { ApiBlogPostService } from './api-blog-post.service';
-import type { CreateBlogPostDto } from './dtos/create-blog-post.dto';
-import type { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
-import type { BlogPost } from './schemas/blog-post.schema';
+import { ApiBlogPostService } from './api-blog-post.service';
+import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
+import { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
+import { BlogPost } from './schemas/blog-post.schema';
 
 @ApiTags('Blog-Post')
 @Controller('blog-post')

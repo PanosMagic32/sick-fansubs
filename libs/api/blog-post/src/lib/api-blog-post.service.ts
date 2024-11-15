@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 
-import type { CreateBlogPostDto } from './dtos/create-blog-post.dto';
-import type { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
-import { BlogPost, type BlogPostDocument } from './schemas/blog-post.schema';
+import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
+import { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
+import { BlogPost, BlogPostDocument } from './schemas/blog-post.schema';
 
 @Injectable()
 export class ApiBlogPostService {

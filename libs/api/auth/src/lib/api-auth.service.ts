@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { JwtService } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
-import type { LoginUserDto, User, UserService } from '@sick/api/user';
+import { LoginUserDto, User, UserService } from '@sick/api/user';
 
 @Injectable()
 export class ApiAuthService {
