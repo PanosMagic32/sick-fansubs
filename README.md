@@ -30,18 +30,6 @@ It is recommended to use the Nx console VSCode plugin to generate whatever you w
 
 Run `pnpm run build:all` to build the projects (both `api` and `sick-fansubs`) for production. The build artifacts will be stored in the `dist/` directory. You can build an individual project with `nx build {{app-name}}` and you can use the `--prod` flag for a production build, like `nx build {{app-name}} --prod`.
 
-### Running unit tests
-
-Run `nx test {{app-name}}` to execute the unit tests via [Jest](https://jestjs.io).
-
-Run `nx affected:test` to execute the unit tests affected by a change.
-
-### Running end-to-end tests
-
-Run `nx e2e {{app-name}}` to execute the end-to-end tests via [Cypress](https://www.cypress.io).
-
-Run `nx affected:e2e` to execute the end-to-end tests affected by a change.
-
 ### Understand your workspace
 
 Run `nx graph` to see a diagram of the dependencies of your projects.

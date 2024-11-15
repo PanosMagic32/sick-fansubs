@@ -4,14 +4,11 @@
   },
   "generators": {
     "@nx/angular:application": {
-      "e2eTestRunner": "cypress",
       "linter": "eslint",
-      "style": "scss",
-      "unitTestRunner": "jest"
+      "style": "scss"
     },
     "@nx/angular:library": {
-      "linter": "eslint",
-      "unitTestRunner": "jest"
+      "linter": "eslint"
     },
     "@nx/angular:component": {
       "style": "scss"
@@ -27,19 +24,6 @@
     "e2e": {
       "inputs": ["default", "^production"],
       "cache": true
-    },
-    "@nx/jest:jest": {
-      "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
-      "cache": true,
-      "options": {
-        "passWithNoTests": true
-      },
-      "configurations": {
-        "ci": {
-          "ci": true,
-          "codeCoverage": true
-        }
-      }
     },
     "@nx/eslint:lint": {
       "inputs": ["default", "{workspaceRoot}/.eslintrc.json"],
@@ -58,7 +42,6 @@
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
       "!{projectRoot}/tsconfig.spec.json",
-      "!{projectRoot}/jest.config.[jt]s",
       "!{projectRoot}/.eslintrc.json",
       "!{projectRoot}/src/test-setup.[jt]s"
     ]
