@@ -12,7 +12,7 @@ export class ApiBlogPostService {
 
   async create(createBlogPostDto: CreateBlogPostDto): Promise<{ id: string }> {
     const createdBlogPost = await this.blogPostModel.create(createBlogPostDto);
-    return { id: createdBlogPost._id };
+    return { id: createdBlogPost._id as string };
   }
 
   async findAll(
@@ -35,19 +35,15 @@ export class ApiBlogPostService {
     }
 
     const posts = await query.exec();
-    const count = await this.blogPostModel.count();
+    const count = await this.blogPostModel.countDocuments();
 
     return { posts, count };
   }
 
   async findOne(id: string): Promise<BlogPost | undefined> {
     const blogPost = await this.blogPostModel.findOne({ _id: id });
-
-    if (blogPost) {
-      return blogPost;
-    } else {
-      throw new NotFoundException();
-    }
+    if (blogPost) return blogPost;
+    throw new NotFoundException();
   }
 
   async search(options: FilterQuery<BlogPostDocument>) {
@@ -56,20 +52,16 @@ export class ApiBlogPostService {
 
   async update(id: string, updateBlogPostDto: UpdateBlogPostDto): Promise<BlogPost | undefined | null> {
     const blogPost = await this.findOne(id);
-
-    if (blogPost) {
-      return this.blogPostModel.findByIdAndUpdate({ _id: id }, updateBlogPostDto).exec();
-    } else {
-      throw new NotFoundException();
-    }
+    if (blogPost) return this.blogPostModel.findByIdAndUpdate({ _id: id }, updateBlogPostDto).exec();
+    throw new NotFoundException();
   }
 
   async delete(id: string) {
-    const deletedBlogPost = await this.blogPostModel.findByIdAndRemove({ _id: id }).exec();
+    const deletedBlogPost = await this.blogPostModel.findByIdAndDelete({ _id: id }).exec();
     return deletedBlogPost;
   }
 
   async count(options: FilterQuery<BlogPostDocument>) {
-    return this.blogPostModel.count(options).sort({ dateTimeCreated: 'desc' }).exec();
+    return this.blogPostModel.countDocuments(options).sort({ dateTimeCreated: 'desc' }).exec();
   }
 }

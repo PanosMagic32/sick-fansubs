@@ -35,33 +35,25 @@ export class ProjectService {
     }
 
     const projects = await query.exec();
-    const count = await this.projectModel.count();
+    const count = await this.projectModel.countDocuments();
 
     return { projects, count };
   }
 
   async findOne(id: string): Promise<Project | undefined> {
     const project = await this.projectModel.findOne({ _id: id });
-
-    if (project) {
-      return project;
-    } else {
-      throw new NotFoundException();
-    }
+    if (project) return project;
+    throw new NotFoundException();
   }
 
   async update(id: string, updateProjectDto: UpdateProjectDto): Promise<Project | undefined | null> {
     const project = await this.findOne(id);
-
-    if (project) {
-      return this.projectModel.findByIdAndUpdate({ _id: id }, updateProjectDto).exec();
-    } else {
-      throw new NotFoundException();
-    }
+    if (project) return this.projectModel.findByIdAndUpdate({ _id: id }, updateProjectDto).exec();
+    throw new NotFoundException();
   }
 
   async remove(id: string) {
-    const deletedProject = await this.projectModel.findByIdAndRemove({ _id: id }).exec();
+    const deletedProject = await this.projectModel.findByIdAndDelete({ _id: id }).exec();
     return deletedProject;
   }
 }
