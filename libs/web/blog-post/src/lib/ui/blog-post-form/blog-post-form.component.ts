@@ -9,7 +9,6 @@ import type { PostFormModel } from '../../data-access/post-form.interface';
   selector: 'sf-blog-post-form',
   templateUrl: './blog-post-form.component.html',
   styleUrl: './blog-post-form.component.scss',
-  standalone: true,
   imports: [ReactiveFormsModule, MatFormField, MatLabel, MatError, MatInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

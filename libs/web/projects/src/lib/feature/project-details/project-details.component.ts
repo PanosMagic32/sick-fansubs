@@ -12,7 +12,6 @@ import { ProjectsService } from '../../data-access/projects.service';
   selector: 'sf-project-details',
   templateUrl: './project-details.component.html',
   styleUrl: './project-details.component.scss',
-  standalone: true,
   imports: [
     MatCard,
     MatCardHeader,

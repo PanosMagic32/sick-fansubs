@@ -15,7 +15,6 @@ import { ProjectItemFormComponent } from '../../ui/project-item-form/project-ite
   selector: 'sf-project-create',
   templateUrl: './project-create.component.html',
   styleUrl: './project-create.component.scss',
-  standalone: true,
   imports: [
     ProjectItemFormComponent,
     MatCard,

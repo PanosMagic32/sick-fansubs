@@ -15,7 +15,6 @@ import { BlogPostFormComponent } from '../../ui/blog-post-form/blog-post-form.co
   selector: 'sf-blog-post-create',
   templateUrl: './blog-post-create.component.html',
   styleUrl: './blog-post-create.component.scss',
-  standalone: true,
   imports: [BlogPostFormComponent, MatCard, MatCardHeader, MatCardContent, MatCardActions, MatIcon, MatButton, MatDivider],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

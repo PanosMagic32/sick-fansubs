@@ -21,7 +21,6 @@ import type { Project } from '../../data-access/project.interface';
   selector: 'sf-project-item',
   templateUrl: './project-item.component.html',
   styleUrl: './project-item.component.scss',
-  standalone: true,
   imports: [
     NgOptimizedImage,
     DatePipe,

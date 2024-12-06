@@ -1,10 +1,9 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
-  APP_INITIALIZER,
   type ApplicationConfig,
   inject,
+  provideAppInitializer,
   provideExperimentalZonelessChangeDetection,
-  type Provider,
 } from '@angular/core';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
@@ -15,9 +14,8 @@ import { jwtInterceptor, WebConfigService } from '@web/shared';
 import { environment } from '../environments/environment';
 import { appRoutes } from './app.routes';
 
-const appInitializerProvider: Provider = {
-  provide: APP_INITIALIZER,
-  useFactory: () => {
+const appInitializerProvider = provideAppInitializer(() => {
+  const initializerFn = (() => {
     const webConfigService = inject(WebConfigService);
     const http = inject(HttpClient);
     return () =>
@@ -58,9 +56,10 @@ const appInitializerProvider: Provider = {
           resolve(true);
         }
       });
-  },
-  multi: true,
-};
+  })();
+
+  return initializerFn();
+});
 
 export const appConfig: ApplicationConfig = {
   providers: [

@@ -12,7 +12,6 @@ import type { ProjectFormModel } from '../../data-access/project-form.interface'
   selector: 'sf-project-item-form',
   templateUrl: './project-item-form.component.html',
   styleUrl: './project-item-form.component.scss',
-  standalone: true,
   imports: [ReactiveFormsModule, MatFormField, MatLabel, MatError, MatInput, MatIcon, MatMiniFabButton, MatButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

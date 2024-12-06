@@ -18,7 +18,6 @@ import { WebConfigService } from '@web/shared';
   selector: 'sf-about',
   templateUrl: './about.component.html',
   styleUrl: './about.component.scss',
-  standalone: true,
   imports: [
     MatCard,
     MatCardHeader,

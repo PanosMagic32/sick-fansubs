@@ -14,7 +14,6 @@ import { ProjectItemComponent } from '../../ui/project-item/project-item.compone
 @Component({
   selector: 'sf-project-list',
   templateUrl: './project-list.component.html',
-  standalone: true,
   imports: [NoContentComponent, ProjectItemComponent, MatProgressBar, MatIcon, MatPaginator, MatFabButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

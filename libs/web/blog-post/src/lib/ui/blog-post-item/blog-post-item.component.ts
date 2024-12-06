@@ -22,7 +22,6 @@ import type { BlogPost } from '../../data-access/blog-post.interface';
   selector: 'sf-blog-post-item',
   templateUrl: './blog-post-item.component.html',
   styleUrl: './blog-post-item.component.scss',
-  standalone: true,
   imports: [
     NgOptimizedImage,
     DatePipe,

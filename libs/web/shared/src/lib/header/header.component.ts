@@ -14,7 +14,6 @@ import { WebConfigService } from '../data-access/web-config.service';
   selector: 'sf-header',
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
-  standalone: true,
   imports: [RouterLink, RouterLinkActive, AsyncPipe, MatToolbar, MatToolbarRow, MatIcon, MatIconButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

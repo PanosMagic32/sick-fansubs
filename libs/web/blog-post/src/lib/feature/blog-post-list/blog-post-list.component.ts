@@ -14,7 +14,6 @@ import { BlogPostItemComponent } from '../../ui/blog-post-item/blog-post-item.co
 @Component({
   selector: 'sf-blog-post-list',
   templateUrl: './blog-post-list.component.html',
-  standalone: true,
   imports: [NoContentComponent, MatProgressBar, MatIcon, MatPaginator, MatFabButton, BlogPostItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

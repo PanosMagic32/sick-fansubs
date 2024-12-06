@@ -11,7 +11,6 @@ import { WebConfigService } from '../data-access/web-config.service';
   selector: 'sf-sidenav',
   templateUrl: './sidenav.component.html',
   styleUrl: './sidenav.component.scss',
-  standalone: true,
   imports: [RouterLink, RouterLinkActive, MatToolbar, MatNavList, MatListItem, MatIcon, MatDivider],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

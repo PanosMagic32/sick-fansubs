@@ -21,7 +21,6 @@ import type { SignupFormModel } from '../../data-access/signup-form.interface';
   selector: 'sf-signup-form',
   templateUrl: './signup-form.component.html',
   styleUrl: './signup-form.component.scss',
-  standalone: true,
   imports: [ReactiveFormsModule, MatCard, MatFormField, MatLabel, MatInput, MatError, MatButton, MatProgressBar],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

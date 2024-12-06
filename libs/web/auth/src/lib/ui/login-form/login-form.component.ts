@@ -14,7 +14,6 @@ import type { LoginFormModel } from '../../data-access/login-form.interface';
   selector: 'sf-login-form',
   templateUrl: './login-form.component.html',
   styleUrl: './login-form.component.scss',
-  standalone: true,
   imports: [ReactiveFormsModule, MatCard, MatFormField, MatLabel, MatInput, MatError, MatProgressBar, MatButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

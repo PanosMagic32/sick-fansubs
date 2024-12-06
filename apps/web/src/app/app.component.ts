@@ -29,7 +29,6 @@ import { HeaderComponent, SidenavComponent, TokenService } from '@web/shared';
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
-  standalone: true,
   imports: [RouterOutlet, MatSidenav, MatSidenavContainer, MatSidenavContent, HeaderComponent, SidenavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
