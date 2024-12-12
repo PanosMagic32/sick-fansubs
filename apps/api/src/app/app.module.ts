@@ -23,8 +23,6 @@ import { environment } from '../environments/environment';
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>(environment.production ? 'DATABASE_URL' : 'DATABASE_URL_DEV'),
         dbName: environment.production ? 'sick-db' : 'dev-sick-db',
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
       }),
       inject: [ConfigService],
     }),
