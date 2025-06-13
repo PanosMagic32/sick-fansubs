@@ -1,10 +1,5 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
-import {
-  type ApplicationConfig,
-  inject,
-  provideAppInitializer,
-  provideExperimentalZonelessChangeDetection,
-} from '@angular/core';
+import { type ApplicationConfig, inject, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { catchError, of, tap } from 'rxjs';
@@ -63,7 +58,7 @@ const appInitializerProvider = provideAppInitializer(() => {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideExperimentalZonelessChangeDetection(),
+    provideZonelessChangeDetection(),
     provideHttpClient(withInterceptors([jwtInterceptor])),
     provideRouter(appRoutes, withComponentInputBinding()),
     provideAnimations(),
