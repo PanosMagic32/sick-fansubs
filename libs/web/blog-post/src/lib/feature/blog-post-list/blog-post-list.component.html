@@ -23,10 +23,11 @@
 
 @if (posts() && totalPosts() > 0) {
   <mat-paginator
+    [pageIndex]="currentPage() - 1"
     [length]="posts().count"
-    [pageSize]="postsPerPage"
-    [pageSizeOptions]="pageSizeOptions"
-    (page)="onChangedPage($event)"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="pageSizeOptions()"
+    (page)="onPageChange($event)"
     aria-label="Select page of posts"
   />
 }
