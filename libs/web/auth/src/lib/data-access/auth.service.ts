@@ -6,9 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { TokenService } from '@web/shared';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly httpClient = inject(HttpClient);
   private readonly router = inject(Router);

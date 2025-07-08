@@ -8,9 +8,7 @@ import { WebConfigService } from '@web/shared';
 
 import type { Project, ProjectResponse } from './project.interface';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class ProjectsService {
   private readonly httpClient = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);

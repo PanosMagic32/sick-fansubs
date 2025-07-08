@@ -21,7 +21,7 @@ import { HeaderComponent, SidenavComponent, TokenService } from '@web/shared';
           <section class="section left"></section>
 
           <section class="section main">
-            <router-outlet></router-outlet>
+            <router-outlet />
           </section>
 
           <section class="section right"></section>

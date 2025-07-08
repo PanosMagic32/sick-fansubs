@@ -1,5 +1,5 @@
 @if (isLoading()) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate" />
 }
 
 <div class="create-post-btn">
@@ -28,5 +28,5 @@
     [pageSizeOptions]="pageSizeOptions"
     (page)="onChangedPage($event)"
     aria-label="Select page of projects"
-  ></mat-paginator>
+  />
 }

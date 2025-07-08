@@ -8,9 +8,7 @@ import { WebConfigService } from '@web/shared';
 
 import type { BlogPost, BlogPostResponse, EditBlogPost } from './blog-post.interface';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class BlogPostService {
   private readonly httpClient = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);

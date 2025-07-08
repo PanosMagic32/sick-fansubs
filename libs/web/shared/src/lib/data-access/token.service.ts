@@ -2,9 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 const JWT_TOKEN = 'token';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class TokenService {
   private _isAdmin = signal(false);
   isAdmin = this._isAdmin.asReadonly();
