@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { map, switchMap, tap } from 'rxjs';
 
 import { MatFabButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
@@ -11,7 +12,6 @@ import { NoContentComponent, TokenService } from '@web/shared';
 
 import { BlogPostService } from '../../data-access/blog-post.service';
 import { BlogPostItemComponent } from '../../ui/blog-post-item/blog-post-item.component';
-import { map, switchMap, tap } from 'rxjs';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 5;

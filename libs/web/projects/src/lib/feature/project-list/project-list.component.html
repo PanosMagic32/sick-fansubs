@@ -23,10 +23,11 @@
 
 @if (projects() && totalProjects() > 0) {
   <mat-paginator
+    [pageIndex]="currentPage() - 1"
     [length]="projects().count"
-    [pageSize]="projectsPerPage"
-    [pageSizeOptions]="pageSizeOptions"
-    (page)="onChangedPage($event)"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="pageSizeOptions()"
+    (page)="onPageChange($event)"
     aria-label="Select page of projects"
   />
 }

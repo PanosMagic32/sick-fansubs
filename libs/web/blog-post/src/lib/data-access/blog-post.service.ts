@@ -1,13 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { catchError, Observable, tap } from 'rxjs';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { WebConfigService } from '@web/shared';
 
 import type { BlogPost, BlogPostResponse, EditBlogPost } from './blog-post.interface';
-import { catchError, Observable, tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class BlogPostService {

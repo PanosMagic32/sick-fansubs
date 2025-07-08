@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { catchError, tap } from 'rxjs';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -42,20 +43,21 @@ export class ProjectsService {
 
     return this.httpClient
       .get<ProjectResponse>(`${this.webConfigService.API_URL}/project?pagesize=${projectsPerPage}&page=${currentPage}`)
-      .subscribe({
-        next: (res) => {
+      .pipe(
+        catchError((err) => {
+          this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+          this._isLoading.set(false);
+          return [];
+        }),
+        tap((res) => {
           this._projects.set({
             projects: [...res.projects],
             count: res.count,
           });
 
           this._isLoading.set(false);
-        },
-        error: (err) => {
-          this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
-          this._isLoading.set(false);
-        },
-      });
+        }),
+      );
   }
 
   getProjectById(id: string) {
