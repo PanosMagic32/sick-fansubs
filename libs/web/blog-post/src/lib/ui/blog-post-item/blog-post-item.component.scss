@@ -1,3 +1,4 @@
+@use '@angular/material' as mat;
 $bp-large: 68.75em; // 1100px
 
 .post-card {
@@ -20,8 +21,22 @@ $bp-large: 68.75em; // 1100px
       margin-bottom: 0.5rem;
     }
 
-    .edit-btn {
+    .right-header {
+      display: flex;
+      align-items: center;
       margin-left: auto;
+
+      mat-chip {
+        margin-right: 1rem;
+
+        @include mat.chips-overrides(
+          (
+            container-height: 35px,
+            label-text-color: white,
+            elevated-container-color: color-mix(in srgb, #56ff26 12%, transparent),
+          )
+        );
+      }
     }
   }
 

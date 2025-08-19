@@ -1,16 +1,20 @@
-<mat-card class="post-card">
+<mat-card class="post-card" [style.border]="index() === 0 ? '2px solid #44593f !important' : ''">
   <mat-card-header>
     <div mat-card-avatar class="post-header-image"></div>
     <mat-card-title>{{ blogPost().title }}</mat-card-title>
     <mat-card-subtitle>{{ blogPost().subtitle }}</mat-card-subtitle>
 
-    @if (isAdmin()) {
-      <div class="edit-btn">
+    <div class="right-header">
+      @if (index() === 0) {
+        <mat-chip>Νέο</mat-chip>
+      }
+
+      @if (isAdmin()) {
         <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
           <mat-icon>edit</mat-icon>
         </button>
-      </div>
-    }
+      }
+    </div>
   </mat-card-header>
 
   <img

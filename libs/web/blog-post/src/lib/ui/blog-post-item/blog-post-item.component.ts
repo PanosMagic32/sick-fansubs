@@ -13,6 +13,7 @@ import {
   MatCardSubtitle,
   MatCardTitle,
 } from '@angular/material/card';
+import { MatChip } from '@angular/material/chips';
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 
@@ -37,6 +38,7 @@ import type { BlogPost } from '../../data-access/blog-post.interface';
     MatIcon,
     MatDivider,
     MatMiniFabButton,
+    MatChip,
   ],
 })
 export class BlogPostItemComponent {
