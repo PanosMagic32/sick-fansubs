@@ -46,6 +46,7 @@ export class BlogPostItemComponent {
 
   readonly blogPost = input.required<BlogPost>();
   readonly index = input.required<number>();
+  readonly currentPage = input.required<number>();
   readonly isAdmin = input.required<boolean>();
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);

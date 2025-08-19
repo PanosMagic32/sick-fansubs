@@ -1,0 +1,32 @@
+$bp-ultrawide: 106.25em; // 1700px - ultra wide
+
+.create-post-btn {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.posts-container {
+  display: block;
+
+  @media only screen and (min-width: $bp-ultrawide) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+
+    .first {
+      grid-column: 1 / -1; // First post spans full width
+    }
+  }
+}
+
+.paginator-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+
+  @media only screen and (min-width: $bp-ultrawide) {
+    grid-column: 1 / -1; // Paginator spans full width
+  }
+}

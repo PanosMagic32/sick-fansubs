@@ -20,6 +20,7 @@ const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
 @Component({
   selector: 'sf-blog-post-list',
   templateUrl: './blog-post-list.component.html',
+  styleUrl: './blog-post-list.component.scss',
   imports: [NoContentComponent, MatProgressBar, MatIcon, MatPaginator, MatFabButton, BlogPostItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

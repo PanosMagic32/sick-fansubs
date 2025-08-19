@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 $bp-large: 68.75em; // 1100px
+$bp-ultrawide: 106.25em; // 1700px - ultra wide
 
 .post-card {
   margin: 2rem 0rem;
@@ -80,5 +81,31 @@ $bp-large: 68.75em; // 1100px
 @media only screen and (max-width: $bp-large) {
   .post-card {
     margin: 2rem;
+  }
+}
+
+@media only screen and (min-width: $bp-ultrawide) {
+  .post-card {
+    margin: 1rem 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; // Prevent any internal content from overflowing
+
+    // Ensure all content respects container width
+    img {
+      max-width: 100%;
+      width: 85%;
+    }
+
+    mat-card-content {
+      .post-description {
+        word-wrap: break-word; // Prevent long words from causing overflow
+        overflow-wrap: break-word;
+      }
+    }
+
+    mat-card-header {
+      overflow: hidden; // Prevent header content overflow
+    }
   }
 }
