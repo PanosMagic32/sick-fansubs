@@ -6,4 +6,5 @@ export interface PostFormModel {
   description: FormControl<string>;
   thumbnail: FormControl<string>;
   downloadLink: FormControl<string>;
+  downloadLink4k?: FormControl<string>;
 }

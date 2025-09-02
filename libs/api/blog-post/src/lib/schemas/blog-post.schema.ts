@@ -22,6 +22,9 @@ export class BlogPost {
   @Prop({ required: true })
   downloadLink!: string;
 
+  @Prop()
+  downloadLink4k!: string;
+
   @Prop({ required: true })
   dateTimeCreated!: string;
 

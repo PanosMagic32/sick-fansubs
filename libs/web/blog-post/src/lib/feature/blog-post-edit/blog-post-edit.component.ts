@@ -47,6 +47,9 @@ export default class BlogPostEditComponent implements OnInit {
       nonNullable: true,
       validators: [Validators.required],
     }),
+    downloadLink4k: new FormControl('', {
+      nonNullable: true,
+    }),
   });
 
   ngOnInit() {
@@ -60,6 +63,7 @@ export default class BlogPostEditComponent implements OnInit {
             description: blogPost.description,
             thumbnail: blogPost.thumbnail,
             downloadLink: blogPost.downloadLink,
+            downloadLink4k: blogPost.downloadLink4k ?? '',
           })),
         )
         .subscribe((blogPost: EditBlogPost) => this.editForm.setValue(blogPost));

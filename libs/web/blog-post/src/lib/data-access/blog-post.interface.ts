@@ -8,6 +8,7 @@ export interface BlogPost {
   thumbnail: string;
   downloadLink: string;
   dateTimeCreated: Date;
+  downloadLink4k?: string;
   creator?: User;
 }
 
@@ -18,6 +19,7 @@ export interface CreateBlogPost {
   thumbnail: string;
   downloadLink: string;
   dateTimeCreated: Date;
+  downloadLink4k?: string;
 }
 
 export interface EditBlogPost {
@@ -26,6 +28,7 @@ export interface EditBlogPost {
   description: string;
   thumbnail: string;
   downloadLink: string;
+  downloadLink4k?: string;
 }
 
 export interface BlogPostResponse {

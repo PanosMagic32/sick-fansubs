@@ -42,8 +42,15 @@
     <div>
       <button mat-button (click)="onDownload(blogPost().downloadLink)">
         <mat-icon>file_download</mat-icon>
-        Λήψη
+        1080p
       </button>
+
+      @if (blogPost().downloadLink4k) {
+        <button mat-button (click)="onDownload(blogPost().downloadLink4k!)">
+          <mat-icon>file_download</mat-icon>
+          2160p
+        </button>
+      }
       <!-- <button mat-button [matMenuTriggerFor]="menu">
       <mat-icon>file_download</mat-icon>
       Λήψη

@@ -42,6 +42,9 @@ export default class BlogPostCreateComponent {
       nonNullable: true,
       validators: [Validators.required],
     }),
+    downloadLink4k: new FormControl('', {
+      nonNullable: true,
+    }),
   });
 
   onSubmit() {
@@ -53,6 +56,7 @@ export default class BlogPostCreateComponent {
       description: this.createForm.value.description ?? '',
       thumbnail: this.createForm.value.thumbnail ?? '',
       downloadLink: this.createForm.value.downloadLink ?? '',
+      downloadLink4k: this.createForm.value.downloadLink4k ?? '',
       dateTimeCreated: new Date(),
     };
 
