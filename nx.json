@@ -2,13 +2,17 @@
   "cli": {
     "packageManager": "pnpm"
   },
+  "tui": {
+    "enabled": false
+  },
   "generators": {
     "@nx/angular:application": {
       "linter": "eslint",
       "style": "scss"
     },
     "@nx/angular:library": {
-      "linter": "eslint"
+      "linter": "eslint",
+      "unitTestRunner": "none"
     },
     "@nx/angular:component": {
       "style": "scss",
