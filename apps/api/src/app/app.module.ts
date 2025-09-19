@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ApiAuthModule } from '@api/auth';
 import { ApiBlogPostModule } from '@api/blog-post';
 import { ApiProjectModule } from '@api/project';
+import { ApiSearchModule } from '@api/search';
 import { ApiUserModule } from '@api/user';
 
 import { environment } from '../environments/environment';
@@ -15,6 +16,7 @@ import { environment } from '../environments/environment';
     ApiUserModule,
     ApiProjectModule,
     ApiAuthModule,
+    ApiSearchModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
