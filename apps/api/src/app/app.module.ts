@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { ApiAuthModule } from '@sick/api/auth';
-import { ApiBlogPostModule } from '@sick/api/blog-post';
-import { ApiProjectModule } from '@sick/api/project';
-import { ApiUserModule } from '@sick/api/user';
+import { ApiAuthModule } from '@api/auth';
+import { ApiBlogPostModule } from '@api/blog-post';
+import { ApiProjectModule } from '@api/project';
+import { ApiUserModule } from '@api/user';
 
 import { environment } from '../environments/environment';
 
