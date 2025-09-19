@@ -23,23 +23,6 @@ export class ApiBlogPostController {
     return this.apiBlogPostService.findAll(params.pagesize, params.page);
   }
 
-  @Get('search')
-  async search(@Query() s: string) {
-    let options = {};
-
-    if (s) {
-      options = {
-        $or: [{ title: new RegExp(s, 'i') }, { subtitle: new RegExp(s, 'i') }, { description: new RegExp(s, 'i') }],
-      };
-
-      const query = this.apiBlogPostService.search(options);
-
-      return query;
-    }
-
-    return this.apiBlogPostService.findAll(5, 0);
-  }
-
   @ApiParam({ name: 'id' })
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<BlogPost | undefined> {

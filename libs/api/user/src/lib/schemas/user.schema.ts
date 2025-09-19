@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-// import { BlogPost } from '@sick/api/blog-post';
+// import { BlogPost } from '@api/blog-post';
 
 export type UserDocument = User & Document;
 

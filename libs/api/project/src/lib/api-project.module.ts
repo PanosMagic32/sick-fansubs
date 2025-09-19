@@ -5,19 +5,19 @@ import { ProjectController } from './project.controller';
 import { ProjectService } from './project.service';
 import { Project, ProjectSchema } from './schemas/project.schema';
 
+const ProjectFeature = MongooseModule.forFeatureAsync([
+  {
+    name: Project.name,
+    useFactory: () => {
+      return ProjectSchema;
+    },
+  },
+]);
+
 @Module({
-  imports: [
-    // MongooseModule.forFeature([{ name: Project.name, schema: ProjectSchema }]),
-    MongooseModule.forFeatureAsync([
-      {
-        name: Project.name,
-        useFactory: () => {
-          return ProjectSchema;
-        },
-      },
-    ]),
-  ],
+  imports: [ProjectFeature],
   controllers: [ProjectController],
   providers: [ProjectService],
+  exports: [ProjectFeature, ProjectService],
 })
 export class ApiProjectModule {}

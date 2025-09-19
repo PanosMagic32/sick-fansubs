@@ -1,4 +1,4 @@
-import type { User } from '@sick/api/user';
+import type { User } from '@api/user';
 
 export interface Project {
   _id?: string;

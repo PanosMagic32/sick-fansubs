@@ -15,15 +15,17 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@sick/api/auth": ["libs/api/auth/src/index.ts"],
-      "@sick/api/blog-post": ["libs/api/blog-post/src/index.ts"],
-      "@sick/api/project": ["libs/api/project/src/index.ts"],
-      "@sick/api/user": ["libs/api/user/src/index.ts"],
+      "@api/auth": ["libs/api/auth/src/index.ts"],
+      "@api/blog-post": ["libs/api/blog-post/src/index.ts"],
+      "@api/project": ["libs/api/project/src/index.ts"],
+      "@api/search": ["libs/api/search/src/index.ts"],
+      "@api/user": ["libs/api/user/src/index.ts"],
       "@web/about": ["libs/web/about/src/index.ts"],
       "@web/auth": ["libs/web/auth/src/index.ts"],
       "@web/blog-post": ["libs/web/blog-post/src/index.ts"],
       "@web/projects": ["libs/web/projects/src/index.ts"],
-      "@web/shared": ["libs/web/shared/src/index.ts"]
+      "@web/shared": ["libs/web/shared/src/index.ts"],
+      "@web/search": ["libs/web/search/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

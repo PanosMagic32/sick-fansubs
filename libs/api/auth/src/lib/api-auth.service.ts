@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
-import { LoginUserDto, User, UserService } from '@sick/api/user';
+import { LoginUserDto, User, UserService } from '@api/user';
 
 @Injectable()
 export class ApiAuthService {

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
-import { ApiUserModule } from '@sick/api/user';
+import { ApiUserModule } from '@api/user';
 
 import { ApiAuthController } from './api-auth.controller';
 import { ApiAuthService } from './api-auth.service';

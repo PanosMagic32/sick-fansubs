@@ -1,8 +1,8 @@
-import type { Route } from '@angular/router';
+import type { Routes } from '@angular/router';
 
 import { isLoggedInGuard } from './data-access/logged-in.guard';
 
-export const authRoutes: Route[] = [
+export const authRoutes: Routes = [
   {
     path: '',
     redirectTo: 'login',

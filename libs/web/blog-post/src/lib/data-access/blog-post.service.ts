@@ -29,7 +29,7 @@ export class BlogPostService {
         this.router.navigate(['/'], { replaceUrl: true });
       },
       error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
         this._isLoading.set(false);
       },
     });
@@ -42,7 +42,7 @@ export class BlogPostService {
       .get<BlogPostResponse>(`${this.webConfigService.API_URL}/blog-post?pagesize=${postsPerPage}&page=${currentPage}`)
       .pipe(
         catchError((err) => {
-          this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+          this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
           this._isLoading.set(false);
           return [];
         }),
@@ -70,7 +70,7 @@ export class BlogPostService {
         this.router.navigate(['/'], { replaceUrl: true });
       },
       error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
         this._isLoading.set(false);
       },
     });
@@ -83,7 +83,7 @@ export class BlogPostService {
         this.router.navigate(['/'], { replaceUrl: true });
       },
       error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Uknown error.' : err.error.message, 'OK');
+        this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
         this._isLoading.set(false);
       },
     });

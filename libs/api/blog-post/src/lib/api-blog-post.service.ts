@@ -46,10 +46,6 @@ export class ApiBlogPostService {
     throw new NotFoundException();
   }
 
-  async search(options: FilterQuery<BlogPostDocument>) {
-    return this.blogPostModel.find(options).sort({ dateTimeCreated: 'desc' }).exec();
-  }
-
   async update(id: string, updateBlogPostDto: UpdateBlogPostDto): Promise<BlogPost | undefined | null> {
     const blogPost = await this.findOne(id);
     if (blogPost) return this.blogPostModel.findByIdAndUpdate({ _id: id }, updateBlogPostDto).exec();

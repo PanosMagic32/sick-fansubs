@@ -1,10 +1,10 @@
-import type { Route } from '@angular/router';
+import type { Routes } from '@angular/router';
 
 import { authGuard } from '@web/auth';
 
 import { ProjectListComponent } from './feature/project-list/project-list.component';
 
-export const projectsRoutes: Route[] = [
+export const projectsRoutes: Routes = [
   {
     path: '',
     component: ProjectListComponent,
