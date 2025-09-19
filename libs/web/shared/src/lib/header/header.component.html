@@ -37,6 +37,11 @@
             <mat-icon>info</mat-icon>
             <a class="mat-focus-indicator docs-button mat-button mat-button-base">Η ομάδα</a>
           </li>
+
+          <li [routerLink]="['/search']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>search</mat-icon>
+            <a class="mat-focus-indicator docs-button mat-button mat-button-base">Αναζήτηση</a>
+          </li>
         </ul>
       </div>
     }
@@ -55,19 +60,15 @@
           <li [routerLink]="['/about']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
             <mat-icon>info</mat-icon>
           </li>
+
+          <li [routerLink]="['/search']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>search</mat-icon>
+          </li>
         </ul>
       </div>
     }
 
     <span class="spacer"></span>
-
-    <!-- <button
-      mat-icon-button
-      (click)="isOpenSearch.set(!isOpenSearch())"
-      class="mat-focus-indicator docs-button mat-button mat-button-base"
-    >
-      <mat-icon>search</mat-icon>
-    </button> -->
 
     @if ((isSmall$ | async) || (isHandset$ | async) ? false : true) {
       <div class="logo-social">
@@ -88,12 +89,4 @@
       </button>
     }
   </mat-toolbar-row>
-
-  <!-- @if (isOpenSearch()) {
-    <mat-toolbar-row>
-      <mat-form-field class="search-full-width">
-        <input matInput placeholder="Search..." />
-      </mat-form-field>
-    </mat-toolbar-row>
-  } -->
 </mat-toolbar>

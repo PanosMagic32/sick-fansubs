@@ -1,0 +1,72 @@
+@if (isLoading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<form [formGroup]="searchForm">
+  <div class="search-container">
+    <mat-form-field hintLabel="Αναζητήστε επεισόδια ή projects" class="input-field">
+      <mat-label>Πληκτρολογήστε κάτι για αναζήτηση...</mat-label>
+      <input
+        matInput
+        #input
+        maxlength="100"
+        minlength="3"
+        placeholder="Για παράδειγμα: One Piece"
+        formControlName="searchTerm"
+      />
+
+      @if (formControls.searchTerm.touched && formControls.searchTerm.hasError('required')) {
+        <mat-error>Πληκτρολογήστε κάτι που να είναι από 3 έως 100 χαρακτήρες</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="select-field">
+      <mat-label>Τύπος</mat-label>
+
+      <mat-select formControlName="type">
+        <mat-option value="all">Όλα</mat-option>
+        <mat-option value="blog-post">Δημοσιεύσεις</mat-option>
+        <mat-option value="project">Projects</mat-option>
+      </mat-select>
+
+      <mat-hint align="end">Επιλέξτε τύπο αναζήτησης</mat-hint>
+    </mat-form-field>
+
+    <button
+      matButton="tonal"
+      class="submit-btn"
+      type="submit"
+      color="primary"
+      [disabled]="searchForm.invalid"
+      (click)="onSubmit()"
+    >
+      <mat-icon>search</mat-icon>
+      Αναζήτηση
+    </button>
+  </div>
+</form>
+
+@if (results() && totalResults() > 0 && !isLoading()) {
+  <div class="results-container">
+    @for (result of results().results; track result._id) {
+      <sf-web-search-result-item [searchResult]="result" [isAdmin]="isAdmin()" />
+    }
+  </div>
+} @else {
+  @if (!isLoading() && hasSubmitted()) {
+    <sf-no-content />
+  }
+}
+
+@if (results() && totalResults() > 0) {
+  <div class="paginator-container">
+    <mat-paginator
+      [pageIndex]="currentPage() - 1"
+      [length]="results().total"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="pageSizeOptions()"
+      (page)="onPageChange($event)"
+      aria-label="Επιλέξτε σελίδα"
+    />
+  </div>
+}

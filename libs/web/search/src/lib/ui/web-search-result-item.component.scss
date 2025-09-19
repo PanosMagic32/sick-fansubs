@@ -1,0 +1,62 @@
+.search-card {
+  max-width: 50vw;
+  margin: 2rem auto;
+}
+
+.blog-post {
+  border: 1px solid #3f51b5;
+}
+
+mat-card-header {
+  .search-header-image {
+    background-image: url('/logo/logo.png');
+    background-size: cover;
+    margin: 0.2rem;
+  }
+
+  .mat-card-avatar {
+    height: 3rem;
+    width: 3rem;
+    margin-top: -0.5rem !important;
+  }
+
+  .edit-btn {
+    margin-left: auto;
+  }
+}
+
+img {
+  width: 85%;
+  margin: 1rem auto 0 auto;
+  border-radius: 0.5rem;
+}
+
+mat-card-content {
+  .search-description {
+    margin: 2rem;
+  }
+
+  .line-clamp {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+}
+
+mat-card-actions.search-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .search-actions-date {
+    margin-left: 1rem;
+    display: flex;
+
+    p {
+      padding: 0 1rem;
+    }
+  }
+}

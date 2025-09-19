@@ -1,0 +1,46 @@
+<mat-card class="search-card" appearance="outlined" [class.blog-post]="searchResult().type === 'blog-post'">
+  <mat-card-header>
+    <div mat-card-avatar class="search-header-image"></div>
+    <mat-card-title>{{ searchResult().title }}</mat-card-title>
+    <mat-card-subtitle>{{ searchResult().subtitle }}</mat-card-subtitle>
+
+    @if (isAdmin()) {
+      <div class="edit-btn">
+        <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit(searchResult().type)">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </div>
+    }
+  </mat-card-header>
+
+  <img mat-card-image [alt]="searchResult().title" [src]="searchResult().thumbnail" />
+  <mat-card-content>
+    <p class="search-description line-clamp">
+      {{ searchResult().description }}
+    </p>
+  </mat-card-content>
+
+  <mat-card-actions class="search-actions">
+    <div class="search-actions-date">
+      <p>{{ searchResult().dateTimeCreated | date: 'd/M/yyyy, hh:mm' }}</p>
+    </div>
+
+    <div>
+      @if (searchResult().type === 'blog-post') {
+        <button mat-button (click)="onDownload(searchResult().downloadLink)">
+          <mat-icon>file_download</mat-icon>
+          1080p
+        </button>
+
+        @if (searchResult().downloadLink4k) {
+          <button mat-button (click)="onDownload(searchResult().downloadLink4k)">
+            <mat-icon>file_download</mat-icon>
+            2160p
+          </button>
+        }
+      } @else {
+        <button mat-button (click)="onMore()">Περισσότερα...</button>
+      }
+    </div>
+  </mat-card-actions>
+</mat-card>
