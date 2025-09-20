@@ -37,6 +37,16 @@
     <span class="nav-caption">Η ομάδα</span>
   </mat-list-item>
 
+  <mat-list-item
+    (click)="onSidenavClose()"
+    [routerLink]="['/search']"
+    routerLinkActive="active-sidenav"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <mat-icon>search</mat-icon>
+    <span class="nav-caption">Αναζήτηση</span>
+  </mat-list-item>
+
   <mat-divider />
 
   <mat-list-item (click)="onGoToTracker()">
