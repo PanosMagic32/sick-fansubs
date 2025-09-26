@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { map, switchMap, tap } from 'rxjs';
+import { map, tap } from 'rxjs';
 
 import { MatFabButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
@@ -35,10 +35,8 @@ export class BlogPostListComponent {
   protected readonly pageSizeOptions = signal(PAGE_SIZE_OPTIONS);
 
   protected readonly isAdmin = this.tokenService.isAdmin;
-  protected readonly isLoading = this.blogPostService.isLoading;
-  protected readonly posts = this.blogPostService.posts;
 
-  protected readonly totalPosts = computed(() => this.posts().count);
+  protected readonly blogPosts = this.blogPostService.getBlogPosts(this.pageSize, this.currentPage);
 
   constructor() {
     this.activatedRoute.queryParamMap
@@ -52,7 +50,6 @@ export class BlogPostListComponent {
           this.currentPage.set(page);
           this.pageSize.set(pageSize);
         }),
-        switchMap(({ page, pageSize }) => this.blogPostService.getBlogPosts(pageSize, page - 1)),
       )
       .subscribe();
   }

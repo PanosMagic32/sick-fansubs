@@ -1,7 +1,6 @@
-import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient, httpResource, HttpResourceRef } from '@angular/common/http';
+import { inject, Injectable, Signal, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, Observable, tap } from 'rxjs';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -22,6 +21,12 @@ export class BlogPostService {
   private _posts = signal<BlogPostResponse>({ posts: [], count: 0 });
   posts = this._posts.asReadonly();
 
+  getBlogPosts(postsPerPage: Signal<number>, currentPage: Signal<number>): HttpResourceRef<BlogPostResponse | undefined> {
+    return httpResource<BlogPostResponse>(() => ({
+      url: `${this.webConfigService.API_URL}/blog-post?pagesize=${postsPerPage()}&page=${currentPage() - 1}`,
+    }));
+  }
+
   createBlogPost(post: BlogPost) {
     this.httpClient.post(`${this.webConfigService.API_URL}/blog-post`, post).subscribe({
       next: () => {
@@ -33,28 +38,6 @@ export class BlogPostService {
         this._isLoading.set(false);
       },
     });
-  }
-
-  getBlogPosts(postsPerPage: number, currentPage: number): Observable<BlogPostResponse> {
-    this._isLoading.set(true);
-
-    return this.httpClient
-      .get<BlogPostResponse>(`${this.webConfigService.API_URL}/blog-post?pagesize=${postsPerPage}&page=${currentPage}`)
-      .pipe(
-        catchError((err) => {
-          this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
-          this._isLoading.set(false);
-          return [];
-        }),
-        tap((res) => {
-          this._posts.set({
-            posts: [...res.posts],
-            count: res.count,
-          });
-
-          this._isLoading.set(false);
-        }),
-      );
   }
 
   getBlogPostById(id: string) {

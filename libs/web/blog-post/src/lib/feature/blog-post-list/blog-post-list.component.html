@@ -1,4 +1,4 @@
-@if (isLoading()) {
+@if (blogPosts.isLoading()) {
   <mat-progress-bar mode="indeterminate" />
 }
 
@@ -11,9 +11,13 @@
   }
 </div>
 
-@if (posts() && totalPosts() > 0 && !isLoading()) {
+@if (blogPosts.error()) {
+  <sf-no-content />
+}
+
+@if (blogPosts.value(); as blogPosts) {
   <div class="posts-container">
-    @for (post of posts().posts; track post._id) {
+    @for (post of blogPosts?.posts; track post._id) {
       <sf-blog-post-item
         [class.first]="$index === 0 && currentPage() === 1"
         [blogPost]="post"
@@ -23,17 +27,11 @@
       />
     }
   </div>
-} @else {
-  @if (!isLoading()) {
-    <sf-no-content />
-  }
-}
 
-@if (posts() && totalPosts() > 0) {
   <div class="paginator-container">
     <mat-paginator
       [pageIndex]="currentPage() - 1"
-      [length]="posts().count"
+      [length]="blogPosts.count"
       [pageSize]="pageSize()"
       [pageSizeOptions]="pageSizeOptions()"
       (page)="onPageChange($event)"
