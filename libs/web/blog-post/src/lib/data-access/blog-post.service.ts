@@ -1,12 +1,12 @@
 import { HttpClient, httpResource, HttpResourceRef } from '@angular/common/http';
-import { inject, Injectable, Signal, signal } from '@angular/core';
+import { inject, Injectable, Signal, signal, WritableSignal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { WebConfigService } from '@web/shared';
 
-import type { BlogPost, BlogPostResponse, EditBlogPost } from './blog-post.interface';
+import type { BlogPost, BlogPostResponse, CreateBlogPost, EditBlogPost } from './blog-post.interface';
 
 @Injectable({ providedIn: 'root' })
 export class BlogPostService {
@@ -27,16 +27,16 @@ export class BlogPostService {
     }));
   }
 
-  createBlogPost(post: BlogPost) {
-    this.httpClient.post(`${this.webConfigService.API_URL}/blog-post`, post).subscribe({
-      next: () => {
-        this._isLoading.set(false);
-        this.router.navigate(['/'], { replaceUrl: true });
-      },
-      error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
-        this._isLoading.set(false);
-      },
+  createBlogPost(post: WritableSignal<CreateBlogPost | null>) {
+    return httpResource<BlogPost>(() => {
+      const body = post();
+      if (!body) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/blog-post`,
+        method: 'POST',
+        body,
+      };
     });
   }
 

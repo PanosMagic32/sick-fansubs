@@ -1,18 +1,28 @@
-<mat-card class="create-card">
-  <mat-card-header>
-    <p>Δημιουργία νέου post</p>
-  </mat-card-header>
+@if (createBlogPost.isLoading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
 
-  <mat-card-content>
-    <sf-blog-post-form [form]="createForm" />
-  </mat-card-content>
+@if (createBlogPost.error()) {
+  <sf-no-content [errorMessage]="'Παρουσιάστηκε πρόβλημα με τη δημιουργία του post.'" />
+}
 
-  <mat-divider />
+@if (!createBlogPost.hasValue()) {
+  <mat-card class="create-card">
+    <mat-card-header>
+      <p>Δημιουργία νέου post</p>
+    </mat-card-header>
 
-  <mat-card-actions class="create-actions">
-    <button mat-raised-button color="primary" [disabled]="createForm.invalid" (click)="onSubmit()">
-      <mat-icon>save</mat-icon>
-      Αποθήκευση
-    </button>
-  </mat-card-actions>
-</mat-card>
+    <mat-card-content>
+      <sf-blog-post-form [form]="createForm" />
+    </mat-card-content>
+
+    <mat-divider />
+
+    <mat-card-actions class="create-actions">
+      <button mat-raised-button color="primary" [disabled]="createForm.invalid" (click)="onSubmit()">
+        <mat-icon>save</mat-icon>
+        Αποθήκευση
+      </button>
+    </mat-card-actions>
+  </mat-card>
+}
