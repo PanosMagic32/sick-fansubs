@@ -32,7 +32,7 @@ export class UserService {
 
     // TODO - handle if isAdmin in JWT
     return {
-      id: createdUser._id as string,
+      id: createdUser._id.toString(),
       username: createdUser.username,
       email: createdUser.email,
     };

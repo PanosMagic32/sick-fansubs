@@ -12,7 +12,7 @@ export class ApiBlogPostService {
 
   async create(createBlogPostDto: CreateBlogPostDto): Promise<{ id: string }> {
     const createdBlogPost = await this.blogPostModel.create(createBlogPostDto);
-    return { id: createdBlogPost._id as string };
+    return { id: createdBlogPost._id.toString() };
   }
 
   async findAll(
