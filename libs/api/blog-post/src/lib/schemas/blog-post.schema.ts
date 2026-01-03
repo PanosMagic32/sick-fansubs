@@ -22,8 +22,14 @@ export class BlogPost {
   @Prop({ required: true })
   downloadLink!: string;
 
+  @Prop({ required: true })
+  downloadLinkMagnet!: string;
+
   @Prop()
   downloadLink4k!: string;
+
+  @Prop()
+  downloadLink4kMagnet!: string;
 
   @Prop({ required: true })
   dateTimeCreated!: string;

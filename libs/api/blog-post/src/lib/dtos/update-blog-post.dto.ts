@@ -19,5 +19,14 @@ export class UpdateBlogPostDto extends PartialType(CreateBlogPostDto) {
   override readonly downloadLink!: string;
 
   @ApiProperty({ type: String })
+  override readonly downloadLinkMagnet!: string;
+
+  @ApiProperty({ type: String })
+  override readonly downloadLink4k!: string;
+
+  @ApiProperty({ type: String })
+  override readonly downloadLink4kMagnet!: string;
+
+  @ApiProperty({ type: String })
   override readonly dateTimeCreated!: string;
 }
