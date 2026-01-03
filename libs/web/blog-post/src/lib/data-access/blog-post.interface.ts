@@ -6,11 +6,11 @@ export type BlogPost = {
   subtitle: string;
   description: string;
   thumbnail: string;
+  downloadLinkTorrent: string;
   downloadLink: string;
-  downloadLinkMagnet: string;
   dateTimeCreated: Date;
+  downloadLink4kTorrent?: string | undefined;
   downloadLink4k?: string | undefined;
-  downloadLink4kMagnet?: string | undefined;
   creator?: User;
 };
 

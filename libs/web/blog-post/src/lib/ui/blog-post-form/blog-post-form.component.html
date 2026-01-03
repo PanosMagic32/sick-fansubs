@@ -37,7 +37,22 @@
 
   <mat-form-field class="input" appearance="fill">
     <mat-label>Σύνδεσμος λήψης torrent</mat-label>
-    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης torrent" formControlName="downloadLink" required></textarea>
+    <textarea
+      matInput
+      type="text"
+      placeholder="Σύνδεσμος λήψης torrent"
+      formControlName="downloadLinkTorrent"
+      required
+    ></textarea>
+
+    @if (formControls.downloadLinkTorrent.touched && formControls.downloadLinkTorrent.hasError('required')) {
+      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="input" appearance="fill">
+    <mat-label>Σύνδεσμος λήψης magnet</mat-label>
+    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης magnet" formControlName="downloadLink" required></textarea>
 
     @if (formControls.downloadLink.touched && formControls.downloadLink.hasError('required')) {
       <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
@@ -45,27 +60,17 @@
   </mat-form-field>
 
   <mat-form-field class="input" appearance="fill">
-    <mat-label>Σύνδεσμος λήψης magnet</mat-label>
+    <mat-label>Σύνδεσμος λήψης torrent 4K</mat-label>
     <textarea
       matInput
       type="text"
-      placeholder="Σύνδεσμος λήψης magnet"
-      formControlName="downloadLinkMagnet"
-      required
+      placeholder="Σύνδεσμος λήψης torrent 4K"
+      formControlName="downloadLink4kTorrent"
     ></textarea>
-
-    @if (formControls.downloadLinkMagnet.touched && formControls.downloadLinkMagnet.hasError('required')) {
-      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
-    }
-  </mat-form-field>
-
-  <mat-form-field class="input" appearance="fill">
-    <mat-label>Σύνδεσμος λήψης torrent 4K</mat-label>
-    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης torrent 4K" formControlName="downloadLink4k"></textarea>
   </mat-form-field>
 
   <mat-form-field class="input" appearance="fill">
     <mat-label>Σύνδεσμος λήψης magnet 4K</mat-label>
-    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης magnet 4K" formControlName="downloadLink4kMagnet"></textarea>
+    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης magnet 4K" formControlName="downloadLink4k"></textarea>
   </mat-form-field>
 </form>

@@ -59,18 +59,18 @@ export default class BlogPostCreateComponent {
       nonNullable: true,
       validators: [Validators.required],
     }),
+    downloadLinkTorrent: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
     downloadLink: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    downloadLinkMagnet: new FormControl('', {
+    downloadLink4kTorrent: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
     }),
     downloadLink4k: new FormControl('', {
-      nonNullable: true,
-    }),
-    downloadLink4kMagnet: new FormControl('', {
       nonNullable: true,
     }),
   });
@@ -91,10 +91,10 @@ export default class BlogPostCreateComponent {
       subtitle: this.createForm.value.subtitle ?? '',
       description: this.createForm.value.description ?? '',
       thumbnail: this.createForm.value.thumbnail ?? '',
+      downloadLinkTorrent: this.createForm.value.downloadLinkTorrent ?? '',
       downloadLink: this.createForm.value.downloadLink ?? '',
-      downloadLinkMagnet: this.createForm.value.downloadLinkMagnet ?? '',
+      downloadLink4kTorrent: this.createForm.value.downloadLink4kTorrent ?? '',
       downloadLink4k: this.createForm.value.downloadLink4k ?? '',
-      downloadLink4kMagnet: this.createForm.value.downloadLink4kMagnet ?? '',
       dateTimeCreated: new Date(),
     };
 

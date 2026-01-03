@@ -48,11 +48,11 @@
         <span>1080p</span>
       </button>
       <mat-menu #menu1080p="matMenu">
-        <button mat-menu-item (click)="onDownload(blogPost().downloadLink)">
+        <button mat-menu-item (click)="onDownload(blogPost().downloadLinkTorrent)">
           <mat-icon>file_download</mat-icon>
           <span>Torrent</span>
         </button>
-        <button mat-menu-item (click)="onDownload(blogPost().downloadLinkMagnet)">
+        <button mat-menu-item (click)="onDownload(blogPost().downloadLink)">
           <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
           <span>Magnet</span>
         </button>
@@ -64,11 +64,11 @@
           <span>2160p</span>
         </button>
         <mat-menu #menu2160p="matMenu">
-          <button mat-menu-item (click)="onDownload(blogPost().downloadLink4k)">
+          <button mat-menu-item (click)="onDownload(blogPost().downloadLink4kTorrent)">
             <mat-icon>file_download</mat-icon>
             <span>Torrent</span>
           </button>
-          <button mat-menu-item (click)="onDownload(blogPost().downloadLink4kMagnet)">
+          <button mat-menu-item (click)="onDownload(blogPost().downloadLink4k)">
             <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
             <span>Magnet</span>
           </button>
