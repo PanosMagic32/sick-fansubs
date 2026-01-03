@@ -42,17 +42,37 @@
       <p>{{ blogPost().dateTimeCreated | date: 'd/M/yyyy, hh:mm' }}</p>
     </div>
 
-    <div>
-      <button mat-button (click)="onDownload(blogPost().downloadLink)">
-        <mat-icon>file_download</mat-icon>
-        1080p
+    <div class="download-buttons">
+      <button matButton [matMenuTriggerFor]="menu1080p" aria-label="Example icon-button with a menu">
+        <mat-icon>keyboard_arrow_down</mat-icon>
+        <span>1080p</span>
       </button>
+      <mat-menu #menu1080p="matMenu">
+        <button mat-menu-item (click)="onDownload(blogPost().downloadLink)">
+          <mat-icon>file_download</mat-icon>
+          <span>Torrent</span>
+        </button>
+        <button mat-menu-item (click)="onDownload(blogPost().downloadLinkMagnet)">
+          <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
+          <span>Magnet</span>
+        </button>
+      </mat-menu>
 
       @if (blogPost().downloadLink4k) {
-        <button mat-button (click)="onDownload(blogPost().downloadLink4k!)">
-          <mat-icon>file_download</mat-icon>
-          2160p
+        <button matButton [matMenuTriggerFor]="menu2160p" aria-label="Example icon-button with a menu">
+          <mat-icon>keyboard_arrow_down</mat-icon>
+          <span>2160p</span>
         </button>
+        <mat-menu #menu2160p="matMenu">
+          <button mat-menu-item (click)="onDownload(blogPost().downloadLink4k)">
+            <mat-icon>file_download</mat-icon>
+            <span>Torrent</span>
+          </button>
+          <button mat-menu-item (click)="onDownload(blogPost().downloadLink4kMagnet)">
+            <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
+            <span>Magnet</span>
+          </button>
+        </mat-menu>
       }
     </div>
   </mat-card-actions>

@@ -70,10 +70,15 @@ $bp-ultrawide: 106.25em; // 1700px - ultra wide
       }
     }
 
-    mat-icon {
-      font-size: 1.5rem;
-      height: 1.5rem;
-      width: 1.5rem;
+    .download-buttons {
+      display: flex;
+      gap: 1rem;
+
+      mat-icon {
+        font-size: 1.5rem;
+        height: 1.5rem;
+        width: 1.5rem;
+      }
     }
   }
 }

@@ -1,35 +1,22 @@
 import type { User } from '@api/user';
 
-export interface BlogPost {
+export type BlogPost = {
   _id?: string;
   title: string;
   subtitle: string;
   description: string;
   thumbnail: string;
   downloadLink: string;
+  downloadLinkMagnet: string;
   dateTimeCreated: Date;
-  downloadLink4k?: string;
+  downloadLink4k?: string | undefined;
+  downloadLink4kMagnet?: string | undefined;
   creator?: User;
-}
+};
 
-export interface CreateBlogPost {
-  title: string;
-  subtitle: string;
-  description: string;
-  thumbnail: string;
-  downloadLink: string;
-  dateTimeCreated: Date;
-  downloadLink4k?: string;
-}
+export type CreateBlogPost = Omit<BlogPost, '_id' | 'creator'>;
 
-export interface EditBlogPost {
-  title: string;
-  subtitle: string;
-  description: string;
-  thumbnail: string;
-  downloadLink: string;
-  downloadLink4k?: string;
-}
+export type EditBlogPost = Omit<BlogPost, 'dateTimeCreated' | 'creator'>;
 
 export interface BlogPostResponse {
   posts: BlogPost[];

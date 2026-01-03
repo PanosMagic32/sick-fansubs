@@ -2,7 +2,7 @@ import { DatePipe, NgOptimizedImage } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { MatButton, MatMiniFabButton } from '@angular/material/button';
+import { MatMiniFabButton, MatButton } from '@angular/material/button';
 import {
   MatCard,
   MatCardActions,
@@ -16,6 +16,7 @@ import {
 import { MatChip } from '@angular/material/chips';
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
 import type { BlogPost } from '../../data-access/blog-post.interface';
 
@@ -34,11 +35,12 @@ import type { BlogPost } from '../../data-access/blog-post.interface';
     MatCardSubtitle,
     MatCardContent,
     MatCardActions,
-    MatButton,
     MatIcon,
     MatDivider,
     MatMiniFabButton,
     MatChip,
+    MatMenuModule,
+    MatButton,
   ],
 })
 export class BlogPostItemComponent {
@@ -51,8 +53,14 @@ export class BlogPostItemComponent {
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);
 
-  onDownload(url: string) {
-    window.open(url);
+  onDownload(url: string | undefined) {
+    if (url) {
+      const downloadURL = new URL(url);
+      const a = document.createElement('a');
+      a.href = downloadURL.href;
+      a.download = downloadURL.pathname.split('/').pop() || '';
+      a.click();
+    }
   }
 
   onEdit() {

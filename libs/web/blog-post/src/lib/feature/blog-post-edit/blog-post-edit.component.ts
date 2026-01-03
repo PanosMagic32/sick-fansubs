@@ -47,7 +47,14 @@ export default class BlogPostEditComponent implements OnInit {
       nonNullable: true,
       validators: [Validators.required],
     }),
+    downloadLinkMagnet: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
     downloadLink4k: new FormControl('', {
+      nonNullable: true,
+    }),
+    downloadLink4kMagnet: new FormControl('', {
       nonNullable: true,
     }),
   });
@@ -63,7 +70,9 @@ export default class BlogPostEditComponent implements OnInit {
             description: blogPost.description,
             thumbnail: blogPost.thumbnail,
             downloadLink: blogPost.downloadLink,
+            downloadLinkMagnet: blogPost.downloadLinkMagnet ?? '',
             downloadLink4k: blogPost.downloadLink4k ?? '',
+            downloadLink4kMagnet: blogPost.downloadLink4kMagnet ?? '',
           })),
         )
         .subscribe((blogPost: EditBlogPost) => this.editForm.setValue(blogPost));
