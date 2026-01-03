@@ -23,13 +23,13 @@ export class BlogPost {
   downloadLink!: string;
 
   @Prop({ required: true })
-  downloadLinkMagnet!: string;
+  downloadLinkTorrent!: string;
 
   @Prop()
   downloadLink4k!: string;
 
   @Prop()
-  downloadLink4kMagnet!: string;
+  downloadLink4kTorrent!: string;
 
   @Prop({ required: true })
   dateTimeCreated!: string;

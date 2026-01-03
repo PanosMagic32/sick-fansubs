@@ -17,13 +17,13 @@ export class CreateBlogPostDto {
   readonly downloadLink!: string;
 
   @ApiProperty({ type: String })
-  readonly downloadLinkMagnet!: string;
+  readonly downloadLinkTorrent!: string;
 
   @ApiProperty({ type: String })
   readonly downloadLink4k!: string;
 
   @ApiProperty({ type: String })
-  readonly downloadLink4kMagnet!: string;
+  readonly downloadLink4kTorrent!: string;
 
   @ApiProperty({ type: String })
   readonly dateTimeCreated!: string;
