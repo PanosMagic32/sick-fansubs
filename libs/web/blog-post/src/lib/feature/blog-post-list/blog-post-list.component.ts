@@ -14,8 +14,8 @@ import { BlogPostService } from '../../data-access/blog-post.service';
 import { BlogPostItemComponent } from '../../ui/blog-post-item/blog-post-item.component';
 
 const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 5;
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 6;
+const PAGE_SIZE_OPTIONS = [6, 10, 20, 50, 100];
 
 @Component({
   selector: 'sf-blog-post-list',
