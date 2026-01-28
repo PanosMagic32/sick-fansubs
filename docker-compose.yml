@@ -34,7 +34,7 @@ services:
       dockerfile: Dockerfile
       target: api
       args:
-        NODE_VERSION: 24-alpine
+        NODE_VERSION: lts-alpine
     env_file:
       - .env
     environment:
