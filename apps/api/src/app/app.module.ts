@@ -9,6 +9,7 @@ import { ApiSearchModule } from '@api/search';
 import { ApiUserModule } from '@api/user';
 
 import { environment } from '../environments/environment';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -29,5 +30,6 @@ import { environment } from '../environments/environment';
       inject: [ConfigService],
     }),
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
