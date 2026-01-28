@@ -4,6 +4,15 @@
 
 export const environment = {
   production: false,
+  config: {
+    API_URL: 'http://localhost:3333/api',
+    APP_VERSION: '0.18.0',
+    FACEBOOK_URL: 'https://www.facebook.com/SickFansubs/',
+    DISCORD_URL: 'https://discord.com/invite/28aCBqu',
+    GITHUB_URL: 'https://github.com/PanosMagic32/sick-fansubs',
+    TRACKER_URL: 'https://nyaa.si/user/Sick-Fansubs',
+    BUY_ME_A_COFFEE_URL: 'https://www.buymeacoffee.com/sickfansubs',
+  },
 };
 
 /*

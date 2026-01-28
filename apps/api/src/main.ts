@@ -13,21 +13,9 @@ async function bootstrap() {
   app.setGlobalPrefix(globalPrefix);
   app.useGlobalPipes(new ValidationPipe());
 
-  let corsOptions: CorsOptions = {};
+  const corsOptions: CorsOptions = environment.corsOptions;
 
-  if (environment.production) {
-    corsOptions = {
-      origin: 'http://localhost,https://sickfansubs.com,https://www.sickfansubs.com',
-      allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    };
-  } else {
-    corsOptions = {
-      origin: '*',
-      allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization',
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    };
-
+  if (!environment.production) {
     const swaggerOptions = new DocumentBuilder()
       .setTitle('Sick-Fansubs API')
       .setDescription('Sick-Fansubs ReST API documentation')

@@ -1,9 +1,70 @@
-# Ignore everything
-*
+# Dependencies (will be installed fresh in container)
+node_modules/
+npm-debug.log
+pnpm-debug.log
+yarn-error.log
 
-# Except necessery files/folders
-!dist
+# Build outputs (will be built in container)
+dist/
+.next/
+out/
+build/
+.angular/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+**/*.spec.ts
+**/*.test.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Docker
+.dockerignore
+docker-compose*.yml
+DOCKER.md
+
+# Environment (except .env.example)
+.env.local
+.env.*.local
+*.env.backup
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nx cache
+.nx/
+
+# Misc
+*.md
+!README.md
+.husky/
+.prettierrc
+.eslintrc*
+.editorconfig
+
+# Keep these files
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!nx.json
+!tsconfig.base.json
 !nginx.conf
-!package*.json
-!.env*
 !.config.json
