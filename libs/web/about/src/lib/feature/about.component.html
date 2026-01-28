@@ -23,7 +23,7 @@
         <mat-icon matListItemIcon>arrow_right</mat-icon>
         <div matListItemTitle>
           Για να παρακολουθείς τα νέα και τις εξελίξεις μας, μπορείς να μας βρεις στο
-          <a [href]="facebookUrl" targe="_system"> Facebook</a>.
+          <a [href]="facebookUrl" target="_blank" rel="noopener noreferrer"> Facebook</a>.
         </div>
       </mat-list-item>
 
@@ -35,7 +35,7 @@
           Για να συμμετέχεις στις συζητήσεις μας, να γίνεις μέλος της ομάδας ή αν έχεις τις γνώσεις και μπορείς να εμπλακείς
           στη διαδικασία της «δημιουργίας» των επεισοδίων (μετάφραση, χρονισμός, στοιχειοθετήσεις, καραόκε κ.ά.), μπορείς να
           μας βρεις στο
-          <a [href]="discordUrl" targe="_system"> Discord</a>.
+          <a [href]="discordUrl" target="_blank" rel="noopener noreferrer"> Discord</a>.
         </div>
       </mat-list-item>
 
@@ -46,7 +46,7 @@
         <div matListItemTitle>
           Είσαι προγραμματιστής ή έχεις κάποια ιδέα που μπορεί να κάνει τη σελίδα μας καλύτερη;<br />
           Μπορείς να βρεις το αποθετήριο της σελίδας στο
-          <a [href]="githubUrl" targe="_system"> Github</a>.
+          <a [href]="githubUrl" target="_blank" rel="noopener noreferrer"> Github</a>.
         </div>
       </mat-list-item>
 
@@ -56,7 +56,7 @@
         <mat-icon matListItemIcon>arrow_right</mat-icon>
         <div matListItemTitle>
           Αν θέλεις να δεις όλη τη δουλειά της ομάδας μας, μπορείς να την βρεις και στον
-          <a [href]="trackerUrl" targe="_system"> tracker</a> μας.
+          <a [href]="trackerUrl" target="_blank" rel="noopener noreferrer"> tracker</a> μας.
         </div>
       </mat-list-item>
 
@@ -66,7 +66,7 @@
         <mat-icon matListItemIcon>arrow_right</mat-icon>
         <div matListItemTitle>
           Αν θέλεις να στηρίξεις οικονομικά την προσπάθεια της ομάδας μας, μπορείς να το κάνεις μέσω
-          <a [href]="buyMeACofeeUrl" targe="_system"> Buy Me A Coffee</a>.
+          <a [href]="buyMeACofeeUrl" target="_blank" rel="noopener noreferrer"> Buy Me A Coffee</a>.
         </div>
       </mat-list-item>
     </mat-list>
@@ -76,5 +76,9 @@
 
   <mat-card-footer>
     <p>Έκδοση εφαρμογής: {{ appVersion }}</p>
+    <p class="health-status" [class.healthy]="isHealthy()" [class.unhealthy]="!isHealthy()">
+      <mat-icon>{{ isHealthy() ? 'check_circle' : 'error' }}</mat-icon>
+      <span>Κατάσταση: {{ isHealthy() ? 'Υγιής' : 'Μη διαθέσιμη' }}</span>
+    </p>
   </mat-card-footer>
 </mat-card>

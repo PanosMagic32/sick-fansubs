@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 import {
   MatCard,
@@ -13,6 +14,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatList, MatListItem, MatListItemIcon } from '@angular/material/list';
 
 import { WebConfigService } from '@web/shared';
+import { HealthService } from '../data-access/health.service';
 
 @Component({
   selector: 'sf-about',
@@ -35,6 +37,7 @@ import { WebConfigService } from '@web/shared';
 })
 export class AboutComponent {
   private readonly webConfigService = inject(WebConfigService);
+  private readonly healthService = inject(HealthService);
 
   protected readonly facebookUrl = this.webConfigService.FACEBOOK_URL;
   protected readonly discordUrl = this.webConfigService.DISCORD_URL;
@@ -42,4 +45,6 @@ export class AboutComponent {
   protected readonly buyMeACofeeUrl = this.webConfigService.BUY_ME_A_COFFEE_URL;
   protected readonly trackerUrl = this.webConfigService.TRACKER_URL;
   protected readonly appVersion = this.webConfigService.APP_VERSION;
+
+  protected readonly isHealthy = toSignal(this.healthService.checkHealth(), { initialValue: false });
 }

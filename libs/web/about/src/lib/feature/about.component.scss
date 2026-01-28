@@ -7,7 +7,11 @@
 
   mat-list-item {
     margin: 1rem 0;
-    height: fit-content !important;
+    height: fit-content;
+
+    ::ng-deep .mat-mdc-list-item-unscoped-content {
+      height: auto;
+    }
   }
 
   .subtitle-info {
@@ -16,10 +20,41 @@
 
   mat-card-footer {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 1rem;
 
     p {
       padding: 1rem;
+      margin: 0;
+    }
+
+    .health-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      mat-icon {
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+
+      &.healthy {
+        color: #4caf50;
+
+        mat-icon {
+          color: #4caf50;
+        }
+      }
+
+      &.unhealthy {
+        color: #f44336;
+
+        mat-icon {
+          color: #f44336;
+        }
+      }
     }
   }
 
