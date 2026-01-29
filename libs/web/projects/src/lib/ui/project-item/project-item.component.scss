@@ -1,8 +1,7 @@
 $bp-large: 68.75em; // 1100px
+$bp-ultrawide: 100em; // 1600px - ultra wide
 
 .project-card {
-  margin: 2rem 0rem;
-
   mat-card-header {
     .project-header-image {
       background-image: url('/logo/logo.png');
@@ -32,6 +31,14 @@ $bp-large: 68.75em; // 1100px
   mat-card-content {
     .project-description {
       margin: 2rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      min-height: 4.5em;
+      max-height: 4.5em;
     }
 
     .line-clamp {
@@ -63,5 +70,31 @@ $bp-large: 68.75em; // 1100px
 @media only screen and (max-width: $bp-large) {
   .project-card {
     margin: 2rem;
+  }
+}
+
+@media only screen and (min-width: $bp-ultrawide) {
+  .project-card {
+    margin: 1rem 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; // Prevent any internal content from overflowing
+
+    // Ensure all content respects container width
+    img {
+      max-width: 100%;
+      width: 85%;
+    }
+
+    mat-card-content {
+      .project-description {
+        word-wrap: break-word; // Prevent long words from causing overflow
+        overflow-wrap: break-word;
+      }
+    }
+
+    mat-card-header {
+      overflow: hidden; // Prevent header content overflow
+    }
   }
 }

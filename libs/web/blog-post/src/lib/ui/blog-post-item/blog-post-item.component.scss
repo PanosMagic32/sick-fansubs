@@ -3,8 +3,6 @@ $bp-large: 68.75em; // 1100px
 $bp-ultrawide: 106.25em; // 1700px - ultra wide
 
 .post-card {
-  margin: 2rem 0rem;
-
   mat-card-header {
     .post-header-image {
       background-image: url('/logo/logo.png');

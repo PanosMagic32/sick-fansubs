@@ -5,7 +5,7 @@ import { MatListItem, MatNavList } from '@angular/material/list';
 import { MatToolbar } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
-import { WebConfigService } from '../data-access/web-config.service';
+import { WebConfigService } from '../../data-access/web-config.service';
 
 @Component({
   selector: 'sf-sidenav',

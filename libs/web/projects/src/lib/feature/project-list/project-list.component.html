@@ -11,15 +11,17 @@
   }
 </div>
 
-@if (projects() && totalProjects() > 0 && !isLoading()) {
-  @for (project of projects().projects; track project._id) {
-    <sf-project-item [project]="project" [index]="$index" [isAdmin]="isAdmin()" />
+<div class="projects-container">
+  @if (projects() && totalProjects() > 0 && !isLoading()) {
+    @for (project of projects().projects; track project._id) {
+      <sf-project-item [project]="project" [index]="$index" [isAdmin]="isAdmin()" />
+    }
+  } @else {
+    @if (!isLoading()) {
+      <sf-no-content />
+    }
   }
-} @else {
-  @if (!isLoading()) {
-    <sf-no-content />
-  }
-}
+</div>
 
 @if (projects() && totalProjects() > 0) {
   <mat-paginator

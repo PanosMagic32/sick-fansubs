@@ -20,6 +20,7 @@ const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
 @Component({
   selector: 'sf-project-list',
   templateUrl: './project-list.component.html',
+  styleUrl: './project-list.component.scss',
   imports: [NoContentComponent, ProjectItemComponent, MatProgressBar, MatIcon, MatPaginator, MatFabButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

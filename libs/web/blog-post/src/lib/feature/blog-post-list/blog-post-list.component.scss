@@ -1,4 +1,6 @@
-$bp-ultrawide: 106.25em; // 1700px - ultra wide
+$bp-tablet: 60em; // 960px
+$bp-ultrawide: 100em; // 1600px - ultra wide
+$bp-mega: 143.75em; // 2300px - mega screens
 
 .create-post-btn {
   display: flex;
@@ -8,15 +10,41 @@ $bp-ultrawide: 106.25em; // 1700px - ultra wide
 
 .posts-container {
   display: block;
+  padding: 0 1rem; // Mobile: 1rem margin
 
+  // Tablet: full width cards with 2rem margin
+  @media only screen and (min-width: $bp-tablet) {
+    padding: 0 2rem;
+  }
+
+  // Ultrawide: 2 columns with centered first post
   @media only screen and (min-width: $bp-ultrawide) {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
     align-items: start;
+    padding: 0;
 
     .first {
-      grid-column: 1 / -1; // First post spans full width
+      grid-column: 1 / -1;
+      width: 70%;
+      margin: 0 auto 1rem;
+      justify-self: center;
+    }
+  }
+
+  // Mega: 3 columns with centered first post at 80% width
+  @media only screen and (min-width: $bp-mega) {
+    grid-template-columns: 1fr 1fr 1fr;
+
+    .first {
+      width: 80%;
+    }
+  }
+
+  @media only screen and (min-width: $bp-ultrawide) {
+    .first {
+      width: 80%;
     }
   }
 }
@@ -26,7 +54,16 @@ $bp-ultrawide: 106.25em; // 1700px - ultra wide
   justify-content: center;
   margin: 2rem 0;
 
+  @media only screen and (min-width: $bp-tablet) {
+    margin: 2rem 2rem;
+  }
+
   @media only screen and (min-width: $bp-ultrawide) {
-    grid-column: 1 / -1; // Paginator spans full width
+    grid-column: 1 / -1;
+    margin: 2rem 0;
+  }
+
+  @media only screen and (min-width: $bp-mega) {
+    grid-column: 1 / -1;
   }
 }

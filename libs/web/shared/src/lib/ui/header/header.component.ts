@@ -6,9 +6,9 @@ import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatToolbar, MatToolbarRow } from '@angular/material/toolbar';
 
-import { MenuService } from '../data-access/menu.service';
-import { TokenService } from '../data-access/token.service';
-import { WebConfigService } from '../data-access/web-config.service';
+import { MenuService } from '../../data-access/menu.service';
+import { TokenService } from '../../data-access/token.service';
+import { WebConfigService } from '../../data-access/web-config.service';
 
 @Component({
   selector: 'sf-header',
