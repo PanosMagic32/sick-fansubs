@@ -14,8 +14,8 @@ import { ProjectsService } from '../../data-access/projects.service';
 import { ProjectItemComponent } from '../../ui/project-item/project-item.component';
 
 const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 5;
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 @Component({
   selector: 'sf-project-list',
