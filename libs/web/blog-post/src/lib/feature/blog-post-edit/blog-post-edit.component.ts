@@ -1,7 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, input, type OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal, effect } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { map } from 'rxjs';
 
 import { MatButton } from '@angular/material/button';
 import { MatCard, MatCardActions, MatCardContent, MatCardHeader } from '@angular/material/card';
@@ -20,11 +19,17 @@ import { BlogPostFormComponent } from '../../ui/blog-post-form/blog-post-form.co
   imports: [BlogPostFormComponent, MatCard, MatCardHeader, MatCardContent, MatCardActions, MatIcon, MatButton, MatDivider],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class BlogPostEditComponent implements OnInit {
+export default class BlogPostEditComponent {
   private readonly router = inject(Router);
   private readonly blogPostService = inject(BlogPostService);
 
   readonly id = input.required<string>();
+
+  private readonly updateRequest = signal<EditBlogPost | null>(null);
+
+  protected readonly blogPost = this.blogPostService.getBlogPostById(this.id);
+  protected readonly updateResource = this.blogPostService.updateBlogPost(this.id, this.updateRequest);
+  protected readonly deleteResource = signal<boolean>(false);
 
   protected readonly editForm = new FormGroup<PostFormModel>({
     title: new FormControl('', {
@@ -59,32 +64,45 @@ export default class BlogPostEditComponent implements OnInit {
     }),
   });
 
-  ngOnInit() {
-    if (this.id() !== '') {
-      this.blogPostService
-        .getBlogPostById(this.id())
-        .pipe(
-          map((blogPost) => ({
-            title: blogPost.title,
-            subtitle: blogPost.subtitle,
-            description: blogPost.description,
-            thumbnail: blogPost.thumbnail,
-            downloadLinkTorrent: blogPost.downloadLinkTorrent ?? '',
-            downloadLink: blogPost.downloadLink,
-            downloadLink4kTorrent: blogPost.downloadLink4kTorrent ?? '',
-            downloadLink4k: blogPost.downloadLink4k ?? '',
-          })),
-        )
-        .subscribe((blogPost: EditBlogPost) => this.editForm.setValue(blogPost));
-    }
+  constructor() {
+    effect(() => {
+      const post = this.blogPost.value();
+      if (post) {
+        this.editForm.patchValue({
+          title: post.title,
+          subtitle: post.subtitle,
+          description: post.description,
+          thumbnail: post.thumbnail,
+          downloadLinkTorrent: post.downloadLinkTorrent ?? '',
+          downloadLink: post.downloadLink,
+          downloadLink4kTorrent: post.downloadLink4kTorrent ?? '',
+          downloadLink4k: post.downloadLink4k ?? '',
+        });
+        this.editForm.markAsPristine();
+      }
+    });
+
+    effect(() => {
+      if (this.updateResource.value()) {
+        this.router.navigate(['../..'], { replaceUrl: true });
+      }
+    });
+
+    effect(() => {
+      if (this.deleteResource()) {
+        this.router.navigate(['../..'], { replaceUrl: true });
+      }
+    });
   }
 
   onSave() {
-    this.blogPostService.updateBlogPost(this.id(), this.editForm.value as EditBlogPost);
+    if (this.editForm.valid) {
+      this.updateRequest.set(this.editForm.getRawValue() as EditBlogPost);
+    }
   }
 
   onDelete() {
-    this.blogPostService.deleteBlogPost(this.id());
+    this.deleteResource.set(true);
   }
 
   onCancel() {

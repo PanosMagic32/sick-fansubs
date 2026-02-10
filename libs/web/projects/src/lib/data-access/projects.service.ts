@@ -1,9 +1,5 @@
-import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { catchError, tap } from 'rxjs';
-
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { httpResource, HttpResourceRef } from '@angular/common/http';
+import { inject, Injectable, Signal, WritableSignal } from '@angular/core';
 
 import { WebConfigService } from '@web/shared';
 
@@ -11,90 +7,50 @@ import type { Project, ProjectResponse } from './project.interface';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectsService {
-  private readonly httpClient = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
   private readonly webConfigService = inject(WebConfigService);
-  private readonly router = inject(Router);
 
-  private _isLoading = signal(false);
-  isLoading = this._isLoading.asReadonly();
+  createProject(project: WritableSignal<Project | null>): HttpResourceRef<Project | undefined> {
+    return httpResource<Project>(() => {
+      const body = project();
+      if (!body) return;
 
-  private _projects = signal<ProjectResponse>({ projects: [], count: 0 });
-  projects = this._projects.asReadonly();
-
-  private _selectedProject = signal<Project | null>(null);
-  selectedProject = this._selectedProject.asReadonly();
-
-  createProject(project: Project) {
-    this.httpClient.post(`${this.webConfigService.API_URL}/project`, project).subscribe({
-      next: () => {
-        this._isLoading.set(false);
-        this.router.navigate(['/', 'projects'], { replaceUrl: true });
-      },
-      error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
-        this._isLoading.set(false);
-      },
+      return {
+        url: `${this.webConfigService.API_URL}/project`,
+        method: 'POST',
+        body,
+      };
     });
   }
 
-  getProjects(projectsPerPage: number, currentPage: number) {
-    this._isLoading.set(true);
-
-    return this.httpClient
-      .get<ProjectResponse>(`${this.webConfigService.API_URL}/project?pagesize=${projectsPerPage}&page=${currentPage}`)
-      .pipe(
-        catchError((err) => {
-          this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
-          this._isLoading.set(false);
-          return [];
-        }),
-        tap((res) => {
-          this._projects.set({
-            projects: [...res.projects],
-            count: res.count,
-          });
-
-          this._isLoading.set(false);
-        }),
-      );
+  getProjects(projectsPerPage: Signal<number>, currentPage: Signal<number>): HttpResourceRef<ProjectResponse | undefined> {
+    return httpResource<ProjectResponse>(() => ({
+      url: `${this.webConfigService.API_URL}/project?pagesize=${projectsPerPage()}&page=${currentPage() - 1}`,
+    }));
   }
 
-  getProjectById(id: string) {
-    this.httpClient
-      .get<Project>(`${this.webConfigService.API_URL}/project/${id}`)
-      .subscribe((project) => this._selectedProject.set(project));
+  getProjectById(id: Signal<string>): HttpResourceRef<Project | undefined> {
+    return httpResource<Project>(() => ({
+      url: `${this.webConfigService.API_URL}/project/${id()}`,
+    }));
   }
 
-  updateProject(id: string, updateProject: Project) {
-    this._isLoading.set(true);
+  updateProject(id: Signal<string>, updateProject: WritableSignal<Project | null>): HttpResourceRef<Project | undefined> {
+    return httpResource<Project>(() => {
+      const body = updateProject();
+      if (!body) return;
 
-    this.httpClient.patch<Project>(`${this.webConfigService.API_URL}/project/${id}`, updateProject).subscribe({
-      next: () => {
-        this._isLoading.set(false);
-        this.router.navigate(['/', 'projects'], { replaceUrl: true });
-      },
-      error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
-        this._isLoading.set(false);
-      },
+      return {
+        url: `${this.webConfigService.API_URL}/project/${id()}`,
+        method: 'PATCH',
+        body,
+      };
     });
   }
 
-  deleteProject(id: string) {
-    this.httpClient.delete(`${this.webConfigService.API_URL}/project/${id}`).subscribe({
-      next: () => {
-        this._isLoading.set(false);
-        this.router.navigate(['/', 'projects'], { replaceUrl: true });
-      },
-      error: (err) => {
-        this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
-        this._isLoading.set(false);
-      },
-    });
-  }
-
-  private openSnackBar(message: string, action: string) {
-    this.snackBar.open(message, action, { duration: 3000 });
+  deleteProject(id: Signal<string>): HttpResourceRef<void | undefined> {
+    return httpResource<void>(() => ({
+      url: `${this.webConfigService.API_URL}/project/${id()}`,
+      method: 'DELETE',
+    }));
   }
 }

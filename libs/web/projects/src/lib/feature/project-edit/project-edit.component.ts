@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, type OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -28,14 +28,18 @@ import { ProjectItemFormComponent } from '../../ui/project-item-form/project-ite
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class ProjectEditComponent implements OnInit {
+export default class ProjectEditComponent {
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly projectsService = inject(ProjectsService);
 
   readonly id = input.required<string>();
 
-  protected readonly selectedProject = computed(() => this.projectsService.selectedProject());
+  private readonly updateRequest = signal<Project | null>(null);
+
+  protected readonly selectedProject = this.projectsService.getProjectById(this.id);
+  protected readonly updateResource = this.projectsService.updateProject(this.id, this.updateRequest);
+  protected readonly deleteResource = signal<boolean>(false);
 
   protected readonly editForm = new FormGroup<ProjectFormModel>({
     title: new FormControl('', {
@@ -68,30 +72,38 @@ export default class ProjectEditComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      this.editForm.get('title')?.setValue(this.selectedProject()?.title ?? '');
-      this.editForm.get('description')?.setValue(this.selectedProject()?.description ?? '');
-      this.editForm.get('thumbnail')?.setValue(this.selectedProject()?.thumbnail ?? '');
+      const project = this.selectedProject.value();
+      if (project) {
+        this.editForm.get('title')?.setValue(project.title ?? '');
+        this.editForm.get('description')?.setValue(project.description ?? '');
+        this.editForm.get('thumbnail')?.setValue(project.thumbnail ?? '');
 
-      this.batchDownloadLinksControls.clear();
+        this.batchDownloadLinksControls.clear();
 
-      this.selectedProject()?.batchDownloadLinks?.forEach((link) => {
-        this.batchDownloadLinksControls.push(new FormControl(link));
-      });
+        project.batchDownloadLinks?.forEach((link) => {
+          this.batchDownloadLinksControls.push(new FormControl(link));
+        });
+      }
+    });
+
+    effect(() => {
+      if (this.updateResource.value() || this.deleteResource()) {
+        this.router.navigate(['../..'], {
+          replaceUrl: true,
+          relativeTo: this.activatedRoute,
+        });
+      }
     });
   }
 
-  ngOnInit() {
-    if (this.id() !== '') {
-      this.projectsService.getProjectById(this.id());
+  onSave() {
+    if (this.editForm.valid) {
+      this.updateRequest.set(this.editForm.getRawValue() as Project);
     }
   }
 
-  onSave() {
-    this.projectsService.updateProject(this.id(), this.editForm.value as Project);
-  }
-
   onDelete() {
-    this.projectsService.deleteProject(this.id());
+    this.deleteResource.set(true);
   }
 
   onCancel() {

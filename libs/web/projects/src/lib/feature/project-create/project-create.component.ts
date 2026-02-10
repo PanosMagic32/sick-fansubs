@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { MatButton } from '@angular/material/button';
 import { MatCard, MatCardActions, MatCardContent, MatCardHeader } from '@angular/material/card';
@@ -7,7 +8,7 @@ import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 
 import type { ProjectFormModel } from '../../data-access/project-form.interface';
-import type { CreateProject } from '../../data-access/project.interface';
+import type { Project } from '../../data-access/project.interface';
 import { ProjectsService } from '../../data-access/projects.service';
 import { ProjectItemFormComponent } from '../../ui/project-item-form/project-item-form.component';
 
@@ -29,6 +30,11 @@ import { ProjectItemFormComponent } from '../../ui/project-item-form/project-ite
 })
 export default class ProjectCreateComponent {
   private readonly projectsService = inject(ProjectsService);
+  private readonly router = inject(Router);
+
+  private readonly project = signal<Project | null>(null);
+
+  protected readonly createProject = this.projectsService.createProject(this.project);
 
   protected readonly createForm = new FormGroup<ProjectFormModel>({
     title: new FormControl('', {
@@ -51,6 +57,14 @@ export default class ProjectCreateComponent {
     ]),
   });
 
+  constructor() {
+    effect(() => {
+      if (this.createProject.value()) {
+        this.router.navigate(['/', 'projects'], { replaceUrl: true });
+      }
+    });
+  }
+
   get formControl() {
     return this.createForm.controls;
   }
@@ -69,14 +83,14 @@ export default class ProjectCreateComponent {
 
   onSubmit() {
     if (this.createForm.valid) {
-      const project: CreateProject = {
+      const projectData: Project = {
         title: this.createForm.value.title ?? '',
         description: this.createForm.value.description ?? '',
         thumbnail: this.createForm.value.thumbnail ?? '',
         dateTimeCreated: new Date(),
-      };
+      } as Project;
 
-      this.projectsService.createProject(project);
+      this.project.set(projectData);
     }
   }
 }

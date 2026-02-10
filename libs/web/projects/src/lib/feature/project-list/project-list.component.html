@@ -1,4 +1,4 @@
-@if (isLoading()) {
+@if (projects.isLoading()) {
   <mat-progress-bar mode="indeterminate" />
 }
 
@@ -12,21 +12,21 @@
 </div>
 
 <div class="projects-container">
-  @if (projects() && totalProjects() > 0 && !isLoading()) {
-    @for (project of projects().projects; track project._id) {
+  @if (projects.value() && totalProjects() > 0 && !projects.isLoading()) {
+    @for (project of projects.value()!.projects; track project._id) {
       <sf-project-item [project]="project" [index]="$index" [isAdmin]="isAdmin()" />
     }
   } @else {
-    @if (!isLoading()) {
+    @if (!projects.isLoading()) {
       <sf-no-content />
     }
   }
 </div>
 
-@if (projects() && totalProjects() > 0) {
+@if (projects.value() && totalProjects() > 0) {
   <mat-paginator
     [pageIndex]="currentPage() - 1"
-    [length]="projects().count"
+    [length]="projects.value()!.count"
     [pageSize]="pageSize()"
     [pageSizeOptions]="pageSizeOptions()"
     (page)="onPageChange($event)"

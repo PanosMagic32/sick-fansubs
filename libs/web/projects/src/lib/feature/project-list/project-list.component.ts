@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { map, tap, switchMap } from 'rxjs';
+import { map, tap } from 'rxjs';
 
 import { MatFabButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
@@ -35,24 +35,22 @@ export class ProjectListComponent {
   protected readonly pageSizeOptions = signal(PAGE_SIZE_OPTIONS);
 
   protected readonly isAdmin = this.tokenService.isAdmin;
-  protected readonly isLoading = this.projectsService.isLoading;
-  protected readonly projects = this.projectsService.projects;
 
-  protected readonly totalProjects = computed(() => this.projects().count);
+  protected readonly projects = this.projectsService.getProjects(this.pageSize, this.currentPage);
+  protected readonly totalProjects = computed(() => this.projects.value()?.count ?? 0);
 
   constructor() {
     this.activatedRoute.queryParamMap
       .pipe(
         takeUntilDestroyed(),
         map((params) => ({
-          page: +(params.get('page') ?? this.currentPage()),
-          pageSize: +(params.get('pageSize') ?? this.pageSize()),
+          page: +(params.get('page') ?? DEFAULT_PAGE),
+          pageSize: +(params.get('pageSize') ?? DEFAULT_PAGE_SIZE),
         })),
         tap(({ page, pageSize }) => {
           this.currentPage.set(page);
           this.pageSize.set(pageSize);
         }),
-        switchMap(({ page, pageSize }) => this.projectsService.getProjects(pageSize, page - 1)),
       )
       .subscribe();
   }

@@ -1,5 +1,5 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, type OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 
 import { MatButton } from '@angular/material/button';
 import { MatCard, MatCardAvatar, MatCardContent, MatCardHeader, MatCardImage, MatCardTitle } from '@angular/material/card';
@@ -25,19 +25,13 @@ import { ProjectsService } from '../../data-access/projects.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class ProjectDetailsComponent implements OnInit {
+export default class ProjectDetailsComponent {
   private readonly location = inject(Location);
   private readonly projectService = inject(ProjectsService);
 
   readonly id = input.required<string>();
 
-  project = this.projectService.selectedProject;
-
-  ngOnInit() {
-    if (!this.id()) this.onBackToProjects();
-
-    this.projectService.getProjectById(this.id());
-  }
+  project = this.projectService.getProjectById(this.id);
 
   onDownload(link: string) {
     window.open(link, '_system');
