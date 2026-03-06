@@ -7,8 +7,10 @@
   },
   "generators": {
     "@nx/angular:application": {
+      "e2eTestRunner": "none",
       "linter": "eslint",
-      "style": "scss"
+      "style": "scss",
+      "unitTestRunner": "vitest-angular"
     },
     "@nx/angular:library": {
       "linter": "eslint",
@@ -89,6 +91,15 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "@angular/build:application": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "@angular/build:unit-test": {
+      "cache": true,
+      "inputs": ["default", "^production"]
     }
   },
   "namedInputs": {

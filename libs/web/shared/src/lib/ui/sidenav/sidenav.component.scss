@@ -1,4 +1,5 @@
 mat-toolbar.sidenav-toolbar {
+  background-color: var(--primary-color);
   border-radius: 0;
   box-shadow:
     0 3px 5px -1px #0003,
@@ -21,7 +22,6 @@ mat-toolbar.sidenav-toolbar {
 mat-nav-list {
   mat-list-item {
     text-decoration: none;
-    border-left: 0.5rem solid var(--background-dark-color);
     padding: 1.2rem;
     margin-bottom: 10px;
 
@@ -32,7 +32,6 @@ mat-nav-list {
 
   mat-list-item:hover,
   mat-list-item:active {
-    border-left: 0.5rem solid var(--primary-color);
     margin-right: 1.5rem;
     background-color: var(--background-primary-color-active-light) !important;
     cursor: pointer;
@@ -45,7 +44,6 @@ mat-nav-list {
 }
 
 .active-sidenav {
-  border-left: 0.5rem solid var(--primary-color) !important;
   margin-right: 1.5rem;
   background-color: var(--background-primary-color-active-light) !important;
   cursor: pointer;
