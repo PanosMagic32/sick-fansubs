@@ -1,5 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
+
+import { AdminGuard, JwtAuthGuard } from '@api/user';
 
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -12,6 +14,7 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async create(@Body() createProjectDto: CreateProjectDto) {
     return this.projectService.create(createProjectDto);
   }
@@ -31,12 +34,14 @@ export class ProjectController {
 
   @ApiParam({ name: 'id' })
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
     return this.projectService.update(id, updateProjectDto);
   }
 
   @ApiParam({ name: 'id' })
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async remove(@Param('id') id: string) {
     return this.projectService.remove(id);
   }
