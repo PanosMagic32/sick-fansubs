@@ -55,6 +55,12 @@ This monorepo is a **Greek fansub group's website** — Angular 21 frontend + Ne
 | about     | `@web/about`     | About page + API health check                                 | [libs/web/about/AGENTS.md](libs/web/about/AGENTS.md)         |
 | account   | `@web/account`   | Authenticated user profile management                         | [libs/web/account/AGENTS.md](libs/web/account/AGENTS.md)     |
 
+### Shared Contracts
+
+| Lib   | Path alias      | Domain                                                                        |
+| ----- | --------------- | ----------------------------------------------------------------------------- |
+| types | `@shared/types` | Shared TS contracts (`BlogPost`, `Project`, `Searchable`, `SearchTypeOption`) |
+
 ### Key Patterns
 
 - **API**: Controller → Service → Mongoose Schema. All routes under `/api`. Write endpoints for `blog-post` and `project` are guarded by `JwtAuthGuard` + `AdminGuard`.

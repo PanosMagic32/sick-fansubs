@@ -1,22 +1,12 @@
 import { FormControl } from '@angular/forms';
 
-export type SearchTypeOption = 'all' | 'blog-post' | 'project';
+import type { SearchTypeOption, Searchable } from '@shared/types';
+
+export type { SearchTypeOption, Searchable } from '@shared/types';
 
 export interface SearchFormModel {
   searchTerm: FormControl<string>;
   type: FormControl<SearchTypeOption>;
-}
-
-export interface Searchable {
-  _id: string;
-  title: string;
-  subtitle?: string;
-  description: string;
-  thumbnail: string;
-  dateTimeCreated: Date;
-  type: SearchTypeOption;
-  downloadLink: string;
-  downloadLink4k: string;
 }
 
 export interface SearchResponse {

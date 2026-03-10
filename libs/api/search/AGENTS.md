@@ -72,5 +72,5 @@ pnpm nx test api-search
 ## Notes
 
 - Pagination is performed **in-memory** after merging both entity arrays — may be inefficient for large datasets. Consider MongoDB `$facet` aggregation for a future improvement.
-- `Searchable` interface is duplicated on the frontend (`@web/search`) — no shared contract library exists yet.
+- `Searchable` is shared via `@shared/types`, reducing frontend/backend contract drift.
 - Date filtering (`dateFrom`, `dateTo`) is declared in the DTO but the service-level filter application (`filters.dateFrom`, `filters.dateTo`) should be verified for completeness.

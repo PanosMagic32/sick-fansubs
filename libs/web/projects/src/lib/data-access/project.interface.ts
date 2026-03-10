@@ -1,29 +1,6 @@
-import type { User } from '@api/user';
+import type { Project } from '@shared/types';
 
-export interface Project {
-  _id?: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  dateTimeCreated: Date;
-  creator?: User;
-  batchDownloadLinks?: string[];
-}
-
-export interface CreateProject {
-  title: string;
-  description: string;
-  thumbnail: string;
-  dateTimeCreated: Date;
-  batchDownloadLinks?: string[];
-}
-
-export interface EditProject {
-  title: string;
-  description: string;
-  thumbnail: string;
-  batchDownloadLinks?: string[];
-}
+export type { CreateProject, EditProject, Project } from '@shared/types';
 
 export interface ProjectResponse {
   projects: Project[];

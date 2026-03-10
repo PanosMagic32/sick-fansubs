@@ -37,14 +37,12 @@ Imperative HTTP service using RxJS pipeline (not `httpResource`):
 
 #### `search-form.interface.ts`
 
-| Type               | Description                                                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SearchTypeOption` | `'all' \| 'blog-post' \| 'project'`                                                                                                         |
-| `SearchFormModel`  | Typed form: `searchTerm`, `type`                                                                                                            |
-| `Searchable`       | Common result shape: `_id`, `title`, `subtitle?`, `description`, `thumbnail`, `dateTimeCreated`, `downloadLink?`, `downloadLink4k?`, `type` |
-| `SearchResponse`   | `{ results: Searchable[]; total: number }`                                                                                                  |
-
-> Note: `Searchable` is duplicated from `@api/search` — no shared contract library exists yet.
+| Type               | Description                                                                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SearchTypeOption` | Re-exported from `@shared/types`                                                                                                                                              |
+| `SearchFormModel`  | Typed form: `searchTerm`, `type`                                                                                                                                              |
+| `Searchable`       | Re-exported from `@shared/types`; common result shape: `_id`, `title`, `subtitle?`, `description`, `thumbnail`, `dateTimeCreated`, `downloadLink?`, `downloadLink4k?`, `type` |
+| `SearchResponse`   | `{ results: Searchable[]; total: number }`                                                                                                                                    |
 
 ### `src/lib/feature/`
 
@@ -82,5 +80,5 @@ pnpm nx test web-search
 ## Notes
 
 - `SearchService` uses RxJS (not `httpResource`) unlike other web services — candidate for refactoring for consistency
-- "More" navigation in `WebSearchResultItemComponent` always routes to `/projects/:id` — this is incorrect for blog-post results (should route to `/:id`)
-- `Searchable` type is defined locally rather than shared with the API lib — a `@shared/types` lib would fix this
+- The "More" navigation is intentionally shown only for project-type results and routes to `/projects/:id`
+- Shared contracts now come from `@shared/types` to avoid drift with API-side search result types

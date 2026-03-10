@@ -25,7 +25,9 @@
       "@web/blog-post": ["libs/web/blog-post/src/index.ts"],
       "@web/projects": ["libs/web/projects/src/index.ts"],
       "@web/search": ["libs/web/search/src/index.ts"],
-      "@web/shared": ["libs/web/shared/src/index.ts"]
+      "@web/shared": ["libs/web/shared/src/index.ts"],
+      "@web/account": ["libs/web/account/src/index.ts"],
+      "@shared/types": ["libs/shared/types/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
