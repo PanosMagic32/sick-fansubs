@@ -21,17 +21,39 @@ export class ApiSearchService {
     baseQuery: Record<string, any>,
     sort: any,
     modelType: string,
-  ): Promise<{ results: any[]; total: number }> {
-    const query = model.find(baseQuery);
-    if (sort) {
-      query.sort(sort);
-    }
+    skip: number,
+    limit: number,
+  ): Promise<{ results: any[]; count: number }> {
+    const sortStage = sort ? { $sort: sort } : { $sort: { dateTimeCreated: -1 } };
 
-    const [results, count] = await Promise.all([query.lean().exec(), model.countDocuments(baseQuery)]);
+    const pipeline: any[] = [
+      { $match: baseQuery },
+      sortStage,
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          description: 1,
+          subtitle: 1,
+          thumbnail: 1,
+          dateTimeCreated: 1,
+          downloadLink: 1,
+          downloadLink4k: 1,
+          type: { $literal: modelType },
+        },
+      },
+    ];
+
+    const results = await model.aggregate(pipeline).exec();
+
+    // For total count, query without pagination
+    const totalCount = await model.countDocuments(baseQuery);
 
     return {
-      results: results.map((result) => ({ ...result, type: modelType })),
-      total: count,
+      results: results as any[],
+      count: totalCount,
     };
   }
 
@@ -43,6 +65,9 @@ export class ApiSearchService {
       page: Number(pagination?.page || 0),
       pageSize: Number(pagination?.pageSize || DEFAULT_PAGE_SIZE),
     };
+
+    const skip = normalizedPagination.page * normalizedPagination.pageSize;
+    const limit = normalizedPagination.pageSize;
 
     const baseQuery: Record<string, any> = {
       ...(searchTerm && {
@@ -63,14 +88,14 @@ export class ApiSearchService {
     };
 
     // Execute searches based on type
-    const searches: Promise<{ results: any[]; total: number }>[] = [];
+    const searches: Promise<{ results: any[]; count: number }>[] = [];
 
     if (type === 'all' || type === 'blog-post') {
-      searches.push(this.searchModel(this.blogPostModel, baseQuery, sorting, 'blog-post'));
+      searches.push(this.searchModel(this.blogPostModel, baseQuery, sorting, 'blog-post', skip, limit));
     }
 
     if (type === 'all' || type === 'project') {
-      searches.push(this.searchModel(this.projectModel, baseQuery, sorting, 'project'));
+      searches.push(this.searchModel(this.projectModel, baseQuery, sorting, 'project', skip, limit));
     }
 
     const searchResults = await Promise.all(searches);
@@ -79,27 +104,31 @@ export class ApiSearchService {
     const combinedResults = searchResults.reduce(
       (acc, curr) => ({
         results: [...acc.results, ...curr.results],
-        total: acc.total + curr.total,
+        total: acc.total + curr.count,
       }),
       { results: [], total: 0 },
     );
 
-    // Apply sorting to combined results if needed
-    if (sorting) {
+    // For 'all' type, re-sort combined results to account for cross-collection sorting
+    if (type === 'all' && sorting) {
       const [sortField, sortOrder] = Object.entries(sorting)[0];
       combinedResults.results.sort((a, b) => {
-        if (sortOrder === 'asc') {
-          return a[sortField] > b[sortField] ? 1 : -1;
+        const aVal = a[sortField];
+        const bVal = b[sortField];
+        if (aVal === bVal) return 0;
+        if (sortOrder === -1) {
+          return aVal < bVal ? 1 : -1;
         } else {
-          return a[sortField] < b[sortField] ? 1 : -1;
+          return aVal > bVal ? 1 : -1;
         }
       });
     }
 
-    // Apply pagination to combined results using normalized pagination values
-    const start = normalizedPagination.page * normalizedPagination.pageSize;
-    const end = start + normalizedPagination.pageSize;
-    combinedResults.results = combinedResults.results.slice(start, end);
+    // For 'all' type, we may have more results than needed due to fetching from both collections
+    // Slice to ensure we return exactly pageSize results if available
+    if (type === 'all' && combinedResults.results.length > limit) {
+      combinedResults.results = combinedResults.results.slice(0, limit);
+    }
 
     return combinedResults;
   }
