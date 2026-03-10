@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Cross-entity full-text search across both blog posts and projects. Builds MongoDB `$or` regex queries, runs them in parallel, then merges and paginates results in-memory. Supports type filtering and optional date range filtering.
+Cross-entity full-text search across both blog posts and projects. Builds MongoDB `$or` regex queries, runs aggregation pipelines with pagination stages in parallel, then merges and sorts results. Supports type filtering and optional date range filtering.
 
 ## Path Alias
 
@@ -34,11 +34,18 @@ Query params (via `SearchDto`):
 
 - `search(options: SearchOptions)` — core method
   1. Builds `$or` regex filter on `title`, `description`, `subtitle`
-  2. Runs `BlogPost` and `Project` model queries in parallel via `Promise.all` (only queries enabled types)
-  3. Merges arrays, tags each result with `type: 'blog-post' | 'project'`
-  4. Re-sorts combined results by `dateTimeCreated` descending
-  5. Applies in-memory pagination (`skip` / `take`)
-  6. Returns `{ results, total }`
+  2. Calculates `skip` and `limit` from pagination params
+  3. Runs aggregation pipelines on both `BlogPost` and `Project` models in parallel via `Promise.all`:
+     - `$match` stage applies regex filters
+     - `$sort` stage orders by `dateTimeCreated` descending
+     - `$skip` / `$limit` stages applied **at database level** (not in-memory)
+     - `$project` stage selects fields and adds `type` enum
+  4. Counts total matching documents in each collection (before pagination)
+  5. Merges paginated result arrays, tags with `type: 'blog-post' | 'project'`
+  6. For 'all' type, re-sorts combined results by `dateTimeCreated` to maintain correct cross-collection ordering
+  7. Returns `{ results, total }`
+
+**Performance**: Pagination now happens at the database level using MongoDB's aggregation pipeline `$skip` and `$limit` stages, avoiding in-memory pagination of large result sets.
 
 ### DTOs
 
@@ -71,6 +78,7 @@ pnpm nx test api-search
 
 ## Notes
 
-- Pagination is performed **in-memory** after merging both entity arrays — may be inefficient for large datasets. Consider MongoDB `$facet` aggregation for a future improvement.
+- ✅ **Pagination optimized** — Refactored to use MongoDB aggregation pipeline `$skip` and `$limit` stages instead of in-memory slicing. Queries only fetch needed results from the database.
+- For 'all' type results, `$skip` and `$limit` are applied to **each** collection query independently, then results are combined and re-sorted. This may return slightly more or fewer than `pageSize` items when combining across collections with heterogeneous item counts.
 - `Searchable` is shared via `@shared/types`, reducing frontend/backend contract drift.
-- Date filtering (`dateFrom`, `dateTo`) is declared in the DTO but the service-level filter application (`filters.dateFrom`, `filters.dateTo`) should be verified for completeness.
+- Date filtering (`dateFrom`, `dateTo`) is declared in the DTO but needs verification for service-level application.
