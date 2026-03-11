@@ -62,6 +62,7 @@ Imports `User` type from `@api/user`.
 - Paginated list; syncs `page` and `pageSize` to query params
 - Shows FAB for creating (visible only to admins)
 - Uses `ProjectItemComponent` for each card
+- Grid layout: `repeat(auto-fill, minmax(340px, 1fr))` — fills available width automatically
 
 #### `project-create/project-create.component.ts` (lazy)
 

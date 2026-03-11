@@ -53,7 +53,10 @@ Set once on app init via `provideAppInitializer` in `app.config.ts`.
 
 CDK `BreakpointObserver` wrappers (not exported publicly):
 
-- `isHandset$`, `isSmall$`, `isMedium$` — observables for responsive layout
+- `isHandset$` — `true` at ≤1050px (hamburger shown, nav hidden)
+- `isSmall$` — alias of `isHandset$`
+- `isMedium$` — `true` at 1051px–1530px (icons-only nav)
+- At >1530px all three are `false` → full text nav + social icons
 - Consumed internally by `HeaderComponent`
 
 ### `src/lib/ui/`
@@ -67,7 +70,7 @@ Material toolbar. Features:
 - Social link buttons (from `WebConfigService`)
 - Logout button (calls `TokenService.removeToken()`)
 - Emits `sidenavToggle` output for sidenav open/close
-- Responsive via `MenuService` breakpoints
+- Responsive via `MenuService` breakpoints: >1530px full text nav, 1051–1530px icons-only, ≤1050px hamburger
 
 #### `sidenav/sidenav.component.ts` — `SidenavComponent` (`sf-sidenav`)
 
