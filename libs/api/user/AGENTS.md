@@ -21,13 +21,17 @@ User account management for the NestJS API. Handles registration, lookup, update
 
 ### Controller (`src/lib/user.controller.ts`)
 
-| Method   | Route           | Auth           | Access                |
-| -------- | --------------- | -------------- | --------------------- |
-| `POST`   | `/api/user`     | None           | Public (registration) |
-| `GET`    | `/api/user`     | `JwtAuthGuard` | Admin only            |
-| `GET`    | `/api/user/:id` | `JwtAuthGuard` | Self or admin         |
-| `PATCH`  | `/api/user/:id` | `JwtAuthGuard` | Self or admin         |
-| `DELETE` | `/api/user/:id` | `JwtAuthGuard` | Self or admin         |
+| Method   | Route                             | Auth           | Access                |
+| -------- | --------------------------------- | -------------- | --------------------- |
+| `POST`   | `/api/user`                       | None           | Public (registration) |
+| `GET`    | `/api/user`                       | `JwtAuthGuard` | Admin only            |
+| `GET`    | `/api/user/:id`                   | `JwtAuthGuard` | Self or admin         |
+| `GET`    | `/api/user/:id/favorites`         | `JwtAuthGuard` | Self or admin         |
+| `GET`    | `/api/user/:id/favorites/posts`   | `JwtAuthGuard` | Self or admin         |
+| `PUT`    | `/api/user/:id/favorites/:postId` | `JwtAuthGuard` | Self or admin         |
+| `DELETE` | `/api/user/:id/favorites/:postId` | `JwtAuthGuard` | Self or admin         |
+| `PATCH`  | `/api/user/:id`                   | `JwtAuthGuard` | Self or admin         |
+| `DELETE` | `/api/user/:id`                   | `JwtAuthGuard` | Self or admin         |
 
 Actor is extracted from `req.user` (set by Passport JWT strategy).
 
@@ -38,6 +42,10 @@ Actor is extracted from `req.user` (set by Passport JWT strategy).
 - `findOne(id, requesterId)` — self or admin check
 - `update(id, dto, requesterId)` — hashes new password if provided
 - `remove(id, requesterId)` — self or admin
+- `getFavoriteBlogPostIds(id, actor)` — returns favorite blog post ids
+- `getFavoriteBlogPosts(id, actor)` — returns populated favorite blog post documents
+- `addFavoriteBlogPost(id, postId, actor)` — idempotent add via `$addToSet`
+- `removeFavoriteBlogPost(id, postId, actor)` — idempotent remove via `$pull`
 - `toPublicUser(user)` — strips `password` from response
 - RBAC helpers: `assertAdmin()`, `assertCanAccessUser()`, `assertValidId()`
 
@@ -51,6 +59,7 @@ MongoDB collection: (default Mongoose collection name)
 | `email` | String | Unique |
 | `avatar` | String | Optional |
 | `isAdmin` | Boolean | Default `false` |
+| `favoriteBlogPostIds` | ObjectId[] (`BlogPost`) | Default `[]` |
 
 `timestamps: true` — `createdAt` / `updatedAt` added automatically.
 `toJSON` transform removes `password` from all serialized output.
@@ -78,3 +87,4 @@ pnpm nx test api-user
 
 - `JwtAuthGuard` and `AdminGuard` are exported from this lib and used by other API controllers (`blog-post`, `project`)
 - Password validation rules (8–128 chars) are defined in DTOs — ensure they stay in sync with the frontend `SignupFormComponent`
+- Favorites access is enforced by `assertCanAccessUser` (self or admin)

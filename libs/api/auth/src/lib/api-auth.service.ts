@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
-import { LoginUserDto, User, UserService } from '@api/user';
+import { LoginUserDto, UserService } from '@api/user';
 
 @Injectable()
 export class ApiAuthService {
@@ -11,7 +11,7 @@ export class ApiAuthService {
     private readonly userService: UserService,
   ) {}
 
-  async generateJwt(payload: { username: string; email: string; isAdmin: boolean }): Promise<string> {
+  async generateJwt(payload: { sub: string; username: string; email: string; isAdmin: boolean }): Promise<string> {
     return this.jwtService.signAsync(payload);
   }
 
@@ -19,16 +19,23 @@ export class ApiAuthService {
     return bcrypt.compare(password, storedPasswordHash);
   }
 
-  verifyJwt(jwt: string): Promise<any> {
+  verifyJwt(jwt: string): Promise<{ sub: string; username: string; email: string; isAdmin: boolean }> {
     return this.jwtService.verifyAsync(jwt);
   }
 
-  async validateUser(username: string, pass: string): Promise<Omit<User, 'password'>> {
+  async validateUser(
+    username: string,
+    pass: string,
+  ): Promise<{ sub: string; username: string; email: string; isAdmin: boolean }> {
     const user = await this.userService.findOneByUsername(username);
 
     if (user && (await this.comparePasswords(pass, user.password))) {
-      const { password, ...result } = user;
-      return result;
+      return {
+        sub: user._id.toString(),
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+      };
     }
 
     if (!user) throw new NotFoundException('User not found.');

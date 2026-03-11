@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 // import { BlogPost } from '@api/blog-post';
 
 export type UserDocument = User & Document;
 
-@Schema()
+@Schema({ timestamps: true })
 export class User {
   @Prop({ required: true, unique: true })
   username!: string;
@@ -22,8 +22,18 @@ export class User {
   @Prop({ default: false })
   isAdmin!: boolean;
 
+  @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
+  favoriteBlogPostIds!: Types.ObjectId[];
+
   // @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BlogPost' })
   // blogPosts: BlogPost[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.set('toJSON', {
+  transform: (_doc, ret) => {
+    delete (ret as unknown as Record<string, unknown>)['password'];
+    return ret;
+  },
+});

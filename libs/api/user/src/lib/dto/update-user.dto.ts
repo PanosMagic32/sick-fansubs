@@ -1,20 +1,23 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
-import { CreateUserDto } from './create-user.dto';
-
-export class UpdateUserDto extends PartialType(CreateUserDto) {
-  @ApiProperty({ type: String, required: true })
-  @IsNotEmpty()
-  override readonly username!: string;
-
-  @ApiProperty({ type: String, required: true })
+export class UpdateUserDto {
+  @ApiProperty({ type: String, required: false })
+  @IsOptional()
   @IsEmail()
-  override readonly email!: string;
+  @MaxLength(254)
+  readonly email?: string;
 
-  @ApiProperty({ type: String })
-  override readonly avatar!: string;
+  @ApiProperty({ type: String, required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  readonly avatar?: string;
 
-  @ApiProperty({ type: Boolean, default: false })
-  override readonly isAdmin!: boolean;
+  @ApiProperty({ type: String, required: false, minLength: 8, maxLength: 128 })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  readonly password?: string;
 }
