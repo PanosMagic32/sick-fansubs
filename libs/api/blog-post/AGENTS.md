@@ -62,6 +62,9 @@ MongoDB collection: `blogposts`
 | `update-blog-post.dto.ts` | `PartialType(CreateBlogPostDto)` — all optional                            |
 | `search-blog-post.dto.ts` | `searchTerm?`, `pageSize?` (min 1, default 10), `page?` (min 0, default 0) |
 
+`create-blog-post.dto.ts` uses `class-validator` decorators (`@IsString`, `@MinLength`, `@IsDateString`, etc.).
+This is required because the API uses global `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
+
 ## Dependencies
 
 - `@api/user` — `User` schema (for `creator` ref)
@@ -78,3 +81,4 @@ pnpm nx test api-blog-post
 
 - Pagination uses `pagesize` (lowercase) query param — keep in sync with frontend `BlogPostService`
 - `dateTimeCreated` is stored as a string (not a `Date`) — used for display sorting
+- Do not rely on Swagger decorators for validation; only `class-validator` metadata is used by Nest validation pipe

@@ -56,6 +56,9 @@ MongoDB collection: `projects`
 | `create-project.dto.ts` | `title`, `description`, `thumbnail`, `batchDownloadLinks: string[]`, `dateTimeCreated` |
 | `update-project.dto.ts` | `PartialType(CreateProjectDto)` — all optional                                         |
 
+`create-project.dto.ts` uses `class-validator` metadata (`@IsString`, `@MinLength`, `@IsArray`, `@IsDateString`, etc.).
+This is required because the API uses global `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
+
 ## Dependencies
 
 - `@api/user` — `User` schema (for `creator` ref)
@@ -72,3 +75,4 @@ pnpm nx test api-project
 
 - `batchDownloadLinks` is a flat string array — no structured metadata per link
 - Mirrors the structure of `@api/blog-post` but with `batchDownloadLinks` instead of individual link fields
+- Do not rely on Swagger decorators for validation; only `class-validator` metadata is used by Nest validation pipe
