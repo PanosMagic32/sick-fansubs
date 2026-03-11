@@ -35,6 +35,9 @@ Angular `httpResource`-based service (signals-driven):
 - `createBlogPost(post: Signal<CreateBlogPost | null>)` → fires only when signal is non-null
 - `updateBlogPost(id, data: Signal<EditBlogPost | null>)` → fires only when signal is non-null
 - `deleteBlogPost(id: Signal<string | null>)` → fires only when signal is non-null
+- `getFavoriteBlogPostIds(userId)` → `GET /api/user/:id/favorites`
+- `addFavoriteBlogPost(userId, postId)` → `PUT /api/user/:id/favorites/:postId`
+- `removeFavoriteBlogPost(userId, postId)` → `DELETE /api/user/:id/favorites/:postId`
 
 #### `blog-post.interface.ts`
 
@@ -59,6 +62,7 @@ Imports `User` type from `@api/user`.
 
 - Paginated list; syncs `page` and `pageSize` to query params via `ActivatedRoute`
 - Shows FAB for creating (visible only to admins via `TokenService.isAdmin`)
+- Syncs authenticated user's favorites and handles add/remove favorite actions with optimistic-ish signal updates
 - Uses `BlogPostItemComponent` for each post card
 - `MatPaginator` for navigation
 
@@ -76,10 +80,10 @@ Imports `User` type from `@api/user`.
 
 ### `src/lib/ui/`
 
-| Component                     | Selector            | Description                                                                                                                   |
-| ----------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `blog-post-form.component.ts` | `sf-blog-post-form` | Dumb/presentational — renders field set. Receives `form: FormGroup<PostFormModel>` as input.                                  |
-| `blog-post-item.component.ts` | `sf-blog-post-item` | Card: thumbnail, title, subtitle, date, download buttons. Edit mini-FAB for admins. Priority image loading for first 2 items. |
+| Component                     | Selector            | Description                                                                                                                    |
+| ----------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `blog-post-form.component.ts` | `sf-blog-post-form` | Dumb/presentational — renders field set. Receives `form: FormGroup<PostFormModel>` as input.                                   |
+| `blog-post-item.component.ts` | `sf-blog-post-item` | Card: thumbnail, title, subtitle, date, download buttons, favorite toggle (for authenticated users), edit mini-FAB for admins. |
 
 ## Dependencies
 

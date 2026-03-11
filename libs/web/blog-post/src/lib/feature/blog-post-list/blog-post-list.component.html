@@ -23,7 +23,11 @@
         [blogPost]="post"
         [index]="$index"
         [isAdmin]="isAdmin()"
+        [isAuthenticated]="isAuthenticated()"
+        [isFavorite]="isFavorite(post._id)"
+        [isFavoriteActionPending]="favoriteActionPendingPostId() === post._id"
         [currentPage]="currentPage()"
+        (favoriteToggle)="onToggleFavorite($event)"
       />
     }
   </div>

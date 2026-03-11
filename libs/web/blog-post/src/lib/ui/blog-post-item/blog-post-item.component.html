@@ -13,6 +13,20 @@
         <mat-chip>Νέο</mat-chip>
       }
 
+      @if (isAuthenticated()) {
+        <button
+          mat-icon-button
+          type="button"
+          class="favorite-button"
+          [class.is-favorite]="isFavorite()"
+          [disabled]="isFavoriteActionPending()"
+          [attr.aria-label]="isFavorite() ? 'Αφαίρεση από τα αγαπημένα' : 'Προσθήκη στα αγαπημένα'"
+          (click)="onFavoriteToggle()"
+        >
+          <mat-icon>{{ isFavorite() ? 'favorite' : 'favorite_border' }}</mat-icon>
+        </button>
+      }
+
       @if (isAdmin()) {
         <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
           <mat-icon>edit</mat-icon>

@@ -1,8 +1,8 @@
 import { DatePipe, NgOptimizedImage } from '@angular/common';
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { MatMiniFabButton, MatButton } from '@angular/material/button';
+import { MatMiniFabButton, MatButton, MatIconButton } from '@angular/material/button';
 import {
   MatCard,
   MatCardActions,
@@ -38,6 +38,7 @@ import type { BlogPost } from '../../data-access/blog-post.interface';
     MatIcon,
     MatDivider,
     MatMiniFabButton,
+    MatIconButton,
     MatChip,
     MatMenuModule,
     MatButton,
@@ -50,6 +51,11 @@ export class BlogPostItemComponent {
   readonly index = input.required<number>();
   readonly currentPage = input.required<number>();
   readonly isAdmin = input.required<boolean>();
+  readonly isAuthenticated = input.required<boolean>();
+  readonly isFavorite = input.required<boolean>();
+  readonly isFavoriteActionPending = input.required<boolean>();
+
+  readonly favoriteToggle = output<string | undefined>();
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);
 
@@ -65,5 +71,9 @@ export class BlogPostItemComponent {
 
   onEdit() {
     this.router.navigate([this.blogPost()._id, 'edit'], { replaceUrl: true });
+  }
+
+  onFavoriteToggle() {
+    this.favoriteToggle.emit(this.blogPost()._id);
   }
 }

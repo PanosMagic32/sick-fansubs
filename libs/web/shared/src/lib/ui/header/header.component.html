@@ -39,6 +39,11 @@
             <a class="mat-focus-indicator docs-button mat-button mat-button-base">Η ομάδα</a>
           </li>
 
+          <li [routerLink]="['/account']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>account_circle</mat-icon>
+            <a class="mat-focus-indicator docs-button mat-button mat-button-base">Λογαριασμός</a>
+          </li>
+
           <li [routerLink]="['/search']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
             <mat-icon>search</mat-icon>
             <a class="mat-focus-indicator docs-button mat-button mat-button-base">Αναζήτηση</a>
@@ -60,6 +65,10 @@
 
           <li [routerLink]="['/about']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
             <mat-icon>info</mat-icon>
+          </li>
+
+          <li [routerLink]="['/account']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon>account_circle</mat-icon>
           </li>
 
           <li [routerLink]="['/search']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">

@@ -22,6 +22,10 @@ export const appRoutes: Routes = [
     loadChildren: () => import('@web/search').then((r) => r.searchRoutes),
   },
   {
+    path: 'account',
+    loadChildren: () => import('@web/account').then((r) => r.accountRoutes),
+  },
+  {
     path: '**',
     redirectTo: '',
     pathMatch: 'full',

@@ -23,6 +23,7 @@ $bp-ultrawide: 106.25em; // 1700px - ultra wide
     .right-header {
       display: flex;
       align-items: center;
+      gap: 0.5rem;
       margin-left: auto;
 
       mat-chip {
@@ -35,6 +36,12 @@ $bp-ultrawide: 106.25em; // 1700px - ultra wide
             elevated-container-color: color-mix(in srgb, #56ff26 12%, transparent),
           )
         );
+      }
+
+      .favorite-button {
+        &.is-favorite {
+          color: #ff6b81;
+        }
       }
     }
   }

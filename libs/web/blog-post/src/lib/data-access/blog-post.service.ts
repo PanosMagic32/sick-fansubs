@@ -5,6 +5,10 @@ import { WebConfigService } from '@web/shared';
 
 import type { BlogPost, BlogPostResponse, CreateBlogPost, EditBlogPost } from './blog-post.interface';
 
+export interface FavoriteBlogPostIdsResponse {
+  favoriteBlogPostIds: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class BlogPostService {
   private readonly webConfigService = inject(WebConfigService);
@@ -55,5 +59,48 @@ export class BlogPostService {
       url: `${this.webConfigService.API_URL}/blog-post/${id()}`,
       method: 'DELETE',
     }));
+  }
+
+  getFavoriteBlogPostIds(userId: Signal<string | null>): HttpResourceRef<FavoriteBlogPostIdsResponse | undefined> {
+    return httpResource<FavoriteBlogPostIdsResponse>(() => {
+      const id = userId();
+      if (!id) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites`,
+      };
+    });
+  }
+
+  addFavoriteBlogPost(
+    userId: Signal<string | null>,
+    postId: WritableSignal<string | null>,
+  ): HttpResourceRef<FavoriteBlogPostIdsResponse | undefined> {
+    return httpResource<FavoriteBlogPostIdsResponse>(() => {
+      const id = userId();
+      const favoritePostId = postId();
+      if (!id || !favoritePostId) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/${favoritePostId}`,
+        method: 'PUT',
+      };
+    });
+  }
+
+  removeFavoriteBlogPost(
+    userId: Signal<string | null>,
+    postId: WritableSignal<string | null>,
+  ): HttpResourceRef<FavoriteBlogPostIdsResponse | undefined> {
+    return httpResource<FavoriteBlogPostIdsResponse>(() => {
+      const id = userId();
+      const favoritePostId = postId();
+      if (!id || !favoritePostId) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/${favoritePostId}`,
+        method: 'DELETE',
+      };
+    });
   }
 }
