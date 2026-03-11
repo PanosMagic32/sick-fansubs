@@ -3,6 +3,11 @@
     <div class="login-form">
       <h1 class="login-title">Σύνδεση</h1>
 
+      <div class="signup-info">
+        <p>Δεν έχετε λογαριασμό;</p>
+        <button mat-raised-button routerLink="../signup" color="primary" type="submit">Εγγραφή</button>
+      </div>
+
       <form [formGroup]="loginForm" (submit)="onLogin()">
         <mat-form-field class="login-input username-input" appearance="fill">
           <mat-label>Όνομα χρήστη</mat-label>

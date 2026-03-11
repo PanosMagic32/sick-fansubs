@@ -3,13 +3,13 @@ import { type CanActivateFn, RedirectCommand, Router } from '@angular/router';
 
 import { TokenService } from '@web/shared';
 
-export const isLoggedInGuard: CanActivateFn = () => {
+export const requireAuthGuard: CanActivateFn = () => {
   const tokenService = inject(TokenService);
 
   if (tokenService.isValidToken()) {
-    const urlTree = inject(Router).parseUrl('/');
-    return new RedirectCommand(urlTree);
+    return true;
   }
 
-  return true;
+  const urlTree = inject(Router).parseUrl('/auth/login');
+  return new RedirectCommand(urlTree);
 };

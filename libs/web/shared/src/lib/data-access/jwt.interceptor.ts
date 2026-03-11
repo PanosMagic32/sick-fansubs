@@ -5,7 +5,9 @@ import { TokenService } from './token.service';
 
 export const jwtInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
   const token = inject(TokenService).getToken();
-  const isAPIUrl = request.url.startsWith('/api');
+  const isRelativeApiUrl = request.url.startsWith('/api');
+  const isAbsoluteApiUrl = /^https?:\/\/[^/]+\/api(?:\/|$)/.test(request.url);
+  const isAPIUrl = isRelativeApiUrl || isAbsoluteApiUrl;
 
   if (token !== '' && isAPIUrl) {
     request = request.clone({

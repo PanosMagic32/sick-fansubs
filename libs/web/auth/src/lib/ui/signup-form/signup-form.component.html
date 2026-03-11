@@ -3,6 +3,11 @@
     <div class="signup-form">
       <h1 class="signup-title">Εγγραφή</h1>
 
+      <div class="login-info">
+        <p>Έχετε ήδη λογαριασμό;</p>
+        <button mat-raised-button routerLink="../login" color="primary" type="submit">Σύνδεση</button>
+      </div>
+
       <form [formGroup]="signupForm" (submit)="onSignup()">
         <mat-form-field class="signup-input" appearance="fill">
           <mat-label>Όνομα χρήστη</mat-label>

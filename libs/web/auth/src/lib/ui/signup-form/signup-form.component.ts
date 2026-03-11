@@ -7,6 +7,7 @@ import {
   type ValidatorFn,
   Validators,
 } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { MatButton } from '@angular/material/button';
 import { MatCard } from '@angular/material/card';
@@ -21,7 +22,7 @@ import type { SignupFormModel } from '../../data-access/signup-form.interface';
   selector: 'sf-signup-form',
   templateUrl: './signup-form.component.html',
   styleUrl: './signup-form.component.scss',
-  imports: [ReactiveFormsModule, MatCard, MatFormField, MatLabel, MatInput, MatError, MatButton, MatProgressBar],
+  imports: [ReactiveFormsModule, RouterLink, MatCard, MatFormField, MatLabel, MatInput, MatError, MatButton, MatProgressBar],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SignupFormComponent {

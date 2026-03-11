@@ -17,6 +17,8 @@ export class AuthService {
   isLoading = this._isLoading.asReadonly();
 
   login(username: string, password: string) {
+    this._isLoading.set(true);
+
     this.httpClient.post<{ username: string; accessToken: string }>('/api/auth/login', { username, password }).subscribe({
       next: (res) => {
         this._isLoading.set(false);
@@ -32,6 +34,8 @@ export class AuthService {
   }
 
   signUp(username: string, email: string, password: string, avatar?: string) {
+    this._isLoading.set(true);
+
     this.httpClient
       .post<{ id: string; username: string; email: string; isAdmin: boolean }>('/api/user', {
         username,
@@ -41,8 +45,10 @@ export class AuthService {
       })
       .subscribe({
         next: (res) => {
+          this._isLoading.set(false);
           this.saveUser(res);
-          this.router.navigate(['/'], { replaceUrl: true });
+          this.openSnackBar('Η εγγραφή ολοκληρώθηκε. Συνδεθείτε για να συνεχίσετε.', 'OK');
+          this.router.navigate(['/auth/login'], { replaceUrl: true });
         },
         error: (err) => {
           this._isLoading.set(false);

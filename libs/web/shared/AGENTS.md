@@ -34,7 +34,9 @@ Cross-cutting shared infrastructure for the Angular frontend. Contains the app s
 
 #### `jwt.interceptor.ts` — `jwtInterceptor` (functional interceptor)
 
-- Attaches `Authorization: Bearer <token>` header to every request whose URL starts with `/api`
+- Attaches `Authorization: Bearer <token>` header to:
+  - relative URLs starting with `/api`
+  - absolute URLs matching `http(s)://.../api/...`
 - Token retrieved from `TokenService`
 - Registered globally in `app.config.ts`
 
