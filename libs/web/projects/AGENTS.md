@@ -62,7 +62,10 @@ Imports `User` type from `@api/user`.
 - Paginated list; syncs `page` and `pageSize` to query params
 - Shows FAB for creating (visible only to admins)
 - Uses `ProjectItemComponent` for each card
-- Grid layout: `repeat(auto-fill, minmax(340px, 1fr))` — fills available width automatically
+- Responsive grid layout via semantic breakpoints:
+  - base: 1 column
+  - `2xl`: 2 columns
+  - `4xl`: 3 columns
 
 #### `project-create/project-create.component.ts` (lazy)
 
@@ -99,8 +102,9 @@ Imports `User` type from `@api/user`.
 
 ```bash
 pnpm nx lint web-projects
-pnpm nx test web-projects
 ```
+
+`projects` currently exposes only a `lint` target.
 
 ## Notes
 

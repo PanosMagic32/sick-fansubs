@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Cross-cutting shared infrastructure for the Angular frontend. Contains the app shell layout components, JWT interceptor, token management service, runtime config service, and responsive breakpoint helpers. **All other web libs depend on this.**
+Cross-cutting shared infrastructure for the Angular frontend. Contains the app shell layout components, JWT interceptor, token management service, runtime config service, responsive breakpoint helpers, and shared design-system styles. **All other web libs depend on this.**
 
 ## Path Alias
 
@@ -59,6 +59,16 @@ CDK `BreakpointObserver` wrappers (not exported publicly):
 - At >1530px all three are `false` → full text nav + social icons
 - Consumed internally by `HeaderComponent`
 
+### `src/lib/styles/`
+
+Shared styling primitives imported by the app and feature libraries:
+
+- `_tokens.scss` — global `:root` CSS custom properties (`--sf-*` spacing, colors, typography, radii, icon sizes, layout tokens)
+- `_breakpoints.scss` — semantic responsive breakpoints (used by feature SCSS via `@use 'breakpoints' as bp`)
+- `_mixins.scss` — reusable style mixins for cross-feature consistency
+
+These files are provided to feature SCSS via Angular build `stylePreprocessorOptions.includePaths`.
+
 ### `src/lib/ui/`
 
 #### `header/header.component.ts` — `HeaderComponent` (`sf-header`)
@@ -95,8 +105,9 @@ Only Angular core — this lib has no dependency on other local libs.
 
 ```bash
 pnpm nx lint web-shared
-pnpm nx test web-shared
 ```
+
+`web-shared` currently exposes only a `lint` target.
 
 ## Notes
 

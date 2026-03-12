@@ -78,5 +78,6 @@ Thin wrappers that render the smart UI components:
 
 ```bash
 pnpm nx lint web-auth
-pnpm nx test web-auth
 ```
+
+`auth` currently exposes only a `lint` target.

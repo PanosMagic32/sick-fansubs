@@ -74,8 +74,9 @@ This is required because the API uses global `ValidationPipe` with `whitelist: t
 
 ```bash
 pnpm nx lint api-blog-post
-pnpm nx test api-blog-post
 ```
+
+`api-blog-post` currently exposes only a `lint` target.
 
 ## Notes
 

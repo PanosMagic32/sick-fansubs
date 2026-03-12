@@ -80,8 +80,9 @@ None (foundational lib — depended on by `@api/auth` and `@api/search`)
 
 ```bash
 pnpm nx lint api-user
-pnpm nx test api-user
 ```
+
+`api-user` currently exposes only a `lint` target.
 
 ## Notes
 

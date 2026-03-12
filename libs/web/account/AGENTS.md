@@ -16,9 +16,9 @@ Authenticated user account management page. Allows the logged-in user to view/up
 
 ## Routes (`src/lib/lib.routes.ts`)
 
-| Path       | Guard              | Component             | Load  |
-| ---------- | ------------------ | --------------------- | ----- |
-| `/account` | `requireAuthGuard` | `WebAccountComponent` | Eager |
+| Path                     | Guard              | Component             | Load  |
+| ------------------------ | ------------------ | --------------------- | ----- |
+| ``(mounted at`/account`) | `requireAuthGuard` | `WebAccountComponent` | Eager |
 
 ## Key Files
 
@@ -28,10 +28,11 @@ Authenticated user account management page. Allows the logged-in user to view/up
 
 Angular `httpResource`-based service (signals-driven):
 
-- `getUserProfile(userId: Signal<string>)` — `GET /api/user/:id`; returns `HttpResourceRef<User>`. Runs reactively when `userId` signal changes.
-- `updateUserProfile(userId, data: WritableSignal<UpdateUserData | null>)` — `PATCH /api/user/:id`; fires only when `data` signal is non-null (on-demand mutation pattern).
+- `getUserProfile(userId: Signal<string>)` — `GET /api/user/:id`; returns `HttpResourceRef<UserProfile>`. Runs reactively when `userId` signal changes.
+- `updateUserProfile(userId, data: WritableSignal<UpdateUserRequest | null>)` — `PATCH /api/user/:id`; fires only when `data` signal is non-null (on-demand mutation pattern).
 - `getFavoriteBlogPostIds(userId)` — `GET /api/user/:id/favorites`
 - `getFavoriteBlogPosts(userId)` — `GET /api/user/:id/favorites/posts` (single populated favorites call)
+- `addFavoriteBlogPost(userId, postId)` — `PUT /api/user/:id/favorites/:postId`
 - `removeFavoriteBlogPost(userId, postId)` — `DELETE /api/user/:id/favorites/:postId`
 
 ### `src/lib/feature/`
@@ -46,7 +47,8 @@ Smart component:
 - Password confirmation cross-field validator
 - Submit sets `updateRequest` signal → triggers `updateUserProfile` PATCH
 - Loads favorite ids + populated favorites and renders a dedicated favorites card
-- Supports removing favorites and refreshes both ids and populated favorites resources
+- Supports removing favorites and refreshes favorites ids and populated favorites resources
+- Handles expired sessions by clearing token and redirecting to login
 - Shows `MatProgressSpinner` while loading
 - Success/error snackbar notifications (Greek messages)
 
@@ -66,8 +68,9 @@ Smart component:
 
 ```bash
 pnpm nx lint account
-pnpm nx test account
 ```
+
+`account` currently exposes only a `lint` target.
 
 ## Notes
 

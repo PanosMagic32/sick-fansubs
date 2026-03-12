@@ -53,7 +53,7 @@ This monorepo is a **Greek fansub group's website** — Angular 21 frontend + Ne
 | projects  | `@web/projects`  | Fansub projects list, details, create/edit                    | [libs/web/projects/AGENTS.md](libs/web/projects/AGENTS.md)   |
 | search    | `@web/search`    | Full-text search page                                         | [libs/web/search/AGENTS.md](libs/web/search/AGENTS.md)       |
 | about     | `@web/about`     | About page + API health check                                 | [libs/web/about/AGENTS.md](libs/web/about/AGENTS.md)         |
-| account   | `@web/account`   | Authenticated user profile management                         | [libs/web/account/AGENTS.md](libs/web/account/AGENTS.md)     |
+| account   | `@web/account`   | Authenticated profile management + favorites                  | [libs/web/account/AGENTS.md](libs/web/account/AGENTS.md)     |
 
 ### Shared Contracts
 
@@ -65,5 +65,6 @@ This monorepo is a **Greek fansub group's website** — Angular 21 frontend + Ne
 
 - **API**: Controller → Service → Mongoose Schema. All routes under `/api`. Write endpoints for `blog-post` and `project` are guarded by `JwtAuthGuard` + `AdminGuard`.
 - **Web**: All feature libs use strict `data-access / feature / ui` layering. Signals everywhere (`httpResource`, `signal()`, `toSignal()`).
+- **Styling**: Shared design tokens and responsive helpers live in `libs/web/shared/src/lib/styles` and are consumed via SCSS include paths.
 - **Auth flow**: Angular `authGuard` (admin) / `requireAuthGuard` → `TokenService` signals → `JwtAuthGuard` on protected API routes.
 - **UI language**: All user-facing strings are in **Greek**.

@@ -24,6 +24,12 @@ The Angular SPA for sick-fansubs — a Greek fansub group's website. Fully stand
 - `provideRouter(appRoutes, withComponentInputBinding())` — route params bind to `input()` signals
 - `provideAppInitializer` — seeds `WebConfigService` from `environment.config` on boot
 
+## Styling System
+
+- Global stylesheet: `apps/web/src/styles.scss`
+- Shared design tokens are imported via `@use 'tokens'` from `libs/web/shared/src/lib/styles/_tokens.scss`
+- Angular build uses `stylePreprocessorOptions.includePaths` so feature libs can `@use 'breakpoints'` and shared style primitives consistently
+
 ## Routing (`src/app/app.routes.ts`)
 
 | Path        | Lazy lib         | Feature         |
@@ -45,8 +51,9 @@ The Angular SPA for sick-fansubs — a Greek fansub group's website. Fully stand
 pnpm nx serve web        # Start dev server (proxies /api to localhost:3333)
 pnpm nx build web        # Production build
 pnpm nx lint web
-pnpm nx test web
 ```
+
+`web` currently does not expose a dedicated `test` target.
 
 ## Proxy
 

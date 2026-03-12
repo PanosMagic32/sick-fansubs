@@ -16,11 +16,11 @@ The root route of the app. Manages the blog post feed — the list of fansub sub
 
 ## Routes (`src/lib/lib.routes.ts`)
 
-| Path        | Guard               | Component                 | Load  |
-| ----------- | ------------------- | ------------------------- | ----- |
-| ``(root`/`) | —                   | `BlogPostListComponent`   | Eager |
-| `/create`   | `authGuard` (admin) | `BlogPostCreateComponent` | Lazy  |
-| `/:id/edit` | `authGuard` (admin) | `BlogPostEditComponent`   | Lazy  |
+| Path              | Guard               | Component                 | Load  |
+| ----------------- | ------------------- | ------------------------- | ----- |
+| ``(mounted at`/`) | —                   | `BlogPostListComponent`   | Eager |
+| `/create`         | `authGuard` (admin) | `BlogPostCreateComponent` | Lazy  |
+| `/:id/edit`       | `authGuard` (admin) | `BlogPostEditComponent`   | Lazy  |
 
 ## Key Files
 
@@ -95,8 +95,9 @@ Imports `User` type from `@api/user`.
 
 ```bash
 pnpm nx lint web-blog-post
-pnpm nx test web-blog-post
 ```
+
+`blog-post` currently exposes only a `lint` target.
 
 ## Notes
 

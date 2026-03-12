@@ -14,7 +14,7 @@ The main NestJS REST API for sick-fansubs. Exposes all backend functionality und
 
 ## Entry Point
 
-`src/main.ts` — bootstraps `AppModule`, sets global prefix `api`, global `ValidationPipe`, configures CORS from `environment.corsOptions`, and starts the server on `PORT` env var (default `3333`).
+`src/main.ts` — bootstraps `AppModule`, sets global prefix `api`, configures global `ValidationPipe` (`transform: true`, `whitelist: true`, `forbidNonWhitelisted: true`), configures CORS from `environment.corsOptions`, and starts the server on `PORT` env var (default `3333`).
 
 ## App Module (`src/app/app.module.ts`)
 
@@ -47,8 +47,9 @@ Reads `DATABASE_URL` (prod) or `DATABASE_URL_DEV` (dev) from env.
 pnpm nx serve api        # Start dev server with watch
 pnpm nx build api        # Production build
 pnpm nx lint api
-pnpm nx test api
 ```
+
+`api` currently does not expose a dedicated `test` target.
 
 ## Related Libs
 
@@ -64,4 +65,4 @@ All business logic lives in `libs/api/` — see `AGENTS.md` in each lib for deta
 
 - All routes prefixed with `/api`
 - `blog-post` and `project` write endpoints (`POST`, `PATCH`, `DELETE`) are protected with `JwtAuthGuard` + `AdminGuard`
-- `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true` is applied globally
+- `ValidationPipe` with `transform: true`, `whitelist: true`, and `forbidNonWhitelisted: true` is applied globally

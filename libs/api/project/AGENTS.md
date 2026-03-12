@@ -68,8 +68,9 @@ This is required because the API uses global `ValidationPipe` with `whitelist: t
 
 ```bash
 pnpm nx lint api-project
-pnpm nx test api-project
 ```
+
+`api-project` currently exposes only a `lint` target.
 
 ## Notes
 
