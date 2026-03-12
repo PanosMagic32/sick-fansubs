@@ -10,8 +10,51 @@ import { Project, ProjectDocument } from './schemas/project.schema';
 export class ProjectService {
   constructor(@InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>) {}
 
+  private slugify(value: string): string {
+    return value
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
+
+  private async createUniqueSlug(title: string, excludedId?: string): Promise<string> {
+    const baseSlug = this.slugify(title) || 'project';
+    let slug = baseSlug;
+    let counter = 2;
+    let existing = await this.projectModel
+      .findOne({
+        slug,
+        ...(excludedId ? { _id: { $ne: excludedId } } : {}),
+      })
+      .select('_id')
+      .lean();
+
+    while (existing) {
+      slug = `${baseSlug}-${counter}`;
+      counter += 1;
+
+      existing = await this.projectModel
+        .findOne({
+          slug,
+          ...(excludedId ? { _id: { $ne: excludedId } } : {}),
+        })
+        .select('_id')
+        .lean();
+    }
+
+    return slug;
+  }
+
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
-    const createProject = await this.projectModel.create(createProjectDto);
+    const slug = await this.createUniqueSlug(createProjectDto.title);
+    const createProject = await this.projectModel.create({
+      ...createProjectDto,
+      slug,
+    });
     return createProject;
   }
 
@@ -48,7 +91,15 @@ export class ProjectService {
 
   async update(id: string, updateProjectDto: UpdateProjectDto): Promise<Project | undefined | null> {
     const project = await this.findOne(id);
-    if (project) return this.projectModel.findByIdAndUpdate({ _id: id }, updateProjectDto).exec();
+    if (project) {
+      const payload = { ...updateProjectDto } as UpdateProjectDto & { slug?: string };
+
+      if (updateProjectDto.title) {
+        payload.slug = await this.createUniqueSlug(updateProjectDto.title, id);
+      }
+
+      return this.projectModel.findByIdAndUpdate({ _id: id }, payload).exec();
+    }
     throw new NotFoundException();
   }
 
