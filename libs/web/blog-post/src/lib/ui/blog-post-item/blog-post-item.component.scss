@@ -1,6 +1,6 @@
 @use '@angular/material' as mat;
-$bp-large: 68.75em; // 1100px
-$bp-ultrawide: 106.25em; // 1700px - ultra wide
+@use 'breakpoints' as bp;
+@use 'mixins' as mx;
 
 .post-card {
   mat-card-header {
@@ -33,25 +33,21 @@ $bp-ultrawide: 106.25em; // 1700px - ultra wide
           (
             container-height: 35px,
             label-text-color: white,
-            elevated-container-color: color-mix(in srgb, #56ff26 12%, transparent),
+            elevated-container-color: color-mix(in srgb, var(--sf-color-release) 12%, transparent),
           )
         );
       }
 
       .favorite-button {
         &.is-favorite {
-          color: #ff6b81;
+          color: var(--sf-color-favorite);
         }
       }
     }
   }
 
   img {
-    width: 85%;
-    max-height: 40vh;
-    object-fit: cover;
-    margin: 1rem auto 0 auto;
-    border-radius: 0.5rem;
+    @include mx.card-image;
   }
 
   mat-card-content {
@@ -86,36 +82,15 @@ $bp-ultrawide: 106.25em; // 1700px - ultra wide
       }
     }
   }
-}
 
-@media only screen and (max-width: $bp-large) {
-  .post-card {
+  @include bp.bp-down('lg') {
     margin: 2rem;
   }
-}
 
-@media only screen and (min-width: $bp-ultrawide) {
-  .post-card {
+  @include bp.bp-up('2xl') {
     margin: 1rem 0;
     width: 100%;
     box-sizing: border-box;
-    overflow: hidden; // Prevent any internal content from overflowing
-
-    // Ensure all content respects container width
-    img {
-      max-width: 100%;
-      width: 85%;
-    }
-
-    mat-card-content {
-      .post-description {
-        word-wrap: break-word; // Prevent long words from causing overflow
-        overflow-wrap: break-word;
-      }
-    }
-
-    mat-card-header {
-      overflow: hidden; // Prevent header content overflow
-    }
+    overflow: hidden;
   }
 }

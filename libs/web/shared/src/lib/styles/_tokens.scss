@@ -1,0 +1,48 @@
+// SF Design System — Global CSS Custom Properties
+// Imported once in apps/web/src/styles.scss
+
+:root {
+  // --- Spacing (semantic scale) ---
+  --sf-space-4xs: 0.25rem; //  4px
+  --sf-space-xs: 0.5rem; //   8px
+  --sf-space-sm: 1rem; //    16px
+  --sf-space-md: 1.5rem; //  24px
+  --sf-space-lg: 2rem; //    32px
+  --sf-space-xl: 3rem; //    48px
+  --sf-space-2xl: 5rem; //   80px
+
+  // --- Semantic Colors ---
+  --sf-color-on-primary: #fff;
+  --sf-color-success: #4caf50;
+  --sf-color-danger: #f44336;
+  --sf-color-warning: #ff9800;
+  --sf-color-warning-bg: rgba(255, 152, 0, 0.1);
+  --sf-color-release: #56ff26;
+  --sf-color-favorite: #ff6b81;
+  --sf-color-link: #c3d6ff;
+
+  // --- Border Radius ---
+  --sf-radius-sm: 0.25rem;
+  --sf-radius-md: 0.5rem;
+  --sf-radius-lg: 1rem;
+  --sf-radius-pill: 9999px;
+
+  // --- Typography ---
+  --sf-font-sm: 0.875rem;
+  --sf-font-md: 1.25rem;
+  --sf-font-lg: 1.5rem;
+  --sf-font-xl: 1.8rem;
+
+  // --- Icon Sizes ---
+  --sf-icon-xs: 18px;
+  --sf-icon-sm: 20px;
+  --sf-icon-md: 24px;
+
+  // --- Layout ---
+  // Keep this in sync with the Material toolbar height.
+  --sf-header-height: 64px;
+  --sf-avatar-size: 100px;
+
+  // --- Shadows ---
+  --sf-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.2);
+}

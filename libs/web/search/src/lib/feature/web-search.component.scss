@@ -1,4 +1,4 @@
-$bp-ultrawide: 106.25em;
+@use 'breakpoints' as bp;
 
 :host {
   display: grid;
@@ -8,9 +8,9 @@ $bp-ultrawide: 106.25em;
 
 .search-container {
   display: flex;
-  gap: 0.625rem;
-  margin-top: 4rem;
-  padding: 2rem 1rem 0;
+  gap: var(--sf-space-xs);
+  margin-top: var(--sf-space-lg);
+  padding: var(--sf-space-lg) var(--sf-space-sm) 0;
 
   .input-field {
     flex: 2;
@@ -26,14 +26,14 @@ $bp-ultrawide: 106.25em;
 }
 
 .results-container {
-  padding: 2rem 1rem 0;
+  padding: var(--sf-space-lg) var(--sf-space-sm) 0;
 
-  @media (min-width: $bp-ultrawide) {
+  @include bp.bp-up('2xl') {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    gap: var(--sf-space-lg);
     align-items: start;
-    padding: 0 2rem;
+    padding: 0 var(--sf-space-lg);
 
     .first {
       grid-column: 1 / -1;
@@ -45,6 +45,6 @@ $bp-ultrawide: 106.25em;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 2rem 1rem;
+  padding: var(--sf-space-lg) var(--sf-space-sm);
   border-top: 1px solid var(--mat-sys-outline-variant);
 }

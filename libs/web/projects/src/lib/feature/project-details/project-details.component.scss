@@ -1,3 +1,5 @@
+@use 'mixins' as mx;
+
 .back-button {
   margin: 1rem 0;
 
@@ -19,11 +21,7 @@
   }
 
   img {
-    width: 85%;
-    max-height: 40vh;
-    object-fit: cover;
-    margin: 1rem auto 0 auto;
-    border-radius: 0.5rem;
+    @include mx.card-image;
   }
 
   mat-card-content {

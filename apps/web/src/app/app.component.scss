@@ -1,13 +1,12 @@
-$bp-large: 68.75em;
-$bp-ultrawide: 106.25em;
+@use 'breakpoints' as bp;
 
 .shell {
-  min-height: calc(100vh - 75px);
+  min-height: calc(100vh - var(--sf-header-height));
   display: grid;
   grid-template-columns: 3% 1fr 3%;
   gap: 1rem;
 
-  @media only screen and (max-width: $bp-large) {
+  @include bp.bp-down('lg') {
     grid-template-columns: 1fr;
     margin: 0 10%;
   }

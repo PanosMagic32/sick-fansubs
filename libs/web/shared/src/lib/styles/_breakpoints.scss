@@ -1,0 +1,30 @@
+// SF Design System — Responsive Breakpoint Mixins
+// Match header thresholds defined in MenuService:
+//   lg  (1050px) → hamburger / sidenav
+//   2xl (1530px) → icons-only → full nav
+
+@use 'sass:map';
+
+$sf-breakpoints: (
+  'sm': 576px,
+  'md': 768px,
+  'lg': 1050px,
+  'xl': 1280px,
+  '2xl': 1600px,
+  '3xl': 1920px,
+  '4xl': 2300px,
+);
+
+/// Apply styles at $key width and above (mobile-first)
+@mixin bp-up($key) {
+  @media (min-width: #{map.get($sf-breakpoints, $key)}) {
+    @content;
+  }
+}
+
+/// Apply styles below $key width
+@mixin bp-down($key) {
+  @media (max-width: #{map.get($sf-breakpoints, $key) - 1}) {
+    @content;
+  }
+}

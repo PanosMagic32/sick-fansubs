@@ -1,38 +1,40 @@
 .about-card {
-  margin: 5rem 1rem;
+  margin: var(--sf-space-2xl) var(--sf-space-sm);
 
   mat-card-header {
-    margin-bottom: 1rem;
+    margin-bottom: var(--sf-space-sm);
   }
 
   mat-list-item {
-    margin: 1rem 0;
+    margin: var(--sf-space-sm) 0;
     height: fit-content;
 
-    ::ng-deep .mat-mdc-list-item-unscoped-content {
+    // Allows mat-list-item content to grow beyond the fixed line-height
+    // Used instead of ::ng-deep to scope the override to this component
+    .mat-mdc-list-item-unscoped-content {
       height: auto;
     }
   }
 
   .subtitle-info {
-    margin: 1rem;
+    margin: var(--sf-space-sm);
   }
 
   mat-card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 0 1rem;
+    margin: 0 var(--sf-space-sm);
 
     p {
-      padding: 1rem;
+      padding: var(--sf-space-sm);
       margin: 0;
     }
 
     .health-status {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--sf-space-xs);
 
       mat-icon {
         font-size: 1.25rem;
@@ -41,24 +43,24 @@
       }
 
       &.healthy {
-        color: #4caf50;
+        color: var(--sf-color-success);
 
         mat-icon {
-          color: #4caf50;
+          color: var(--sf-color-success);
         }
       }
 
       &.unhealthy {
-        color: #f44336;
+        color: var(--sf-color-danger);
 
         mat-icon {
-          color: #f44336;
+          color: var(--sf-color-danger);
         }
       }
     }
   }
 
   a {
-    color: #c3d6ff;
+    color: var(--sf-color-link);
   }
 }

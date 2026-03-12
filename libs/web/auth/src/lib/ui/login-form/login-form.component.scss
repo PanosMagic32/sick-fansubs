@@ -1,28 +1,29 @@
 .login-container {
-  margin: 5rem 1rem;
+  margin: var(--sf-space-2xl) var(--sf-space-sm);
 
   .login-form {
-    width: 60%;
-    margin: 2rem auto !important;
+    width: 100%;
+    max-width: 600px;
+    margin: var(--sf-space-lg) auto !important;
 
     .login-title {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: var(--sf-space-lg);
     }
 
     .signup-info {
       text-align: center;
 
       button {
-        margin-top: 1rem;
+        margin-top: var(--sf-space-sm);
       }
     }
 
     .login-input {
       display: block;
       height: 2rem;
-      margin-top: 2rem;
-      margin-bottom: 4rem;
+      margin-top: var(--sf-space-lg);
+      margin-bottom: var(--sf-space-lg);
     }
 
     .login-btn {

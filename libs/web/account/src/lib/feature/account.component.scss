@@ -1,27 +1,11 @@
-:host {
-  --sf-space-xs: 0.5rem;
-  --sf-space-sm: 1rem;
-  --sf-space-md: 1.5rem;
-  --sf-space-lg: 2rem;
-  --sf-font-sm: 0.875rem;
-  --sf-font-md: 1.25rem;
-  --sf-font-lg: 1.5rem;
-  --sf-font-xl: 1.8rem;
-  --sf-icon-xs: 18px;
-  --sf-icon-sm: 20px;
-  --sf-icon-md: 24px;
-  --sf-avatar-size: 100px;
-  --sf-danger: #f44336;
-  --sf-warning: #ff9800;
-  --sf-warning-bg: rgba(255, 152, 0, 0.1);
-  --sf-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
+// All sf-* tokens are now inherited from the global :root token set (_tokens.scss).
+@use 'breakpoints' as bp;
 
 .account-container {
   display: flex;
   flex-direction: column;
   gap: var(--sf-space-lg);
-  margin: 5rem 0;
+  margin: var(--sf-space-2xl) 0;
 }
 
 .account-card {
@@ -43,7 +27,7 @@
   mat-card-content {
     padding: var(--sf-space-lg);
 
-    @media (max-width: 768px) {
+    @include bp.bp-down('md') {
       padding: var(--sf-space-sm);
     }
   }
@@ -55,7 +39,7 @@
     grid-template-columns: 1fr;
     gap: var(--sf-space-lg);
 
-    @media (min-width: 1024px) {
+    @include bp.bp-up('lg') {
       grid-template-columns: repeat(3, 1fr);
     }
 
@@ -80,7 +64,7 @@
 
 .error-message {
   margin-bottom: var(--sf-space-md);
-  color: var(--sf-danger);
+  color: var(--sf-color-danger);
 }
 
 .error-actions {
@@ -104,7 +88,7 @@
     }
   }
 
-  @media (min-width: 1024px) {
+  @include bp.bp-up('lg') {
     text-align: left;
   }
 }
@@ -116,7 +100,7 @@
   gap: var(--sf-space-md);
   text-align: center;
 
-  @media (min-width: 1024px) {
+  @include bp.bp-up('lg') {
     align-items: flex-start;
     text-align: left;
   }
@@ -169,8 +153,8 @@
   border-radius: 20px;
   font-weight: 500;
   width: fit-content;
-  background-color: var(--sf-warning-bg);
-  color: var(--sf-warning);
+  background-color: var(--sf-color-warning-bg);
+  color: var(--sf-color-warning);
 
   mat-icon {
     font-size: var(--sf-icon-xs);
@@ -228,7 +212,7 @@
     margin-bottom: var(--sf-space-sm);
   }
 
-  @media (min-width: 1024px) {
+  @include bp.bp-up('lg') {
     align-items: flex-end;
     text-align: right;
   }
@@ -279,7 +263,7 @@
   gap: var(--sf-space-md);
   margin-top: var(--sf-space-md);
 
-  @media (max-width: 768px) {
+  @include bp.bp-down('md') {
     grid-template-columns: 1fr;
   }
 }

@@ -1,5 +1,5 @@
-$bp-large: 68.75em; // 1100px
-$bp-ultrawide: 100em; // 1600px - ultra wide
+@use 'breakpoints' as bp;
+@use 'mixins' as mx;
 
 .project-card {
   mat-card-header {
@@ -21,33 +21,15 @@ $bp-ultrawide: 100em; // 1600px - ultra wide
   }
 
   img {
-    width: 85%;
-    max-height: 40vh;
-    object-fit: cover;
-    margin: 1rem auto 0 auto;
-    border-radius: 0.5rem;
+    @include mx.card-image;
   }
 
   mat-card-content {
     .project-description {
+      @include mx.line-clamp(3);
       margin: 2rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
-      -webkit-box-orient: vertical;
       min-height: 4.5em;
       max-height: 4.5em;
-    }
-
-    .line-clamp {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
-      -webkit-box-orient: vertical;
     }
   }
 
@@ -65,36 +47,15 @@ $bp-ultrawide: 100em; // 1600px - ultra wide
       }
     }
   }
-}
 
-@media only screen and (max-width: $bp-large) {
-  .project-card {
+  @include bp.bp-down('lg') {
     margin: 2rem;
   }
-}
 
-@media only screen and (min-width: $bp-ultrawide) {
-  .project-card {
+  @include bp.bp-up('2xl') {
     margin: 1rem 0;
     width: 100%;
     box-sizing: border-box;
-    overflow: hidden; // Prevent any internal content from overflowing
-
-    // Ensure all content respects container width
-    img {
-      max-width: 100%;
-      width: 85%;
-    }
-
-    mat-card-content {
-      .project-description {
-        word-wrap: break-word; // Prevent long words from causing overflow
-        overflow-wrap: break-word;
-      }
-    }
-
-    mat-card-header {
-      overflow: hidden; // Prevent header content overflow
-    }
+    overflow: hidden;
   }
 }

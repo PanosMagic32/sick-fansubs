@@ -26,13 +26,14 @@ mat-nav-list {
     margin-bottom: 10px;
 
     mat-icon {
-      margin-bottom: -0.5rem;
+      // Removed negative margin; icon alignment handled by mat-list-item flex layout
     }
   }
 
   mat-list-item:hover,
   mat-list-item:active {
-    margin-right: 1.5rem;
+    // Use padding instead of margin to avoid content shift on hover
+    padding-right: 1.5rem;
     background-color: var(--background-primary-color-active-light) !important;
     cursor: pointer;
   }
@@ -44,7 +45,7 @@ mat-nav-list {
 }
 
 .active-sidenav {
-  margin-right: 1.5rem;
+  padding-right: 1.5rem;
   background-color: var(--background-primary-color-active-light) !important;
   cursor: pointer;
 }

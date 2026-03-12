@@ -1,7 +1,8 @@
 /* Global application styles */
 @use '@angular/material' as mat;
+@use 'tokens'; // SF design-system CSS custom properties
 
-// Custom CSS variables
+// App-level CSS overrides (kept alongside Material tokens)
 :root {
   --primary-color: #3365cc;
   --background-primary-color-active-light: #6494ed56;

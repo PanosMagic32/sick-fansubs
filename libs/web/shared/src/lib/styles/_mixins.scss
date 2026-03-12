@@ -1,0 +1,31 @@
+// SF Design System — Shared SCSS Mixins
+
+/// Truncate text to $lines lines using CSS line-clamp.
+@mixin line-clamp($lines: 3) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+}
+
+/// Standard card thumbnail image style.
+@mixin card-image {
+  width: 85%;
+  max-height: 40vh;
+  object-fit: cover;
+  margin: 1rem auto 0;
+  border-radius: var(--sf-radius-md);
+}
+
+/// Standard form container: centered, full-width on mobile.
+@mixin form-container {
+  margin: var(--sf-space-2xl) var(--sf-space-sm);
+
+  .form-inner {
+    width: 100%;
+    max-width: 600px;
+    margin: var(--sf-space-lg) auto;
+  }
+}

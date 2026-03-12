@@ -1,17 +1,15 @@
-$bp-large: 68.75em; // 1100px
+@use 'breakpoints' as bp;
 
 .create-card {
-  margin: 5rem 0rem;
+  margin: var(--sf-space-2xl) 0;
 
   mat-card-actions.create-actions {
     display: flex;
     margin-right: auto;
     margin-left: auto;
   }
-}
 
-@media only screen and (max-width: $bp-large) {
-  .post-card {
-    margin: 2rem;
+  @include bp.bp-down('lg') {
+    margin: var(--sf-space-lg);
   }
 }

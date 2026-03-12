@@ -1,7 +1,7 @@
-$bp-large: 68.75em; // 1100px
+@use 'breakpoints' as bp;
 
 .edit-card {
-  margin: 2rem 0rem;
+  margin: var(--sf-space-lg) 0;
 
   mat-card-header {
     button {
@@ -14,10 +14,8 @@ $bp-large: 68.75em; // 1100px
     display: flex;
     justify-content: space-around;
   }
-}
 
-@media only screen and (max-width: $bp-large) {
-  .post-card {
-    margin: 2rem;
+  @include bp.bp-down('lg') {
+    margin: var(--sf-space-lg);
   }
 }

@@ -6,7 +6,7 @@ mat-toolbar.header-toolbar {
 
   a {
     text-decoration: none;
-    color: #fff;
+    color: var(--sf-color-on-primary);
     padding: 0.5rem 1rem;
   }
 
@@ -41,7 +41,7 @@ mat-toolbar.header-toolbar {
 
     a {
       text-decoration: none;
-      color: #fff;
+      color: var(--sf-color-on-primary);
     }
   }
 

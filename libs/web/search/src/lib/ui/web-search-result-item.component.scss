@@ -1,10 +1,14 @@
+@use 'mixins' as mx;
+
 .search-card {
-  max-width: 50vw;
+  // Use max-width with a more responsive cap; full width on mobile
+  max-width: min(50vw, 900px);
+  width: 100%;
   margin: 2rem auto;
 }
 
 .blog-post {
-  border: 1px solid #3f51b5;
+  border: 1px solid var(--mat-sys-primary);
 }
 
 mat-card-header {
@@ -26,9 +30,7 @@ mat-card-header {
 }
 
 img {
-  width: 85%;
-  margin: 1rem auto 0 auto;
-  border-radius: 0.5rem;
+  @include mx.card-image;
 }
 
 mat-card-content {
@@ -37,12 +39,7 @@ mat-card-content {
   }
 
   .line-clamp {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
+    @include mx.line-clamp(3);
   }
 }
 
