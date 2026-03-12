@@ -1,7 +1,10 @@
-@use 'breakpoints' as bp;
 @use 'mixins' as mx;
 
 .project-card {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+
   mat-card-header {
     .project-header-image {
       background-image: url('/logo/logo.png');
@@ -12,7 +15,11 @@
     .mat-card-avatar {
       height: 3rem;
       width: 3rem;
-      margin-top: -0.5rem !important;
+      margin-top: -0.5rem;
+    }
+
+    mat-card-title {
+      margin-bottom: 0.5rem;
     }
 
     .edit-btn {
@@ -43,19 +50,8 @@
       display: flex;
 
       p {
-        padding: 0 1rem;
+        margin: 1rem 0;
       }
     }
-  }
-
-  @include bp.bp-down('lg') {
-    margin: 2rem;
-  }
-
-  @include bp.bp-up('2xl') {
-    margin: 1rem 0;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
   }
 }
