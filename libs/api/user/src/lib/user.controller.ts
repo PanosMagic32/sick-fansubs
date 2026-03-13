@@ -4,6 +4,7 @@ import { ApiParam, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
+import type { FavoriteBlogPostsResponse } from './user.service';
 import { UserService } from './user.service';
 
 @ApiTags('User')
@@ -48,7 +49,10 @@ export class UserController {
   @ApiParam({ name: 'id' })
   @Get(':id/favorites/posts')
   @UseGuards(JwtAuthGuard)
-  async getFavoritePosts(@Param('id') id: string, @Req() req: { user?: { sub?: string; isAdmin?: boolean } }) {
+  async getFavoritePosts(
+    @Param('id') id: string,
+    @Req() req: { user?: { sub?: string; isAdmin?: boolean } },
+  ): Promise<FavoriteBlogPostsResponse> {
     return this.userService.getFavoriteBlogPosts(id, this.getActorFromRequest(req));
   }
 

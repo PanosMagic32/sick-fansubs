@@ -7,7 +7,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument } from './schemas/user.schema';
 
-interface FavoriteBlogPost {
+export interface FavoriteBlogPost {
   _id: string;
   title: string;
   subtitle: string;
@@ -19,6 +19,10 @@ interface FavoriteBlogPost {
   downloadLink4kTorrent?: string;
   dateTimeCreated: string;
   creator?: unknown;
+}
+
+export interface FavoriteBlogPostsResponse {
+  posts: FavoriteBlogPost[];
 }
 
 @Injectable()
@@ -222,7 +226,7 @@ export class UserService {
     };
   }
 
-  async getFavoriteBlogPosts(id: string, actor: { sub: string; isAdmin: boolean }): Promise<{ posts: FavoriteBlogPost[] }> {
+  async getFavoriteBlogPosts(id: string, actor: { sub: string; isAdmin: boolean }): Promise<FavoriteBlogPostsResponse> {
     this.assertCanAccessUser(id, actor);
     const user = await this.findOneEntityById(id);
     const favoriteBlogPostIds = this.toPublicUser(user).favoriteBlogPostIds;
