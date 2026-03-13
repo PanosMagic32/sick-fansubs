@@ -65,9 +65,19 @@ export class WebAccountComponent implements OnInit {
   private readonly latestUpdatedProfile = signal<UserProfile | null>(null);
   private readonly latestFavoriteBlogPosts = signal<BlogPost[]>([]);
   private readonly favoriteRemovalRequest = signal<string | null>(null);
+  private readonly avatarImageError = signal(false);
 
   readonly displayProfile = this.latestUpdatedProfile.asReadonly();
   readonly favoriteBlogPosts = this.latestFavoriteBlogPosts.asReadonly();
+  readonly safeAvatarUrl = computed(() => {
+    const avatar = this.displayProfile()?.avatar;
+    if (!avatar || this.avatarImageError()) return null;
+
+    const parsed = this.parseUrl(avatar);
+    if (!parsed || !this.isHttpProtocol(parsed.protocol)) return null;
+
+    return parsed.href;
+  });
 
   userProfile = this.userService.getUserProfile(this.activeUserId);
   updateUserResource = this.userService.updateUserProfile(this.activeUserId, this.updateRequest);
@@ -90,6 +100,7 @@ export class WebAccountComponent implements OnInit {
         this.latestUpdatedProfile.set(profile);
         this.profileForm.patchValue(profile);
         this.profileForm.markAsPristine();
+        this.avatarImageError.set(false);
       }
     });
 
@@ -132,13 +143,13 @@ export class WebAccountComponent implements OnInit {
     effect(() => {
       const error = this.updateUserResource.error();
       if (error) {
-        this.snackBar.open('Αποτυχία ενημέρωσης προφίλ', 'OK', { duration: 3000 });
+        if (this.handleUnauthorized(error)) return;
+
+        this.snackBar.open(this.getUpdateProfileErrorMessage(error), 'OK', { duration: 3500 });
         return;
       }
 
-      if (!this.updateUserResource.hasValue()) {
-        return;
-      }
+      if (!this.updateUserResource.hasValue()) return;
 
       const updatedProfile = this.updateUserResource.value();
       if (updatedProfile) {
@@ -148,28 +159,20 @@ export class WebAccountComponent implements OnInit {
         this.profileForm.markAsPristine();
         this.clearPasswordFields();
         this.updateRequest.set(null);
-        this.userProfile.reload();
-      }
-    });
-
-    effect(() => {
-      const error = this.favoriteBlogPostsResource.error();
-      if (error) {
-        this.snackBar.open('Δεν ήταν δυνατή η φόρτωση των αγαπημένων αναρτήσεων.', 'OK', { duration: 3000 });
       }
     });
 
     effect(() => {
       const error = this.removeFavoriteResource.error();
       if (error) {
-        this.snackBar.open('Αποτυχία αφαίρεσης από τα αγαπημένα.', 'OK', { duration: 3000 });
+        if (this.handleUnauthorized(error)) return;
+
+        this.snackBar.open(this.getRemoveFavoriteErrorMessage(error), 'OK', { duration: 3500 });
         this.favoriteRemovalRequest.set(null);
         return;
       }
 
-      if (!this.removeFavoriteResource.hasValue()) {
-        return;
-      }
+      if (!this.removeFavoriteResource.hasValue()) return;
 
       const updatedFavorites = this.removeFavoriteResource.value()?.favoriteBlogPostIds;
       const profile = this.latestUpdatedProfile();
@@ -184,9 +187,76 @@ export class WebAccountComponent implements OnInit {
       );
       this.snackBar.open('Η ανάρτηση αφαιρέθηκε από τα αγαπημένα.', 'OK', { duration: 3000 });
       this.favoriteRemovalRequest.set(null);
-      this.favoriteBlogPostIdsResource.reload();
-      this.favoriteBlogPostsResource.reload();
     });
+  }
+
+  private parseUrl(url: string | undefined): URL | null {
+    const value = url?.trim();
+    if (!value) return null;
+
+    try {
+      return new URL(value);
+    } catch {
+      return null;
+    }
+  }
+
+  private isHttpProtocol(protocol: string): boolean {
+    return protocol === 'http:' || protocol === 'https:';
+  }
+
+  private isAllowedDownloadProtocol(protocol: string): boolean {
+    return this.isHttpProtocol(protocol) || protocol === 'magnet:';
+  }
+
+  private handleUnauthorized(error: unknown): boolean {
+    if (!(error instanceof HttpErrorResponse) || error.status !== 401) {
+      return false;
+    }
+
+    this.tokenService.removeToken();
+    this.router.navigate(['/auth/login'], { replaceUrl: true });
+    return true;
+  }
+
+  private getUpdateProfileErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Αποτυχία ενημέρωσης προφίλ. Δοκιμάστε ξανά.';
+    }
+
+    switch (error.status) {
+      case 0:
+        return 'Αδυναμία σύνδεσης με τον διακομιστή. Δοκιμάστε ξανά σε λίγο.';
+      case 400:
+        return 'Τα στοιχεία που δώσατε δεν είναι έγκυρα. Ελέγξτε τα πεδία και δοκιμάστε ξανά.';
+      case 403:
+        return 'Δεν έχετε δικαίωμα ενημέρωσης αυτού του προφίλ.';
+      case 404:
+        return 'Το προφίλ χρήστη δε βρέθηκε.';
+      case 409:
+        return 'Το email χρησιμοποιείται ήδη από άλλον λογαριασμό.';
+      default:
+        return 'Παρουσιάστηκε σφάλμα κατά την ενημέρωση. Δοκιμάστε ξανά.';
+    }
+  }
+
+  private getRemoveFavoriteErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Αποτυχία αφαίρεσης από τα αγαπημένα. Δοκιμάστε ξανά.';
+    }
+
+    switch (error.status) {
+      case 0:
+        return 'Αδυναμία σύνδεσης με τον διακομιστή. Δοκιμάστε ξανά σε λίγο.';
+      case 400:
+        return 'Μη έγκυρο αίτημα αφαίρεσης αγαπημένου.';
+      case 403:
+        return 'Δεν έχετε δικαίωμα αλλαγής των αγαπημένων αυτού του λογαριασμού.';
+      case 404:
+        return 'Η ανάρτηση ή ο λογαριασμός δε βρέθηκε.';
+      default:
+        return 'Παρουσιάστηκε σφάλμα κατά την αφαίρεση από τα αγαπημένα.';
+    }
   }
 
   private haveSameIds(previousIds: string[], currentIds: string[]): boolean {
@@ -309,20 +379,17 @@ export class WebAccountComponent implements OnInit {
     }
 
     if (error instanceof HttpErrorResponse) {
-      if (error.status === 0) {
-        return 'Αδυναμία σύνδεσης με τον διακομιστή. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.';
-      }
-
-      if (error.status === 401) {
-        return 'Η συνεδρία σας έχει λήξει. Αποσυνδεθείτε και συνδεθείτε ξανά.';
-      }
-
-      if (error.status === 403) {
-        return 'Δεν έχετε δικαίωμα πρόσβασης σε αυτό το προφίλ.';
-      }
-
-      if (error.status === 404) {
-        return 'Το προφίλ χρήστη δε βρέθηκε.';
+      switch (error.status) {
+        case 0:
+          return 'Αδυναμία σύνδεσης με τον διακομιστή. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.';
+        case 401:
+          return 'Η συνεδρία σας έχει λήξει. Αποσυνδεθείτε και συνδεθείτε ξανά.';
+        case 403:
+          return 'Δεν έχετε δικαίωμα πρόσβασης σε αυτό το προφίλ.';
+        case 404:
+          return 'Το προφίλ χρήστη δε βρέθηκε.';
+        default:
+          break;
       }
     }
 
@@ -335,14 +402,33 @@ export class WebAccountComponent implements OnInit {
     this.favoriteBlogPostsResource.reload();
   }
 
-  onDownload(url: string | undefined) {
-    if (!url) return;
+  onRetryLoadFavoriteIds() {
+    this.favoriteBlogPostIdsResource.reload();
+  }
 
-    const downloadURL = new URL(url);
+  onRetryLoadFavoritePosts() {
+    this.favoriteBlogPostsResource.reload();
+  }
+
+  onDownload(url: string | undefined) {
+    const downloadURL = this.parseUrl(url);
+    if (!downloadURL || !this.isAllowedDownloadProtocol(downloadURL.protocol)) {
+      this.snackBar.open('Μη έγκυρος σύνδεσμος λήψης.', 'OK', { duration: 3000 });
+      return;
+    }
+
     const anchor = document.createElement('a');
     anchor.href = downloadURL.href;
-    anchor.download = downloadURL.pathname.split('/').pop() || '';
+    if (downloadURL.protocol !== 'magnet:') {
+      anchor.download = downloadURL.pathname.split('/').pop() || '';
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+    }
     anchor.click();
+  }
+
+  onAvatarImageError() {
+    this.avatarImageError.set(true);
   }
 
   onRemoveFavorite(postId: string | undefined) {

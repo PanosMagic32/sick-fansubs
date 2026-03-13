@@ -257,6 +257,15 @@
   }
 }
 
+.favorites-warning {
+  mat-icon {
+    color: var(--sf-color-warning);
+    width: 2rem;
+    height: 2rem;
+    font-size: 2rem;
+  }
+}
+
 .favorites-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

@@ -45,8 +45,8 @@
           </h3>
           <div class="profile-info">
             <div class="avatar-section">
-              @if (displayProfile()!.avatar) {
-                <img [src]="displayProfile()!.avatar" alt="avatar" class="avatar" />
+              @if (safeAvatarUrl()) {
+                <img [src]="safeAvatarUrl()" alt="avatar" class="avatar" (error)="onAvatarImageError()" />
               } @else {
                 <mat-icon class="avatar-placeholder">account_circle</mat-icon>
               }
@@ -165,20 +165,46 @@
         <div class="favorites-content">
           <h3>Οι αγαπημένες μου αναρτήσεις ({{ favoriteBlogPostIds().length }})</h3>
 
-          @if (favoriteBlogPostIdsResource.isLoading() || favoriteBlogPostsResource.isLoading()) {
+          @if (favoriteBlogPostIdsResource.isLoading()) {
             <div class="favorites-state">
               <mat-spinner diameter="40"></mat-spinner>
-              <p>Φόρτωση αγαπημένων αναρτήσεων...</p>
+              <p>Φόρτωση αγαπημένων...</p>
+            </div>
+          } @else if (favoriteBlogPostIdsResource.error()) {
+            <div class="favorites-state favorites-warning">
+              <mat-icon>error_outline</mat-icon>
+              <p>Δεν ήταν δυνατή η φόρτωση των αγαπημένων σας.</p>
+              <button mat-stroked-button type="button" (click)="onRetryLoadFavoriteIds()">
+                <mat-icon>refresh</mat-icon>
+                Προσπαθήστε ξανά
+              </button>
             </div>
           } @else if (!favoriteBlogPostIds().length) {
             <div class="favorites-state favorites-empty">
               <mat-icon>heart_broken</mat-icon>
               <p>Δεν έχετε προσθέσει αγαπημένες αναρτήσεις ακόμη.</p>
             </div>
+          } @else if (favoriteBlogPostsResource.isLoading()) {
+            <div class="favorites-state">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Φόρτωση περιεχομένου αγαπημένων...</p>
+            </div>
+          } @else if (favoriteBlogPostsResource.error()) {
+            <div class="favorites-state favorites-warning">
+              <mat-icon>sync_problem</mat-icon>
+              <p>
+                Τα αναγνωριστικά αγαπημένων φορτώθηκαν ({{ favoriteBlogPostIds().length }}), αλλά απέτυχε η φόρτωση των
+                αναρτήσεων.
+              </p>
+              <button mat-stroked-button type="button" (click)="onRetryLoadFavoritePosts()">
+                <mat-icon>refresh</mat-icon>
+                Επανάληψη φόρτωσης αναρτήσεων
+              </button>
+            </div>
           } @else if (!favoriteBlogPosts().length) {
             <div class="favorites-state favorites-empty">
               <mat-icon>sync_problem</mat-icon>
-              <p>Δεν ήταν δυνατή η ανάκτηση των αγαπημένων αναρτήσεων.</p>
+              <p>Τα αγαπημένα σας χρειάζονται συγχρονισμό. Δοκιμάστε ξανά σε λίγο.</p>
             </div>
           } @else {
             <div class="favorites-grid">
