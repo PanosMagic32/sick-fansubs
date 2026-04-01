@@ -8,8 +8,24 @@
 @if (project.value(); as project) {
   <mat-card class="project-detail-card">
     <mat-card-header>
-      <div mat-card-avatar class="project-detail-header-image"></div>
-      <mat-card-title>{{ project.title }}</mat-card-title>
+      <div
+        mat-card-avatar
+        class="project-detail-header-image"
+        [style.background-image]="'url(' + creatorAvatarUrl() + ')'"
+        [attr.aria-label]="'Avatar δημιουργού για ' + project.title"
+      ></div>
+
+      <div class="project-detail-heading">
+        <mat-card-title>{{ project.title }}</mat-card-title>
+      </div>
+
+      <div class="project-detail-meta">
+        <p>Προστέθηκε: {{ project.dateTimeCreated | date: 'd/M/yyyy, HH:mm' }} ({{ createdByUsername() }})</p>
+
+        @if (hasBeenEdited()) {
+          <p>Επεξεργάστηκε: {{ project.updatedAt | date: 'd/M/yyyy, HH:mm' }} ({{ editedByUsername() }})</p>
+        }
+      </div>
     </mat-card-header>
 
     <img mat-card-image [src]="project.thumbnail" [alt]="project.title" />
@@ -22,13 +38,56 @@
 
     <mat-divider />
 
-    @if (project.batchDownloadLinks && project.batchDownloadLinks.length > 0) {
-      @for (link of project.batchDownloadLinks; track link; let i = $index) {
+    @if (getBatchLinks(project).length > 0) {
+      @for (link of getBatchLinks(project); track link.name + '-' + $index) {
         <div class="links">
-          <p>
-            Download Batch {{ i + 1 }}
-            <mat-icon (click)="onDownload(link)">link</mat-icon>
-          </p>
+          <p class="batch-title">{{ link.name }}</p>
+
+          <div class="download-buttons">
+            <button matButton [matMenuTriggerFor]="menu1080p" type="button">
+              <mat-icon>keyboard_arrow_down</mat-icon>
+              <span>1080p</span>
+            </button>
+
+            <mat-menu #menu1080p="matMenu">
+              @if (link.downloadLinkTorrent) {
+                <button mat-menu-item type="button" (click)="onDownload(link.downloadLinkTorrent)">
+                  <mat-icon>file_download</mat-icon>
+                  <span>Torrent</span>
+                </button>
+              }
+
+              @if (link.downloadLink) {
+                <button mat-menu-item type="button" (click)="onDownload(link.downloadLink)">
+                  <img src="images/magnet.png" class="magnet-icon" />
+                  <span>Magnet</span>
+                </button>
+              }
+            </mat-menu>
+
+            @if (link.downloadLink4k || link.downloadLink4kTorrent) {
+              <button matButton [matMenuTriggerFor]="menu2160p" type="button">
+                <mat-icon>keyboard_arrow_down</mat-icon>
+                <span>2160p</span>
+              </button>
+
+              <mat-menu #menu2160p="matMenu">
+                @if (link.downloadLink4kTorrent) {
+                  <button mat-menu-item type="button" (click)="onDownload(link.downloadLink4kTorrent)">
+                    <mat-icon>file_download</mat-icon>
+                    <span>Torrent</span>
+                  </button>
+                }
+
+                @if (link.downloadLink4k) {
+                  <button mat-menu-item type="button" (click)="onDownload(link.downloadLink4k)">
+                    <img src="images/magnet.png" class="magnet-icon" />
+                    <span>Magnet</span>
+                  </button>
+                }
+              </mat-menu>
+            }
+          </div>
         </div>
       }
     }

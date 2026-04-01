@@ -13,13 +13,22 @@
     </mat-card-header>
 
     <mat-card-content>
-      <sf-blog-post-form [form]="createForm" />
+      <sf-blog-post-form
+        [form]="createForm"
+        [isUploadingThumbnail]="isThumbnailUploadInProgress()"
+        (thumbnailFileSelected)="onThumbnailFileSelected($event)"
+      />
     </mat-card-content>
 
     <mat-divider />
 
     <mat-card-actions class="create-actions">
-      <button mat-raised-button color="primary" [disabled]="createForm.invalid" (click)="onSubmit()">
+      <button
+        mat-raised-button
+        color="primary"
+        [disabled]="createForm.invalid || isThumbnailUploadInProgress()"
+        (click)="onSubmit()"
+      >
         <mat-icon>save</mat-icon>
         Αποθήκευση
       </button>

@@ -1,67 +1,60 @@
-# << Sick-Fansubs >>
+# Sick-Fansubs
 
-This project was generated using [Nx](https://nx.dev). A smart, fast and extensible build system.
+Nx monorepo for the Sick Fansubs website.
 
-The project structure was implemented as described [here](https://gist.github.com/trungk18/7ef8766cafc05bc8fd87be22de6c5b12).
+## Stack
 
----
+- Angular 21 frontend
+- NestJS 11 API
+- MongoDB Atlas
+- MinIO object storage for managed media uploads
+- Nx workspace orchestration
+- Docker Compose for local and production-style container runs
 
-## -- Project Info --
+## Current Capabilities
 
----
+- Account profile management with avatar upload or manual avatar URL entry
+- Blog-post create and edit flows with managed thumbnail uploads
+- Project create and edit flows with managed thumbnail uploads
+- Project batch downloads with named torrent and magnet links plus optional 4K links
+- Public media delivery through `/media/*` proxied to MinIO
 
-## - NX (Monorepo)
+## Development
 
-[Nx Documentation](https://nx.dev/angular)
+### Install
 
-[10-minute video showing all Nx features](https://nx.dev/getting-started/intro)
+```bash
+pnpm install
+```
 
-[Interactive Tutorial](https://nx.dev/tutorial/01-create-application)
+### Run the apps locally with Docker
 
-### Development server
+```bash
+pnpm run docker:dev
+```
 
-Run `pnpm run dev` for a dev server. Navigate to http://localhost:4200/. The app will automatically reload if you change any of the source files.
-
-### Code scaffolding
-
-It is recommended to use the Nx console VSCode plugin to generate whatever you want as a library in the libs folder. Right click on the path you want and select `ng generate`. Then follow the on-screen instructions.
+This starts the Angular app, the NestJS API, and MinIO. MongoDB is expected to be provided through Atlas via `DATABASE_URL_DEV`.
 
 ### Build
 
-Run `pnpm run build:all` to build the projects (both `api` and `sick-fansubs`) for production. The build artifacts will be stored in the `dist/` directory. You can build an individual project with `nx build {{app-name}}` and you can use the `--prod` flag for a production build, like `nx build {{app-name}} --prod`.
+```bash
+pnpm run build:all
+```
 
-### Understand your workspace
+### Lint
 
-Run `nx graph` to see a diagram of the dependencies of your projects.
+```bash
+pnpm nx run-many -t lint -p web,api
+```
 
----
+## Operations Notes
 
-## - Angular (Frontend)
+- Swagger is available at `/api-docs`.
+- Managed uploads are accepted through `POST /api/media/images`.
+- Public media URLs are served from `/media/images/<key>`.
+- Production container startup uses `pnpm run docker:prod`.
 
-More info and Documentation can be found to [angular.io](https://angular.io/).
+## Additional Docs
 
----
-
-## - NestJS (Backend)
-
-More info and Documentation can be found to [nestjs.com](https://nestjs.com/).
-
----
-
-## - MongoDB (Database)
-
-More info and Documentation can be found to [mongodb.com](https://www.mongodb.com/).
-
----
-
-## - Docker/Docker Compose (Containerization)
-
-More info and Documentation can be found to [docker.com](https://www.docker.com/).
-
----
-
-## - Swagger (ReST API documentation)
-
-The ReST API documentation can be accessed through `/api-docs`.
-
-More info and Documentation can be found to [swagger.io](https://swagger.io/).
+- `docs/atlas-minio-setup-checklist.md`
+- `docs/account-pages-next-plan.md`

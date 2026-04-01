@@ -6,6 +6,28 @@
   flex-direction: column;
   gap: var(--sf-space-lg);
   margin: var(--sf-space-2xl) 0;
+
+  .account-ready-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-lg);
+  }
+
+  .account-primary-column,
+  .account-secondary-column {
+    min-width: 0;
+  }
+
+  // On ultra-wide screens, show profile and favorites side-by-side.
+  @media (min-width: 2000px) {
+    .account-ready-layout {
+      display: grid;
+      grid-template-columns: minmax(880px, 1fr) minmax(760px, 1fr);
+      align-items: start;
+      column-gap: var(--sf-space-xl);
+      row-gap: var(--sf-space-lg);
+    }
+  }
 }
 
 .account-card {
@@ -40,7 +62,7 @@
     gap: var(--sf-space-lg);
 
     @include bp.bp-up('lg') {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
     }
 
     & > mat-divider {

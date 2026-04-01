@@ -26,17 +26,110 @@
     }
   </mat-form-field>
 
-  <mat-label>Batch links</mat-label>
+  <div class="thumbnail-upload-section">
+    <div class="thumbnail-upload-header">
+      <p class="thumbnail-upload-title">Ανέβασμα εικόνας</p>
+      <input
+        #thumbnailFileInput
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        hidden
+        (change)="onThumbnailFileSelected($event)"
+      />
+
+      <button mat-stroked-button type="button" (click)="thumbnailFileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Επιλογή αρχείου
+      </button>
+    </div>
+
+    <p class="thumbnail-upload-hint">Το URL της εικόνας θα συμπληρωθεί αυτόματα μετά το ανέβασμα.</p>
+
+    @if (selectedThumbnailFileName) {
+      <p class="thumbnail-upload-meta">Επιλεγμένο αρχείο: {{ selectedThumbnailFileName }}</p>
+    }
+
+    @if (isUploadingThumbnail()) {
+      <p class="thumbnail-upload-meta">Ανεβαίνει η εικόνα...</p>
+    }
+
+    @if (thumbnailPreviewUrl) {
+      <div class="thumbnail-preview">
+        <p class="thumbnail-preview-label">Προεπισκόπηση εικόνας</p>
+        <img
+          [src]="thumbnailPreviewUrl"
+          alt="Προεπισκόπηση thumbnail"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          (error)="onThumbnailPreviewError()"
+        />
+      </div>
+    }
+  </div>
+
+  <mat-label>Batch λήψεις</mat-label>
   <ng-container formArrayName="batchDownloadLinks">
     @for (linkForm of batchDownloadLinks.controls; track linkForm; let i = $index) {
-      <div class="form-row">
-        <mat-form-field appearance="fill">
-          <mat-label>Link: {{ i + 1 }}</mat-label>
-          <textarea matInput [formControlName]="i" type="text"></textarea>
+      <div class="form-row" [formGroupName]="i">
+        <mat-form-field class="batch-name" appearance="fill">
+          <mat-label>Όνομα batch {{ i + 1 }}</mat-label>
+          <input matInput type="text" formControlName="name" required />
+        </mat-form-field>
+
+        <mat-form-field class="batch-torrent" appearance="fill">
+          <mat-label>Σύνδεσμος torrent {{ i + 1 }}</mat-label>
+          <textarea matInput formControlName="downloadLinkTorrent" type="text" required></textarea>
+
+          @if (linkForm.controls.downloadLinkTorrent.touched && linkForm.controls.downloadLinkTorrent.hasError('required')) {
+            <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+          }
+
+          @if (
+            linkForm.controls.downloadLinkTorrent.touched &&
+            linkForm.controls.downloadLinkTorrent.hasError('invalidBatchTorrentUrl')
+          ) {
+            <mat-error> Επιτρέπονται μόνο σύνδεσμοι torrent με http/https.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="batch-magnet" appearance="fill">
+          <mat-label>Σύνδεσμος magnet {{ i + 1 }}</mat-label>
+          <textarea matInput formControlName="downloadLink" type="text" required></textarea>
+
+          @if (linkForm.controls.downloadLink.touched && linkForm.controls.downloadLink.hasError('required')) {
+            <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
+          }
+
+          @if (linkForm.controls.downloadLink.touched && linkForm.controls.downloadLink.hasError('invalidBatchMagnetUrl')) {
+            <mat-error> Επιτρέπονται μόνο σύνδεσμοι magnet της μορφής magnet:?xt=...</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="batch-torrent-4k" appearance="fill">
+          <mat-label>Σύνδεσμος torrent 4K {{ i + 1 }}</mat-label>
+          <textarea matInput formControlName="downloadLink4kTorrent" type="text"></textarea>
+
+          @if (
+            linkForm.controls.downloadLink4kTorrent.touched &&
+            linkForm.controls.downloadLink4kTorrent.hasError('invalidBatchTorrentUrl')
+          ) {
+            <mat-error> Επιτρέπονται μόνο σύνδεσμοι torrent με http/https.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="batch-magnet-4k" appearance="fill">
+          <mat-label>Σύνδεσμος magnet 4K {{ i + 1 }}</mat-label>
+          <textarea matInput formControlName="downloadLink4k" type="text"></textarea>
+
+          @if (
+            linkForm.controls.downloadLink4k.touched && linkForm.controls.downloadLink4k.hasError('invalidBatchMagnetUrl')
+          ) {
+            <mat-error> Επιτρέπονται μόνο σύνδεσμοι magnet της μορφής magnet:?xt=...</mat-error>
+          }
         </mat-form-field>
 
         @if (batchDownloadLinks.controls.length > 1) {
-          <button mat-mini-fab color="warn" class="delete-btn" (click)="onDeleteBatchDownloadLink(i)">
+          <button mat-mini-fab type="button" color="warn" class="delete-btn" (click)="onDeleteBatchDownloadLink(i)">
             <mat-icon>delete</mat-icon>
           </button>
         }
@@ -44,7 +137,7 @@
     }
   </ng-container>
 
-  <button mat-raised-button color="primary" class="add-btn" (click)="onAddBatchDownloadLink()">
+  <button mat-raised-button type="button" color="primary" class="add-btn" (click)="onAddBatchDownloadLink()">
     <mat-icon>add</mat-icon>
     Προσθήκη batch
   </button>

@@ -54,6 +54,10 @@ export class ProjectItemComponent {
     () => this.project().updatedBy?.username || this.project().creator?.username || 'kushoyarou',
   );
   protected readonly hasBeenEdited = computed(() => {
+    if (!this.project().updatedBy) {
+      return false;
+    }
+
     const updatedAt = this.project().updatedAt;
     const createdAt = this.project().dateTimeCreated;
 

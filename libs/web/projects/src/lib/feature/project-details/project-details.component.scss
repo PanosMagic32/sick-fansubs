@@ -14,9 +14,46 @@
   margin: 2rem 0;
 
   mat-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+
     .project-detail-header-image {
-      background-image: url('/logo/logo.png');
+      width: 70px;
+      height: 70px;
+      flex: 0 0 70px;
       background-size: cover;
+      background-position: center;
+    }
+
+    .project-detail-heading {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .project-detail-meta {
+      margin-left: auto;
+      text-align: right;
+      font-size: 0.95rem;
+      color: rgba(226, 232, 240, 0.88);
+
+      p {
+        margin: 0;
+      }
+
+      p + p {
+        margin-top: 0.35rem;
+      }
+    }
+
+    @media (max-width: 900px) {
+      flex-wrap: wrap;
+
+      .project-detail-meta {
+        width: 100%;
+        margin-left: 0;
+        text-align: left;
+      }
     }
   }
 
@@ -31,12 +68,27 @@
   }
 
   .links {
-    font-size: 2rem;
+    font-size: 1rem;
     margin: 1rem;
 
+    .batch-title {
+      margin: 0 0 0.5rem;
+      font-weight: 600;
+    }
+
+    .download-buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
     mat-icon {
-      padding-top: 0.5rem;
-      cursor: pointer;
+      margin-right: 0.35rem;
+    }
+
+    .magnet-icon {
+      padding-right: 1rem;
+      margin-bottom: -3px;
     }
   }
 }

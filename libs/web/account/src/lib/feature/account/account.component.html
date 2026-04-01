@@ -19,59 +19,66 @@
     }
 
     @case ('ready') {
-      <!-- Account Card -->
-      <mat-card class="account-card main-account-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>person</mat-icon>
-            Λογαριασμός
-          </mat-card-title>
-        </mat-card-header>
+      <div class="account-ready-layout">
+        <div class="account-primary-column">
+          <mat-card class="account-card main-account-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>person</mat-icon>
+                Λογαριασμός
+              </mat-card-title>
+            </mat-card-header>
 
-        <mat-divider />
+            <mat-divider />
 
-        <mat-card-content>
-          <sf-account-profile-summary
-            [profile]="displayProfile()!"
-            [safeAvatarUrl]="safeAvatarUrl()"
-            (avatarImageError)="onAvatarImageError()"
+            <mat-card-content>
+              <sf-account-profile-summary
+                [profile]="displayProfile()!"
+                [safeAvatarUrl]="safeAvatarUrl()"
+                (avatarImageError)="onAvatarImageError()"
+              />
+
+              <sf-account-profile-form
+                [profileForm]="profileForm"
+                [isUploadingAvatar]="isAvatarUploadInProgress()"
+                [isNewPasswordVisible]="isNewPasswordVisible()"
+                [isConfirmPasswordVisible]="isConfirmPasswordVisible()"
+                [passwordRequirementsHint]="passwordRequirementsHint"
+                [passwordStrengthLabel]="passwordStrengthLabel"
+                [shouldShowPasswordMismatch]="shouldShowPasswordMismatch"
+                [isSaving]="updateUserResource.isLoading()"
+                (toggleNewPasswordVisibility)="toggleNewPasswordVisibility()"
+                (toggleConfirmPasswordVisibility)="toggleConfirmPasswordVisibility()"
+                (avatarFileSelected)="onAvatarFileSelected($event)"
+                (saveChanges)="onSaveChanges()"
+                (resetForm)="onResetForm()"
+                (logout)="onLogout()"
+              />
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <div class="account-secondary-column">
+          <sf-account-favorites
+            [favoriteBlogPostIds]="favoriteBlogPostIds()"
+            [favoriteBlogPosts]="favoriteBlogPosts()"
+            [favoritePostsTotal]="favoriteBlogPostsTotal()"
+            [currentPage]="favoritePostsPage()"
+            [pageSize]="favoritePostsPageSizeValue()"
+            [pageSizeOptions]="favoritePostsPageSizeOptions()"
+            [isFavoriteIdsLoading]="favoriteBlogPostIdsResource.isLoading()"
+            [hasFavoriteIdsError]="!!favoriteBlogPostIdsResource.error()"
+            [isFavoritePostsLoading]="favoriteBlogPostsResource.isLoading()"
+            [hasFavoritePostsError]="!!favoriteBlogPostsResource.error()"
+            [isRemovingFavorite]="removeFavoriteResource.isLoading()"
+            (retryLoadFavoriteIds)="onRetryLoadFavoriteIds()"
+            (retryLoadFavoritePosts)="onRetryLoadFavoritePosts()"
+            (removeFavorite)="onRemoveFavorite($event)"
+            (download)="onDownload($event)"
+            (pageChange)="onFavoritePostsPageChange($event)"
           />
-
-          <sf-account-profile-form
-            [profileForm]="profileForm"
-            [isNewPasswordVisible]="isNewPasswordVisible()"
-            [isConfirmPasswordVisible]="isConfirmPasswordVisible()"
-            [passwordRequirementsHint]="passwordRequirementsHint"
-            [passwordStrengthLabel]="passwordStrengthLabel"
-            [shouldShowPasswordMismatch]="shouldShowPasswordMismatch"
-            [isSaving]="updateUserResource.isLoading()"
-            (toggleNewPasswordVisibility)="toggleNewPasswordVisibility()"
-            (toggleConfirmPasswordVisibility)="toggleConfirmPasswordVisibility()"
-            (saveChanges)="onSaveChanges()"
-            (resetForm)="onResetForm()"
-            (logout)="onLogout()"
-          />
-        </mat-card-content>
-      </mat-card>
-
-      <sf-account-favorites
-        [favoriteBlogPostIds]="favoriteBlogPostIds()"
-        [favoriteBlogPosts]="favoriteBlogPosts()"
-        [favoritePostsTotal]="favoriteBlogPostsTotal()"
-        [currentPage]="favoritePostsPage()"
-        [pageSize]="favoritePostsPageSizeValue()"
-        [pageSizeOptions]="favoritePostsPageSizeOptions()"
-        [isFavoriteIdsLoading]="favoriteBlogPostIdsResource.isLoading()"
-        [hasFavoriteIdsError]="!!favoriteBlogPostIdsResource.error()"
-        [isFavoritePostsLoading]="favoriteBlogPostsResource.isLoading()"
-        [hasFavoritePostsError]="!!favoriteBlogPostsResource.error()"
-        [isRemovingFavorite]="removeFavoriteResource.isLoading()"
-        (retryLoadFavoriteIds)="onRetryLoadFavoriteIds()"
-        (retryLoadFavoritePosts)="onRetryLoadFavoritePosts()"
-        (removeFavorite)="onRemoveFavorite($event)"
-        (download)="onDownload($event)"
-        (pageChange)="onFavoritePostsPageChange($event)"
-      />
+        </div>
+      </div>
     }
   }
 </div>

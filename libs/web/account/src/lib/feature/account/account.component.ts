@@ -10,6 +10,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
 
 import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
 import { MatDivider } from '@angular/material/divider';
@@ -23,12 +24,13 @@ import { StatusCardComponent, TokenService } from '@web/shared';
 import { AccountFavoritesComponent } from '../../ui/favorites/account-favorites.component';
 import { AccountProfileFormComponent } from '../../ui/profile-form/account-profile-form.component';
 import { AccountProfileSummaryComponent } from '../../ui/profile-summary/account-profile-summary.component';
-import { UserProfile, UserService, UpdateUserRequest } from '../../data-access/user.service';
-import { AccountViewState, FavoritesPageChange } from '../../data-access/types';
+import { UserService } from '../../data-access/user.service';
+import { AccountViewState, FavoritesPageChange, UpdateUserRequest, UserProfile } from '../../data-access/types';
 
 const FAVORITES_DEFAULT_PAGE = 1;
 const FAVORITES_DEFAULT_PAGE_SIZE = 12;
 const FAVORITES_PAGE_SIZE_OPTIONS = [12, 24, 48];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 @Component({
   selector: 'sf-account',
@@ -68,6 +70,8 @@ export class WebAccountComponent implements OnInit {
   private readonly showConfirmPassword = signal(false);
   private readonly favoritePostsCurrentPage = signal(FAVORITES_DEFAULT_PAGE);
   private readonly favoritePostsPageSize = signal(FAVORITES_DEFAULT_PAGE_SIZE);
+  private readonly avatarUploadInProgress = signal(false);
+  private readonly pendingUploadedAvatarUrl = signal<string | null>(null);
 
   readonly displayProfile = this.latestUpdatedProfile.asReadonly();
   readonly favoriteBlogPosts = this.latestFavoriteBlogPosts.asReadonly();
@@ -75,6 +79,7 @@ export class WebAccountComponent implements OnInit {
   readonly favoritePostsPage = this.favoritePostsCurrentPage.asReadonly();
   readonly favoritePostsPageSizeValue = this.favoritePostsPageSize.asReadonly();
   readonly favoritePostsPageSizeOptions = signal(FAVORITES_PAGE_SIZE_OPTIONS).asReadonly();
+  readonly isAvatarUploadInProgress = this.avatarUploadInProgress.asReadonly();
   readonly isNewPasswordVisible = this.showNewPassword.asReadonly();
   readonly isConfirmPasswordVisible = this.showConfirmPassword.asReadonly();
 
@@ -105,7 +110,8 @@ export class WebAccountComponent implements OnInit {
   });
 
   readonly safeAvatarUrl = computed(() => {
-    const avatar = this.displayProfile()?.avatar;
+    const avatarFromForm = String(this.profileForm?.get('avatar')?.value ?? '').trim();
+    const avatar = avatarFromForm || this.pendingUploadedAvatarUrl() || this.displayProfile()?.avatar;
     if (!avatar || this.avatarImageError()) return null;
 
     const parsed = this.parseUrl(avatar);
@@ -178,6 +184,7 @@ export class WebAccountComponent implements OnInit {
       if (updatedProfile) {
         this.latestUpdatedProfile.set(updatedProfile);
         this.profileForm.patchValue(updatedProfile);
+        this.pendingUploadedAvatarUrl.set(null);
         this.snackBar.open('Το προφίλ ενημερώθηκε επιτυχώς', 'OK', { duration: 3000 });
         this.profileForm.markAsPristine();
         this.clearPasswordFields();
@@ -224,7 +231,7 @@ export class WebAccountComponent implements OnInit {
     if (!value) return null;
 
     try {
-      return new URL(value);
+      return new URL(value, window.location.origin);
     } catch {
       return null;
     }
@@ -285,6 +292,23 @@ export class WebAccountComponent implements OnInit {
         return 'Η ανάρτηση ή ο λογαριασμός δε βρέθηκε.';
       default:
         return 'Παρουσιάστηκε σφάλμα κατά την αφαίρεση από τα αγαπημένα.';
+    }
+  }
+
+  private getAvatarUploadErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Αποτυχία ανεβάσματος εικόνας. Δοκιμάστε ξανά.';
+    }
+
+    switch (error.status) {
+      case 0:
+        return 'Αδυναμία σύνδεσης με τον διακομιστή. Δοκιμάστε ξανά σε λίγο.';
+      case 400:
+        return 'Το αρχείο δεν είναι έγκυρο. Επιλέξτε εικόνα έως 5MB (jpg, png, gif, webp).';
+      case 401:
+        return 'Η συνεδρία σας έληξε. Συνδεθείτε ξανά.';
+      default:
+        return 'Παρουσιάστηκε σφάλμα κατά το ανέβασμα εικόνας.';
     }
   }
 
@@ -426,6 +450,7 @@ export class WebAccountComponent implements OnInit {
     const profile = this.displayProfile();
     if (profile) {
       this.profileForm.patchValue(profile);
+      this.pendingUploadedAvatarUrl.set(null);
       this.clearPasswordFields();
       this.profileForm.markAsPristine();
     }
@@ -449,11 +474,46 @@ export class WebAccountComponent implements OnInit {
     }
 
     const { email, avatar, password } = this.profileForm.getRawValue();
+    const manualAvatarUrl = String(avatar ?? '').trim();
+    const uploadedAvatarUrl = this.pendingUploadedAvatarUrl();
+
+    if (manualAvatarUrl && uploadedAvatarUrl) {
+      this.snackBar.open('Το URL εικόνας θα αντικαταστήσει την ανεβασμένη εικόνα.', 'OK', { duration: 3200 });
+    }
+
+    const nextAvatar = manualAvatarUrl || uploadedAvatarUrl || undefined;
     this.updateRequest.set({
       email,
-      avatar,
+      ...(nextAvatar ? { avatar: nextAvatar } : {}),
       ...(password ? { password } : {}),
     });
+  }
+
+  onAvatarFileSelected(file: File) {
+    if (file.size > MAX_FILE_SIZE) {
+      this.snackBar.open('Το αρχείο δεν μπορεί να υπερβαίνει τα 5 MB.', 'OK', { duration: 3000 });
+      return;
+    }
+
+    this.avatarUploadInProgress.set(true);
+
+    this.userService
+      .uploadAvatarImage(file)
+      .pipe(finalize(() => this.avatarUploadInProgress.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.pendingUploadedAvatarUrl.set(response.url);
+          // Keep URL input free for manual override, while preview uses uploaded URL.
+          this.profileForm.patchValue({ avatar: '' });
+          this.profileForm.markAsDirty();
+          this.avatarImageError.set(false);
+          this.snackBar.open('Η εικόνα ανέβηκε. Πατήστε αποθήκευση για να ενημερωθεί το προφίλ.', 'OK', { duration: 3000 });
+        },
+        error: (error: unknown) => {
+          if (this.handleUnauthorized(error)) return;
+          this.snackBar.open(this.getAvatarUploadErrorMessage(error), 'OK', { duration: 3500 });
+        },
+      });
   }
 
   get profileErrorMessage(): string {

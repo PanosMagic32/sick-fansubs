@@ -47,10 +47,15 @@ export class ProjectsService {
     });
   }
 
-  deleteProject(id: Signal<string>): HttpResourceRef<void | undefined> {
-    return httpResource<void>(() => ({
-      url: `${this.webConfigService.API_URL}/project/${id()}`,
-      method: 'DELETE',
-    }));
+  deleteProject(id: WritableSignal<string | null>): HttpResourceRef<Project | undefined> {
+    return httpResource<Project>(() => {
+      const projectId = id();
+      if (!projectId) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/project/${projectId}`,
+        method: 'DELETE',
+      };
+    });
   }
 }

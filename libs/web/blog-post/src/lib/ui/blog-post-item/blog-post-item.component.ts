@@ -65,6 +65,10 @@ export class BlogPostItemComponent {
     () => this.blogPost().updatedBy?.username || this.blogPost().creator?.username || 'kushoyarou',
   );
   protected readonly hasBeenEdited = computed(() => {
+    if (!this.blogPost().updatedBy) {
+      return false;
+    }
+
     const updatedAt = this.blogPost().updatedAt;
     const createdAt = this.blogPost().dateTimeCreated;
 

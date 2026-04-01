@@ -2,34 +2,21 @@
 
 ## Scope
 
-Deliver the next set of high-impact improvements for `/account`, focused on security-critical auth/session hardening, production-ready media upload, and the remaining account UX features.
+Finalize the remaining account UX features after the media pipeline rollout. Auth/session hardening (C0) and media upload delivery (C1) are complete.
 
 ## Prioritized Backlog (Criticality Order)
 
-### C0 — Security and Session Integrity (Highest)
+### C1 — Media Pipeline for Account and Future Features
 
 Status: Completed.
 
-1. Completed: login/register rate limiting with `@nestjs/throttler`.
-2. Completed: auth token transport moved from `localStorage` to secure `HttpOnly` cookies.
-3. Completed: refresh-token rotation with revocation support.
-4. Completed: centralized frontend auth error mapping for expired/invalid/revoked sessions.
-5. Partially completed: auth-focused tests added in `api-auth.service.spec.ts`; endpoint-level rate-limit/e2e cases remain for a dedicated follow-up.
-6. Completed: refresh-token session invalidated on password change (`update()` in `api-user` now calls `clearRefreshTokenSession()` when a new password is set).
-
-### C1 — Media Pipeline for Account and Future Features
-
-1. Add MinIO service and persistent volume in Docker Compose (dev + prod).
-2. Proxy `/media/` to MinIO in `nginx`.
-3. Add `MINIO_*` environment variables.
-4. Create `libs/api/media` with `POST /api/media/images` (multipart, validation, upload to MinIO, URL response).
-5. Register `ApiMediaModule` in `AppModule`.
-6. Install required packages:
-   - `@aws-sdk/client-s3`
-   - `@aws-sdk/lib-storage`
-   - `multer`
-   - `@types/multer`
-7. Update account avatar flow to upload first, then patch `avatar` URL.
+1. Completed: MinIO service and persistent volume in Docker Compose (dev + prod).
+2. Completed: `/media/` is proxied to MinIO in `nginx`.
+3. Completed: `MINIO_*` environment variables were added.
+4. Completed: `libs/api/media` now exposes `POST /api/media/images` with multipart validation and MinIO upload.
+5. Completed: `ApiMediaModule` is registered in `AppModule` and reused by avatar and thumbnail flows.
+6. Completed: required S3 and upload dependencies are installed.
+7. Completed: account avatar flow supports file upload and manual URL override.
 
 ### C2 — Account UX and Safety Enhancements
 
@@ -40,21 +27,6 @@ Status: Completed.
 ### C3 — Optional Security Extension
 
 1. Add optional email verification during registration (SMTP-backed).
-
-## Backend Coordination Constraints
-
-- Keep user-profile/favorites access rules as self or admin.
-- Preserve strict DTO validation behavior (`ValidationPipe` with `transform`, `whitelist`, `forbidNonWhitelisted`).
-- Keep update endpoint error semantics consistent for frontend mapping (`400/401/403/404/409`).
-
-## Security Baseline Targets
-
-- Cookie flags: `HttpOnly`, `Secure` (prod), `SameSite=Lax`.
-- Access token lifetime: short (for example 15m).
-- Refresh token: hashed in DB, rotated on use, invalidated on logout/password change.
-- Login throttling: strict per IP + username/email key.
-- No tokens persisted in browser `localStorage`.
-- JWT issuer/audience validation is enforced (`sick-fansubs-api` -> `sick-fansubs-web`).
 
 ## MinIO Target Architecture
 
@@ -90,3 +62,4 @@ Browser
 - Keep all user-facing strings in Greek.
 - Preserve `httpResource` + signals architecture.
 - Prefer incremental delivery to minimize auth/account regressions.
+- Follow-up UX work should preserve the new managed media flow instead of reintroducing direct file-hosting assumptions.

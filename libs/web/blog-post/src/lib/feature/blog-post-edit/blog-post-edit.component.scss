@@ -1,7 +1,7 @@
 @use 'breakpoints' as bp;
 
 .edit-card {
-  margin: var(--sf-space-lg) 0;
+  margin: 5rem auto 0 auto;
 
   mat-card-header {
     button {

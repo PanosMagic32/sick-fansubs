@@ -26,6 +26,10 @@
   opacity: 0.8;
 }
 
+.full-width {
+  width: 100%;
+}
+
 .security-section {
   display: flex;
   flex-direction: column;
@@ -64,5 +68,34 @@
     mat-icon {
       margin-right: var(--sf-space-xs);
     }
+  }
+}
+
+.form-section {
+  border: 1px solid color-mix(in srgb, #4c6faf 24%, white);
+  border-radius: var(--sf-radius-md, 12px);
+  padding: var(--sf-space-sm);
+  margin-top: var(--sf-space-xs);
+}
+
+.avatar-upload-section {
+  .file-input-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-xs);
+    margin-bottom: var(--sf-space-xs);
+  }
+
+  label {
+    font-size: var(--sf-font-sm);
+    font-weight: 600;
+  }
+
+  .selected-file-name {
+    margin: 0 0 var(--sf-space-xs) 0;
+    font-size: var(--sf-font-sm);
+    font-weight: 600;
+    color: #6c92e1;
+    word-break: break-word;
   }
 }

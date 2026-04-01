@@ -35,6 +35,47 @@
     }
   </mat-form-field>
 
+  <div class="thumbnail-upload-section">
+    <div class="thumbnail-upload-header">
+      <p class="thumbnail-upload-title">Ανέβασμα εικόνας</p>
+      <input
+        #thumbnailFileInput
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        hidden
+        (change)="onThumbnailFileSelected($event)"
+      />
+
+      <button mat-stroked-button type="button" (click)="thumbnailFileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Επιλογή αρχείου
+      </button>
+    </div>
+
+    <p class="thumbnail-upload-hint">Το URL της εικόνας θα συμπληρωθεί αυτόματα μετά το ανέβασμα.</p>
+
+    @if (selectedThumbnailFileName) {
+      <p class="thumbnail-upload-meta">Επιλεγμένο αρχείο: {{ selectedThumbnailFileName }}</p>
+    }
+
+    @if (isUploadingThumbnail()) {
+      <p class="thumbnail-upload-meta">Ανεβαίνει η εικόνα...</p>
+    }
+
+    @if (thumbnailPreviewUrl) {
+      <div class="thumbnail-preview">
+        <p class="thumbnail-preview-label">Προεπισκόπηση εικόνας</p>
+        <img
+          [src]="thumbnailPreviewUrl"
+          alt="Προεπισκόπηση thumbnail"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          (error)="onThumbnailPreviewError()"
+        />
+      </div>
+    }
+  </div>
+
   <mat-form-field class="input" appearance="fill">
     <mat-label>Σύνδεσμος λήψης torrent</mat-label>
     <textarea

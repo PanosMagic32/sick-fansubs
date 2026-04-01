@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 
 import { MatIcon } from '@angular/material/icon';
 
-import type { UserProfile } from '../../data-access/user.service';
+import { UserProfile } from '../../data-access/types';
 
 @Component({
   selector: 'sf-account-profile-summary',

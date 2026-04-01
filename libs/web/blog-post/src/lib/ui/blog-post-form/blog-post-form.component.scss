@@ -1,4 +1,58 @@
 .input {
   display: block;
   min-height: 4rem;
+  width: 100%;
+}
+
+.thumbnail-upload-section {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 1rem;
+  background: #46464f;
+}
+
+.thumbnail-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.thumbnail-upload-title,
+.thumbnail-upload-hint,
+.thumbnail-upload-meta {
+  margin: 0;
+}
+
+.thumbnail-upload-title {
+  font-weight: 600;
+}
+
+.thumbnail-upload-hint {
+  margin-top: 0.5rem;
+}
+
+.thumbnail-upload-meta {
+  margin-top: 0.5rem;
+  color: rgba(15, 23, 42, 0.9);
+}
+
+.thumbnail-preview {
+  margin-top: 0.75rem;
+}
+
+.thumbnail-preview-label {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.thumbnail-preview img {
+  display: block;
+  width: min(100%, 420px);
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(226, 232, 240, 0.45);
 }

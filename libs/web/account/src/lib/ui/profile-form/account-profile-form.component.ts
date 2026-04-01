@@ -15,6 +15,7 @@ import { MatInput } from '@angular/material/input';
 })
 export class AccountProfileFormComponent {
   readonly profileForm = input.required<FormGroup>();
+  readonly isUploadingAvatar = input<boolean>(false);
   readonly isNewPasswordVisible = input.required<boolean>();
   readonly isConfirmPasswordVisible = input.required<boolean>();
   readonly passwordRequirementsHint = input.required<string>();
@@ -24,9 +25,12 @@ export class AccountProfileFormComponent {
 
   readonly toggleNewPasswordVisibility = output<void>();
   readonly toggleConfirmPasswordVisibility = output<void>();
+  readonly avatarFileSelected = output<File>();
   readonly saveChanges = output<void>();
   readonly resetForm = output<void>();
   readonly logout = output<void>();
+
+  selectedAvatarFileName: string | null = null;
 
   onToggleNewPasswordVisibility(): void {
     this.toggleNewPasswordVisibility.emit();
@@ -36,11 +40,26 @@ export class AccountProfileFormComponent {
     this.toggleConfirmPasswordVisibility.emit();
   }
 
+  onAvatarFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (file) {
+      this.selectedAvatarFileName = file.name;
+      this.avatarFileSelected.emit(file);
+    } else {
+      this.selectedAvatarFileName = null;
+    }
+
+    input.value = '';
+  }
+
   onSaveChanges(): void {
     this.saveChanges.emit();
   }
 
   onResetForm(): void {
+    this.selectedAvatarFileName = null;
     this.resetForm.emit();
   }
 

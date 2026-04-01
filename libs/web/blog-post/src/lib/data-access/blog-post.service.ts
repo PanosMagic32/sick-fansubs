@@ -54,11 +54,16 @@ export class BlogPostService {
     });
   }
 
-  deleteBlogPost(id: Signal<string>): HttpResourceRef<void | undefined> {
-    return httpResource<void>(() => ({
-      url: `${this.webConfigService.API_URL}/blog-post/${id()}`,
-      method: 'DELETE',
-    }));
+  deleteBlogPost(id: WritableSignal<string | null>): HttpResourceRef<BlogPost | undefined> {
+    return httpResource<BlogPost>(() => {
+      const postId = id();
+      if (!postId) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/blog-post/${postId}`,
+        method: 'DELETE',
+      };
+    });
   }
 
   getFavoriteBlogPostIds(userId: Signal<string | null>): HttpResourceRef<FavoriteBlogPostIdsResponse | undefined> {

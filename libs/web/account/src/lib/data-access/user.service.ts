@@ -1,39 +1,20 @@
-import { httpResource, HttpResourceRef } from '@angular/common/http';
+import { HttpClient, httpResource, HttpResourceRef } from '@angular/common/http';
 import { inject, Injectable, Signal, WritableSignal } from '@angular/core';
+import { Observable } from 'rxjs';
 
-import type { BlogPost } from '@shared/types';
 import { WebConfigService } from '@web/shared';
-
-export interface UserProfile {
-  id: string;
-  username: string;
-  email: string;
-  avatar?: string;
-  isAdmin: boolean;
-  favoriteBlogPostIds: string[];
-  createdBlogPostIds: string[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface FavoriteBlogPostIdsResponse {
-  favoriteBlogPostIds: string[];
-}
-
-export interface FavoriteBlogPostsResponse {
-  posts: BlogPost[];
-  count: number;
-}
-
-export interface UpdateUserRequest {
-  email?: string;
-  avatar?: string;
-  password?: string;
-}
+import {
+  UserProfile,
+  UpdateUserRequest,
+  FavoriteBlogPostIdsResponse,
+  FavoriteBlogPostsResponse,
+  MediaUploadResponse,
+} from './types';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
   private readonly webConfigService = inject(WebConfigService);
+  private readonly httpClient = inject(HttpClient);
 
   getUserProfile(userId: Signal<string>): HttpResourceRef<UserProfile | undefined> {
     return httpResource<UserProfile>(() => {
@@ -119,5 +100,12 @@ export class UserService {
         url: `${this.webConfigService.API_URL}/user/${id}/favorites/posts?pagesize=${pageSize()}&page=${currentPage()}`,
       };
     });
+  }
+
+  uploadAvatarImage(file: File): Observable<MediaUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.httpClient.post<MediaUploadResponse>(`${this.webConfigService.API_URL}/media/images`, formData);
   }
 }

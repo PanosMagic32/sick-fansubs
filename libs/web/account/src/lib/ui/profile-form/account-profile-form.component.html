@@ -24,89 +24,115 @@
     }
   </mat-form-field>
 
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>URL Εικόνας Προφίλ</mat-label>
-    <input matInput formControlName="avatar" placeholder="https://..." />
-    <mat-icon matPrefix>image</mat-icon>
-  </mat-form-field>
+  <div class="form-section avatar-upload-section">
+    <p class="password-strength">Μπορείτε να ανεβάσε μια εικόνα ή να εισάγετε το URL από μια υπάρχουσα.</p>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>URL Εικόνας Προφίλ</mat-label>
+      <input matInput formControlName="avatar" placeholder="https://..." />
+      <mat-icon matPrefix>image</mat-icon>
+    </mat-form-field>
 
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Νέος Κωδικός (προαιρετικό)</mat-label>
-    <input
-      matInput
-      formControlName="password"
-      [type]="isNewPasswordVisible() ? 'text' : 'password'"
-      autocomplete="new-password"
-    />
-    <mat-icon matPrefix>lock</mat-icon>
-    <button
-      mat-icon-button
-      matSuffix
-      type="button"
-      [attr.aria-label]="isNewPasswordVisible() ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'"
-      (click)="onToggleNewPasswordVisibility()"
-    >
-      <mat-icon>{{ isNewPasswordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
-    </button>
+    <div class="file-input-row">
+      <label for="avatar-upload-input">Εναλλακτικά, ανεβάστε την εικόνα σας</label>
+      <input
+        id="avatar-upload-input"
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp"
+        (change)="onAvatarFileSelected($event)"
+        [disabled]="isUploadingAvatar()"
+      />
+    </div>
 
-    @if (profileForm().get('password')?.hasError('minlength')) {
-      <mat-error>Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.</mat-error>
+    @if (selectedAvatarFileName) {
+      <p class="selected-file-name">Επιλεγμένο αρχείο: {{ selectedAvatarFileName }}</p>
     }
 
-    @if (profileForm().get('password')?.hasError('maxlength')) {
-      <mat-error>Ο κωδικός δεν μπορεί να ξεπερνά τους 128 χαρακτήρες.</mat-error>
+    <p class="password-strength">Υποστηρίζονται: jpg, png, gif, webp (μέγιστο 5MB).</p>
+    <p class="password-strength">Αν συμπληρώσετε URL, θα αντικαταστήσει την ανεβασμένη εικόνα.</p>
+    @if (isUploadingAvatar()) {
+      <p class="password-strength">Η εικόνα ανεβαίνει...</p>
     }
-    @if (profileForm().get('password')?.hasError('needsLowercase')) {
-      <mat-error>Προσθέστε τουλάχιστον ένα πεζό γράμμα.</mat-error>
-    }
+  </div>
 
-    @if (profileForm().get('password')?.hasError('needsUppercase')) {
-      <mat-error>Προσθέστε τουλάχιστον ένα κεφαλαίο γράμμα.</mat-error>
-    }
+  <div class="form-section password-section">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Νέος Κωδικός (προαιρετικό)</mat-label>
+      <input
+        matInput
+        formControlName="password"
+        [type]="isNewPasswordVisible() ? 'text' : 'password'"
+        autocomplete="new-password"
+      />
+      <mat-icon matPrefix>lock</mat-icon>
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        [attr.aria-label]="isNewPasswordVisible() ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'"
+        (click)="onToggleNewPasswordVisibility()"
+      >
+        <mat-icon>{{ isNewPasswordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
 
-    @if (profileForm().get('password')?.hasError('needsNumber')) {
-      <mat-error>Προσθέστε τουλάχιστον έναν αριθμό.</mat-error>
-    }
+      @if (profileForm().get('password')?.hasError('minlength')) {
+        <mat-error>Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.</mat-error>
+      }
 
-    @if (profileForm().get('password')?.hasError('needsSymbol')) {
-      <mat-error>Προσθέστε τουλάχιστον ένα σύμβολο.</mat-error>
-    }
-  </mat-form-field>
+      @if (profileForm().get('password')?.hasError('maxlength')) {
+        <mat-error>Ο κωδικός δεν μπορεί να ξεπερνά τους 128 χαρακτήρες.</mat-error>
+      }
+      @if (profileForm().get('password')?.hasError('needsLowercase')) {
+        <mat-error>Προσθέστε τουλάχιστον ένα πεζό γράμμα.</mat-error>
+      }
 
-  <p class="password-strength">{{ passwordRequirementsHint() }}</p>
-  <p class="password-strength">{{ passwordStrengthLabel() }}</p>
+      @if (profileForm().get('password')?.hasError('needsUppercase')) {
+        <mat-error>Προσθέστε τουλάχιστον ένα κεφαλαίο γράμμα.</mat-error>
+      }
 
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Επιβεβαίωση Νέου Κωδικού</mat-label>
-    <input
-      matInput
-      formControlName="confirmPassword"
-      [type]="isConfirmPasswordVisible() ? 'text' : 'password'"
-      autocomplete="new-password"
-    />
-    <mat-icon matPrefix>lock_reset</mat-icon>
-    <button
-      mat-icon-button
-      matSuffix
-      type="button"
-      [attr.aria-label]="isConfirmPasswordVisible() ? 'Απόκρυψη επιβεβαίωσης κωδικού' : 'Εμφάνιση επιβεβαίωσης κωδικού'"
-      (click)="onToggleConfirmPasswordVisibility()"
-    >
-      <mat-icon>{{ isConfirmPasswordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
-    </button>
+      @if (profileForm().get('password')?.hasError('needsNumber')) {
+        <mat-error>Προσθέστε τουλάχιστον έναν αριθμό.</mat-error>
+      }
 
-    @if (profileForm().hasError('confirmPasswordRequired')) {
-      <mat-error>Συμπληρώστε την επιβεβαίωση του νέου κωδικού.</mat-error>
-    }
+      @if (profileForm().get('password')?.hasError('needsSymbol')) {
+        <mat-error>Προσθέστε τουλάχιστον ένα σύμβολο.</mat-error>
+      }
+    </mat-form-field>
 
-    @if (profileForm().hasError('passwordRequired')) {
-      <mat-error>Συμπληρώστε πρώτα νέο κωδικό.</mat-error>
-    }
+    <p class="password-strength">{{ passwordRequirementsHint() }}</p>
+    <p class="password-strength">{{ passwordStrengthLabel() }}</p>
 
-    @if (shouldShowPasswordMismatch()) {
-      <mat-error>Οι κωδικοί δεν ταιριάζουν.</mat-error>
-    }
-  </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Επιβεβαίωση Νέου Κωδικού</mat-label>
+      <input
+        matInput
+        formControlName="confirmPassword"
+        [type]="isConfirmPasswordVisible() ? 'text' : 'password'"
+        autocomplete="new-password"
+      />
+      <mat-icon matPrefix>lock_reset</mat-icon>
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        [attr.aria-label]="isConfirmPasswordVisible() ? 'Απόκρυψη επιβεβαίωσης κωδικού' : 'Εμφάνιση επιβεβαίωσης κωδικού'"
+        (click)="onToggleConfirmPasswordVisibility()"
+      >
+        <mat-icon>{{ isConfirmPasswordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+
+      @if (profileForm().hasError('confirmPasswordRequired')) {
+        <mat-error>Συμπληρώστε την επιβεβαίωση του νέου κωδικού.</mat-error>
+      }
+
+      @if (profileForm().hasError('passwordRequired')) {
+        <mat-error>Συμπληρώστε πρώτα νέο κωδικό.</mat-error>
+      }
+
+      @if (shouldShowPasswordMismatch()) {
+        <mat-error>Οι κωδικοί δεν ταιριάζουν.</mat-error>
+      }
+    </mat-form-field>
+  </div>
 
   <div class="button-group">
     <button
@@ -114,7 +140,7 @@
       color="primary"
       type="button"
       (click)="onSaveChanges()"
-      [disabled]="profileForm().invalid || profileForm().pristine || isSaving()"
+      [disabled]="profileForm().invalid || profileForm().pristine || isSaving() || isUploadingAvatar()"
     >
       <mat-icon>save</mat-icon>
       Αποθήκευση Αλλαγών
