@@ -15,6 +15,7 @@ Status: Completed.
 3. Completed: refresh-token rotation with revocation support.
 4. Completed: centralized frontend auth error mapping for expired/invalid/revoked sessions.
 5. Partially completed: auth-focused tests added in `api-auth.service.spec.ts`; endpoint-level rate-limit/e2e cases remain for a dedicated follow-up.
+6. Completed: refresh-token session invalidated on password change (`update()` in `api-user` now calls `clearRefreshTokenSession()` when a new password is set).
 
 ### C1 — Media Pipeline for Account and Future Features
 

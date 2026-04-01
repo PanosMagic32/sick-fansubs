@@ -20,6 +20,7 @@ User domain module for profile management, favorites, and auth-adjacent account 
 
 - `POST /api/user` is protected by credential throttling (`5/min`)
 - Protected user routes keep self-or-admin enforcement
+- `PATCH /api/user/:id` — when a password change is included, the active refresh-token session is invalidated immediately via `clearRefreshTokenSession()` after the update succeeds
 
 ## Existing Account Data
 
