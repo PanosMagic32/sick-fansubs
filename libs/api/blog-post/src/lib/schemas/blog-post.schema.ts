@@ -5,7 +5,7 @@ import { User } from '@api/user';
 
 export type BlogPostDocument = BlogPost & Document;
 
-@Schema({ collection: 'blogposts' })
+@Schema({ collection: 'blogposts', timestamps: true })
 export class BlogPost {
   @Prop({ required: true })
   title!: string;
@@ -36,6 +36,9 @@ export class BlogPost {
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   creator!: User;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  updatedBy?: User;
 }
 
 export const BlogPostSchema = SchemaFactory.createForClass(BlogPost);

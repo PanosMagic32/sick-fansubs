@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -49,10 +49,11 @@ export class ProjectService {
     return slug;
   }
 
-  async create(createProjectDto: CreateProjectDto): Promise<Project> {
+  async create(createProjectDto: CreateProjectDto, creatorId: string): Promise<Project> {
     const slug = await this.createUniqueSlug(createProjectDto.title);
     const createProject = await this.projectModel.create({
       ...createProjectDto,
+      creator: new Types.ObjectId(creatorId),
       slug,
     });
     return createProject;
@@ -71,6 +72,8 @@ export class ProjectService {
       //   },
       // })
       .find()
+      .populate('creator', 'username avatar')
+      .populate('updatedBy', 'username avatar')
       .sort({ dateTimeCreated: 'desc' });
 
     if (pageSize && currentPage) {
@@ -84,15 +87,21 @@ export class ProjectService {
   }
 
   async findOne(id: string): Promise<Project | undefined> {
-    const project = await this.projectModel.findOne({ _id: id });
+    const project = await this.projectModel
+      .findOne({ _id: id })
+      .populate('creator', 'username avatar')
+      .populate('updatedBy', 'username avatar');
     if (project) return project;
     throw new NotFoundException();
   }
 
-  async update(id: string, updateProjectDto: UpdateProjectDto): Promise<Project | undefined | null> {
+  async update(id: string, updateProjectDto: UpdateProjectDto, actorId: string): Promise<Project | undefined | null> {
     const project = await this.findOne(id);
     if (project) {
-      const payload = { ...updateProjectDto } as UpdateProjectDto & { slug?: string };
+      const payload = { ...updateProjectDto, updatedBy: new Types.ObjectId(actorId) } as UpdateProjectDto & {
+        slug?: string;
+        updatedBy: Types.ObjectId;
+      };
 
       if (updateProjectDto.title) {
         payload.slug = await this.createUniqueSlug(updateProjectDto.title, id);

@@ -20,6 +20,8 @@ export interface BlogPost {
   downloadLink4kTorrent?: string;
   downloadLink4k?: string;
   creator?: UserRef;
+  updatedBy?: UserRef;
+  updatedAt?: Date | string;
 }
 
 export type CreateBlogPost = Omit<BlogPost, '_id' | 'creator'>;
@@ -33,7 +35,9 @@ export interface Project {
   thumbnail: string;
   dateTimeCreated: Date | string;
   creator?: UserRef;
+  updatedBy?: UserRef;
   batchDownloadLinks?: string[];
+  updatedAt?: Date | string;
 }
 
 export interface CreateProject {

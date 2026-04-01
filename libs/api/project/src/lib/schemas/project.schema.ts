@@ -5,7 +5,7 @@ import { User } from '@api/user';
 
 export type ProjectDocument = Project & Document;
 
-@Schema({ collection: 'projects' })
+@Schema({ collection: 'projects', timestamps: true })
 export class Project {
   @Prop({ required: true })
   title!: string;
@@ -24,6 +24,9 @@ export class Project {
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   creator!: User;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  updatedBy?: User;
 
   @Prop()
   batchDownloadLinks!: string[];

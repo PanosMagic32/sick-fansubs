@@ -39,8 +39,12 @@ export class ApiBlogPostController {
   @ApiParam({ name: 'id' })
   @Patch(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async update(@Param('id') id: string, @Body() updateBlogPostDto: UpdateBlogPostDto) {
-    return this.apiBlogPostService.update(id, updateBlogPostDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateBlogPostDto: UpdateBlogPostDto,
+    @Req() req: { user?: { sub?: string } },
+  ) {
+    return this.apiBlogPostService.update(id, updateBlogPostDto, this.getActorIdFromRequest(req));
   }
 
   @ApiParam({ name: 'id' })

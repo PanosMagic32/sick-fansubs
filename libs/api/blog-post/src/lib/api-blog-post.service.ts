@@ -39,6 +39,8 @@ export class ApiBlogPostService {
       //   },
       // })
       .find()
+      .populate('creator', 'username avatar')
+      .populate('updatedBy', 'username avatar')
       .sort({ dateTimeCreated: 'desc' });
 
     if (pageSize && currentPage) {
@@ -52,14 +54,21 @@ export class ApiBlogPostService {
   }
 
   async findOne(id: string): Promise<BlogPost | undefined> {
-    const blogPost = await this.blogPostModel.findOne({ _id: id });
+    const blogPost = await this.blogPostModel
+      .findOne({ _id: id })
+      .populate('creator', 'username avatar')
+      .populate('updatedBy', 'username avatar');
     if (blogPost) return blogPost;
     throw new NotFoundException();
   }
 
-  async update(id: string, updateBlogPostDto: UpdateBlogPostDto): Promise<BlogPost | undefined | null> {
+  async update(id: string, updateBlogPostDto: UpdateBlogPostDto, actorId: string): Promise<BlogPost | undefined | null> {
     const blogPost = await this.findOne(id);
-    if (blogPost) return this.blogPostModel.findByIdAndUpdate({ _id: id }, updateBlogPostDto).exec();
+    if (blogPost) {
+      return this.blogPostModel
+        .findByIdAndUpdate({ _id: id }, { ...updateBlogPostDto, updatedBy: new Types.ObjectId(actorId) })
+        .exec();
+    }
     throw new NotFoundException();
   }
 

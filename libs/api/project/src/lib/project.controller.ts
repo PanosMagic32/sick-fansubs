@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { AdminGuard, JwtAuthGuard } from '@api/user';
@@ -13,10 +13,14 @@ import { Project } from './schemas/project.schema';
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
+  private getActorIdFromRequest(req: { user?: { sub?: string } }): string {
+    return req.user?.sub ?? '';
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async create(@Body() createProjectDto: CreateProjectDto) {
-    return this.projectService.create(createProjectDto);
+  async create(@Body() createProjectDto: CreateProjectDto, @Req() req: { user?: { sub?: string } }) {
+    return this.projectService.create(createProjectDto, this.getActorIdFromRequest(req));
   }
 
   @Get()
@@ -35,8 +39,12 @@ export class ProjectController {
   @ApiParam({ name: 'id' })
   @Patch(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
-    return this.projectService.update(id, updateProjectDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateProjectDto: UpdateProjectDto,
+    @Req() req: { user?: { sub?: string } },
+  ) {
+    return this.projectService.update(id, updateProjectDto, this.getActorIdFromRequest(req));
   }
 
   @ApiParam({ name: 'id' })
