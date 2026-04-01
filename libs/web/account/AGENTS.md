@@ -31,9 +31,17 @@ Angular `httpResource`-based service (signals-driven):
 - `getUserProfile(userId: Signal<string>)` — `GET /api/user/:id`; returns `HttpResourceRef<UserProfile>`. Runs reactively when `userId` signal changes.
 - `updateUserProfile(userId, data: WritableSignal<UpdateUserRequest | null>)` — `PATCH /api/user/:id`; fires only when `data` signal is non-null (on-demand mutation pattern).
 - `getFavoriteBlogPostIds(userId)` — `GET /api/user/:id/favorites`
-- `getFavoriteBlogPosts(userId)` — `GET /api/user/:id/favorites/posts` (single populated favorites call)
+- `getFavoriteBlogPosts(userId, pageSize, currentPage)` — `GET /api/user/:id/favorites/posts?pagesize=<n>&page=<n>` (paginated populated favorites)
 - `addFavoriteBlogPost(userId, postId)` — `PUT /api/user/:id/favorites/:postId`
 - `removeFavoriteBlogPost(userId, postId)` — `DELETE /api/user/:id/favorites/:postId`
+
+#### `types.ts`
+
+Shared account feature types:
+
+- `AccountViewState`
+- `FavoritesViewState`
+- `FavoritesPageChange`
 
 ### `src/lib/feature/`
 
@@ -46,7 +54,8 @@ Smart component:
 - Reactive form fields: `email?`, `avatar?`, `password?`, `confirmPassword?`
 - Password confirmation cross-field validator
 - Submit sets `updateRequest` signal → triggers `updateUserProfile` PATCH
-- Loads favorite ids + populated favorites and renders a dedicated favorites card
+- Loads favorite ids + paginated populated favorites and renders a dedicated favorites card
+- Maintains local favorites pagination state (current page, page size, page-size options)
 - Supports removing favorites and refreshes favorites ids and populated favorites resources
 - Handles expired sessions by clearing token and redirecting to login
 - Uses shared `StatusCardComponent` from `@web/shared` for loading/error shell states
@@ -64,7 +73,7 @@ Presentational profile edit/password/security form. Receives form + UI flags via
 
 #### `ui/favorites/account-favorites.component.ts`
 
-Presentational favorites card. Uses signal inputs/outputs and a computed `FavoritesViewState` switch for loading/error/empty/ready rendering.
+Presentational favorites card. Uses signal inputs/outputs, a computed `FavoritesViewState` switch for loading/error/empty/ready rendering, and a paginator emitting `FavoritesPageChange`.
 
 ## Update Flow
 
@@ -76,7 +85,7 @@ Presentational favorites card. Uses signal inputs/outputs and a computed `Favori
 ## Dependencies
 
 - `@web/auth` — `requireAuthGuard` (for route protection)
-- `@web/shared` — `TokenService` (for `userId` signal)
+- `@web/shared` — `TokenService`, `StatusCardComponent` (loading/error shell)
 
 ## Nx Tasks
 
