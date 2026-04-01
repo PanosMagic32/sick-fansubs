@@ -67,89 +67,105 @@
         }
 
         @default {
-          <div class="favorites-grid">
-            @for (post of favoriteBlogPosts(); track post._id ?? post.title) {
-              <mat-card class="favorite-card">
-                @if (post.thumbnail) {
-                  <img [src]="post.thumbnail" [alt]="post.title" class="favorite-image" />
-                }
-
-                <mat-card-content>
-                  <div class="favorite-header">
-                    <div>
-                      <h4 class="favorite-title">{{ post.title }}</h4>
-                      <p class="favorite-date">{{ post.dateTimeCreated | date: 'd/M/yyyy, HH:mm' }}</p>
-                    </div>
-
-                    <button
-                      mat-icon-button
-                      color="warn"
-                      type="button"
-                      aria-label="Αφαίρεση από τα αγαπημένα"
-                      [disabled]="isRemovingFavorite()"
-                      (click)="onRemoveFavorite(post._id)"
-                    >
-                      <mat-icon>favorite</mat-icon>
-                    </button>
-                  </div>
-
-                  @if (post.subtitle) {
-                    <div class="favorite-tags">
-                      <span class="tag">{{ post.subtitle }}</span>
-                    </div>
+          <div class="favorites-results">
+            <div class="favorites-grid">
+              @for (post of favoriteBlogPosts(); track post._id ?? post.title) {
+                <mat-card class="favorite-card">
+                  @if (post.thumbnail) {
+                    <img [src]="post.thumbnail" [alt]="post.title" class="favorite-image" />
                   }
 
-                  <p class="favorite-excerpt">{{ post.description }}</p>
+                  <mat-card-content>
+                    <div class="favorite-header">
+                      <div>
+                        <h4 class="favorite-title">{{ post.title }}</h4>
+                        <p class="favorite-date">{{ post.dateTimeCreated | date: 'd/M/yyyy, HH:mm' }}</p>
+                      </div>
 
-                  <div class="favorite-actions">
-                    <div class="favorite-download-buttons">
-                      <button matButton [matMenuTriggerFor]="menu1080p" type="button">
-                        <mat-icon>keyboard_arrow_down</mat-icon>
-                        <span>1080p</span>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        type="button"
+                        class="favorite-button"
+                        aria-label="Αφαίρεση από τα αγαπημένα"
+                        [disabled]="isRemovingFavorite()"
+                        (click)="onRemoveFavorite(post._id)"
+                      >
+                        <mat-icon>favorite</mat-icon>
                       </button>
+                    </div>
 
-                      <mat-menu #menu1080p="matMenu">
-                        @if (post.downloadLinkTorrent) {
-                          <button mat-menu-item type="button" (click)="onDownload(post.downloadLinkTorrent)">
-                            <mat-icon>file_download</mat-icon>
-                            <span>Torrent</span>
-                          </button>
-                        }
+                    @if (post.subtitle) {
+                      <div class="favorite-tags">
+                        <span class="tag">{{ post.subtitle }}</span>
+                      </div>
+                    }
 
-                        @if (post.downloadLink) {
-                          <button mat-menu-item type="button" (click)="onDownload(post.downloadLink)">
-                            <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
-                            <span>Magnet</span>
-                          </button>
-                        }
-                      </mat-menu>
+                    <p class="favorite-excerpt">{{ post.description }}</p>
 
-                      @if (post.downloadLink4k || post.downloadLink4kTorrent) {
-                        <button matButton [matMenuTriggerFor]="menu2160p" type="button">
+                    <div class="favorite-actions">
+                      <div class="favorite-download-buttons">
+                        <button matButton [matMenuTriggerFor]="menu1080p" type="button">
                           <mat-icon>keyboard_arrow_down</mat-icon>
-                          <span>2160p</span>
+                          <span>1080p</span>
                         </button>
 
-                        <mat-menu #menu2160p="matMenu">
-                          @if (post.downloadLink4kTorrent) {
-                            <button mat-menu-item type="button" (click)="onDownload(post.downloadLink4kTorrent)">
+                        <mat-menu #menu1080p="matMenu">
+                          @if (post.downloadLinkTorrent) {
+                            <button mat-menu-item type="button" (click)="onDownload(post.downloadLinkTorrent)">
                               <mat-icon>file_download</mat-icon>
                               <span>Torrent</span>
                             </button>
                           }
 
-                          @if (post.downloadLink4k) {
-                            <button mat-menu-item type="button" (click)="onDownload(post.downloadLink4k)">
+                          @if (post.downloadLink) {
+                            <button mat-menu-item type="button" (click)="onDownload(post.downloadLink)">
                               <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
                               <span>Magnet</span>
                             </button>
                           }
                         </mat-menu>
-                      }
+
+                        @if (post.downloadLink4k || post.downloadLink4kTorrent) {
+                          <button matButton [matMenuTriggerFor]="menu2160p" type="button">
+                            <mat-icon>keyboard_arrow_down</mat-icon>
+                            <span>2160p</span>
+                          </button>
+
+                          <mat-menu #menu2160p="matMenu">
+                            @if (post.downloadLink4kTorrent) {
+                              <button mat-menu-item type="button" (click)="onDownload(post.downloadLink4kTorrent)">
+                                <mat-icon>file_download</mat-icon>
+                                <span>Torrent</span>
+                              </button>
+                            }
+
+                            @if (post.downloadLink4k) {
+                              <button mat-menu-item type="button" (click)="onDownload(post.downloadLink4k)">
+                                <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
+                                <span>Magnet</span>
+                              </button>
+                            }
+                          </mat-menu>
+                        }
+                      </div>
                     </div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
+                  </mat-card-content>
+                </mat-card>
+              }
+            </div>
+
+            @if (favoritePostsTotal() > pageSize()) {
+              <div class="paginator-container">
+                <mat-paginator
+                  [pageIndex]="currentPage() - 1"
+                  [length]="favoritePostsTotal()"
+                  [pageSize]="pageSize()"
+                  [pageSizeOptions]="pageSizeOptions()"
+                  (page)="onPageChange($event)"
+                  aria-label="Επιλέξτε σελίδα αγαπημένων"
+                />
+              </div>
             }
           </div>
         }

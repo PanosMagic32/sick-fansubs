@@ -57,6 +57,10 @@
       <sf-account-favorites
         [favoriteBlogPostIds]="favoriteBlogPostIds()"
         [favoriteBlogPosts]="favoriteBlogPosts()"
+        [favoritePostsTotal]="favoriteBlogPostsTotal()"
+        [currentPage]="favoritePostsPage()"
+        [pageSize]="favoritePostsPageSizeValue()"
+        [pageSizeOptions]="favoritePostsPageSizeOptions()"
         [isFavoriteIdsLoading]="favoriteBlogPostIdsResource.isLoading()"
         [hasFavoriteIdsError]="!!favoriteBlogPostIdsResource.error()"
         [isFavoritePostsLoading]="favoriteBlogPostsResource.isLoading()"
@@ -66,6 +70,7 @@
         (retryLoadFavoritePosts)="onRetryLoadFavoritePosts()"
         (removeFavorite)="onRemoveFavorite($event)"
         (download)="onDownload($event)"
+        (pageChange)="onFavoritePostsPageChange($event)"
       />
     }
   }

@@ -47,6 +47,20 @@
   }
 }
 
+.favorites-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sf-space-md);
+}
+
+.paginator-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: var(--sf-space-sm);
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
 .favorite-card {
   overflow: hidden;
 
@@ -62,6 +76,10 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: var(--sf-space-xs);
+
+    .favorite-button {
+      color: var(--sf-color-favorite);
+    }
   }
 
   .favorite-title {

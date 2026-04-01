@@ -8,3 +8,8 @@ export type FavoritesViewState =
   | 'posts-error'
   | 'empty-posts'
   | 'ready';
+
+export interface FavoritesPageChange {
+  page: number;
+  pageSize: number;
+}

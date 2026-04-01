@@ -6,11 +6,12 @@ import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/m
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatPaginator, type PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 
 import type { BlogPost } from '@shared/types';
 
-import { FavoritesViewState } from '../../data-access/types';
+import { FavoritesPageChange, FavoritesViewState } from '../../data-access/types';
 
 @Component({
   selector: 'sf-account-favorites',
@@ -28,12 +29,17 @@ import { FavoritesViewState } from '../../data-access/types';
     MatButton,
     MatIconButton,
     MatMenuModule,
+    MatPaginator,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountFavoritesComponent {
   readonly favoriteBlogPostIds = input.required<string[]>();
   readonly favoriteBlogPosts = input.required<BlogPost[]>();
+  readonly favoritePostsTotal = input.required<number>();
+  readonly currentPage = input.required<number>();
+  readonly pageSize = input.required<number>();
+  readonly pageSizeOptions = input.required<number[]>();
   readonly isFavoriteIdsLoading = input.required<boolean>();
   readonly hasFavoriteIdsError = input.required<boolean>();
   readonly isFavoritePostsLoading = input.required<boolean>();
@@ -44,6 +50,7 @@ export class AccountFavoritesComponent {
   readonly retryLoadFavoritePosts = output<void>();
   readonly removeFavorite = output<string>();
   readonly download = output<string | undefined>();
+  readonly pageChange = output<FavoritesPageChange>();
 
   readonly viewState = computed<FavoritesViewState>(() => {
     if (this.isFavoriteIdsLoading()) return 'loading-ids';
@@ -73,5 +80,12 @@ export class AccountFavoritesComponent {
 
   onDownload(url: string | undefined): void {
     this.download.emit(url);
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageChange.emit({
+      page: event.pageIndex + 1,
+      pageSize: event.pageSize,
+    });
   }
 }

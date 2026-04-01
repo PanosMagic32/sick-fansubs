@@ -22,6 +22,7 @@ export interface FavoriteBlogPostIdsResponse {
 
 export interface FavoriteBlogPostsResponse {
   posts: BlogPost[];
+  count: number;
 }
 
 export interface UpdateUserRequest {
@@ -105,13 +106,17 @@ export class UserService {
     });
   }
 
-  getFavoriteBlogPosts(userId: Signal<string>): HttpResourceRef<FavoriteBlogPostsResponse | undefined> {
+  getFavoriteBlogPosts(
+    userId: Signal<string>,
+    pageSize: Signal<number>,
+    currentPage: Signal<number>,
+  ): HttpResourceRef<FavoriteBlogPostsResponse | undefined> {
     return httpResource<FavoriteBlogPostsResponse>(() => {
       const id = userId();
       if (!id) return;
 
       return {
-        url: `${this.webConfigService.API_URL}/user/${id}/favorites/posts`,
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/posts?pagesize=${pageSize()}&page=${currentPage()}`,
       };
     });
   }

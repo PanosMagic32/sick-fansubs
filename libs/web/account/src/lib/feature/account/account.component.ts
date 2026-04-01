@@ -24,7 +24,11 @@ import { AccountFavoritesComponent } from '../../ui/favorites/account-favorites.
 import { AccountProfileFormComponent } from '../../ui/profile-form/account-profile-form.component';
 import { AccountProfileSummaryComponent } from '../../ui/profile-summary/account-profile-summary.component';
 import { UserProfile, UserService, UpdateUserRequest } from '../../data-access/user.service';
-import { AccountViewState } from '../../data-access/types';
+import { AccountViewState, FavoritesPageChange } from '../../data-access/types';
+
+const FAVORITES_DEFAULT_PAGE = 1;
+const FAVORITES_DEFAULT_PAGE_SIZE = 12;
+const FAVORITES_PAGE_SIZE_OPTIONS = [12, 24, 48];
 
 @Component({
   selector: 'sf-account',
@@ -57,20 +61,33 @@ export class WebAccountComponent implements OnInit {
   private readonly updateRequest = signal<UpdateUserRequest | null>(null);
   private readonly latestUpdatedProfile = signal<UserProfile | null>(null);
   private readonly latestFavoriteBlogPosts = signal<BlogPost[]>([]);
+  private readonly latestFavoriteBlogPostsTotal = signal(0);
   private readonly favoriteRemovalRequest = signal<string | null>(null);
   private readonly avatarImageError = signal(false);
   private readonly showNewPassword = signal(false);
   private readonly showConfirmPassword = signal(false);
+  private readonly favoritePostsCurrentPage = signal(FAVORITES_DEFAULT_PAGE);
+  private readonly favoritePostsPageSize = signal(FAVORITES_DEFAULT_PAGE_SIZE);
 
   readonly displayProfile = this.latestUpdatedProfile.asReadonly();
   readonly favoriteBlogPosts = this.latestFavoriteBlogPosts.asReadonly();
+  readonly favoriteBlogPostsTotal = this.latestFavoriteBlogPostsTotal.asReadonly();
+  readonly favoritePostsPage = this.favoritePostsCurrentPage.asReadonly();
+  readonly favoritePostsPageSizeValue = this.favoritePostsPageSize.asReadonly();
+  readonly favoritePostsPageSizeOptions = signal(FAVORITES_PAGE_SIZE_OPTIONS).asReadonly();
   readonly isNewPasswordVisible = this.showNewPassword.asReadonly();
   readonly isConfirmPasswordVisible = this.showConfirmPassword.asReadonly();
 
   protected readonly userProfile = this.userService.getUserProfile(this.activeUserId);
   protected readonly updateUserResource = this.userService.updateUserProfile(this.activeUserId, this.updateRequest);
   protected readonly favoriteBlogPostIdsResource = this.userService.getFavoriteBlogPostIds(this.activeUserId);
-  protected readonly favoriteBlogPostsResource = this.userService.getFavoriteBlogPosts(this.activeUserId);
+
+  protected readonly favoriteBlogPostsResource = this.userService.getFavoriteBlogPosts(
+    this.activeUserId,
+    this.favoritePostsPageSize,
+    this.favoritePostsCurrentPage,
+  );
+
   protected readonly removeFavoriteResource = this.userService.removeFavoriteBlogPost(
     this.activeUserId,
     this.favoriteRemovalRequest,
@@ -133,6 +150,9 @@ export class WebAccountComponent implements OnInit {
       if (!favoritePosts) return;
 
       this.latestFavoriteBlogPosts.set([...favoritePosts]);
+
+      const count = this.favoriteBlogPostsResource.value()?.count;
+      this.latestFavoriteBlogPostsTotal.set(count ?? 0);
     });
 
     effect(() => {
@@ -185,9 +205,15 @@ export class WebAccountComponent implements OnInit {
         ...profile,
         favoriteBlogPostIds: [...updatedFavorites],
       });
-      this.latestFavoriteBlogPosts.set(
-        this.latestFavoriteBlogPosts().filter((post) => post._id !== this.favoriteRemovalRequest()),
-      );
+
+      const totalFavorites = updatedFavorites.length;
+      const maxPage = Math.max(1, Math.ceil(totalFavorites / this.favoritePostsPageSize()));
+      if (this.favoritePostsCurrentPage() > maxPage) {
+        this.favoritePostsCurrentPage.set(maxPage);
+      } else {
+        this.favoriteBlogPostsResource.reload();
+      }
+
       this.snackBar.open('Η ανάρτηση αφαιρέθηκε από τα αγαπημένα.', 'OK', { duration: 3000 });
       this.favoriteRemovalRequest.set(null);
     });
@@ -464,6 +490,14 @@ export class WebAccountComponent implements OnInit {
 
   onRetryLoadFavoritePosts() {
     this.favoriteBlogPostsResource.reload();
+  }
+
+  onFavoritePostsPageChange(pageChange: FavoritesPageChange) {
+    this.favoritePostsCurrentPage.set(pageChange.page);
+
+    if (this.favoritePostsPageSize() !== pageChange.pageSize) {
+      this.favoritePostsPageSize.set(pageChange.pageSize);
+    }
   }
 
   onDownload(url: string | undefined) {
