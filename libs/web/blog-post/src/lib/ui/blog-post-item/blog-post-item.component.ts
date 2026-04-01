@@ -46,6 +46,7 @@ import type { BlogPost } from '../../data-access/blog-post.interface';
 })
 export class BlogPostItemComponent {
   private readonly router = inject(Router);
+  private readonly defaultAvatarPath = '/logo/logo.png';
 
   readonly blogPost = input.required<BlogPost>();
   readonly index = input.required<number>();
@@ -58,6 +59,28 @@ export class BlogPostItemComponent {
   readonly favoriteToggle = output<string | undefined>();
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);
+  protected readonly creatorAvatarUrl = computed(() => this.blogPost().creator?.avatar || this.defaultAvatarPath);
+  protected readonly createdByUsername = computed(() => this.blogPost().creator?.username || 'kushoyarou');
+  protected readonly editedByUsername = computed(
+    () => this.blogPost().updatedBy?.username || this.blogPost().creator?.username || 'kushoyarou',
+  );
+  protected readonly hasBeenEdited = computed(() => {
+    const updatedAt = this.blogPost().updatedAt;
+    const createdAt = this.blogPost().dateTimeCreated;
+
+    if (!updatedAt || !createdAt) {
+      return false;
+    }
+
+    const updatedMs = new Date(updatedAt).getTime();
+    const createdMs = new Date(createdAt).getTime();
+
+    if (Number.isNaN(updatedMs) || Number.isNaN(createdMs)) {
+      return false;
+    }
+
+    return updatedMs > createdMs;
+  });
 
   onDownload(url: string | undefined) {
     if (url) {

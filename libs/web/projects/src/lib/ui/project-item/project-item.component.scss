@@ -9,13 +9,18 @@
     .project-header-image {
       background-image: url('/logo/logo.png');
       background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       margin: 0.2rem;
     }
 
-    .mat-card-avatar {
-      height: 3rem;
-      width: 3rem;
-      margin-top: -0.5rem;
+    :is(.mat-card-avatar, .mat-mdc-card-avatar) {
+      height: 60px !important;
+      width: 60px !important;
+      margin-top: 0;
+      border-radius: 50%;
+      border: 2px solid color-mix(in srgb, var(--sf-color-secondary) 35%, transparent);
+      box-shadow: var(--sf-shadow-soft);
     }
 
     mat-card-title {
@@ -48,9 +53,11 @@
     .project-actions-date {
       margin-left: 1rem;
       display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
 
       p {
-        margin: 1rem 0;
+        margin: 0;
       }
     }
   }

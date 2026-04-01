@@ -1,6 +1,11 @@
 <mat-card class="project-card">
   <mat-card-header>
-    <div mat-card-avatar class="project-header-image"></div>
+    <div
+      mat-card-avatar
+      class="project-header-image"
+      [style.background-image]="'url(' + creatorAvatarUrl() + ')'"
+      [attr.aria-label]="'Avatar δημιουργού για ' + project().title"
+    ></div>
     <mat-card-title>{{ project().title }}</mat-card-title>
 
     @if (isAdmin()) {
@@ -31,7 +36,11 @@
 
   <mat-card-actions class="project-actions">
     <div class="project-actions-date">
-      <p>{{ project().dateTimeCreated | date: 'd/M/yyyy, hh:mm' }}</p>
+      <p>Προστέθηκε: {{ project().dateTimeCreated | date: 'd/M/yyyy, HH:mm' }} ({{ createdByUsername() }})</p>
+
+      @if (hasBeenEdited()) {
+        <p>Επεξεργάστηκε: {{ project().updatedAt | date: 'd/M/yyyy, HH:mm' }} ({{ editedByUsername() }})</p>
+      }
     </div>
 
     <div>

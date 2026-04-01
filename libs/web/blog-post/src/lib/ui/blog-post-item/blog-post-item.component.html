@@ -4,7 +4,12 @@
   [style.margin]="index() === 0 && currentPage() === 1 ? '1rem auto' : '1rem 0'"
 >
   <mat-card-header>
-    <div mat-card-avatar class="post-header-image"></div>
+    <div
+      mat-card-avatar
+      class="post-header-image"
+      [style.background-image]="'url(' + creatorAvatarUrl() + ')'"
+      [attr.aria-label]="'Avatar δημιουργού για ' + blogPost().title"
+    ></div>
     <mat-card-title>{{ blogPost().title }}</mat-card-title>
     <mat-card-subtitle>{{ blogPost().subtitle }}</mat-card-subtitle>
 
@@ -52,7 +57,11 @@
 
   <mat-card-actions class="post-actions">
     <div class="post-actions-date">
-      <p>{{ blogPost().dateTimeCreated | date: 'd/M/yyyy, hh:mm' }}</p>
+      <p>Προστέθηκε: {{ blogPost().dateTimeCreated | date: 'd/M/yyyy, HH:mm' }} ({{ createdByUsername() }})</p>
+
+      @if (hasBeenEdited()) {
+        <p>Επεξεργάστηκε: {{ blogPost().updatedAt | date: 'd/M/yyyy, HH:mm' }} ({{ editedByUsername() }})</p>
+      }
     </div>
 
     <div class="download-buttons">

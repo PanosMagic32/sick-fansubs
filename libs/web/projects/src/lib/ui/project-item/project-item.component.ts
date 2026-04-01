@@ -41,12 +41,35 @@ import type { Project } from '../../data-access/project.interface';
 export class ProjectItemComponent {
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly defaultAvatarPath = '/logo/logo.png';
 
   readonly project = input.required<Project>();
   readonly index = input.required<number>();
   readonly isAdmin = input.required<boolean>();
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);
+  protected readonly creatorAvatarUrl = computed(() => this.project().creator?.avatar || this.defaultAvatarPath);
+  protected readonly createdByUsername = computed(() => this.project().creator?.username || 'kushoyarou');
+  protected readonly editedByUsername = computed(
+    () => this.project().updatedBy?.username || this.project().creator?.username || 'kushoyarou',
+  );
+  protected readonly hasBeenEdited = computed(() => {
+    const updatedAt = this.project().updatedAt;
+    const createdAt = this.project().dateTimeCreated;
+
+    if (!updatedAt || !createdAt) {
+      return false;
+    }
+
+    const updatedMs = new Date(updatedAt).getTime();
+    const createdMs = new Date(createdAt).getTime();
+
+    if (Number.isNaN(updatedMs) || Number.isNaN(createdMs)) {
+      return false;
+    }
+
+    return updatedMs > createdMs;
+  });
 
   onEdit() {
     this.router.navigate([this.project()._id, 'edit'], {
