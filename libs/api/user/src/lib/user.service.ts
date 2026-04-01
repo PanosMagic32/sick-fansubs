@@ -354,6 +354,71 @@ export class UserService {
     }
   }
 
+  async storeRefreshTokenSession(
+    id: string,
+    refreshToken: string,
+    refreshTokenJti: string,
+    refreshTokenExpiresAt: Date,
+  ): Promise<void> {
+    this.assertValidId(id);
+
+    const refreshTokenHash = await this.hashPassword(refreshToken);
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(
+        id,
+        {
+          refreshTokenHash,
+          refreshTokenJti,
+          refreshTokenExpiresAt,
+        },
+        { new: true, runValidators: true },
+      )
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found.');
+    }
+  }
+
+  async clearRefreshTokenSession(id: string): Promise<void> {
+    this.assertValidId(id);
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(
+        id,
+        {
+          $unset: {
+            refreshTokenHash: '',
+            refreshTokenJti: '',
+            refreshTokenExpiresAt: '',
+          },
+        },
+        { new: true },
+      )
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found.');
+    }
+  }
+
+  async isRefreshTokenSessionValid(id: string, refreshToken: string, refreshTokenJti: string): Promise<boolean> {
+    this.assertValidId(id);
+
+    const user = await this.findOneEntityById(id);
+
+    if (!user.refreshTokenHash || !user.refreshTokenJti || !user.refreshTokenExpiresAt) return false;
+    if (user.refreshTokenJti !== refreshTokenJti) return false;
+    if (user.refreshTokenExpiresAt.getTime() <= Date.now()) return false;
+
+    return this.comparePasswords(refreshToken, user.refreshTokenHash);
+  }
+
+  private async comparePasswords(password: string, storedPasswordHash: string): Promise<boolean> {
+    return bcrypt.compare(password, storedPasswordHash);
+  }
+
   private async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 12);
   }

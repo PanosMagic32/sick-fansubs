@@ -1,8 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CredentialThrottlerGuard } from './guards/credential-throttler.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import type { FavoriteBlogPostsResponse } from './user.service';
 import { UserService } from './user.service';
@@ -22,6 +24,8 @@ export class UserController {
   }
 
   @Post()
+  @UseGuards(CredentialThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }

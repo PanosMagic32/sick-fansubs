@@ -1,6 +1,6 @@
 import type { Routes } from '@angular/router';
 
-import { authGuard } from '@web/auth';
+import { adminGuard } from '@web/auth';
 
 import { ProjectListComponent } from './feature/project-list/project-list.component';
 
@@ -11,7 +11,7 @@ export const projectsRoutes: Routes = [
   },
   {
     path: 'create',
-    canActivate: [authGuard],
+    canActivate: [adminGuard],
     loadComponent: () => import('./feature/project-create/project-create.component'),
   },
   {
@@ -20,7 +20,7 @@ export const projectsRoutes: Routes = [
   },
   {
     path: ':id/edit',
-    canActivate: [authGuard],
+    canActivate: [adminGuard],
     loadComponent: () => import('./feature/project-edit/project-edit.component'),
   },
 ];

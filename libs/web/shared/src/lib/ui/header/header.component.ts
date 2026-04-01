@@ -32,10 +32,12 @@ export class HeaderComponent {
   isSmall$ = this.menuService.isSmall$;
 
   isAdmin = computed(() => this.tokenService.isAdmin());
+  isAuthenticated = computed(() => this.tokenService.isAuthenticated());
 
   onLogout() {
-    this.tokenService.removeToken();
-    this.router.navigate(['/'], { replaceUrl: true });
+    this.tokenService.logout().subscribe(() => {
+      this.router.navigate(['/'], { replaceUrl: true });
+    });
   }
 
   onToggleSidenav() {

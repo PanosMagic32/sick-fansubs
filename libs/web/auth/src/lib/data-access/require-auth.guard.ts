@@ -6,7 +6,7 @@ import { TokenService } from '@web/shared';
 export const requireAuthGuard: CanActivateFn = () => {
   const tokenService = inject(TokenService);
 
-  if (tokenService.isValidToken()) {
+  if (tokenService.isAuthenticated()) {
     return true;
   }
 

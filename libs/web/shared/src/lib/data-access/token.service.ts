@@ -1,84 +1,71 @@
-import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable, signal } from '@angular/core';
+import { catchError, map, of, tap } from 'rxjs';
 
-const JWT_TOKEN = 'token';
+interface AuthSessionResponse {
+  sub: string;
+  username: string;
+  email: string;
+  isAdmin: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class TokenService {
+  private readonly httpClient = inject(HttpClient);
+
   private _isAdmin = signal(false);
   isAdmin = this._isAdmin.asReadonly();
 
   private _userId = signal<string | null>(null);
   userId = this._userId.asReadonly();
 
-  constructor() {
-    this.getUserIDFromToken();
+  private _isAuthenticated = signal(false);
+  isAuthenticated = this._isAuthenticated.asReadonly();
+
+  private _isInitialized = signal(false);
+  isInitialized = this._isInitialized.asReadonly();
+
+  restoreSession() {
+    return this.httpClient.get<AuthSessionResponse>('/api/auth/session', { withCredentials: true }).pipe(
+      tap((session) => {
+        this.applySession(session);
+      }),
+      map(() => undefined),
+      catchError(() => {
+        this.removeToken();
+        return of(undefined);
+      }),
+      tap(() => {
+        this._isInitialized.set(true);
+      }),
+    );
   }
 
-  private decodeToken(): Record<string, unknown> | null {
-    const token = this.getToken();
-
-    if (!token) {
-      return null;
-    }
-
-    try {
-      const tokenPayload = token.split('.')[1];
-      if (!tokenPayload) {
-        return null;
-      }
-
-      return JSON.parse(atob(tokenPayload)) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
+  logout() {
+    return this.httpClient.post('/api/auth/logout', {}, { withCredentials: true }).pipe(
+      tap(() => this.removeToken()),
+      catchError(() => {
+        this.removeToken();
+        return of(undefined);
+      }),
+    );
   }
 
-  setToken(token: string) {
-    localStorage.setItem(JWT_TOKEN, token);
-    this.getUserIDFromToken();
-  }
-
-  getToken(): string {
-    const token = localStorage.getItem(JWT_TOKEN);
-    if (token) return token;
-    return '';
+  private applySession(session: AuthSessionResponse) {
+    this._isAdmin.set(Boolean(session.isAdmin));
+    this._userId.set(session.sub || null);
+    this._isAuthenticated.set(Boolean(session.sub));
   }
 
   removeToken() {
-    localStorage.removeItem(JWT_TOKEN);
     this._isAdmin.set(false);
     this._userId.set(null);
+    this._isAuthenticated.set(false);
+    this._isInitialized.set(true);
   }
 
   isValidToken(): boolean {
-    const tokenDecode = this.decodeToken();
-
-    if (tokenDecode && tokenDecode['exp']) {
-      return !this._tokenExpired(tokenDecode['exp'] as string | number);
-    }
-
-    return false;
-  }
-
-  getUserIDFromToken() {
-    const tokenDecode = this.decodeToken();
-
-    if (!tokenDecode) {
-      this._isAdmin.set(false);
-      this._userId.set(null);
-      return;
-    }
-
-    const nestedDoc = tokenDecode['_doc'] as Record<string, unknown> | undefined;
-    const isAdmin = Boolean(tokenDecode['isAdmin'] ?? nestedDoc?.['isAdmin'] ?? false);
-    const userId = (tokenDecode['sub'] as string | undefined) ?? (nestedDoc?.['_id'] as string | undefined) ?? null;
-
-    this._isAdmin.set(isAdmin);
-    this._userId.set(userId);
-  }
-
-  _tokenExpired(expiration: string | number): boolean {
-    return Math.floor(new Date().getTime() / 1000) >= +expiration;
+    return this._isAuthenticated();
   }
 
   getUserId(): string | null {

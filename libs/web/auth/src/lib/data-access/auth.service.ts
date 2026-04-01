@@ -1,10 +1,11 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { TokenService } from '@web/shared';
+import { mapAuthSessionErrorMessage, TokenService } from '@web/shared';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -19,16 +20,16 @@ export class AuthService {
   login(username: string, password: string) {
     this._isLoading.set(true);
 
-    this.httpClient.post<{ username: string; accessToken: string }>('/api/auth/login', { username, password }).subscribe({
-      next: (res) => {
-        this._isLoading.set(false);
-
-        this.tokenService.setToken(res.accessToken);
-        this.router.navigate(['/'], { replaceUrl: true });
+    this.httpClient.post<{ username: string }>('/api/auth/login', { username, password }).subscribe({
+      next: () => {
+        void firstValueFrom(this.tokenService.restoreSession()).then(() => {
+          this._isLoading.set(false);
+          this.router.navigate(['/'], { replaceUrl: true });
+        });
       },
       error: (err) => {
         this._isLoading.set(false);
-        this.openSnackBar(err.error.message, 'OK');
+        this.openSnackBar(this.getAuthErrorMessage(err), 'OK');
       },
     });
   }
@@ -44,21 +45,42 @@ export class AuthService {
         avatar,
       })
       .subscribe({
-        next: (res) => {
+        next: () => {
           this._isLoading.set(false);
-          this.saveUser(res);
           this.openSnackBar('Η εγγραφή ολοκληρώθηκε. Συνδεθείτε για να συνεχίσετε.', 'OK');
           this.router.navigate(['/auth/login'], { replaceUrl: true });
         },
         error: (err) => {
           this._isLoading.set(false);
-          this.openSnackBar(err.error.message, 'OK');
+          this.openSnackBar(this.getAuthErrorMessage(err), 'OK');
         },
       });
   }
 
-  private saveUser(res: { id: string; username: string; email: string }) {
-    localStorage.setItem('USER', JSON.stringify(res));
+  private getAuthErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Προέκυψε σφάλμα πιστοποίησης. Δοκιμάστε ξανά.';
+    }
+
+    const status = error.status;
+
+    if (status === 401 || status === 429) {
+      return mapAuthSessionErrorMessage(error);
+    }
+
+    if (status === 404) {
+      return 'Ο χρήστης δεν βρέθηκε.';
+    }
+
+    if (status === 403) {
+      return 'Μη έγκυρα στοιχεία σύνδεσης.';
+    }
+
+    if (status === 409) {
+      return 'Το email ή το όνομα χρήστη χρησιμοποιείται ήδη.';
+    }
+
+    return String(error.error?.message ?? 'Προέκυψε σφάλμα πιστοποίησης. Δοκιμάστε ξανά.');
   }
 
   private openSnackBar(message: string, action: string) {

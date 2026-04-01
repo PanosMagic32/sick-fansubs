@@ -6,7 +6,7 @@ import { TokenService } from '@web/shared';
 export const isLoggedInGuard: CanActivateFn = () => {
   const tokenService = inject(TokenService);
 
-  if (tokenService.isValidToken()) {
+  if (tokenService.isAuthenticated()) {
     const urlTree = inject(Router).parseUrl('/');
     return new RedirectCommand(urlTree);
   }

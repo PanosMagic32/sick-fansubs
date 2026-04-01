@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, type OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
 
-import { HeaderComponent, SidenavComponent, TokenService } from '@web/shared';
+import { HeaderComponent, SidenavComponent } from '@web/shared';
 
 @Component({
   selector: 'sf-root',
@@ -32,10 +32,4 @@ import { HeaderComponent, SidenavComponent, TokenService } from '@web/shared';
   imports: [RouterOutlet, MatSidenav, MatSidenavContainer, MatSidenavContent, HeaderComponent, SidenavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements OnInit {
-  private readonly tokenService = inject(TokenService);
-
-  ngOnInit() {
-    this.tokenService.getUserIDFromToken();
-  }
-}
+export class AppComponent {}

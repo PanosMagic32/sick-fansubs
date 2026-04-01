@@ -527,7 +527,8 @@ export class WebAccountComponent implements OnInit {
   }
 
   onLogout() {
-    this.tokenService.removeToken();
-    this.router.navigate(['/'], { replaceUrl: true });
+    this.tokenService.logout().subscribe(() => {
+      this.router.navigate(['/'], { replaceUrl: true });
+    });
   }
 }

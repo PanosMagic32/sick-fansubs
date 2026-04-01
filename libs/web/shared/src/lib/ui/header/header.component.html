@@ -93,7 +93,7 @@
       <img src="images/buymeacoffee.svg" alt="buymeacoffee" />
     </div>
 
-    @if (isAdmin()) {
+    @if (isAuthenticated()) {
       <button mat-icon-button (click)="onLogout()" class="mat-focus-indicator docs-button mat-button mat-button-base">
         <mat-icon>logout</mat-icon>
       </button>

@@ -25,6 +25,15 @@ export class User {
 
   @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
   createdBlogPostIds!: Types.ObjectId[];
+
+  @Prop()
+  refreshTokenHash?: string;
+
+  @Prop()
+  refreshTokenJti?: string;
+
+  @Prop()
+  refreshTokenExpiresAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
