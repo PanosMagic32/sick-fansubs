@@ -1,30 +1,5 @@
 services:
   # ========================================
-  # MongoDB Database (commented out)
-  # ========================================
-  # mongodb:
-  #   image: mongo:8
-  #   container_name: sick-mongodb
-  #   restart: unless-stopped
-  #   environment:
-  #     MONGO_INITDB_DATABASE: sick-db
-  #     MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
-  #     MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-root_password}
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - mongo_data:/data/db
-  #     - mongo_config:/data/configdb
-  #   networks:
-  #     - sick-nw
-  #   healthcheck:
-  #     test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 40s
-
-  # ========================================
   # NestJS API Service
   # ========================================
   api:
@@ -42,9 +17,6 @@ services:
       PORT: 3333
     ports:
       - '${API_PORT:-3333}:3333'
-    # depends_on:
-    #   mongodb:
-    #     condition: service_healthy
     restart: unless-stopped
     networks:
       - sick-nw
@@ -56,6 +28,32 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # ========================================
+  # MinIO Object Storage
+  # ========================================
+  minio:
+    image: minio/minio:latest
+    container_name: sick-minio
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    networks:
+      - sick-nw
     logging:
       driver: 'json-file'
       options:
@@ -101,11 +99,9 @@ services:
 # ========================================
 # Volumes
 # ========================================
-# volumes:
-#   mongo_data:
-#     driver: local
-#   mongo_config:
-#     driver: local
+volumes:
+  minio_data:
+    driver: local
 
 # ========================================
 # Networks

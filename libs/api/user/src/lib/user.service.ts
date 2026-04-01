@@ -1,4 +1,13 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model, Types } from 'mongoose';
@@ -28,7 +37,64 @@ export interface FavoriteBlogPostsResponse {
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
+  private readonly logger = new Logger(UserService.name);
+  private readonly minioBucket: string;
+  private readonly minioClient: S3Client;
+
+  constructor(
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly configService: ConfigService,
+  ) {
+    const endpoint = this.configService.get<string>('MINIO_ENDPOINT', 'http://minio:9000');
+    const accessKeyId = this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin');
+    const secretAccessKey = this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin');
+    const region = this.configService.get<string>('MINIO_REGION', 'us-east-1');
+
+    this.minioBucket = this.configService.get<string>('MINIO_BUCKET', 'images');
+    this.minioClient = new S3Client({
+      endpoint,
+      region,
+      credentials: { accessKeyId, secretAccessKey },
+      forcePathStyle: true,
+    });
+  }
+
+  private parseUrl(url: string | undefined): URL | null {
+    const value = url?.trim();
+    if (!value) return null;
+
+    try {
+      return new URL(value, 'http://localhost');
+    } catch {
+      return null;
+    }
+  }
+
+  private extractManagedAvatarKey(url: string | undefined): string | null {
+    const parsed = this.parseUrl(url);
+    if (!parsed) return null;
+
+    const prefix = '/media/images/';
+    if (!parsed.pathname.startsWith(prefix)) {
+      return null;
+    }
+
+    const key = parsed.pathname.slice(prefix.length).trim();
+    return key || null;
+  }
+
+  private async deleteManagedAvatarByKey(key: string): Promise<void> {
+    try {
+      await this.minioClient.send(
+        new DeleteObjectCommand({
+          Bucket: this.minioBucket,
+          Key: key,
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to delete previous avatar object ${key}`, error as Error);
+    }
+  }
 
   private assertValidId(id: string): void {
     if (!Types.ObjectId.isValid(id)) {
@@ -184,8 +250,6 @@ export class UserService {
     this.assertCanAccessUser(id, actor);
     this.assertValidId(id);
 
-    await this.findOneEntityById(id);
-
     if (updateUserDto.email) {
       const emailInUse = await this.userModel.findOne({ email: updateUserDto.email, _id: { $ne: id } }).exec();
       if (emailInUse) {
@@ -209,6 +273,15 @@ export class UserService {
 
     if (hashedPassword) {
       await this.clearRefreshTokenSession(id);
+    }
+
+    const existingUser = await this.findOneEntityById(id);
+    const previousAvatarKey = this.extractManagedAvatarKey(existingUser.avatar);
+    const nextAvatarKey = this.extractManagedAvatarKey(updatedUser.avatar);
+    const avatarChanged = existingUser.avatar !== updatedUser.avatar;
+
+    if (avatarChanged && previousAvatarKey && previousAvatarKey !== nextAvatarKey) {
+      await this.deleteManagedAvatarByKey(previousAvatarKey);
     }
 
     return this.toPublicUser(updatedUser);

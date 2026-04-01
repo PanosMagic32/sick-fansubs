@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
 
+import { MediaService } from '@api/media';
 import { UserService } from '@api/user';
 
 import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
@@ -12,8 +13,17 @@ import { BlogPost, BlogPostDocument } from './schemas/blog-post.schema';
 export class ApiBlogPostService {
   constructor(
     @InjectModel(BlogPost.name) private readonly blogPostModel: Model<BlogPostDocument>,
+    private readonly mediaService: MediaService,
     private readonly userService: UserService,
   ) {}
+
+  private sanitizeEditedMetadata<T extends { updatedBy?: unknown; updatedAt?: Date | string }>(entity: T): T {
+    if (!entity.updatedBy) {
+      entity.updatedAt = undefined;
+    }
+
+    return entity;
+  }
 
   async create(createBlogPostDto: CreateBlogPostDto, creatorId: string): Promise<{ id: string }> {
     const createdBlogPost = await this.blogPostModel.create({
@@ -32,12 +42,6 @@ export class ApiBlogPostService {
     // startId?: string
   ): Promise<{ posts: BlogPost[]; count: number }> {
     const query = this.blogPostModel
-      // The below commented-out object in find is a possible way to improve performance in database search
-      // .find({
-      //   _id: {
-      //     $gt: startId,
-      //   },
-      // })
       .find()
       .populate('creator', 'username avatar')
       .populate('updatedBy', 'username avatar')
@@ -50,7 +54,7 @@ export class ApiBlogPostService {
     const posts = await query.exec();
     const count = await this.blogPostModel.countDocuments();
 
-    return { posts, count };
+    return { posts: posts.map((post) => this.sanitizeEditedMetadata(post)), count };
   }
 
   async findOne(id: string): Promise<BlogPost | undefined> {
@@ -58,17 +62,28 @@ export class ApiBlogPostService {
       .findOne({ _id: id })
       .populate('creator', 'username avatar')
       .populate('updatedBy', 'username avatar');
-    if (blogPost) return blogPost;
+    if (blogPost) return this.sanitizeEditedMetadata(blogPost);
     throw new NotFoundException();
   }
 
   async update(id: string, updateBlogPostDto: UpdateBlogPostDto, actorId: string): Promise<BlogPost | undefined | null> {
-    const blogPost = await this.findOne(id);
-    if (blogPost) {
-      return this.blogPostModel
-        .findByIdAndUpdate({ _id: id }, { ...updateBlogPostDto, updatedBy: new Types.ObjectId(actorId) })
+    const existingBlogPost = await this.blogPostModel.findById(id).select('thumbnail').exec();
+    if (existingBlogPost) {
+      const updatedBlogPost = await this.blogPostModel
+        .findByIdAndUpdate(
+          { _id: id },
+          { ...updateBlogPostDto, updatedBy: new Types.ObjectId(actorId) },
+          { new: true, runValidators: true },
+        )
         .exec();
+
+      if (updatedBlogPost && existingBlogPost.thumbnail !== updatedBlogPost.thumbnail) {
+        await this.mediaService.deleteManagedImageByUrl(existingBlogPost.thumbnail);
+      }
+
+      return updatedBlogPost;
     }
+
     throw new NotFoundException();
   }
 
@@ -83,6 +98,7 @@ export class ApiBlogPostService {
     const creatorId = existingBlogPost.creator instanceof Types.ObjectId ? existingBlogPost.creator.toString() : actorId;
 
     await this.userService.removeCreatedBlogPost(creatorId, id);
+    await this.mediaService.deleteManagedImageByUrl(existingBlogPost.thumbnail);
 
     return existingBlogPost;
   }

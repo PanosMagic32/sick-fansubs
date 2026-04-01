@@ -29,14 +29,17 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
+ARG API_BUILD_TARGET=api:build:production
+ARG WEB_BUILD_TARGET=web:build:production
+
 # Copy source code
 COPY apps ./apps
 COPY libs ./libs
 COPY tsconfig.base.json nx.json ./
 
 # Build both applications
-RUN pnpm nx run api:build:production --skip-nx-cache
-RUN pnpm nx run web:build:production --skip-nx-cache
+RUN pnpm nx run ${API_BUILD_TARGET} --skip-nx-cache
+RUN pnpm nx run ${WEB_BUILD_TARGET} --skip-nx-cache
 
 # Prune dev dependencies for production
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts

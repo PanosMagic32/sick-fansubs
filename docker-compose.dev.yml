@@ -4,31 +4,6 @@
 
 services:
   # ========================================
-  # MongoDB Database for Development
-  # ========================================
-  mongodb:
-    image: mongo:8
-    container_name: sick-mongodb-dev
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_DATABASE: sick-db
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root_password
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data_dev:/data/db
-      - mongo_config_dev:/data/configdb
-    networks:
-      - sick-nw-dev
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  # ========================================
   # NestJS API Service (Development)
   # ========================================
   api:
@@ -39,6 +14,8 @@ services:
       target: api
       args:
         NODE_VERSION: 24-alpine
+        API_BUILD_TARGET: api:build
+        WEB_BUILD_TARGET: web:build:development
     env_file:
       - .env
     environment:
@@ -52,13 +29,31 @@ services:
       - ./apps/api:/app/apps/api:ro
       - ./libs:/app/libs:ro
       - /app/node_modules  # Prevent overwriting node_modules
-    depends_on:
-      mongodb:
-        condition: service_healthy
     restart: unless-stopped
     networks:
       - sick-nw-dev
     command: ["node", "--inspect=0.0.0.0:9229", "dist/main.js"]
+
+  # ========================================
+  # MinIO Object Storage (Development)
+  # ========================================
+  minio:
+    image: minio/minio:latest
+    container_name: sick-minio-dev
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data_dev:/data
+    restart: unless-stopped
+    networks:
+      - sick-nw-dev
 
   # ========================================
   # Nginx + Angular Web Service (Development)
@@ -71,6 +66,8 @@ services:
       target: web
       args:
         NGINX_VERSION: 1.27-alpine
+        API_BUILD_TARGET: api:build
+        WEB_BUILD_TARGET: web:build:development
     env_file:
       - .env
     ports:
@@ -81,30 +78,8 @@ services:
     networks:
       - sick-nw-dev
 
-  # ========================================
-  # Mongo Express (Optional DB Admin UI)
-  # ========================================
-  mongo-express:
-    image: mongo-express:latest
-    container_name: sick-mongo-express
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: root_password
-      ME_CONFIG_MONGODB_URL: mongodb://root:root_password@mongodb:27017/
-      ME_CONFIG_BASICAUTH: false
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    networks:
-      - sick-nw-dev
-
 volumes:
-  mongo_data_dev:
-    driver: local
-  mongo_config_dev:
+  minio_data_dev:
     driver: local
 
 networks:

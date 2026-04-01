@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { ApiMediaModule } from '@api/media';
 import { ApiUserModule } from '@api/user';
 
 import { ApiBlogPostController } from './api-blog-post.controller';
@@ -17,7 +18,7 @@ const BlogPostFeature = MongooseModule.forFeatureAsync([
 ]);
 
 @Module({
-  imports: [BlogPostFeature, ApiUserModule],
+  imports: [BlogPostFeature, ApiUserModule, ApiMediaModule],
   controllers: [ApiBlogPostController],
   providers: [ApiBlogPostService],
   exports: [BlogPostFeature, ApiBlogPostService],

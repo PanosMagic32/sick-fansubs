@@ -36,8 +36,16 @@ export interface Project {
   dateTimeCreated: Date | string;
   creator?: UserRef;
   updatedBy?: UserRef;
-  batchDownloadLinks?: string[];
+  batchDownloadLinks?: ProjectBatchDownloadLink[];
   updatedAt?: Date | string;
+}
+
+export interface ProjectBatchDownloadLink {
+  name: string;
+  downloadLinkTorrent: string;
+  downloadLink: string;
+  downloadLink4kTorrent?: string;
+  downloadLink4k?: string;
 }
 
 export interface CreateProject {
@@ -45,14 +53,14 @@ export interface CreateProject {
   description: string;
   thumbnail: string;
   dateTimeCreated: Date | string;
-  batchDownloadLinks?: string[];
+  batchDownloadLinks?: ProjectBatchDownloadLink[];
 }
 
 export interface EditProject {
   title: string;
   description: string;
   thumbnail: string;
-  batchDownloadLinks?: string[];
+  batchDownloadLinks?: ProjectBatchDownloadLink[];
 }
 
 export interface Searchable {

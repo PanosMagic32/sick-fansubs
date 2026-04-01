@@ -2,13 +2,26 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import { MediaService } from '@api/media';
+
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Project, ProjectDocument } from './schemas/project.schema';
 
 @Injectable()
 export class ProjectService {
-  constructor(@InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>) {}
+  constructor(
+    @InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>,
+    private readonly mediaService: MediaService,
+  ) {}
+
+  private sanitizeEditedMetadata<T extends { updatedBy?: unknown; updatedAt?: Date | string }>(entity: T): T {
+    if (!entity.updatedBy) {
+      entity.updatedAt = undefined;
+    }
+
+    return entity;
+  }
 
   private slugify(value: string): string {
     return value
@@ -56,7 +69,7 @@ export class ProjectService {
       creator: new Types.ObjectId(creatorId),
       slug,
     });
-    return createProject;
+    return this.sanitizeEditedMetadata(createProject);
   }
 
   async findAll(
@@ -83,7 +96,7 @@ export class ProjectService {
     const projects = await query.exec();
     const count = await this.projectModel.countDocuments();
 
-    return { projects, count };
+    return { projects: projects.map((project) => this.sanitizeEditedMetadata(project)), count };
   }
 
   async findOne(id: string): Promise<Project | undefined> {
@@ -91,13 +104,13 @@ export class ProjectService {
       .findOne({ _id: id })
       .populate('creator', 'username avatar')
       .populate('updatedBy', 'username avatar');
-    if (project) return project;
+    if (project) return this.sanitizeEditedMetadata(project);
     throw new NotFoundException();
   }
 
   async update(id: string, updateProjectDto: UpdateProjectDto, actorId: string): Promise<Project | undefined | null> {
-    const project = await this.findOne(id);
-    if (project) {
+    const existingProject = await this.projectModel.findById(id).select('thumbnail').exec();
+    if (existingProject) {
       const payload = { ...updateProjectDto, updatedBy: new Types.ObjectId(actorId) } as UpdateProjectDto & {
         slug?: string;
         updatedBy: Types.ObjectId;
@@ -107,13 +120,28 @@ export class ProjectService {
         payload.slug = await this.createUniqueSlug(updateProjectDto.title, id);
       }
 
-      return this.projectModel.findByIdAndUpdate({ _id: id }, payload).exec();
+      const updatedProject = await this.projectModel
+        .findByIdAndUpdate({ _id: id }, payload, { new: true, runValidators: true })
+        .exec();
+
+      if (updatedProject && existingProject.thumbnail !== updatedProject.thumbnail) {
+        await this.mediaService.deleteManagedImageByUrl(existingProject.thumbnail);
+      }
+
+      return updatedProject;
     }
+
     throw new NotFoundException();
   }
 
   async remove(id: string) {
     const deletedProject = await this.projectModel.findByIdAndDelete({ _id: id }).exec();
+    if (!deletedProject) {
+      throw new NotFoundException();
+    }
+
+    await this.mediaService.deleteManagedImageByUrl(deletedProject.thumbnail);
+
     return deletedProject;
   }
 }

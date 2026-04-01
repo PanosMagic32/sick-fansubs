@@ -6,6 +6,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { ApiAuthModule } from '@api/auth';
 import { ApiBlogPostModule } from '@api/blog-post';
+import { ApiMediaModule } from '@api/media';
 import { ApiProjectModule } from '@api/project';
 import { ApiSearchModule } from '@api/search';
 import { ApiUserModule } from '@api/user';
@@ -20,6 +21,7 @@ import { HealthController } from './health.controller';
     ApiProjectModule,
     ApiAuthModule,
     ApiSearchModule,
+    ApiMediaModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
