@@ -31,10 +31,10 @@ Full CRUD REST API for fansub "projects" — ongoing subtitle series or batch re
 
 ### Service (`src/lib/project.service.ts`)
 
-- `create(dto)` — creates a new project document
-- `findAll(pageSize, currentPage)` — sorted by `dateTimeCreated` descending
-- `findOne(id)` — throws `NotFoundException` if missing
-- `update(id, dto)` — returns updated document
+- `create(dto)` — creates a new project document with `creator` ref
+- `findAll(pageSize, currentPage)` — sorted by `dateTimeCreated` descending; populates `creator` and `updatedBy` refs
+- `findOne(id)` — throws `NotFoundException` if missing; populates `creator` and `updatedBy` refs
+- `update(id, dto, actorId)` — updates document and sets `updatedBy` ref to `actorId`; populates refs
 - `remove(id)` — throws `NotFoundException` if missing
 
 ### Schema (`src/lib/schemas/project.schema.ts`)
@@ -46,7 +46,9 @@ MongoDB collection: `projects`
 | `description` | String | Required |
 | `thumbnail` | String | URL |
 | `dateTimeCreated` | String | ISO string |
-| `creator` | ObjectId ref `User` | Reference |
+| `creator` | ObjectId ref `User` | Set on create |
+| `updatedAt` | Date | Mongoose timestamp (auto) |
+| `updatedBy` | ObjectId ref `User` | Set on update, optional |
 | `batchDownloadLinks` | String[] | Array of download URLs |
 
 ### DTOs
@@ -76,4 +78,7 @@ pnpm nx lint api-project
 
 - `batchDownloadLinks` is a flat string array — no structured metadata per link
 - Mirrors the structure of `@api/blog-post` but with `batchDownloadLinks` instead of individual link fields
+- `updatedAt` is a Mongoose timestamp — automatically set on create and update
+- `creator` is set on create and never changes; `updatedBy` tracks the user who last edited the project
+- `update()` method requires `actorId` parameter to set `updatedBy` ref
 - Do not rely on Swagger decorators for validation; only `class-validator` metadata is used by Nest validation pipe

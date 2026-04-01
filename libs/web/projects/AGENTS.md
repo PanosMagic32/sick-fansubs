@@ -39,12 +39,12 @@ Angular `httpResource`-based service (signals-driven):
 
 #### `project.interface.ts`
 
-| Type              | Description                                                                                                 |
-| ----------------- | ----------------------------------------------------------------------------------------------------------- |
-| `Project`         | `_id?`, `title`, `description`, `thumbnail`, `dateTimeCreated`, `creator?`, `batchDownloadLinks?: string[]` |
-| `CreateProject`   | Project fields without `_id` / `creator`                                                                    |
-| `EditProject`     | Project fields without `dateTimeCreated` / `creator`                                                        |
-| `ProjectResponse` | `{ projects: Project[]; count: number }`                                                                    |
+| Type              | Description                                                                                                                   |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `Project`         | `_id?`, `title`, `description`, `thumbnail`, `dateTimeCreated`, `creator?`, `updatedAt?`, `updatedBy?`, `batchDownloadLinks?` |
+| `CreateProject`   | Project fields without `_id` / `creator` / `updatedAt` / `updatedBy`                                                          |
+| `EditProject`     | Project fields without `dateTimeCreated` / `creator` / `updatedAt` / `updatedBy`                                              |
+| `ProjectResponse` | `{ projects: Project[]; count: number }`                                                                                      |
 
 Imports `User` type from `@api/user`.
 
@@ -87,10 +87,10 @@ Imports `User` type from `@api/user`.
 
 ### `src/lib/ui/`
 
-| Component                        | Selector               | Description                                                                                                               |
-| -------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `project-item.component.ts`      | `sf-project-item`      | Card: thumbnail, title, date. "More" navigates to details. Edit FAB for admins. Priority image loading for first 2 items. |
-| `project-item-form.component.ts` | `sf-project-item-form` | Dumb form presentation. Renders base fields + dynamic batch download link list with add/remove controls.                  |
+| Component                        | Selector               | Description                                                                                                                                                                              |
+| -------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project-item.component.ts`      | `sf-project-item`      | Card with creator/editor metadata: 70px circular avatar with fallback to logo, title, created/edited dates with creator/editor usernames in Greek, edit FAB for admins. Responsive grid. |
+| `project-item-form.component.ts` | `sf-project-item-form` | Dumb form presentation. Renders base fields + dynamic batch download link list with add/remove controls.                                                                                 |
 
 ## Dependencies
 
@@ -110,3 +110,6 @@ pnpm nx lint web-projects
 
 - `batchDownloadLinks` is a `FormArray` — always rebuild it when pre-filling form from an existing project (clear first, then patch each entry)
 - The `/projects/create` route must come **before** `/projects/:id` in the route list to avoid `create` being matched as an `:id` param — verify `lib.routes.ts` ordering
+- Creator avatar is 70px circular with 35% secondary color border and soft shadow; defaults to `/logo/logo.png` if creator has no avatar
+- Timestamps and usernames are displayed in Greek ("Προστέθηκε: ... από", "Επεξεργάστηκε: ... από")
+- Editor username shown only if `updatedBy` exists and differs from `creator`; falls back to "Άγνωστος χρήστης" if username unavailable

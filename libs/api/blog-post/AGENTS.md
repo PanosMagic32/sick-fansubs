@@ -31,10 +31,10 @@ Full CRUD REST API for blog posts — the fansub group's release announcements. 
 
 ### Service (`src/lib/api-blog-post.service.ts`)
 
-- `create(dto)` — creates a new blog post document
-- `findAll(pageSize, currentPage)` — sorted by `dateTimeCreated` descending
-- `findOne(id)` — throws `NotFoundException` if missing
-- `update(id, dto)` — returns updated document
+- `create(dto)` — creates a new blog post document with `creator` ref
+- `findAll(pageSize, currentPage)` — sorted by `dateTimeCreated` descending; populates `creator` and `updatedBy` refs
+- `findOne(id)` — throws `NotFoundException` if missing; populates `creator` and `updatedBy` refs
+- `update(id, dto, actorId)` — updates document and sets `updatedBy` ref to `actorId`; populates refs
 - `delete(id)` — throws `NotFoundException` if missing
 - `count(options?)` — document count for pagination
 
@@ -52,7 +52,9 @@ MongoDB collection: `blogposts`
 | `downloadLink4k` | String | Optional 4K |
 | `downloadLink4kTorrent` | String | Optional 4K torrent |
 | `dateTimeCreated` | String | ISO string |
-| `creator` | ObjectId ref `User` | Reference |
+| `creator` | ObjectId ref `User` | Set on create |
+| `updatedAt` | Date | Mongoose timestamp (auto) |
+| `updatedBy` | ObjectId ref `User` | Set on update, optional |
 
 ### DTOs
 
@@ -82,4 +84,7 @@ pnpm nx lint api-blog-post
 
 - Pagination uses `pagesize` (lowercase) query param — keep in sync with frontend `BlogPostService`
 - `dateTimeCreated` is stored as a string (not a `Date`) — used for display sorting
+- `updatedAt` is a Mongoose timestamp — automatically set on create and update
+- `creator` is set on create and never changes; `updatedBy` tracks the user who last edited the post
+- `update()` method requires `actorId` parameter to set `updatedBy` ref
 - Do not rely on Swagger decorators for validation; only `class-validator` metadata is used by Nest validation pipe
