@@ -1,5 +1,6 @@
 export * from './lib/ui/header/header.component';
 export * from './lib/ui/no-content/no-content.component';
+export * from './lib/ui/status-card/status-card.component';
 export * from './lib/ui/sidenav/sidenav.component';
 
 export * from './lib/data-access/jwt.interceptor';

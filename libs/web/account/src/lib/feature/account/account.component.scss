@@ -1,0 +1,50 @@
+// All sf-* tokens are now inherited from the global :root token set (_tokens.scss).
+@use 'breakpoints' as bp;
+
+.account-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sf-space-lg);
+  margin: var(--sf-space-2xl) 0;
+}
+
+.account-card {
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: var(--sf-space-xs);
+      font-size: var(--sf-font-lg);
+
+      mat-icon {
+        font-size: var(--sf-icon-md);
+        width: var(--sf-icon-md);
+        height: var(--sf-icon-md);
+      }
+    }
+  }
+
+  mat-card-content {
+    padding: var(--sf-space-lg);
+
+    @include bp.bp-down('md') {
+      padding: var(--sf-space-sm);
+    }
+  }
+}
+
+.main-account-card {
+  mat-card-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sf-space-lg);
+
+    @include bp.bp-up('lg') {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    & > mat-divider {
+      grid-column: 1 / -1;
+    }
+  }
+}

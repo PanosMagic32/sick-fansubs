@@ -1,0 +1,28 @@
+<div class="profile-section">
+  <h3>
+    <mat-icon>person</mat-icon>
+    Προφίλ
+  </h3>
+
+  <div class="profile-info">
+    <div class="avatar-section">
+      @if (safeAvatarUrl()) {
+        <img [src]="safeAvatarUrl()" alt="avatar" class="avatar" (error)="onAvatarImageError()" />
+      } @else {
+        <mat-icon class="avatar-placeholder">account_circle</mat-icon>
+      }
+    </div>
+
+    <div class="user-info">
+      <h4>{{ profile().username }}</h4>
+      <p class="user-email">{{ profile().email }}</p>
+
+      @if (profile().isAdmin) {
+        <span class="admin-badge">
+          <mat-icon>shield</mat-icon>
+          Διαχειριστής
+        </span>
+      }
+    </div>
+  </div>
+</div>

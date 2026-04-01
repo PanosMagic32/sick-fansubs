@@ -11,6 +11,7 @@ export interface UserProfile {
   avatar?: string;
   isAdmin: boolean;
   favoriteBlogPostIds: string[];
+  createdBlogPostIds: string[];
   createdAt?: string;
   updatedAt?: string;
 }

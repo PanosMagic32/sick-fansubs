@@ -1,0 +1,43 @@
+<mat-card class="status-card">
+  @if (title()) {
+    <mat-card-header>
+      <mat-card-title>
+        @if (state() === 'error') {
+          <mat-icon>error_outline</mat-icon>
+        } @else {
+          <mat-icon>hourglass_top</mat-icon>
+        }
+        {{ title() }}
+      </mat-card-title>
+    </mat-card-header>
+  }
+
+  <mat-card-content>
+    @if (state() === 'loading') {
+      <div class="status-loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ message() }}</p>
+      </div>
+    } @else {
+      <p class="status-error-message">{{ message() }}</p>
+
+      @if (showRetry() || showSecondaryAction()) {
+        <div class="status-actions">
+          @if (showRetry()) {
+            <button mat-stroked-button type="button" (click)="onRetry()">
+              <mat-icon>{{ retryIcon() }}</mat-icon>
+              {{ retryLabel() }}
+            </button>
+          }
+
+          @if (showSecondaryAction()) {
+            <button mat-raised-button [color]="secondaryActionColor()" type="button" (click)="onSecondaryAction()">
+              <mat-icon>{{ secondaryActionIcon() }}</mat-icon>
+              {{ secondaryActionLabel() }}
+            </button>
+          }
+        </div>
+      }
+    }
+  </mat-card-content>
+</mat-card>

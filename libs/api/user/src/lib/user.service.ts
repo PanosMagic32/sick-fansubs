@@ -58,12 +58,18 @@ export class UserService {
     avatar?: string;
     isAdmin: boolean;
     favoriteBlogPostIds: string[];
+    createdBlogPostIds: string[];
     createdAt?: Date;
     updatedAt?: Date;
   } {
     const serialized = user.toObject({ virtuals: false });
+
     const favoriteBlogPostIds = Array.isArray(serialized.favoriteBlogPostIds)
       ? serialized.favoriteBlogPostIds.map((postId: Types.ObjectId | string) => postId.toString())
+      : [];
+
+    const createdBlogPostIds = Array.isArray(serialized.createdBlogPostIds)
+      ? serialized.createdBlogPostIds.map((postId: Types.ObjectId | string) => postId.toString())
       : [];
 
     return {
@@ -73,6 +79,7 @@ export class UserService {
       avatar: serialized.avatar,
       isAdmin: serialized.isAdmin,
       favoriteBlogPostIds,
+      createdBlogPostIds,
       createdAt: serialized.createdAt,
       updatedAt: serialized.updatedAt,
     };
@@ -306,6 +313,32 @@ export class UserService {
     return {
       favoriteBlogPostIds: this.toPublicUser(updatedUser).favoriteBlogPostIds,
     };
+  }
+
+  async addCreatedBlogPost(id: string, postId: string): Promise<void> {
+    this.assertValidId(id);
+    this.assertValidBlogPostId(postId);
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(id, { $addToSet: { createdBlogPostIds: new Types.ObjectId(postId) } }, { new: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found.');
+    }
+  }
+
+  async removeCreatedBlogPost(id: string, postId: string): Promise<void> {
+    this.assertValidId(id);
+    this.assertValidBlogPostId(postId);
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(id, { $pull: { createdBlogPostIds: new Types.ObjectId(postId) } }, { new: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found.');
+    }
   }
 
   private async hashPassword(password: string): Promise<string> {

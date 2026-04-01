@@ -55,6 +55,7 @@ Smart component:
 - Re-runs search when `MatPaginator` changes
 - Displays results via `WebSearchResultItemComponent`
 - Shows `NoContentComponent` when results are empty
+- Uses `StatusCardComponent` from `@web/shared` for loading state
 
 ### `src/lib/ui/`
 
@@ -68,7 +69,7 @@ Renders a single search result card:
 
 ## Dependencies
 
-- `@web/shared` — `NoContentComponent`, `TokenService` (for admin edit FAB), `WebConfigService`
+- `@web/shared` — `NoContentComponent`, `StatusCardComponent`, `TokenService` (for admin edit FAB), `WebConfigService`
 
 ## Nx Tasks
 

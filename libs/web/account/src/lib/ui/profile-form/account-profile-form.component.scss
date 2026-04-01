@@ -1,0 +1,68 @@
+@use 'breakpoints' as bp;
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sf-space-sm);
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--sf-space-xs);
+    margin: 0 0 var(--sf-space-md) 0;
+    font-size: var(--sf-font-md);
+
+    mat-icon {
+      font-size: var(--sf-icon-sm);
+      width: var(--sf-icon-sm);
+      height: var(--sf-icon-sm);
+    }
+  }
+}
+
+.password-strength {
+  margin: calc(var(--sf-space-xs) * -1) 0 var(--sf-space-sm) 0;
+  font-size: var(--sf-font-sm);
+  opacity: 0.8;
+}
+
+.security-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--sf-space-xs);
+    margin: 0 0 var(--sf-space-sm) 0;
+    font-size: var(--sf-font-md);
+
+    mat-icon {
+      font-size: var(--sf-icon-sm);
+      width: var(--sf-icon-sm);
+      height: var(--sf-icon-sm);
+    }
+  }
+
+  p {
+    margin-bottom: var(--sf-space-sm);
+  }
+
+  @include bp.bp-up('lg') {
+    align-items: flex-end;
+    text-align: right;
+  }
+}
+
+.button-group {
+  display: flex;
+  gap: var(--sf-space-sm);
+  margin-top: var(--sf-space-md);
+
+  button {
+    mat-icon {
+      margin-right: var(--sf-space-xs);
+    }
+  }
+}

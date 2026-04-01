@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { AdminGuard, JwtAuthGuard } from '@api/user';
@@ -13,10 +13,14 @@ import { BlogPost } from './schemas/blog-post.schema';
 export class ApiBlogPostController {
   constructor(private readonly apiBlogPostService: ApiBlogPostService) {}
 
+  private getActorIdFromRequest(req: { user?: { sub?: string } }): string {
+    return req.user?.sub ?? '';
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async create(@Body() createBlogPostDto: CreateBlogPostDto) {
-    return this.apiBlogPostService.create(createBlogPostDto);
+  async create(@Body() createBlogPostDto: CreateBlogPostDto, @Req() req: { user?: { sub?: string } }) {
+    return this.apiBlogPostService.create(createBlogPostDto, this.getActorIdFromRequest(req));
   }
 
   @Get()
@@ -42,7 +46,7 @@ export class ApiBlogPostController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async delete(@Param('id') id: string) {
-    return this.apiBlogPostService.delete(id);
+  async delete(@Param('id') id: string, @Req() req: { user?: { sub?: string } }) {
+    return this.apiBlogPostService.delete(id, this.getActorIdFromRequest(req));
   }
 }

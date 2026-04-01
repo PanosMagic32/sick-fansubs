@@ -10,9 +10,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIcon } from '@angular/material/icon';
 import { MatPaginator, type PageEvent } from '@angular/material/paginator';
-import { MatProgressBar } from '@angular/material/progress-bar';
 
-import { NoContentComponent, TokenService } from '@web/shared';
+import { NoContentComponent, StatusCardComponent, TokenService } from '@web/shared';
 
 import { SearchFormModel, SearchTypeOption } from '../data-access/search-form.interface';
 import { SearchService } from '../data-access/search.service';
@@ -35,7 +34,7 @@ const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
     MatIcon,
     MatPaginator,
     NoContentComponent,
-    MatProgressBar,
+    StatusCardComponent,
     WebSearchResultItemComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

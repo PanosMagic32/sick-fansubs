@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import {
@@ -12,43 +11,37 @@ import {
 } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
 import { MatDivider } from '@angular/material/divider';
-import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
-import { MatInput } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import type { BlogPost } from '@shared/types';
 
-import { TokenService } from '@web/shared';
+import { StatusCardComponent, TokenService } from '@web/shared';
 
-import { UserProfile, UserService, UpdateUserRequest } from '../data-access/user.service';
+import { AccountFavoritesComponent } from '../../ui/favorites/account-favorites.component';
+import { AccountProfileFormComponent } from '../../ui/profile-form/account-profile-form.component';
+import { AccountProfileSummaryComponent } from '../../ui/profile-summary/account-profile-summary.component';
+import { UserProfile, UserService, UpdateUserRequest } from '../../data-access/user.service';
+import { AccountViewState } from '../../data-access/types';
 
 @Component({
   selector: 'sf-account',
   templateUrl: './account.component.html',
   styleUrl: './account.component.scss',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCard,
     MatCardHeader,
     MatCardTitle,
     MatCardContent,
-    MatFormField,
-    MatLabel,
-    MatInput,
-    MatError,
-    MatButton,
-    MatIconButton,
     MatIcon,
     MatDivider,
-    MatMenuModule,
-    MatProgressSpinner,
+    StatusCardComponent,
+    AccountFavoritesComponent,
+    AccountProfileFormComponent,
+    AccountProfileSummaryComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -66,9 +59,34 @@ export class WebAccountComponent implements OnInit {
   private readonly latestFavoriteBlogPosts = signal<BlogPost[]>([]);
   private readonly favoriteRemovalRequest = signal<string | null>(null);
   private readonly avatarImageError = signal(false);
+  private readonly showNewPassword = signal(false);
+  private readonly showConfirmPassword = signal(false);
 
   readonly displayProfile = this.latestUpdatedProfile.asReadonly();
   readonly favoriteBlogPosts = this.latestFavoriteBlogPosts.asReadonly();
+  readonly isNewPasswordVisible = this.showNewPassword.asReadonly();
+  readonly isConfirmPasswordVisible = this.showConfirmPassword.asReadonly();
+
+  protected readonly userProfile = this.userService.getUserProfile(this.activeUserId);
+  protected readonly updateUserResource = this.userService.updateUserProfile(this.activeUserId, this.updateRequest);
+  protected readonly favoriteBlogPostIdsResource = this.userService.getFavoriteBlogPostIds(this.activeUserId);
+  protected readonly favoriteBlogPostsResource = this.userService.getFavoriteBlogPosts(this.activeUserId);
+  protected readonly removeFavoriteResource = this.userService.removeFavoriteBlogPost(
+    this.activeUserId,
+    this.favoriteRemovalRequest,
+  );
+
+  protected profileForm!: FormGroup;
+
+  readonly favoriteBlogPostIds = computed(() => this.displayProfile()?.favoriteBlogPostIds ?? []);
+
+  readonly accountViewState = computed<AccountViewState>(() => {
+    if (this.userProfile.isLoading()) return 'loading';
+    if (this.userProfile.error()) return 'error';
+    if (this.displayProfile()) return 'ready';
+    return 'idle';
+  });
+
   readonly safeAvatarUrl = computed(() => {
     const avatar = this.displayProfile()?.avatar;
     if (!avatar || this.avatarImageError()) return null;
@@ -79,21 +97,9 @@ export class WebAccountComponent implements OnInit {
     return parsed.href;
   });
 
-  userProfile = this.userService.getUserProfile(this.activeUserId);
-  updateUserResource = this.userService.updateUserProfile(this.activeUserId, this.updateRequest);
-  favoriteBlogPostIdsResource = this.userService.getFavoriteBlogPostIds(this.activeUserId);
-  favoriteBlogPostsResource = this.userService.getFavoriteBlogPosts(this.activeUserId);
-  removeFavoriteResource = this.userService.removeFavoriteBlogPost(this.activeUserId, this.favoriteRemovalRequest);
-
-  readonly favoriteBlogPostIds = computed(() => this.displayProfile()?.favoriteBlogPostIds ?? []);
-
-  profileForm!: FormGroup;
-
   constructor() {
     effect(() => {
-      if (!this.userProfile.hasValue()) {
-        return;
-      }
+      if (!this.userProfile.hasValue()) return;
 
       const profile = this.userProfile.value();
       if (profile && this.profileForm) {
@@ -105,12 +111,11 @@ export class WebAccountComponent implements OnInit {
     });
 
     effect(() => {
-      if (!this.favoriteBlogPostIdsResource.hasValue()) {
-        return;
-      }
+      if (!this.favoriteBlogPostIdsResource.hasValue()) return;
 
       const favoriteIds = this.favoriteBlogPostIdsResource.value()?.favoriteBlogPostIds;
       const profile = this.latestUpdatedProfile();
+
       if (!favoriteIds || !profile || this.haveSameIds(profile.favoriteBlogPostIds, favoriteIds)) {
         return;
       }
@@ -122,9 +127,7 @@ export class WebAccountComponent implements OnInit {
     });
 
     effect(() => {
-      if (!this.favoriteBlogPostsResource.hasValue()) {
-        return;
-      }
+      if (!this.favoriteBlogPostsResource.hasValue()) return;
 
       const favoritePosts = this.favoriteBlogPostsResource.value()?.posts;
       if (!favoritePosts) return;
@@ -287,11 +290,35 @@ export class WebAccountComponent implements OnInit {
         username: [{ value: '', disabled: true }],
         email: ['', [Validators.required, Validators.email]],
         avatar: [''],
-        password: ['', [Validators.minLength(8), Validators.maxLength(128)]],
+        password: ['', [this.optionalPasswordStrengthValidator()]],
         confirmPassword: [''],
       },
       { validators: [this.passwordsMatchValidator()] },
     );
+  }
+
+  private optionalPasswordStrengthValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = String(control.value ?? '');
+
+      if (!value) {
+        return null;
+      }
+
+      const hasLower = /[a-z]/.test(value);
+      const hasUpper = /[A-Z]/.test(value);
+      const hasNumber = /\d/.test(value);
+      const hasSymbol = /[^A-Za-z0-9]/.test(value);
+
+      return {
+        ...(value.length < 8 ? { minlength: true } : {}),
+        ...(value.length > 128 ? { maxlength: true } : {}),
+        ...(!hasLower ? { needsLowercase: true } : {}),
+        ...(!hasUpper ? { needsUppercase: true } : {}),
+        ...(!hasNumber ? { needsNumber: true } : {}),
+        ...(!hasSymbol ? { needsSymbol: true } : {}),
+      };
+    };
   }
 
   private passwordsMatchValidator(): ValidatorFn {
@@ -301,6 +328,14 @@ export class WebAccountComponent implements OnInit {
 
       if (!password && !confirmPassword) {
         return null;
+      }
+
+      if (password && !confirmPassword) {
+        return { confirmPasswordRequired: true };
+      }
+
+      if (!password && confirmPassword) {
+        return { passwordRequired: true };
       }
 
       if (password !== confirmPassword) {
@@ -343,6 +378,24 @@ export class WebAccountComponent implements OnInit {
     return 'Ισχύς κωδικού: Μέτριος';
   }
 
+  get passwordRequirementsHint(): string {
+    return 'Ο νέος κωδικός πρέπει να έχει 8-128 χαρακτήρες και να περιέχει πεζό, κεφαλαίο, αριθμό και σύμβολο.';
+  }
+
+  get shouldShowPasswordMismatch(): boolean {
+    const confirmControl = this.profileForm.get('confirmPassword');
+    const hasMismatch = this.profileForm.hasError('passwordMismatch');
+    return Boolean(hasMismatch && (confirmControl?.dirty || confirmControl?.touched));
+  }
+
+  toggleNewPasswordVisibility() {
+    this.showNewPassword.update((value) => !value);
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.showConfirmPassword.update((value) => !value);
+  }
+
   onResetForm() {
     const profile = this.displayProfile();
     if (profile) {
@@ -355,6 +408,11 @@ export class WebAccountComponent implements OnInit {
   onSaveChanges() {
     const profile = this.displayProfile();
     if (this.profileForm.invalid || !profile) {
+      if (this.profileForm.invalid) {
+        this.profileForm.markAllAsTouched();
+        this.snackBar.open('Ελέγξτε τα πεδία του κωδικού και δοκιμάστε ξανά.', 'OK', { duration: 3000 });
+      }
+
       return;
     }
 
@@ -374,9 +432,7 @@ export class WebAccountComponent implements OnInit {
 
   get profileErrorMessage(): string {
     const error = this.userProfile.error();
-    if (!error) {
-      return '';
-    }
+    if (!error) return '';
 
     if (error instanceof HttpErrorResponse) {
       switch (error.status) {

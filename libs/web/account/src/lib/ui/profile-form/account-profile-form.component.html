@@ -1,0 +1,141 @@
+<form [formGroup]="profileForm()" class="settings-form">
+  <h3>
+    <mat-icon>settings</mat-icon>
+    Επεξεργασία Προφίλ
+  </h3>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Όνομα Χρήστη</mat-label>
+    <input matInput formControlName="username" readonly />
+    <mat-icon matPrefix>badge</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Email</mat-label>
+    <input matInput formControlName="email" type="email" />
+    <mat-icon matPrefix>email</mat-icon>
+
+    @if (profileForm().get('email')?.hasError('required')) {
+      <mat-error>Το email είναι υποχρεωτικό</mat-error>
+    }
+
+    @if (profileForm().get('email')?.hasError('email')) {
+      <mat-error>Παρακαλώ εισάγετε ένα έγκυρο email</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>URL Εικόνας Προφίλ</mat-label>
+    <input matInput formControlName="avatar" placeholder="https://..." />
+    <mat-icon matPrefix>image</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Νέος Κωδικός (προαιρετικό)</mat-label>
+    <input
+      matInput
+      formControlName="password"
+      [type]="isNewPasswordVisible() ? 'text' : 'password'"
+      autocomplete="new-password"
+    />
+    <mat-icon matPrefix>lock</mat-icon>
+    <button
+      mat-icon-button
+      matSuffix
+      type="button"
+      [attr.aria-label]="isNewPasswordVisible() ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'"
+      (click)="onToggleNewPasswordVisibility()"
+    >
+      <mat-icon>{{ isNewPasswordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+    </button>
+
+    @if (profileForm().get('password')?.hasError('minlength')) {
+      <mat-error>Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.</mat-error>
+    }
+
+    @if (profileForm().get('password')?.hasError('maxlength')) {
+      <mat-error>Ο κωδικός δεν μπορεί να ξεπερνά τους 128 χαρακτήρες.</mat-error>
+    }
+    @if (profileForm().get('password')?.hasError('needsLowercase')) {
+      <mat-error>Προσθέστε τουλάχιστον ένα πεζό γράμμα.</mat-error>
+    }
+
+    @if (profileForm().get('password')?.hasError('needsUppercase')) {
+      <mat-error>Προσθέστε τουλάχιστον ένα κεφαλαίο γράμμα.</mat-error>
+    }
+
+    @if (profileForm().get('password')?.hasError('needsNumber')) {
+      <mat-error>Προσθέστε τουλάχιστον έναν αριθμό.</mat-error>
+    }
+
+    @if (profileForm().get('password')?.hasError('needsSymbol')) {
+      <mat-error>Προσθέστε τουλάχιστον ένα σύμβολο.</mat-error>
+    }
+  </mat-form-field>
+
+  <p class="password-strength">{{ passwordRequirementsHint() }}</p>
+  <p class="password-strength">{{ passwordStrengthLabel() }}</p>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Επιβεβαίωση Νέου Κωδικού</mat-label>
+    <input
+      matInput
+      formControlName="confirmPassword"
+      [type]="isConfirmPasswordVisible() ? 'text' : 'password'"
+      autocomplete="new-password"
+    />
+    <mat-icon matPrefix>lock_reset</mat-icon>
+    <button
+      mat-icon-button
+      matSuffix
+      type="button"
+      [attr.aria-label]="isConfirmPasswordVisible() ? 'Απόκρυψη επιβεβαίωσης κωδικού' : 'Εμφάνιση επιβεβαίωσης κωδικού'"
+      (click)="onToggleConfirmPasswordVisibility()"
+    >
+      <mat-icon>{{ isConfirmPasswordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+    </button>
+
+    @if (profileForm().hasError('confirmPasswordRequired')) {
+      <mat-error>Συμπληρώστε την επιβεβαίωση του νέου κωδικού.</mat-error>
+    }
+
+    @if (profileForm().hasError('passwordRequired')) {
+      <mat-error>Συμπληρώστε πρώτα νέο κωδικό.</mat-error>
+    }
+
+    @if (shouldShowPasswordMismatch()) {
+      <mat-error>Οι κωδικοί δεν ταιριάζουν.</mat-error>
+    }
+  </mat-form-field>
+
+  <div class="button-group">
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="onSaveChanges()"
+      [disabled]="profileForm().invalid || profileForm().pristine || isSaving()"
+    >
+      <mat-icon>save</mat-icon>
+      Αποθήκευση Αλλαγών
+    </button>
+
+    <button mat-stroked-button type="button" (click)="onResetForm()" [disabled]="profileForm().pristine">
+      <mat-icon>refresh</mat-icon>
+      Επαναφορά
+    </button>
+  </div>
+</form>
+
+<div class="security-section">
+  <h3>
+    <mat-icon>security</mat-icon>
+    Ασφάλεια
+  </h3>
+
+  <p>Αποσυνδεθείτε από το λογαριασμό σας</p>
+  <button mat-raised-button color="warn" type="button" (click)="onLogout()">
+    <mat-icon>logout</mat-icon>
+    Αποσύνδεση
+  </button>
+</div>

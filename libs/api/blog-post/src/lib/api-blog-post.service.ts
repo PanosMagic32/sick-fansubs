@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
+
+import { UserService } from '@api/user';
 
 import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
@@ -8,10 +10,19 @@ import { BlogPost, BlogPostDocument } from './schemas/blog-post.schema';
 
 @Injectable()
 export class ApiBlogPostService {
-  constructor(@InjectModel(BlogPost.name) private readonly blogPostModel: Model<BlogPostDocument>) {}
+  constructor(
+    @InjectModel(BlogPost.name) private readonly blogPostModel: Model<BlogPostDocument>,
+    private readonly userService: UserService,
+  ) {}
 
-  async create(createBlogPostDto: CreateBlogPostDto): Promise<{ id: string }> {
-    const createdBlogPost = await this.blogPostModel.create(createBlogPostDto);
+  async create(createBlogPostDto: CreateBlogPostDto, creatorId: string): Promise<{ id: string }> {
+    const createdBlogPost = await this.blogPostModel.create({
+      ...createBlogPostDto,
+      creator: new Types.ObjectId(creatorId),
+    });
+
+    await this.userService.addCreatedBlogPost(creatorId, createdBlogPost._id.toString());
+
     return { id: createdBlogPost._id.toString() };
   }
 
@@ -52,9 +63,19 @@ export class ApiBlogPostService {
     throw new NotFoundException();
   }
 
-  async delete(id: string) {
-    const deletedBlogPost = await this.blogPostModel.findByIdAndDelete({ _id: id }).exec();
-    return deletedBlogPost;
+  async delete(id: string, actorId: string) {
+    const existingBlogPost = await this.blogPostModel.findById(id).exec();
+    if (!existingBlogPost) {
+      throw new NotFoundException();
+    }
+
+    await this.blogPostModel.deleteOne({ _id: id }).exec();
+
+    const creatorId = existingBlogPost.creator instanceof Types.ObjectId ? existingBlogPost.creator.toString() : actorId;
+
+    await this.userService.removeCreatedBlogPost(creatorId, id);
+
+    return existingBlogPost;
   }
 
   async count(options: FilterQuery<BlogPostDocument>) {

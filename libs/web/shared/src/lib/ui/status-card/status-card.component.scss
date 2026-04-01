@@ -1,0 +1,51 @@
+@use 'breakpoints' as bp;
+
+.status-card {
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: var(--sf-space-xs);
+      font-size: var(--sf-font-lg);
+
+      mat-icon {
+        font-size: var(--sf-icon-md);
+        width: var(--sf-icon-md);
+        height: var(--sf-icon-md);
+      }
+    }
+  }
+
+  mat-card-content {
+    padding: var(--sf-space-lg);
+
+    @include bp.bp-down('md') {
+      padding: var(--sf-space-sm);
+    }
+  }
+}
+
+.status-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--sf-space-lg) * 2) var(--sf-space-lg);
+  gap: var(--sf-space-sm);
+
+  p {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+}
+
+.status-error-message {
+  margin: 0 0 var(--sf-space-md) 0;
+  color: var(--sf-color-danger);
+}
+
+.status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sf-space-sm);
+}

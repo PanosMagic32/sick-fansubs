@@ -37,7 +37,7 @@ Angular `httpResource`-based service (signals-driven):
 
 ### `src/lib/feature/`
 
-#### `account.component.ts` — `WebAccountComponent` (`sf-account`)
+#### `feature/account/account.component.ts` — `WebAccountComponent` (`sf-account`)
 
 Smart component:
 
@@ -49,8 +49,22 @@ Smart component:
 - Loads favorite ids + populated favorites and renders a dedicated favorites card
 - Supports removing favorites and refreshes favorites ids and populated favorites resources
 - Handles expired sessions by clearing token and redirecting to login
-- Shows `MatProgressSpinner` while loading
+- Uses shared `StatusCardComponent` from `@web/shared` for loading/error shell states
 - Success/error snackbar notifications (Greek messages)
+
+### `src/lib/ui/`
+
+#### `ui/profile-summary/account-profile-summary.component.ts`
+
+Presentational profile summary block (avatar, username, email, admin badge).
+
+#### `ui/profile-form/account-profile-form.component.ts`
+
+Presentational profile edit/password/security form. Receives form + UI flags via signal inputs and emits UI actions via outputs.
+
+#### `ui/favorites/account-favorites.component.ts`
+
+Presentational favorites card. Uses signal inputs/outputs and a computed `FavoritesViewState` switch for loading/error/empty/ready rendering.
 
 ## Update Flow
 

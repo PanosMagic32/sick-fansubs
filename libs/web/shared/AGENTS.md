@@ -10,14 +10,15 @@ Cross-cutting shared infrastructure for the Angular frontend. Contains the app s
 
 ## Public API (Exports)
 
-| Export               | Type             | Description                                     |
-| -------------------- | ---------------- | ----------------------------------------------- |
-| `HeaderComponent`    | Component        | App toolbar with nav links and social icons     |
-| `SidenavComponent`   | Component        | Mobile slide-out nav                            |
-| `NoContentComponent` | Component        | Fallback empty-state UI                         |
-| `jwtInterceptor`     | HTTP Interceptor | Attaches Bearer token to `/api/*` requests      |
-| `TokenService`       | Service          | JWT storage, decoding, and auth signals         |
-| `WebConfigService`   | Service          | Runtime config (API URL, social links, version) |
+| Export                | Type             | Description                                       |
+| --------------------- | ---------------- | ------------------------------------------------- |
+| `HeaderComponent`     | Component        | App toolbar with nav links and social icons       |
+| `SidenavComponent`    | Component        | Mobile slide-out nav                              |
+| `NoContentComponent`  | Component        | Fallback empty-state UI                           |
+| `StatusCardComponent` | Component        | Reusable loading/error card with optional actions |
+| `jwtInterceptor`      | HTTP Interceptor | Attaches Bearer token to `/api/*` requests        |
+| `TokenService`        | Service          | JWT storage, decoding, and auth signals           |
+| `WebConfigService`    | Service          | Runtime config (API URL, social links, version)   |
 
 ## Key Files
 
@@ -96,6 +97,18 @@ Reusable empty-state fallback. Inputs:
 
 - `message` — customizable label (default: Greek "No content to display")
 - Shows `images/oh-no.png`
+
+#### `status-card/status-card.component.ts` — `StatusCardComponent` (`sf-status-card`)
+
+Reusable shell card for loading/error states.
+
+- Inputs:
+  - `state`: `'loading' | 'error'`
+  - `message`: main state message
+  - Optional action configuration (`showRetry`, `retryLabel`, `showSecondaryAction`, `secondaryActionLabel`, etc.)
+- Outputs:
+  - `retry`
+  - `secondaryAction`
 
 ## Dependencies
 

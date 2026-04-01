@@ -1,5 +1,5 @@
 @if (isLoading()) {
-  <mat-progress-bar mode="indeterminate" />
+  <sf-status-card state="loading" message="Φόρτωση αποτελεσμάτων..." />
 }
 
 <form [formGroup]="searchForm">

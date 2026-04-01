@@ -1,8 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
-// import { BlogPost } from '@api/blog-post';
-
 export type UserDocument = User & Document;
 
 @Schema({ timestamps: true })
@@ -25,8 +23,8 @@ export class User {
   @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
   favoriteBlogPostIds!: Types.ObjectId[];
 
-  // @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'BlogPost' })
-  // blogPosts: BlogPost[];
+  @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
+  createdBlogPostIds!: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
