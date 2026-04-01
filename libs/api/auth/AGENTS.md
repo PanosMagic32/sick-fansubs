@@ -1,71 +1,47 @@
-# libs/api/auth — `@api/auth`
+# libs/api/auth — @api/auth
 
 ## Purpose
 
-JWT-based authentication for the NestJS API. Handles login, token generation, Passport strategy registration, and route guards.
+Authentication/session module for the NestJS API using HttpOnly cookie tokens.
 
-## Path Alias
+## Current Auth Model
 
-`@api/auth` → `libs/api/auth/src/index.ts`
+- Access token: short-lived JWT in cookie `sf_access_token`
+- Refresh token: rotating JWT in cookie `sf_refresh_token`
+- Refresh session state stored per user in Mongo (`refreshTokenHash`, `refreshTokenJti`, `refreshTokenExpiresAt`)
+- JWT strategy extracts access token from cookie first, then bearer header fallback
 
-## Public API (Exports)
+## Endpoints
 
-| Export              | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| `ApiAuthModule`     | NestJS module — import in `AppModule`          |
-| `ApiAuthController` | `POST /api/auth/login`                         |
-| `JwtAuthGuard`      | Protects routes requiring a valid Bearer token |
+| Method | Route             | Guard                                       | Notes                                                                         |
+| ------ | ----------------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| POST   | /api/auth/login   | CredentialThrottlerGuard + Throttle(5/min)  | Validates credentials, sets access+refresh cookies                            |
+| POST   | /api/auth/refresh | CredentialThrottlerGuard + Throttle(10/min) | Validates refresh token, rotates refresh session, reissues cookies            |
+| POST   | /api/auth/logout  | CredentialThrottlerGuard + Throttle(10/min) | Clears cookies and revokes refresh session                                    |
+| GET    | /api/auth/session | JwtAuthGuard                                | Returns authenticated session payload (`sub`, `username`, `email`, `isAdmin`) |
 
 ## Key Files
 
-### Module
+- `src/lib/api-auth.controller.ts`
+- `src/lib/api-auth.service.ts`
+- `src/lib/strategies/jwt.strategy.ts`
+- `src/lib/auth.constants.ts`
+- `src/lib/api-auth.module.ts`
 
-`src/lib/api-auth.module.ts`
+## Security Notes
 
-- Imports `ApiUserModule` (needs `UserService`)
-- Registers `JwtModule.registerAsync` — secret from `JWT_SECRET` env, expiration from `JWT_EXPIRATION` env
-- Provides `ApiAuthService`, registers `JwtStrategy`
-
-### Controller
-
-`src/lib/api-auth.controller.ts`
-
-- `POST /api/auth/login` — accepts `LoginUserDto` (`{ username, password }`), returns `{ username, accessToken }`
-
-### Service
-
-`src/lib/api-auth.service.ts`
-
-- `validateUser(username, password)` — fetches user, bcrypt-compares password
-- `generateJwt(user)` — signs `{ sub, username, email, isAdmin }` payload
-- `login(loginUserDto)` — validates → signs → returns token
-- `verifyJwt(token)` — verifies a JWT string
-
-### Guards
-
-`src/lib/guards/jwt.guard.ts` — re-exports `JwtAuthGuard` from `@api/user`
-`src/lib/guards/local.guard.ts` — `LocalAuthGuard extends AuthGuard('local')` (declared, not active in controllers)
-
-### Strategy
-
-`src/lib/strategies/jwt.strategy.ts` — `PassportStrategy(Strategy)`
-
-- Extracts Bearer token from `Authorization` header
-- Validates with `JWT_SECRET`
-- Returns decoded `{ sub, username, email, isAdmin }` payload injected as `req.user`
+- Cookie flags: `HttpOnly`, `Secure` in production, `SameSite=Lax`, path `/`
+- Refresh token rotation is enforced through `jti` + hashed-token validation
+- Revoked or reused refresh token attempts invalidate persisted refresh session
+- JWT issuer/audience are enforced for sign and verify (`sick-fansubs-api` / `sick-fansubs-web`)
 
 ## Dependencies
 
-- `@api/user` — `UserService` (for user lookup), `LoginUserDto`
+- `@api/user` for user lookup and refresh-session persistence
+- `@nestjs/throttler` for login/refresh/logout rate limiting
 
-## Nx Tasks
+## Validation Commands
 
 ```bash
 pnpm nx lint api-auth
-pnpm nx test api-auth
 ```
-
-## Notes
-
-- `JwtAuthGuard` is defined in `@api/user` and re-exported here to keep a single guard implementation
-- `LocalAuthGuard` exists but is not wired to any controller endpoint
