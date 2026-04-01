@@ -1,11 +1,14 @@
 import { DatePipe, Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { MatButton } from '@angular/material/button';
 import { MatCard, MatCardAvatar, MatCardContent, MatCardHeader, MatCardImage, MatCardTitle } from '@angular/material/card';
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+
+import { TokenService } from '@web/shared';
 
 import { ProjectsService } from '../../data-access/projects.service';
 import type { Project, ProjectBatchDownloadLink } from '../../data-access/project.interface';
@@ -31,12 +34,17 @@ import type { Project, ProjectBatchDownloadLink } from '../../data-access/projec
 })
 export default class ProjectDetailsComponent {
   private readonly location = inject(Location);
+  private readonly router = inject(Router);
+  private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly tokenService = inject(TokenService);
   private readonly projectService = inject(ProjectsService);
-  private readonly defaultAvatarPath = '/logo/logo.png';
 
   readonly id = input.required<string>();
 
-  project = this.projectService.getProjectById(this.id);
+  private readonly defaultAvatarPath = '/logo/logo.png';
+  protected readonly isAdmin = this.tokenService.isAdmin;
+
+  protected readonly project = this.projectService.getProjectById(this.id);
   protected readonly creatorAvatarUrl = computed(() => this.project.value()?.creator?.avatar || this.defaultAvatarPath);
   protected readonly createdByUsername = computed(() => this.project.value()?.creator?.username || 'kushoyarou');
   protected readonly editedByUsername = computed(
@@ -104,5 +112,11 @@ export default class ProjectDetailsComponent {
   onBackToProjects() {
     this.location.back();
     return;
+  }
+
+  onEditProject() {
+    this.router.navigate(['..', this.id(), 'edit'], {
+      relativeTo: this.activatedRoute,
+    });
   }
 }

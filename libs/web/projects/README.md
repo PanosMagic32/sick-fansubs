@@ -8,6 +8,8 @@ Projects web feature library.
 - admin create and edit screens
 - thumbnail upload with preview
 - project details header with creator and editor metadata
+- admin-only edit action on the project details page
+- backward-compatible project response normalization for legacy payload shapes
 
 ## Batch Downloads
 
@@ -20,3 +22,11 @@ Each batch supports:
 - optional 4K magnet link
 
 The details page renders these links through dropdown menus matching the blog-post download UI.
+
+## Compatibility
+
+The projects data-access layer normalizes legacy API payloads to the current `Project` contract.
+
+- supports list responses as arrays, numeric-key objects, or single-object payloads
+- supports `_id` values as plain strings or Mongo Extended JSON (`{ "$oid": "..." }`)
+- supports batch download links as structured objects, strings, or char-indexed objects

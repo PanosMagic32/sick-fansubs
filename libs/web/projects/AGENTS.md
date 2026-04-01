@@ -37,6 +37,12 @@ Angular `httpResource`-based service (signals-driven):
 - `updateProject(id, data: Signal<EditProject | null>)` → fires when signal is non-null
 - `deleteProject(id: Signal<string | null>)` → fires when signal is non-null
 
+Compatibility parsing in this service normalizes legacy payloads before they reach UI components:
+
+- list responses returned as arrays, numeric-key objects, or single project objects
+- `_id` values returned as plain strings or Mongo Extended JSON (`{ "$oid": "..." }`)
+- `batchDownloadLinks` entries returned as structured objects, plain strings, or char-indexed objects
+
 #### `project.interface.ts`
 
 | Type              | Description                                                                                                                   |
@@ -78,12 +84,15 @@ Imports `User` type from `@api/user`.
 - Read-only view of a single project
 - Lists all batch download links; opens each with `window.open()`
 - Back button via `Location.back()`
+- Admin-only edit action button (`/projects/:id/edit`)
 
 #### `project-edit/project-edit.component.ts` (lazy)
 
 - Pre-fills form from loaded project (including rebuilding `batchDownloadLinks` `FormArray`)
 - Handles update (PATCH) + delete (DELETE)
 - Mirrors `ProjectCreateComponent` for link add/remove
+- Edit mode currently allows temporarily incomplete batch-link controls during migration
+- TODO in code: restore strict required validators after legacy data migration
 
 ### `src/lib/ui/`
 
@@ -101,7 +110,7 @@ Imports `User` type from `@api/user`.
 ## Nx Tasks
 
 ```bash
-pnpm nx lint web-projects
+pnpm nx lint projects
 ```
 
 `projects` currently exposes only a `lint` target.
@@ -113,3 +122,4 @@ pnpm nx lint web-projects
 - Creator avatar is 70px circular with 35% secondary color border and soft shadow; defaults to `/logo/logo.png` if creator has no avatar
 - Timestamps and usernames are displayed in Greek ("Προστέθηκε: ... από", "Επεξεργάστηκε: ... από")
 - Editor username shown only if `updatedBy` exists and differs from `creator`; falls back to "Άγνωστος χρήστης" if username unavailable
+- During migration window, edit payload omits `batchDownloadLinks` when no complete link pairs are present, preventing accidental overwrite of legacy links

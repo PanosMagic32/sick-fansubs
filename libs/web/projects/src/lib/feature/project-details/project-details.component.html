@@ -3,6 +3,13 @@
     <mat-icon>arrow_back</mat-icon>
     Projects
   </button>
+
+  @if (isAdmin()) {
+    <button mat-stroked-button type="button" (click)="onEditProject()">
+      <mat-icon>edit</mat-icon>
+      Επεξεργασία
+    </button>
+  }
 </div>
 
 @if (project.value(); as project) {

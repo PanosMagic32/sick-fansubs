@@ -49,14 +49,14 @@ MongoDB collection: `projects`
 | `creator` | ObjectId ref `User` | Set on create |
 | `updatedAt` | Date | Mongoose timestamp (auto) |
 | `updatedBy` | ObjectId ref `User` | Set on update, optional |
-| `batchDownloadLinks` | String[] | Array of download URLs |
+| `batchDownloadLinks` | Object[] | Array of batch link objects (`name`, `downloadLinkTorrent`, `downloadLink`, optional 4K fields) |
 
 ### DTOs
 
-| File                    | Notes                                                                                  |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| `create-project.dto.ts` | `title`, `description`, `thumbnail`, `batchDownloadLinks: string[]`, `dateTimeCreated` |
-| `update-project.dto.ts` | `PartialType(CreateProjectDto)` — all optional                                         |
+| File                    | Notes                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| `create-project.dto.ts` | `title`, `description`, `thumbnail`, `batchDownloadLinks: BatchDownloadLinkDto[]`, `dateTimeCreated` |
+| `update-project.dto.ts` | `PartialType(CreateProjectDto)` — all optional                                                       |
 
 `create-project.dto.ts` uses `class-validator` metadata (`@IsString`, `@MinLength`, `@IsArray`, `@IsDateString`, etc.).
 This is required because the API uses global `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
@@ -76,8 +76,8 @@ pnpm nx lint api-project
 
 ## Notes
 
-- `batchDownloadLinks` is a flat string array — no structured metadata per link
-- Mirrors the structure of `@api/blog-post` but with `batchDownloadLinks` instead of individual link fields
+- `batchDownloadLinks` stores structured batch objects with required 1080p torrent/magnet URLs and optional 4K URLs
+- DTO validation enforces URL type patterns for torrent (`http/https`) and magnet (`magnet:?xt=`)
 - `updatedAt` is a Mongoose timestamp — automatically set on create and update
 - `creator` is set on create and never changes; `updatedBy` tracks the user who last edited the project
 - `update()` method requires `actorId` parameter to set `updatedBy` ref

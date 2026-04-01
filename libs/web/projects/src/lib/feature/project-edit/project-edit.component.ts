@@ -85,18 +85,18 @@ export default class ProjectEditComponent {
     downloadLink4kTorrent = '',
     downloadLink4k = '',
   ): FormGroup<BatchDownloadLinkFormModel> {
+    // TODO: Re-enable required validators for edit mode after legacy project link migration is complete.
     return new FormGroup<BatchDownloadLinkFormModel>({
       name: new FormControl(name, {
         nonNullable: true,
-        validators: [Validators.required],
       }),
       downloadLinkTorrent: new FormControl(downloadLinkTorrent, {
         nonNullable: true,
-        validators: [Validators.required, batchTorrentUrlValidator()],
+        validators: [batchTorrentUrlValidator()],
       }),
       downloadLink: new FormControl(downloadLink, {
         nonNullable: true,
-        validators: [Validators.required, batchMagnetUrlValidator()],
+        validators: [batchMagnetUrlValidator()],
       }),
       downloadLink4kTorrent: new FormControl(downloadLink4kTorrent, {
         nonNullable: true,
@@ -188,20 +188,25 @@ export default class ProjectEditComponent {
   onSave() {
     if (this.editForm.valid) {
       const formValue = this.editForm.getRawValue();
-      this.updateRequest.set({
+      const normalizedBatchDownloadLinks = this.batchDownloadLinksControls.controls
+        .map((control, index) => ({
+          name: String(control.controls.name.value ?? '').trim() || `Batch ${index + 1}`,
+          downloadLinkTorrent: String(control.controls.downloadLinkTorrent.value ?? '').trim(),
+          downloadLink: String(control.controls.downloadLink.value ?? '').trim(),
+          downloadLink4kTorrent: String(control.controls.downloadLink4kTorrent.value ?? '').trim() || undefined,
+          downloadLink4k: String(control.controls.downloadLink4k.value ?? '').trim() || undefined,
+        }))
+        .filter((link) => link.downloadLinkTorrent.length > 0 && link.downloadLink.length > 0) as ProjectBatchDownloadLink[];
+
+      const updatePayload: Project = {
         ...formValue,
-        batchDownloadLinks: this.batchDownloadLinksControls.controls
-          .map((control) => ({
-            name: String(control.controls.name.value ?? '').trim(),
-            downloadLinkTorrent: String(control.controls.downloadLinkTorrent.value ?? '').trim(),
-            downloadLink: String(control.controls.downloadLink.value ?? '').trim(),
-            downloadLink4kTorrent: String(control.controls.downloadLink4kTorrent.value ?? '').trim() || undefined,
-            downloadLink4k: String(control.controls.downloadLink4k.value ?? '').trim() || undefined,
-          }))
-          .filter(
-            (link) => link.name.length > 0 && link.downloadLinkTorrent.length > 0 && link.downloadLink.length > 0,
-          ) as ProjectBatchDownloadLink[],
-      } as Project);
+      } as Project;
+
+      if (normalizedBatchDownloadLinks.length > 0) {
+        updatePayload.batchDownloadLinks = normalizedBatchDownloadLinks;
+      }
+
+      this.updateRequest.set(updatePayload);
     }
   }
 
