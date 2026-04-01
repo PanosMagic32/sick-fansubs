@@ -23,6 +23,7 @@ export interface FavoriteBlogPost {
 
 export interface FavoriteBlogPostsResponse {
   posts: FavoriteBlogPost[];
+  count: number;
 }
 
 @Injectable()
@@ -233,16 +234,27 @@ export class UserService {
     };
   }
 
-  async getFavoriteBlogPosts(id: string, actor: { sub: string; isAdmin: boolean }): Promise<FavoriteBlogPostsResponse> {
+  async getFavoriteBlogPosts(
+    id: string,
+    actor: { sub: string; isAdmin: boolean },
+    pageSize = 10,
+    currentPage = 1,
+  ): Promise<FavoriteBlogPostsResponse> {
     this.assertCanAccessUser(id, actor);
     const user = await this.findOneEntityById(id);
     const favoriteBlogPostIds = this.toPublicUser(user).favoriteBlogPostIds;
+    const count = favoriteBlogPostIds.length;
 
-    if (!favoriteBlogPostIds.length) {
-      return { posts: [] };
+    const normalizedPageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
+    const normalizedCurrentPage = Number.isFinite(currentPage) && currentPage > 0 ? Math.floor(currentPage) : 1;
+    const startIndex = (normalizedCurrentPage - 1) * normalizedPageSize;
+    const paginatedFavoriteIds = favoriteBlogPostIds.slice(startIndex, startIndex + normalizedPageSize);
+
+    if (!paginatedFavoriteIds.length) {
+      return { posts: [], count };
     }
 
-    const objectIds = favoriteBlogPostIds.map((postId) => new Types.ObjectId(postId));
+    const objectIds = paginatedFavoriteIds.map((postId) => new Types.ObjectId(postId));
     const rawPosts = (await this.userModel.db
       .collection('blogposts')
       .find({ _id: { $in: objectIds } })
@@ -251,7 +263,8 @@ export class UserService {
     const postsById = new Map(rawPosts.map((rawPost) => [String((rawPost['_id'] as Types.ObjectId).toString()), rawPost]));
 
     return {
-      posts: favoriteBlogPostIds
+      count,
+      posts: paginatedFavoriteIds
         .map((postId) => postsById.get(postId))
         .filter((rawPost): rawPost is Record<string, unknown> => Boolean(rawPost))
         .map((rawPost) => this.serializeFavoriteBlogPost(rawPost)),

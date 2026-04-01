@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { CreateUserDto } from './dto/create-user.dto';
@@ -52,8 +52,13 @@ export class UserController {
   async getFavoritePosts(
     @Param('id') id: string,
     @Req() req: { user?: { sub?: string; isAdmin?: boolean } },
+    @Query('pagesize') pageSize?: string,
+    @Query('page') page?: string,
   ): Promise<FavoriteBlogPostsResponse> {
-    return this.userService.getFavoriteBlogPosts(id, this.getActorFromRequest(req));
+    const parsedPageSize = pageSize ? Number.parseInt(pageSize, 10) : undefined;
+    const parsedPage = page ? Number.parseInt(page, 10) : undefined;
+
+    return this.userService.getFavoriteBlogPosts(id, this.getActorFromRequest(req), parsedPageSize, parsedPage);
   }
 
   @ApiParam({ name: 'id' })
