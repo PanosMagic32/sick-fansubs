@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Controller, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
@@ -19,7 +19,10 @@ export class MediaController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   @ApiConsumes('multipart/form-data')
-  async uploadImage(@UploadedFile() file: Express.Multer.File): Promise<{ url: string }> {
+  async uploadImage(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('oldImageUrl') oldImageUrl?: string,
+  ): Promise<{ url: string }> {
     if (!file) {
       throw new BadRequestException('Δεν παρέχθηκε αρχείο.');
     }
@@ -32,6 +35,6 @@ export class MediaController {
       throw new BadRequestException('Το αρχείο δεν μπορεί να υπερβαίνει τα 5 MB.');
     }
 
-    return this.mediaService.uploadImage(file);
+    return this.mediaService.uploadImage(file, oldImageUrl);
   }
 }

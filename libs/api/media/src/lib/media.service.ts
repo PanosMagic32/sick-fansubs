@@ -9,6 +9,11 @@ import {
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { randomUUID } from 'crypto';
+import sharp from 'sharp';
+
+const OUTPUT_WIDTH = 1280;
+const OUTPUT_HEIGHT = 720;
+const OUTPUT_WEBP_QUALITY = 82;
 
 @Injectable()
 export class MediaService {
@@ -37,20 +42,29 @@ export class MediaService {
     this.bucketReady = this.ensureBucketExists();
   }
 
-  async uploadImage(file: Express.Multer.File): Promise<{ url: string }> {
-    const ext = (file.originalname.split('.').pop() ?? 'jpg').toLowerCase();
-    const key = `${Date.now()}-${randomUUID()}.${ext}`;
+  async uploadImage(file: Express.Multer.File, oldImageUrl?: string): Promise<{ url: string }> {
+    const key = `${Date.now()}-${randomUUID()}.webp`;
 
     try {
       await this.bucketReady;
+
+      // Resize to 1280x720 and encode to WebP for consistent storage and delivery.
+      const resizedBuffer = await sharp(file.buffer)
+        .resize(OUTPUT_WIDTH, OUTPUT_HEIGHT, {
+          fit: 'cover',
+          position: 'center',
+          withoutEnlargement: false,
+        })
+        .webp({ quality: OUTPUT_WEBP_QUALITY })
+        .toBuffer();
 
       const upload = new Upload({
         client: this.s3Client,
         params: {
           Bucket: this.bucket,
           Key: key,
-          Body: file.buffer,
-          ContentType: file.mimetype,
+          Body: resizedBuffer,
+          ContentType: 'image/webp',
         },
       });
 
@@ -58,6 +72,13 @@ export class MediaService {
     } catch (error) {
       this.logger.error('MinIO upload failed', error);
       throw new InternalServerErrorException('Αποτυχία ανεβάσματος εικόνας. Δοκιμάστε ξανά.');
+    }
+
+    // Delete old image if provided
+    if (oldImageUrl) {
+      this.deleteManagedImageByUrl(oldImageUrl).catch((error) => {
+        this.logger.warn('Failed to delete old image during upload', error as Error);
+      });
     }
 
     const normalizedBase = this.publicBaseUrl.trim().replace(/\/$/, '');
