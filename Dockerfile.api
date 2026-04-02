@@ -1,0 +1,90 @@
+ARG NODE_VERSION=lts-alpine
+
+# ========================================
+# Base Node.js stage
+# ========================================
+FROM node:${NODE_VERSION} AS node-base
+WORKDIR /app
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+# ========================================
+# Workspace dependencies
+# ========================================
+FROM node-base AS workspace-deps
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package.json pnpm-lock.yaml ./
+
+# Install all dependencies once and reuse this layer for app builders
+RUN pnpm install --frozen-lockfile
+
+# ========================================
+# API build stage
+# ========================================
+FROM workspace-deps AS api-builder
+WORKDIR /app
+
+ARG API_BUILD_TARGET=api:build:production
+
+# Copy only the API sources and shared libraries required for the build
+COPY apps/api ./apps/api
+COPY libs/api ./libs/api
+COPY libs/shared ./libs/shared
+COPY tsconfig.base.json nx.json ./
+
+# Build the API deployment artifact
+RUN pnpm nx run ${API_BUILD_TARGET} --skip-nx-cache
+
+# ========================================
+# API development image
+# ========================================
+FROM workspace-deps AS api-dev
+WORKDIR /app
+
+# Copy the workspace files needed for Nx watch mode inside the container.
+COPY nx.json tsconfig.base.json ./
+COPY apps/api ./apps/api
+COPY libs/api ./libs/api
+COPY libs/shared ./libs/shared
+
+# ========================================
+# API runtime dependencies
+# ========================================
+FROM node-base AS api-deps
+WORKDIR /app
+
+# Install only the runtime dependencies for the built API artifact
+COPY --from=api-builder /app/dist/apps/api/package.json ./package.json
+COPY --from=api-builder /app/dist/apps/api/pnpm-lock.yaml ./pnpm-lock.yaml
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+
+# ========================================
+# API production image
+# ========================================
+FROM node:${NODE_VERSION} AS api
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copy production dependencies and built app
+COPY --from=api-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=api-builder --chown=nodejs:nodejs /app/dist/apps/api ./dist
+COPY --from=api-builder --chown=nodejs:nodejs /app/dist/apps/api/package.json ./package.json
+
+# Switch to non-root user
+USER nodejs
+
+# Expose API port
+EXPOSE 3333
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3333/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start the API
+CMD ["node", "dist/main.js"]

@@ -6,7 +6,7 @@ services:
     container_name: sick-api
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.api
       target: api
       args:
         NODE_VERSION: lts-alpine
@@ -67,7 +67,7 @@ services:
     container_name: sick-web
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.web
       target: web
       args:
         NGINX_VERSION: 1.27-alpine

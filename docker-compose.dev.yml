@@ -10,29 +10,32 @@ services:
     container_name: sick-api-dev
     build:
       context: .
-      dockerfile: Dockerfile
-      target: api
+      dockerfile: Dockerfile.api
+      target: api-dev
       args:
         NODE_VERSION: 24-alpine
-        API_BUILD_TARGET: api:build
-        WEB_BUILD_TARGET: web:build:development
     env_file:
       - .env
+    entrypoint: []
     environment:
       NODE_ENV: development
       PORT: 3333
+      MINIO_PUBLIC_BASE_URL: http://localhost:4200
     ports:
       - "3333:3333"
       - "9229:9229"  # Node.js debugger port
     volumes:
-      # Mount source code for hot-reload
-      - ./apps/api:/app/apps/api:ro
-      - ./libs:/app/libs:ro
-      - /app/node_modules  # Prevent overwriting node_modules
+      # Mount source code for Nx watch mode.
+      - ./apps/api:/app/apps/api
+      - ./libs:/app/libs
+      - ./nx.json:/app/nx.json:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
     restart: unless-stopped
+    depends_on:
+      - minio
     networks:
       - sick-nw-dev
-    command: ["node", "--inspect=0.0.0.0:9229", "dist/main.js"]
+    command: ["pnpm", "exec", "nx", "run", "api:serve", "--", "--host=0.0.0.0", "--inspect=true", "--port=9229"]
 
   # ========================================
   # MinIO Object Storage (Development)
@@ -56,27 +59,34 @@ services:
       - sick-nw-dev
 
   # ========================================
-  # Nginx + Angular Web Service (Development)
+  # Angular Web Service (Development)
   # ========================================
   web:
     container_name: sick-web-dev
     build:
       context: .
-      dockerfile: Dockerfile
-      target: web
+      dockerfile: Dockerfile.web
+      target: web-dev
       args:
-        NGINX_VERSION: 1.27-alpine
-        API_BUILD_TARGET: api:build
-        WEB_BUILD_TARGET: web:build:development
+        NODE_VERSION: 24-alpine
     env_file:
       - .env
+    entrypoint: []
+    environment:
+      NODE_ENV: development
     ports:
-      - "4200:8080"
+      - "4200:4200"
     depends_on:
       - api
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./libs:/app/libs
+      - ./nx.json:/app/nx.json:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
     restart: unless-stopped
     networks:
       - sick-nw-dev
+    command: ["pnpm", "exec", "nx", "run", "web:serve", "--", "--host=0.0.0.0", "--port=4200", "--proxyConfig=apps/web/proxy.docker.conf.json"]
 
 volumes:
   minio_data_dev:

@@ -20,6 +20,7 @@ Current media consumers:
    - `MINIO_PUBLIC_BASE_URL=http://localhost:4200`
 2. Start local stack without local MongoDB:
    - `pnpm run docker:dev`
+   - API image is built from `Dockerfile.api` and web image from `Dockerfile.web`
 3. Validate services:
    - `curl -i http://localhost:4200/health`
    - `curl -i http://localhost:4200/api/health`
