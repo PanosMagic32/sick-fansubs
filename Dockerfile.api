@@ -59,7 +59,11 @@ WORKDIR /app
 # Install only the runtime dependencies for the built API artifact
 COPY --from=api-builder /app/dist/apps/api/package.json ./package.json
 COPY --from=api-builder /app/dist/apps/api/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+
+# pnpm v10+ blocks dependency build scripts unless explicitly allowed.
+# The dist package.json does not carry root-level pnpm config, so we recreate it.
+RUN printf "onlyBuiltDependencies:\n  - '@nestjs/core'\n  - '@scarf/scarf'\n  - 'bcrypt'\n  - 'sharp'\n" > pnpm-workspace.yaml
+RUN pnpm install --prod --frozen-lockfile
 
 # ========================================
 # API production image
