@@ -43,6 +43,7 @@ import { DashboardService } from '../../data-access/dashboard.service';
 })
 export class DashboardUsersComponent {
   private readonly dashboardService = inject(DashboardService);
+  private readonly defaultAvatarPath = '/logo/logo.png';
 
   protected readonly searchText = signal('');
   protected readonly debouncedSearchText = toSignal(
@@ -140,5 +141,18 @@ export class DashboardUsersComponent {
 
   protected statusLabel(status: UserStatus): string {
     return status === 'active' ? 'Ενεργός' : 'Σε αναστολή';
+  }
+
+  protected avatarUrl(avatar?: string): string {
+    return avatar?.trim() || this.defaultAvatarPath;
+  }
+
+  protected onAvatarImageError(event: Event): void {
+    const imageElement = event.target as HTMLImageElement | null;
+    if (!imageElement || imageElement.src.endsWith(this.defaultAvatarPath)) {
+      return;
+    }
+
+    imageElement.src = this.defaultAvatarPath;
   }
 }

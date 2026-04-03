@@ -4,7 +4,7 @@
       <img src="logo/logo.png" alt="logo" [routerLink]="['/home']" />
     </div>
 
-    @if ((isSmall$ | async) || (isHandset$ | async) ? true : false) {
+    @if (isSmall() || isHandset()) {
       <button mat-icon-button (click)="onToggleSidenav()">
         <mat-icon>menu</mat-icon>
       </button>
@@ -14,7 +14,7 @@
 
     <span class="spacer"></span>
 
-    @if ((isSmall$ | async) || (isMedium$ | async) || (isHandset$ | async) ? false : true) {
+    @if (!(isSmall() || isMedium() || isHandset())) {
       <div>
         <ul class="navigation-items">
           <li [routerLink]="['/projects']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
@@ -52,7 +52,7 @@
       </div>
     }
 
-    @if ((isMedium$ | async) ? true : false) {
+    @if (isMedium()) {
       <div class="menu-icons-only">
         <ul class="navigation-items-icons-only">
           <li [routerLink]="['/projects']" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
@@ -80,7 +80,7 @@
 
     <span class="spacer"></span>
 
-    @if ((isSmall$ | async) || (isHandset$ | async) ? false : true) {
+    @if (!(isSmall() || isHandset())) {
       <div class="logo-social">
         <img src="images/discord.svg" alt="discord" (click)="onOpenSocial('discord')" />
         <img src="images/facebook.svg" alt="facebook" (click)="onOpenSocial('facebook')" />

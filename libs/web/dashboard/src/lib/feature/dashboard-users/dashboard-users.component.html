@@ -57,9 +57,16 @@
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Όνομα</th>
               <td mat-cell *matCellDef="let user">
                 <div class="cell-user">
-                  <span class="avatar" aria-hidden="true">
-                    <mat-icon>person</mat-icon>
-                  </span>
+                  <img
+                    class="avatar"
+                    [src]="avatarUrl(user.avatar)"
+                    [alt]="'Avatar χρήστη ' + user.username"
+                    width="56"
+                    height="56"
+                    loading="lazy"
+                    decoding="async"
+                    (error)="onAvatarImageError($event)"
+                  />
                   <span>{{ user.username }}</span>
                 </div>
               </td>

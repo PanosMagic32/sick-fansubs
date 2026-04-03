@@ -95,10 +95,10 @@
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  display: inline-grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--mat-sys-primary) 15%, transparent);
-  color: var(--mat-sys-primary);
+  display: block;
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 70%, transparent);
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 70%, transparent);
 }
 
 .cell-email {

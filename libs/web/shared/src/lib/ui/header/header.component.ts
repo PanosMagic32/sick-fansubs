@@ -1,4 +1,3 @@
-import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
@@ -14,7 +13,7 @@ import { WebConfigService } from '../../data-access/web-config.service';
   selector: 'sf-header',
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
-  imports: [RouterLink, RouterLinkActive, AsyncPipe, MatToolbar, MatToolbarRow, MatIcon, MatIconButton],
+  imports: [RouterLink, RouterLinkActive, MatToolbar, MatToolbarRow, MatIcon, MatIconButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HeaderComponent {
@@ -23,16 +22,13 @@ export class HeaderComponent {
   private readonly tokenService = inject(TokenService);
   private readonly router = inject(Router);
 
-  sidenavToggle = output();
+  protected readonly sidenavToggle = output();
 
-  // isOpenSearch = signal(false);
+  protected readonly isHandset = this.menuService.isHandset;
+  protected readonly isMedium = this.menuService.isMedium;
+  protected readonly isSmall = this.menuService.isSmall;
 
-  isHandset$ = this.menuService.isHandset$;
-  isMedium$ = this.menuService.isMedium$;
-  isSmall$ = this.menuService.isSmall$;
-
-  isAdmin = computed(() => this.tokenService.isAdmin());
-  isAuthenticated = computed(() => this.tokenService.isAuthenticated());
+  protected readonly isAuthenticated = computed(() => this.tokenService.isAuthenticated());
 
   onLogout() {
     this.tokenService.logout().subscribe(() => {
