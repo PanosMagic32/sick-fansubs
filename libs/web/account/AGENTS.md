@@ -65,7 +65,11 @@ Smart component:
 
 #### `ui/profile-summary/account-profile-summary.component.ts`
 
-Presentational profile summary block (avatar, username, email, admin badge).
+Presentational profile summary block (avatar, username, email, role badge).
+
+- Renders Greek role labels (`Υπερδιαχειριστής`, `Διαχειριστής`, `Συντονιστής`, `Χρήστης`)
+- Shows a dedicated bottom CTA section for dashboard access when `canAccessDashboard` is true
+- Emits `openDashboard` output to parent container
 
 #### `ui/profile-form/account-profile-form.component.ts`
 
@@ -86,6 +90,7 @@ Presentational favorites card. Uses signal inputs/outputs, a computed `Favorites
 
 - `@web/auth` — `requireAuthGuard` (for route protection)
 - `@web/shared` — `TokenService`, `StatusCardComponent` (loading/error shell)
+- `@web/dashboard` — navigation target (`/dashboard`) exposed only for staff roles
 
 ## Nx Tasks
 

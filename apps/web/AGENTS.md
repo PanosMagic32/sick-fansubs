@@ -32,14 +32,15 @@ The Angular SPA for sick-fansubs — a Greek fansub group's website. Fully stand
 
 ## Routing (`src/app/app.routes.ts`)
 
-| Path        | Lazy lib         | Feature         |
-| ----------- | ---------------- | --------------- |
-| `/` (root)  | `@web/blog-post` | Blog post feed  |
-| `/projects` | `@web/projects`  | Fansub projects |
-| `/about`    | `@web/about`     | About page      |
-| `/auth`     | `@web/auth`      | Login / Signup  |
-| `/search`   | `@web/search`    | Search          |
-| `/account`  | `@web/account`   | User account    |
+| Path         | Lazy lib         | Feature         |
+| ------------ | ---------------- | --------------- |
+| `/` (root)   | `@web/blog-post` | Blog post feed  |
+| `/projects`  | `@web/projects`  | Fansub projects |
+| `/about`     | `@web/about`     | About page      |
+| `/auth`      | `@web/auth`      | Login / Signup  |
+| `/search`    | `@web/search`    | Search          |
+| `/account`   | `@web/account`   | User account    |
+| `/dashboard` | `@web/dashboard` | Staff dashboard |
 
 ## Shell Component (`src/app/app.component.ts`)
 
@@ -72,6 +73,7 @@ All feature code lives in `libs/web/` — see `AGENTS.md` in each lib for detail
 - [libs/web/search](../../libs/web/search/AGENTS.md)
 - [libs/web/about](../../libs/web/about/AGENTS.md)
 - [libs/web/account](../../libs/web/account/AGENTS.md)
+- [libs/web/dashboard](../../libs/web/dashboard/AGENTS.md)
 
 ## Key Conventions
 

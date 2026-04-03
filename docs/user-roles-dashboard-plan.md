@@ -758,7 +758,7 @@ Done criteria:
 ### Milestone 1 Sequence Summary
 
 ```text
-M1.1 Types -> M1.2 Schema -> M1.3 JWT/session -> M1.4 backend authz -> M1.5 frontend guards -> M1.6 backfill -> M1.7 cleanup
+M1.1 Types -> M1.2 Schema -> M1.3 JWT/session -> M1.4 backend authorization -> M1.5 frontend guards -> M1.6 backfill -> M1.7 cleanup
 ```
 
 ### Milestone 1 Execution Status
@@ -779,25 +779,30 @@ Current implementation status in this repo:
 
 ### Validation Snapshot (April 2026)
 
-Implementation validation completed for Milestone 1 foundation changes:
+**Milestone 1 Completion Status:**
 
-1. Test targets were added for these projects:
+M1.1–M1.5 implementation fully validated; M1.6 data backfill executed successfully; M1.7 cleanup is ready.
 
-- `api-auth`
-- `api-user`
-- `web-shared`
-- `auth`
+**M1.6 Execution Results:**
 
-2. Vitest workspace configuration is now in place for Nx targets:
+- Normalized 2 existing user records (legacy `isAdmin` converted to `role`)
+- Promoted `kushoyarou@sick.com` to `super-admin`
+- All users now have valid `role` and `status` fields
+- Verified: Account page returns role/status/isAdmin compatibility payload ✅
 
-- root `vitest.config.ts`
-- root `vitest.setup.ts` (Angular TestBed bootstrap for jsdom test runs)
+**M1.7 Readiness:**
 
-3. Role/status compatibility contracts and helpers are wired and covered by tests:
+- All backend and frontend code is role-aware
+- Backward compatibility payload still emitted (safety gate complete)
+- Ready to remove `isAdmin` persistence after staging sign-off
 
-- auth payload/session types
-- user role resolution and admin-like checks
-- frontend token/session role mapping
+**Test Infrastructure:**
+
+- Vitest workspace config in place (root `vitest.config.ts`, `vitest.setup.ts`)
+- Nx test targets added: `api-auth`, `api-user`, `web-shared`, `auth`
+- All tests passing; no module boundary violations
+
+**Next: Milestone 2 (Dashboard MVP) — Starting**
 
 4. The following verification command succeeded:
 
@@ -829,6 +834,13 @@ Deliver:
 Goal:
 
 - staff can manage users safely
+
+Current implementation status (April 2026):
+
+- `libs/web/dashboard` scaffolded with shell route and staff guard
+- `/dashboard` route wired in the web app
+- account page now exposes a role-aware CTA for staff users to open dashboard
+- users list/detail and management actions remain pending in Milestone 2
 
 ## Milestone 3: Operational Hardening
 
