@@ -12,9 +12,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model, Types } from 'mongoose';
 
+import type { UserRole, UserStatus } from '@shared/types';
+
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument } from './schemas/user.schema';
+import { isAdminLike, resolveRole, resolveStatus } from './authorization/role.helpers';
+import type { AuthActor } from './types/auth-actor.types';
 
 export interface FavoriteBlogPost {
   _id: string;
@@ -37,6 +41,20 @@ export interface FavoriteBlogPostsResponse {
 
 @Injectable()
 export class UserService {
+  private toRoleAndStatus(user: { role?: UserRole; status?: UserStatus; isAdmin?: boolean }): {
+    role: UserRole;
+    status: UserStatus;
+    isAdmin: boolean;
+  } {
+    const role = resolveRole({ role: user.role, isAdmin: user.isAdmin });
+    const status = resolveStatus({ status: user.status });
+    return {
+      role,
+      status,
+      isAdmin: isAdminLike(role),
+    };
+  }
+
   private readonly logger = new Logger(UserService.name);
   private readonly minioBucket: string;
   private readonly minioClient: S3Client;
@@ -102,16 +120,16 @@ export class UserService {
     }
   }
 
-  private assertAdmin(actor: { sub: string; isAdmin: boolean }): void {
-    if (actor.isAdmin) {
+  private assertAdmin(actor: AuthActor): void {
+    if (isAdminLike(actor.role)) {
       return;
     }
 
     throw new ForbiddenException('Insufficient permissions.');
   }
 
-  private assertCanAccessUser(id: string, actor: { sub: string; isAdmin: boolean }): void {
-    if (actor.isAdmin || actor.sub === id) {
+  private assertCanAccessUser(id: string, actor: AuthActor): void {
+    if (isAdminLike(actor.role) || actor.sub === id) {
       return;
     }
 
@@ -123,6 +141,8 @@ export class UserService {
     username: string;
     email: string;
     avatar?: string;
+    role: UserRole;
+    status: UserStatus;
     isAdmin: boolean;
     favoriteBlogPostIds: string[];
     createdBlogPostIds: string[];
@@ -139,12 +159,16 @@ export class UserService {
       ? serialized.createdBlogPostIds.map((postId: Types.ObjectId | string) => postId.toString())
       : [];
 
+    const identity = this.toRoleAndStatus(serialized);
+
     return {
       id: user._id.toString(),
       username: serialized.username,
       email: serialized.email,
       avatar: serialized.avatar,
-      isAdmin: serialized.isAdmin,
+      role: identity.role,
+      status: identity.status,
+      isAdmin: identity.isAdmin,
       favoriteBlogPostIds,
       createdBlogPostIds,
       createdAt: serialized.createdAt,
@@ -197,11 +221,13 @@ export class UserService {
       email: createUserDto.email,
       password: await this.hashPassword(createUserDto.password),
       avatar: createUserDto.avatar,
+      role: 'user' as const,
+      status: 'active' as const,
+      isAdmin: false,
     };
 
     const createdUser = await this.userModel.create(userToCreate);
 
-    // TODO - handle if isAdmin in JWT
     return {
       id: createdUser._id.toString(),
       username: createdUser.username,
@@ -209,7 +235,7 @@ export class UserService {
     };
   }
 
-  async findAll(actor: { sub: string; isAdmin: boolean }): Promise<Array<ReturnType<UserService['toPublicUser']>>> {
+  async findAll(actor: AuthActor): Promise<Array<ReturnType<UserService['toPublicUser']>>> {
     this.assertAdmin(actor);
 
     const users = await this.userModel.find().exec();
@@ -224,7 +250,7 @@ export class UserService {
     throw new NotFoundException('User not found.');
   }
 
-  async findOne(id: string, actor: { sub: string; isAdmin: boolean }): Promise<ReturnType<UserService['toPublicUser']>> {
+  async findOne(id: string, actor: AuthActor): Promise<ReturnType<UserService['toPublicUser']>> {
     this.assertCanAccessUser(id, actor);
     const user = await this.findOneEntityById(id);
     return this.toPublicUser(user);
@@ -245,7 +271,7 @@ export class UserService {
   async update(
     id: string,
     updateUserDto: UpdateUserDto,
-    actor: { sub: string; isAdmin: boolean },
+    actor: AuthActor,
   ): Promise<ReturnType<UserService['toPublicUser']>> {
     this.assertCanAccessUser(id, actor);
     this.assertValidId(id);
@@ -287,7 +313,7 @@ export class UserService {
     return this.toPublicUser(updatedUser);
   }
 
-  async remove(id: string, actor: { sub: string; isAdmin: boolean }) {
+  async remove(id: string, actor: AuthActor) {
     this.assertCanAccessUser(id, actor);
     this.assertValidId(id);
 
@@ -299,10 +325,7 @@ export class UserService {
     return this.toPublicUser(deletedUser);
   }
 
-  async getFavoriteBlogPostIds(
-    id: string,
-    actor: { sub: string; isAdmin: boolean },
-  ): Promise<{ favoriteBlogPostIds: string[] }> {
+  async getFavoriteBlogPostIds(id: string, actor: AuthActor): Promise<{ favoriteBlogPostIds: string[] }> {
     this.assertCanAccessUser(id, actor);
     const user = await this.findOneEntityById(id);
 
@@ -313,7 +336,7 @@ export class UserService {
 
   async getFavoriteBlogPosts(
     id: string,
-    actor: { sub: string; isAdmin: boolean },
+    actor: AuthActor,
     pageSize = 10,
     currentPage = 1,
   ): Promise<FavoriteBlogPostsResponse> {
@@ -348,11 +371,7 @@ export class UserService {
     };
   }
 
-  async addFavoriteBlogPost(
-    id: string,
-    postId: string,
-    actor: { sub: string; isAdmin: boolean },
-  ): Promise<{ favoriteBlogPostIds: string[] }> {
+  async addFavoriteBlogPost(id: string, postId: string, actor: AuthActor): Promise<{ favoriteBlogPostIds: string[] }> {
     this.assertCanAccessUser(id, actor);
     this.assertValidId(id);
     this.assertValidBlogPostId(postId);
@@ -377,11 +396,7 @@ export class UserService {
     };
   }
 
-  async removeFavoriteBlogPost(
-    id: string,
-    postId: string,
-    actor: { sub: string; isAdmin: boolean },
-  ): Promise<{ favoriteBlogPostIds: string[] }> {
+  async removeFavoriteBlogPost(id: string, postId: string, actor: AuthActor): Promise<{ favoriteBlogPostIds: string[] }> {
     this.assertCanAccessUser(id, actor);
     this.assertValidId(id);
     this.assertValidBlogPostId(postId);

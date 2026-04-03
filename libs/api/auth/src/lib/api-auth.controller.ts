@@ -1,17 +1,40 @@
 import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-
-import { CredentialThrottlerGuard, JwtAuthGuard, LoginUserDto } from '@api/user';
 import { Throttle } from '@nestjs/throttler';
+
+import type { UserRole, UserStatus } from '@shared/types';
+import { CredentialThrottlerGuard, JwtAuthGuard, LoginUserDto } from '@api/user';
 
 import { ApiAuthService } from './api-auth.service';
 import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth.constants';
+import type { AuthSessionPayload } from './types/auth-session.types';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class ApiAuthController {
   constructor(private readonly apiAuthService: ApiAuthService) {}
+
+  private toSessionPayload(user: {
+    sub?: string;
+    username?: string;
+    email?: string;
+    role?: UserRole;
+    status?: UserStatus;
+    isAdmin?: boolean;
+  }): AuthSessionPayload {
+    const role = user.role ?? (user.isAdmin ? 'admin' : 'user');
+    const status = user.status ?? 'active';
+
+    return {
+      sub: user.sub ?? '',
+      username: user.username ?? '',
+      email: user.email ?? '',
+      role,
+      status,
+      isAdmin: role === 'admin' || role === 'super-admin',
+    };
+  }
 
   @Post('login')
   @UseGuards(CredentialThrottlerGuard)
@@ -55,12 +78,12 @@ export class ApiAuthController {
 
   @Get('session')
   @UseGuards(JwtAuthGuard)
-  async session(@Req() req: { user?: { sub?: string; username?: string; email?: string; isAdmin?: boolean } }) {
-    return {
-      sub: req.user?.sub ?? '',
-      username: req.user?.username ?? '',
-      email: req.user?.email ?? '',
-      isAdmin: Boolean(req.user?.isAdmin),
-    };
+  async session(
+    @Req()
+    req: {
+      user?: { sub?: string; username?: string; email?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean };
+    },
+  ) {
+    return this.toSessionPayload(req.user ?? {});
   }
 }

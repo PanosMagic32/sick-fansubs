@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { ACCESS_TOKEN_COOKIE } from '../auth.constants';
 import { JWT_AUDIENCE, JWT_ISSUER } from '../auth.constants';
+import type { AuthJwtPayload } from '../types/auth-session.types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -21,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; username: string; email: string; isAdmin: boolean }) {
+  async validate(payload: AuthJwtPayload) {
     return payload;
   }
 }

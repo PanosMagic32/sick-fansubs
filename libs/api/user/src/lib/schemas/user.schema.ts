@@ -1,24 +1,34 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import type { UserRole, UserStatus } from '@shared/types';
 import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
+const USER_ROLES: UserRole[] = ['super-admin', 'admin', 'moderator', 'user'];
+const USER_STATUSES: UserStatus[] = ['active', 'suspended'];
+
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true, unique: true })
+  @Prop({ type: String, required: true, unique: true })
   username!: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   password!: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ type: String, required: true, unique: true })
   email!: string;
 
-  @Prop()
+  @Prop({ type: String })
   avatar!: string;
 
-  @Prop({ default: false })
+  @Prop({ type: Boolean, default: false })
   isAdmin!: boolean;
+
+  @Prop({ type: String, enum: USER_ROLES, default: 'user' })
+  role!: UserRole;
+
+  @Prop({ type: String, enum: USER_STATUSES, default: 'active' })
+  status!: UserStatus;
 
   @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
   favoriteBlogPostIds!: Types.ObjectId[];
@@ -26,13 +36,13 @@ export class User {
   @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
   createdBlogPostIds!: Types.ObjectId[];
 
-  @Prop()
+  @Prop({ type: String })
   refreshTokenHash?: string;
 
-  @Prop()
+  @Prop({ type: String })
   refreshTokenJti?: string;
 
-  @Prop()
+  @Prop({ type: Date })
   refreshTokenExpiresAt?: Date;
 }
 

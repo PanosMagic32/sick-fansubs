@@ -5,8 +5,11 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import type { CookieOptions } from 'express';
 
+import type { UserRole, UserStatus } from '@shared/types';
 import { LoginUserDto, UserService } from '@api/user';
+
 import { JWT_AUDIENCE, JWT_ISSUER } from './auth.constants';
+import type { AuthJwtPayload, RefreshTokenPayload } from './types/auth-session.types';
 
 @Injectable()
 export class ApiAuthService {
@@ -26,30 +29,43 @@ export class ApiAuthService {
     this.refreshTokenExpiration = this.configService.get<string>('JWT_REFRESH_EXPIRATION_TIME') ?? '7d';
   }
 
-  private async generateAccessToken(payload: {
-    sub: string;
-    username: string;
-    email: string;
+  private toRoleAndStatus(payload: { role?: UserRole; status?: UserStatus; isAdmin?: boolean }): {
+    role: UserRole;
+    status: UserStatus;
     isAdmin: boolean;
-  }): Promise<string> {
-    return this.jwtService.signAsync(payload, {
-      secret: this.accessTokenSecret,
-      expiresIn: Math.floor(this.parseToMilliseconds(this.accessTokenExpiration) / 1000),
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-    });
+  } {
+    const role = payload.role ?? (payload.isAdmin ? 'admin' : 'user');
+    const status = payload.status ?? 'active';
+    return {
+      role,
+      status,
+      isAdmin: role === 'admin' || role === 'super-admin',
+    };
   }
 
-  private async generateRefreshToken(payload: {
-    sub: string;
-    username: string;
-    email: string;
-    isAdmin: boolean;
-  }): Promise<{ token: string; jti: string; expiresAt: Date }> {
+  private async generateAccessToken(payload: AuthJwtPayload): Promise<string> {
+    const identity = this.toRoleAndStatus(payload);
+    return this.jwtService.signAsync(
+      {
+        ...payload,
+        ...identity,
+      },
+      {
+        secret: this.accessTokenSecret,
+        expiresIn: Math.floor(this.parseToMilliseconds(this.accessTokenExpiration) / 1000),
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE,
+      },
+    );
+  }
+
+  private async generateRefreshToken(payload: AuthJwtPayload): Promise<{ token: string; jti: string; expiresAt: Date }> {
+    const identity = this.toRoleAndStatus(payload);
     const jti = randomUUID();
     const token = await this.jwtService.signAsync(
       {
         ...payload,
+        ...identity,
         jti,
       },
       {
@@ -81,13 +97,7 @@ export class ApiAuthService {
     return bcrypt.compare(password, storedPasswordHash);
   }
 
-  private verifyRefreshToken(refreshToken: string): Promise<{
-    sub: string;
-    username: string;
-    email: string;
-    isAdmin: boolean;
-    jti: string;
-  }> {
+  private verifyRefreshToken(refreshToken: string): Promise<RefreshTokenPayload> {
     return this.jwtService.verifyAsync(refreshToken, {
       secret: this.refreshTokenSecret,
       issuer: JWT_ISSUER,
@@ -153,18 +163,19 @@ export class ApiAuthService {
     return this.getBaseCookieOptions();
   }
 
-  async validateUser(
-    username: string,
-    pass: string,
-  ): Promise<{ sub: string; username: string; email: string; isAdmin: boolean }> {
+  async validateUser(username: string, pass: string): Promise<AuthJwtPayload> {
     const user = await this.userService.findOneByUsername(username);
+    const role = user.role ?? (user.isAdmin ? 'admin' : 'user');
+    const status = user.status ?? 'active';
 
     if (user && (await this.comparePasswords(pass, user.password))) {
       return {
         sub: user._id.toString(),
         username: user.username,
         email: user.email,
-        isAdmin: user.isAdmin,
+        role,
+        status,
+        isAdmin: role === 'admin' || role === 'super-admin',
       };
     }
 
@@ -173,19 +184,21 @@ export class ApiAuthService {
     throw new ForbiddenException('Invalid user credentials.');
   }
 
-  private async createSession(payload: { sub: string; username: string; email: string; isAdmin: boolean }) {
-    const accessToken = await this.generateAccessToken(payload);
-    const refreshTokenData = await this.generateRefreshToken(payload);
+  private async createSession(payload: AuthJwtPayload) {
+    const identity = this.toRoleAndStatus(payload);
+    const sessionPayload = { ...payload, ...identity };
+    const accessToken = await this.generateAccessToken(sessionPayload);
+    const refreshTokenData = await this.generateRefreshToken(sessionPayload);
 
     await this.userService.storeRefreshTokenSession(
-      payload.sub,
+      sessionPayload.sub,
       refreshTokenData.token,
       refreshTokenData.jti,
       refreshTokenData.expiresAt,
     );
 
     return {
-      username: payload.username,
+      username: sessionPayload.username,
       accessToken,
       refreshToken: refreshTokenData.token,
     };
@@ -202,7 +215,7 @@ export class ApiAuthService {
       throw new UnauthorizedException('Refresh token missing.');
     }
 
-    let refreshPayload: { sub: string; username: string; email: string; isAdmin: boolean; jti: string };
+    let refreshPayload: RefreshTokenPayload;
 
     try {
       refreshPayload = await this.verifyRefreshToken(refreshToken);
@@ -225,6 +238,8 @@ export class ApiAuthService {
       sub: refreshPayload.sub,
       username: refreshPayload.username,
       email: refreshPayload.email,
+      role: refreshPayload.role,
+      status: refreshPayload.status,
       isAdmin: refreshPayload.isAdmin,
     });
   }

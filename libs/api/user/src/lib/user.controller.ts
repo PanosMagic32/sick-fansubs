@@ -2,10 +2,14 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Use
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
+import type { UserRole, UserStatus } from '@shared/types';
+
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { isAdminLike, resolveRole, resolveStatus } from './authorization/role.helpers';
 import { CredentialThrottlerGuard } from './guards/credential-throttler.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
+import type { AuthActor } from './types/auth-actor.types';
 import type { FavoriteBlogPostsResponse } from './user.service';
 import { UserService } from './user.service';
 
@@ -14,12 +18,18 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  private getActorFromRequest(req: { user?: { sub?: string; isAdmin?: boolean } }): { sub: string; isAdmin: boolean } {
+  private getActorFromRequest(req: {
+    user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean };
+  }): AuthActor {
     const user = req.user;
+    const role = resolveRole({ role: user?.role, isAdmin: user?.isAdmin });
+    const status = resolveStatus({ status: user?.status });
 
     return {
       sub: user?.sub ?? '',
-      isAdmin: Boolean(user?.isAdmin),
+      role,
+      status,
+      isAdmin: isAdminLike(role),
     };
   }
 
@@ -32,21 +42,27 @@ export class UserController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  async findAll(@Req() req: { user?: { sub?: string; isAdmin?: boolean } }) {
+  async findAll(@Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } }) {
     return this.userService.findAll(this.getActorFromRequest(req));
   }
 
   @ApiParam({ name: 'id' })
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  async findOne(@Param('id') id: string, @Req() req: { user?: { sub?: string; isAdmin?: boolean } }) {
+  async findOne(
+    @Param('id') id: string,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+  ) {
     return this.userService.findOne(id, this.getActorFromRequest(req));
   }
 
   @ApiParam({ name: 'id' })
   @Get(':id/favorites')
   @UseGuards(JwtAuthGuard)
-  async getFavorites(@Param('id') id: string, @Req() req: { user?: { sub?: string; isAdmin?: boolean } }) {
+  async getFavorites(
+    @Param('id') id: string,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+  ) {
     return this.userService.getFavoriteBlogPostIds(id, this.getActorFromRequest(req));
   }
 
@@ -55,7 +71,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async getFavoritePosts(
     @Param('id') id: string,
-    @Req() req: { user?: { sub?: string; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
     @Query('pagesize') pageSize?: string,
     @Query('page') page?: string,
   ): Promise<FavoriteBlogPostsResponse> {
@@ -72,7 +88,7 @@ export class UserController {
   async addFavorite(
     @Param('id') id: string,
     @Param('postId') postId: string,
-    @Req() req: { user?: { sub?: string; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
   ) {
     return this.userService.addFavoriteBlogPost(id, postId, this.getActorFromRequest(req));
   }
@@ -84,7 +100,7 @@ export class UserController {
   async removeFavorite(
     @Param('id') id: string,
     @Param('postId') postId: string,
-    @Req() req: { user?: { sub?: string; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
   ) {
     return this.userService.removeFavoriteBlogPost(id, postId, this.getActorFromRequest(req));
   }
@@ -95,7 +111,7 @@ export class UserController {
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @Req() req: { user?: { sub?: string; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
   ) {
     return this.userService.update(id, updateUserDto, this.getActorFromRequest(req));
   }
@@ -103,7 +119,10 @@ export class UserController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  async remove(@Param('id') id: string, @Req() req: { user?: { sub?: string; isAdmin?: boolean } }) {
+  async remove(
+    @Param('id') id: string,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+  ) {
     return this.userService.remove(id, this.getActorFromRequest(req));
   }
 }

@@ -1,10 +1,16 @@
 export type SearchTypeOption = 'all' | 'blog-post' | 'project';
 
+export type UserRole = 'super-admin' | 'admin' | 'moderator' | 'user';
+
+export type UserStatus = 'active' | 'suspended';
+
 export interface UserRef {
   _id?: string;
   username?: string;
   email?: string;
   avatar?: string;
+  role?: UserRole;
+  status?: UserStatus;
   isAdmin?: boolean;
 }
 
