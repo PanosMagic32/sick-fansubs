@@ -43,7 +43,9 @@ The Angular SPA for sick-fansubs — a Greek fansub group's website. Fully stand
 
 ## Shell Component (`src/app/app.component.ts`)
 
-`AppComponent` renders a 3-column `MatSidenavContainer` shell with `<sf-header>`, `<sf-sidenav>`, and `<router-outlet>`. On init it calls `TokenService.getUserIDFromToken()` to hydrate auth state from `localStorage`.
+`AppComponent` renders a 3-column `MatSidenavContainer` shell with `<sf-header>`, `<sf-sidenav>`, and `<router-outlet>`.
+
+Session hydration is handled in `app.config.ts` through `provideAppInitializer`, which calls `TokenService.restoreSession()` during app bootstrap.
 
 ## Nx Tasks
 

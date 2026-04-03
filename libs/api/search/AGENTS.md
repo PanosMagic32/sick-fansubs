@@ -73,7 +73,6 @@ Query params (via `SearchDto`):
 
 ```bash
 pnpm nx lint api-search
-pnpm nx test api-search
 ```
 
 ## Notes

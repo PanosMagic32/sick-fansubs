@@ -6,6 +6,10 @@ User domain module for profile management, favorites, and auth-adjacent account 
 
 ## Auth-Related Additions
 
+- User schema now includes role-based access fields:
+  - `role` (`super-admin` | `admin` | `moderator` | `user`)
+  - `status` (`active` | `suspended`)
+  - Compatibility fallback for legacy records without `role`
 - Schema stores refresh-session metadata:
   - `refreshTokenHash`
   - `refreshTokenJti`
@@ -19,7 +23,7 @@ User domain module for profile management, favorites, and auth-adjacent account 
 ## Controller Security
 
 - `POST /api/user` is protected by credential throttling (`5/min`)
-- Protected user routes keep self-or-admin enforcement
+- Protected user routes keep self-or-staff enforcement via role-aware checks
 - `PATCH /api/user/:id` — when a password change is included, the active refresh-token session is invalidated immediately via `clearRefreshTokenSession()` after the update succeeds
 
 ## Existing Account Data
@@ -31,4 +35,5 @@ User domain module for profile management, favorites, and auth-adjacent account 
 
 ```bash
 pnpm nx lint api-user
+pnpm nx test api-user
 ```

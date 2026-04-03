@@ -12,7 +12,7 @@ Authentication feature UI and route guards for the Angular app.
 
 ## Guards
 
-- `adminGuard`: admin-only access (`isAuthenticated && isAdmin`)
+- `adminGuard`: admin-only access (`isAuthenticated && hasAnyRole(['super-admin', 'admin'])`)
 - `requireAuthGuard`: authenticated-user access
 - `isLoggedInGuard`: redirects authenticated users away from login/signup
 
@@ -34,4 +34,5 @@ Authentication feature UI and route guards for the Angular app.
 
 ```bash
 pnpm nx lint auth
+pnpm nx test auth
 ```

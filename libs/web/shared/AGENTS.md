@@ -14,7 +14,9 @@ Cross-feature frontend infrastructure: app shell UI, auth/session interceptors, 
 
 ## Public Exports (Auth-related)
 
-- `TokenService`
+- `TokenService` signals: `isAuthenticated`, `role`, `status`, `isAdmin`, `userId`, `isInitialized`
+- `TokenService` computed helpers: `isStaff`, `isAdminLike`
+- `TokenService` methods: `hasRole()`, `hasAnyRole()`, `canAccessDashboard()`, `isValidToken()`, `getUserId()`, `restoreSession()`, `logout()`, `removeToken()`
 - `jwtInterceptor`
 - `mapAuthSessionErrorMessage`
 - `WebConfigService`
@@ -28,7 +30,8 @@ Cross-feature frontend infrastructure: app shell UI, auth/session interceptors, 
 
 ## Notes
 
-- Session state is signal-based (`isAuthenticated`, `isAdmin`, `userId`)
+- Session state is signal-based (`isAuthenticated`, `role`, `status`, `isAdmin`, `userId`)
+- `isAdmin` is maintained as a compatibility signal derived from role (`admin` or `super-admin`)
 - Logout button is shown for authenticated users
 - `provideAppInitializer` restores session at app startup
 
@@ -36,4 +39,5 @@ Cross-feature frontend infrastructure: app shell UI, auth/session interceptors, 
 
 ```bash
 pnpm nx lint web-shared
+pnpm nx test web-shared
 ```

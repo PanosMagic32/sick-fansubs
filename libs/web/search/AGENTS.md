@@ -69,13 +69,12 @@ Renders a single search result card:
 
 ## Dependencies
 
-- `@web/shared` — `NoContentComponent`, `StatusCardComponent`, `TokenService` (for admin edit FAB), `WebConfigService`
+- `@web/shared` — `NoContentComponent`, `StatusCardComponent`, `TokenService` (for role-derived admin edit FAB), `WebConfigService`
 
 ## Nx Tasks
 
 ```bash
 pnpm nx lint web-search
-pnpm nx test web-search
 ```
 
 ## Notes

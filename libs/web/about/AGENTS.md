@@ -46,7 +46,6 @@ The About page for the sick-fansubs website. Displays community links (Facebook,
 
 ```bash
 pnpm nx lint web-about
-pnpm nx test web-about
 ```
 
 ## Notes
