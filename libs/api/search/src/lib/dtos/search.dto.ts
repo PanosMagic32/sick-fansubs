@@ -23,10 +23,10 @@ export class SearchDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
-  pageSize: number = 10;
+  pageSize = 10;
 
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  page: number = 0;
+  page = 0;
 }

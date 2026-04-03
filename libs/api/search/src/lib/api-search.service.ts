@@ -2,7 +2,7 @@ import { BlogPost } from '@api/blog-post';
 import { Project } from '@api/project';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Document, Model } from 'mongoose';
+import { Document, type FilterQuery, Model, type PipelineStage } from 'mongoose';
 
 import { SearchOptions } from './interfaces/search-options.interface';
 import { Searchable } from './interfaces/searchable.interface';
@@ -16,17 +16,31 @@ export class ApiSearchService {
     @InjectModel(Project.name) private readonly projectModel: Model<Project & Document>,
   ) {}
 
+  private toMongoSort(sort?: SearchOptions['sort']): Record<string, 1 | -1> {
+    if (!sort) {
+      return { dateTimeCreated: -1 };
+    }
+
+    const mappedEntries = Object.entries(sort).map(([field, direction]) => [field, direction === 'asc' ? 1 : -1] as const);
+
+    if (mappedEntries.length === 0) {
+      return { dateTimeCreated: -1 };
+    }
+
+    return Object.fromEntries(mappedEntries);
+  }
+
   private async searchModel<T extends Document>(
     model: Model<T>,
-    baseQuery: Record<string, any>,
-    sort: any,
-    modelType: string,
+    baseQuery: FilterQuery<T>,
+    sort: Record<string, 1 | -1>,
+    modelType: Searchable['type'],
     skip: number,
     limit: number,
-  ): Promise<{ results: any[]; count: number }> {
-    const sortStage = sort ? { $sort: sort } : { $sort: { dateTimeCreated: -1 } };
+  ): Promise<{ results: Searchable[]; count: number }> {
+    const sortStage: PipelineStage.Sort = { $sort: sort };
 
-    const pipeline: any[] = [
+    const pipeline: PipelineStage[] = [
       { $match: baseQuery },
       sortStage,
       { $skip: skip },
@@ -46,20 +60,20 @@ export class ApiSearchService {
       },
     ];
 
-    const results = await model.aggregate(pipeline).exec();
+    const results = await model.aggregate<Searchable>(pipeline).exec();
 
     // For total count, query without pagination
     const totalCount = await model.countDocuments(baseQuery);
 
     return {
-      results: results as any[],
+      results,
       count: totalCount,
     };
   }
 
   async search(options: SearchOptions): Promise<{ results: Searchable[]; total: number }> {
     const { searchTerm, type, filters, pagination, sort } = options;
-    const sorting = sort ?? { dateTimeCreated: -1 };
+    const sorting = this.toMongoSort(sort);
 
     const normalizedPagination = {
       page: Number(pagination?.page || 0),
@@ -69,7 +83,7 @@ export class ApiSearchService {
     const skip = normalizedPagination.page * normalizedPagination.pageSize;
     const limit = normalizedPagination.pageSize;
 
-    const baseQuery: Record<string, any> = {
+    const baseQuery = {
       ...(searchTerm && {
         $or: [
           { title: { $regex: searchTerm, $options: 'i' } },
@@ -85,10 +99,10 @@ export class ApiSearchService {
             },
           }
         : {}),
-    };
+    } as const;
 
     // Execute searches based on type
-    const searches: Promise<{ results: any[]; count: number }>[] = [];
+    const searches: Promise<{ results: Searchable[]; count: number }>[] = [];
 
     if (type === 'all' || type === 'blog-post') {
       searches.push(this.searchModel(this.blogPostModel, baseQuery, sorting, 'blog-post', skip, limit));
@@ -111,10 +125,15 @@ export class ApiSearchService {
 
     // For 'all' type, re-sort combined results to account for cross-collection sorting
     if (type === 'all' && sorting) {
-      const [sortField, sortOrder] = Object.entries(sorting)[0];
+      const [sortField, sortOrder] = Object.entries(sorting)[0] as [string, 1 | -1] | undefined;
+
+      if (!sortField) {
+        return combinedResults;
+      }
+
       combinedResults.results.sort((a, b) => {
-        const aVal = a[sortField];
-        const bVal = b[sortField];
+        const aVal = a[sortField as keyof Searchable];
+        const bVal = b[sortField as keyof Searchable];
         if (aVal === bVal) return 0;
         if (sortOrder === -1) {
           return aVal < bVal ? 1 : -1;

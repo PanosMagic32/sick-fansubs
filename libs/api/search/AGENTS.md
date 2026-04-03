@@ -53,7 +53,7 @@ Query params (via `SearchDto`):
 
 - `searchTerm?` — optional free-text
 - `type?` — enum `blog-post | project | all`, default `all`
-- `dateFrom?`, `dateTo?` — transformed to `Date` via `@Transform`
+- `dateFrom?`, `dateTo?` — transformed to `Date` via `@Type(() => Date)`
 - `pageSize` — number (min 1, default 10)
 - `page` — number (min 0, default 0)
 
@@ -78,6 +78,7 @@ pnpm nx lint api-search
 ## Notes
 
 - ✅ **Pagination optimized** — Refactored to use MongoDB aggregation pipeline `$skip` and `$limit` stages instead of in-memory slicing. Queries only fetch needed results from the database.
+- ✅ **Lint cleanup completed** — service query/sort/pipeline code is now strongly typed (no `any`), and `api-search` lint passes without warnings.
 - For 'all' type results, `$skip` and `$limit` are applied to **each** collection query independently, then results are combined and re-sorted. This may return slightly more or fewer than `pageSize` items when combining across collections with heterogeneous item counts.
 - `Searchable` is shared via `@shared/types`, reducing frontend/backend contract drift.
-- Date filtering (`dateFrom`, `dateTo`) is declared in the DTO but needs verification for service-level application.
+- Date filtering (`dateFrom`, `dateTo`) is applied in the service-level query (`dateTimeCreated` range).
