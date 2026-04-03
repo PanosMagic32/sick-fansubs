@@ -1,0 +1,16 @@
+<section class="dashboard-shell">
+  <mat-card appearance="outlined" class="dashboard-shell__welcome">
+    <mat-card-header>
+      <mat-card-title>Πίνακας Διαχείρισης</mat-card-title>
+      <mat-card-subtitle>Εργαλεία προσωπικού</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (userRole(); as role) {
+        <p>Ρόλος: {{ role }}</p>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <router-outlet />
+</section>

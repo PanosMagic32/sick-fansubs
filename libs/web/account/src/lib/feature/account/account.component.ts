@@ -73,15 +73,17 @@ export class WebAccountComponent implements OnInit {
   private readonly avatarUploadInProgress = signal(false);
   private readonly pendingUploadedAvatarUrl = signal<string | null>(null);
 
-  readonly displayProfile = this.latestUpdatedProfile.asReadonly();
-  readonly favoriteBlogPosts = this.latestFavoriteBlogPosts.asReadonly();
-  readonly favoriteBlogPostsTotal = this.latestFavoriteBlogPostsTotal.asReadonly();
-  readonly favoritePostsPage = this.favoritePostsCurrentPage.asReadonly();
-  readonly favoritePostsPageSizeValue = this.favoritePostsPageSize.asReadonly();
-  readonly favoritePostsPageSizeOptions = signal(FAVORITES_PAGE_SIZE_OPTIONS).asReadonly();
-  readonly isAvatarUploadInProgress = this.avatarUploadInProgress.asReadonly();
-  readonly isNewPasswordVisible = this.showNewPassword.asReadonly();
-  readonly isConfirmPasswordVisible = this.showConfirmPassword.asReadonly();
+  protected readonly displayProfile = this.latestUpdatedProfile.asReadonly();
+  protected readonly favoriteBlogPosts = this.latestFavoriteBlogPosts.asReadonly();
+  protected readonly favoriteBlogPostsTotal = this.latestFavoriteBlogPostsTotal.asReadonly();
+  protected readonly favoritePostsPage = this.favoritePostsCurrentPage.asReadonly();
+  protected readonly favoritePostsPageSizeValue = this.favoritePostsPageSize.asReadonly();
+  protected readonly favoritePostsPageSizeOptions = signal(FAVORITES_PAGE_SIZE_OPTIONS).asReadonly();
+  protected readonly isAvatarUploadInProgress = this.avatarUploadInProgress.asReadonly();
+  protected readonly isNewPasswordVisible = this.showNewPassword.asReadonly();
+  protected readonly isConfirmPasswordVisible = this.showConfirmPassword.asReadonly();
+
+  protected readonly canAccessDashboard = computed(() => this.tokenService.canAccessDashboard());
 
   protected readonly userProfile = this.userService.getUserProfile(this.activeUserId);
   protected readonly updateUserResource = this.userService.updateUserProfile(this.activeUserId, this.updateRequest);
@@ -590,5 +592,9 @@ export class WebAccountComponent implements OnInit {
     this.tokenService.logout().subscribe(() => {
       this.router.navigate(['/'], { replaceUrl: true });
     });
+  }
+
+  onOpenDashboard() {
+    this.router.navigate(['/dashboard']);
   }
 }

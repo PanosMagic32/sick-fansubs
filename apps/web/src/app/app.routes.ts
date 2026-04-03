@@ -26,6 +26,10 @@ export const appRoutes: Routes = [
     loadChildren: () => import('@web/account').then((r) => r.accountRoutes),
   },
   {
+    path: 'dashboard',
+    loadChildren: () => import('@web/dashboard').then((r) => r.dashboardRoutes),
+  },
+  {
     path: '**',
     redirectTo: '',
     pathMatch: 'full',

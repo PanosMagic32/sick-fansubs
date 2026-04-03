@@ -17,12 +17,20 @@
       <h4>{{ profile().username }}</h4>
       <p class="user-email">{{ profile().email }}</p>
 
-      @if (profile().isAdmin) {
-        <span class="admin-badge">
-          <mat-icon>shield</mat-icon>
-          Διαχειριστής
-        </span>
-      }
+      <span class="admin-badge">
+        <mat-icon>shield</mat-icon>
+        Ρόλος: {{ roleLabel }}
+      </span>
     </div>
   </div>
+
+  @if (canAccessDashboard()) {
+    <div class="dashboard-action">
+      <p class="dashboard-action__hint">Πρόσβαση σε εργαλεία διαχείρισης</p>
+      <button mat-flat-button type="button" class="dashboard-cta" (click)="onOpenDashboard()">
+        <mat-icon>dashboard</mat-icon>
+        Άνοιγμα Πίνακα Διαχείρισης
+      </button>
+    </div>
+  }
 </div>

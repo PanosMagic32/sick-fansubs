@@ -35,7 +35,9 @@
               <sf-account-profile-summary
                 [profile]="displayProfile()!"
                 [safeAvatarUrl]="safeAvatarUrl()"
+                [canAccessDashboard]="canAccessDashboard()"
                 (avatarImageError)="onAvatarImageError()"
+                (openDashboard)="onOpenDashboard()"
               />
 
               <sf-account-profile-form
