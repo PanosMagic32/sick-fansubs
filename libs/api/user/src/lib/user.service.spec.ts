@@ -60,6 +60,53 @@ describe('UserService', () => {
     );
   });
 
+  it('denies findManagementUsers for non-admin-like roles', async () => {
+    await expect(
+      service.findManagementUsers({ sub: 'u-1', role: 'moderator', status: 'active', isAdmin: false }, {}),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('returns paginated management users for admin-like roles', async () => {
+    const mockDoc = {
+      _id: { toString: () => 'u-1' },
+      toObject: () => ({
+        username: 'alpha',
+        email: 'alpha@example.com',
+        role: 'user',
+        status: 'active',
+        favoriteBlogPostIds: [],
+        createdBlogPostIds: [],
+      }),
+    };
+
+    const findExec = vi.fn().mockResolvedValue([mockDoc]);
+    const findLimit = vi.fn().mockReturnValue({ exec: findExec });
+    const findSkip = vi.fn().mockReturnValue({ limit: findLimit });
+    const findSort = vi.fn().mockReturnValue({ skip: findSkip });
+    const findMock = vi.fn().mockReturnValue({ sort: findSort });
+    const countExec = vi.fn().mockResolvedValue(1);
+    const countDocumentsMock = vi.fn().mockReturnValue({ exec: countExec });
+
+    userModelMock.find = findMock;
+    userModelMock.countDocuments = countDocumentsMock;
+
+    const result = await service.findManagementUsers(
+      { sub: 'admin-id', role: 'admin', status: 'active', isAdmin: true },
+      { page: 2, pageSize: 20, search: 'alpha', sortBy: 'username', sortDirection: 'asc' },
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        count: 1,
+        page: 2,
+        pageSize: 20,
+      }),
+    );
+    expect(result.users[0]).toEqual(expect.objectContaining({ id: 'u-1', username: 'alpha' }));
+    expect(countDocumentsMock).toHaveBeenCalled();
+    expect(findMock).toHaveBeenCalled();
+  });
+
   it('creates user with default role/status/isAdmin', async () => {
     userModelMock.findOne.mockResolvedValue(null);
     userModelMock.create.mockResolvedValue({

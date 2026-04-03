@@ -39,6 +39,23 @@ export interface FavoriteBlogPostsResponse {
   count: number;
 }
 
+export interface FindManagementUsersQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  sortBy?: 'username' | 'email' | 'role' | 'status' | 'createdAt' | 'updatedAt';
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface FindManagementUsersResponse {
+  users: Array<ReturnType<UserService['toPublicUser']>>;
+  count: number;
+  page: number;
+  pageSize: number;
+}
+
 @Injectable()
 export class UserService {
   private toRoleAndStatus(user: { role?: UserRole; status?: UserStatus; isAdmin?: boolean }): {
@@ -240,6 +257,59 @@ export class UserService {
 
     const users = await this.userModel.find().exec();
     return users.map((user) => this.toPublicUser(user));
+  }
+
+  async findManagementUsers(actor: AuthActor, query: FindManagementUsersQuery): Promise<FindManagementUsersResponse> {
+    this.assertAdmin(actor);
+
+    const page = Number.isFinite(query.page) && (query.page ?? 0) > 0 ? Math.floor(query.page as number) : 1;
+    const pageSize =
+      Number.isFinite(query.pageSize) && (query.pageSize ?? 0) > 0
+        ? Math.min(Math.floor(query.pageSize as number), 100)
+        : 10;
+
+    const normalizedSearch = query.search?.trim();
+    const filters: {
+      $or?: Array<{ username?: { $regex: string; $options: string }; email?: { $regex: string; $options: string } }>;
+      role?: UserRole;
+      status?: UserStatus;
+    } = {};
+
+    if (normalizedSearch) {
+      filters.$or = [
+        { username: { $regex: normalizedSearch, $options: 'i' } },
+        { email: { $regex: normalizedSearch, $options: 'i' } },
+      ];
+    }
+
+    if (query.role) {
+      filters.role = query.role;
+    }
+
+    if (query.status) {
+      filters.status = query.status;
+    }
+
+    const sortBy = query.sortBy ?? 'updatedAt';
+    const sortDirection = query.sortDirection === 'asc' ? 1 : -1;
+    const sort: Record<string, 1 | -1> = { [sortBy]: sortDirection };
+
+    const [count, users] = await Promise.all([
+      this.userModel.countDocuments(filters).exec(),
+      this.userModel
+        .find(filters)
+        .sort(sort)
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .exec(),
+    ]);
+
+    return {
+      users: users.map((user) => this.toPublicUser(user)),
+      count,
+      page,
+      pageSize,
+    };
   }
 
   async findOneEntityById(id: string): Promise<UserDocument> {

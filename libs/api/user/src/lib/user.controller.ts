@@ -10,13 +10,49 @@ import { isAdminLike, resolveRole, resolveStatus } from './authorization/role.he
 import { CredentialThrottlerGuard } from './guards/credential-throttler.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import type { AuthActor } from './types/auth-actor.types';
-import type { FavoriteBlogPostsResponse } from './user.service';
+import type { FavoriteBlogPostsResponse, FindManagementUsersResponse } from './user.service';
 import { UserService } from './user.service';
 
 @ApiTags('User')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  private parseRole(role?: string): UserRole | undefined {
+    if (role === 'super-admin' || role === 'admin' || role === 'moderator' || role === 'user') {
+      return role;
+    }
+
+    return undefined;
+  }
+
+  private parseStatus(status?: string): UserStatus | undefined {
+    if (status === 'active' || status === 'suspended') return status;
+    return undefined;
+  }
+
+  private parseSortBy(sortBy?: string): 'username' | 'email' | 'role' | 'status' | 'createdAt' | 'updatedAt' | undefined {
+    if (
+      sortBy === 'username' ||
+      sortBy === 'email' ||
+      sortBy === 'role' ||
+      sortBy === 'status' ||
+      sortBy === 'createdAt' ||
+      sortBy === 'updatedAt'
+    ) {
+      return sortBy;
+    }
+
+    return undefined;
+  }
+
+  private parseSortDirection(sortDirection?: string): 'asc' | 'desc' | undefined {
+    if (sortDirection === 'asc' || sortDirection === 'desc') {
+      return sortDirection;
+    }
+
+    return undefined;
+  }
 
   private getActorFromRequest(req: {
     user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean };
@@ -44,6 +80,29 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async findAll(@Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } }) {
     return this.userService.findAll(this.getActorFromRequest(req));
+  }
+
+  @Get('management')
+  @UseGuards(JwtAuthGuard)
+  async findManagementUsers(
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortDirection') sortDirection?: string,
+  ): Promise<FindManagementUsersResponse> {
+    return this.userService.findManagementUsers(this.getActorFromRequest(req), {
+      page: page ? Number.parseInt(page, 10) : undefined,
+      pageSize: pageSize ? Number.parseInt(pageSize, 10) : undefined,
+      search,
+      role: this.parseRole(role),
+      status: this.parseStatus(status),
+      sortBy: this.parseSortBy(sortBy),
+      sortDirection: this.parseSortDirection(sortDirection),
+    });
   }
 
   @ApiParam({ name: 'id' })
