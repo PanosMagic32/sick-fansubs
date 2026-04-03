@@ -13,12 +13,12 @@ Authentication/session module for the NestJS API using HttpOnly cookie tokens.
 
 ## Endpoints
 
-| Method | Route             | Guard                                       | Notes                                                                                                   |
-| ------ | ----------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| POST   | /api/auth/login   | CredentialThrottlerGuard + Throttle(5/min)  | Validates credentials, sets access+refresh cookies                                                      |
-| POST   | /api/auth/refresh | CredentialThrottlerGuard + Throttle(10/min) | Validates refresh token, rotates refresh session, reissues cookies                                      |
-| POST   | /api/auth/logout  | CredentialThrottlerGuard + Throttle(10/min) | Clears cookies and revokes refresh session                                                              |
-| GET    | /api/auth/session | JwtAuthGuard                                | Returns authenticated session payload (`sub`, `username`, `email`, `role`, `status`, derived `isAdmin`) |
+| Method | Route             | Guard                                       | Notes                                                                                |
+| ------ | ----------------- | ------------------------------------------- | ------------------------------------------------------------------------------------ |
+| POST   | /api/auth/login   | CredentialThrottlerGuard + Throttle(5/min)  | Validates credentials, sets access+refresh cookies                                   |
+| POST   | /api/auth/refresh | CredentialThrottlerGuard + Throttle(10/min) | Validates refresh token, rotates refresh session, reissues cookies                   |
+| POST   | /api/auth/logout  | CredentialThrottlerGuard + Throttle(10/min) | Clears cookies and revokes refresh session                                           |
+| GET    | /api/auth/session | JwtAuthGuard                                | Returns authenticated session payload (`sub`, `username`, `email`, `role`, `status`) |
 
 ## Key Files
 

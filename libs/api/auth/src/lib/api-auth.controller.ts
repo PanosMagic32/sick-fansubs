@@ -21,9 +21,8 @@ export class ApiAuthController {
     email?: string;
     role?: UserRole;
     status?: UserStatus;
-    isAdmin?: boolean;
   }): AuthSessionPayload {
-    const role = user.role ?? (user.isAdmin ? 'admin' : 'user');
+    const role = user.role ?? 'user';
     const status = user.status ?? 'active';
 
     return {
@@ -32,7 +31,6 @@ export class ApiAuthController {
       email: user.email ?? '',
       role,
       status,
-      isAdmin: role === 'admin' || role === 'super-admin',
     };
   }
 
@@ -81,7 +79,7 @@ export class ApiAuthController {
   async session(
     @Req()
     req: {
-      user?: { sub?: string; username?: string; email?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean };
+      user?: { sub?: string; username?: string; email?: string; role?: UserRole; status?: UserStatus };
     },
   ) {
     return this.toSessionPayload(req.user ?? {});

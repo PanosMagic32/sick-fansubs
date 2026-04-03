@@ -17,7 +17,7 @@ import type { UserRole, UserStatus } from '@shared/types';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument } from './schemas/user.schema';
-import { isAdminLike, resolveRole, resolveStatus } from './authorization/role.helpers';
+import { hasAdminRole, resolveStatus } from './authorization/role.helpers';
 import type { AuthActor } from './types/auth-actor.types';
 
 export interface FavoriteBlogPost {
@@ -58,18 +58,10 @@ export interface FindManagementUsersResponse {
 
 @Injectable()
 export class UserService {
-  private toRoleAndStatus(user: { role?: UserRole; status?: UserStatus; isAdmin?: boolean }): {
-    role: UserRole;
-    status: UserStatus;
-    isAdmin: boolean;
-  } {
-    const role = resolveRole({ role: user.role, isAdmin: user.isAdmin });
-    const status = resolveStatus({ status: user.status });
-    return {
-      role,
-      status,
-      isAdmin: isAdminLike(role),
-    };
+  private toRoleAndStatus(user: { role?: UserRole; status?: UserStatus }): { role: UserRole; status: UserStatus } {
+    const role = user.role ?? 'user';
+    const status = resolveStatus(user.status);
+    return { role, status };
   }
 
   private readonly logger = new Logger(UserService.name);
@@ -138,7 +130,7 @@ export class UserService {
   }
 
   private assertAdmin(actor: AuthActor): void {
-    if (isAdminLike(actor.role)) {
+    if (hasAdminRole(actor.role)) {
       return;
     }
 
@@ -146,7 +138,7 @@ export class UserService {
   }
 
   private assertCanAccessUser(id: string, actor: AuthActor): void {
-    if (isAdminLike(actor.role) || actor.sub === id) {
+    if (hasAdminRole(actor.role) || actor.sub === id) {
       return;
     }
 
@@ -160,7 +152,6 @@ export class UserService {
     avatar?: string;
     role: UserRole;
     status: UserStatus;
-    isAdmin: boolean;
     favoriteBlogPostIds: string[];
     createdBlogPostIds: string[];
     createdAt?: Date;
@@ -185,7 +176,6 @@ export class UserService {
       avatar: serialized.avatar,
       role: identity.role,
       status: identity.status,
-      isAdmin: identity.isAdmin,
       favoriteBlogPostIds,
       createdBlogPostIds,
       createdAt: serialized.createdAt,
@@ -240,7 +230,6 @@ export class UserService {
       avatar: createUserDto.avatar,
       role: 'user' as const,
       status: 'active' as const,
-      isAdmin: false,
     };
 
     const createdUser = await this.userModel.create(userToCreate);

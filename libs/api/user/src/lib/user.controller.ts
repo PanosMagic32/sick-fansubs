@@ -6,7 +6,7 @@ import type { UserRole, UserStatus } from '@shared/types';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { isAdminLike, resolveRole, resolveStatus } from './authorization/role.helpers';
+import { resolveStatus } from './authorization/role.helpers';
 import { CredentialThrottlerGuard } from './guards/credential-throttler.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import type { AuthActor } from './types/auth-actor.types';
@@ -54,18 +54,15 @@ export class UserController {
     return undefined;
   }
 
-  private getActorFromRequest(req: {
-    user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean };
-  }): AuthActor {
+  private getActorFromRequest(req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }): AuthActor {
     const user = req.user;
-    const role = resolveRole({ role: user?.role, isAdmin: user?.isAdmin });
-    const status = resolveStatus({ status: user?.status });
+    const role = user?.role ?? 'user';
+    const status = resolveStatus(user?.status);
 
     return {
       sub: user?.sub ?? '',
       role,
       status,
-      isAdmin: isAdminLike(role),
     };
   }
 
@@ -78,14 +75,14 @@ export class UserController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  async findAll(@Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } }) {
+  async findAll(@Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }) {
     return this.userService.findAll(this.getActorFromRequest(req));
   }
 
   @Get('management')
   @UseGuards(JwtAuthGuard)
   async findManagementUsers(
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
     @Query('search') search?: string,
@@ -108,10 +105,7 @@ export class UserController {
   @ApiParam({ name: 'id' })
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  async findOne(
-    @Param('id') id: string,
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
-  ) {
+  async findOne(@Param('id') id: string, @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }) {
     return this.userService.findOne(id, this.getActorFromRequest(req));
   }
 
@@ -120,7 +114,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async getFavorites(
     @Param('id') id: string,
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
   ) {
     return this.userService.getFavoriteBlogPostIds(id, this.getActorFromRequest(req));
   }
@@ -130,7 +124,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async getFavoritePosts(
     @Param('id') id: string,
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
     @Query('pagesize') pageSize?: string,
     @Query('page') page?: string,
   ): Promise<FavoriteBlogPostsResponse> {
@@ -147,7 +141,7 @@ export class UserController {
   async addFavorite(
     @Param('id') id: string,
     @Param('postId') postId: string,
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
   ) {
     return this.userService.addFavoriteBlogPost(id, postId, this.getActorFromRequest(req));
   }
@@ -159,7 +153,7 @@ export class UserController {
   async removeFavorite(
     @Param('id') id: string,
     @Param('postId') postId: string,
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
   ) {
     return this.userService.removeFavoriteBlogPost(id, postId, this.getActorFromRequest(req));
   }
@@ -170,7 +164,7 @@ export class UserController {
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
   ) {
     return this.userService.update(id, updateUserDto, this.getActorFromRequest(req));
   }
@@ -178,10 +172,7 @@ export class UserController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  async remove(
-    @Param('id') id: string,
-    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean } },
-  ) {
+  async remove(@Param('id') id: string, @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }) {
     return this.userService.remove(id, this.getActorFromRequest(req));
   }
 }

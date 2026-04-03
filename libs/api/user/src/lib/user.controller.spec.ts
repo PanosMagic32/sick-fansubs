@@ -25,16 +25,15 @@ describe('UserController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('maps legacy admin actor when role is missing', async () => {
+  it('maps actor defaults when role/status are missing', async () => {
     userServiceMock.findAll.mockResolvedValue([]);
 
-    await controller.findAll({ user: { sub: 'u-1', isAdmin: true } });
+    await controller.findAll({ user: { sub: 'u-1' } });
 
     expect(userServiceMock.findAll).toHaveBeenCalledWith({
       sub: 'u-1',
-      role: 'admin',
+      role: 'user',
       status: 'active',
-      isAdmin: true,
     });
   });
 
@@ -47,7 +46,6 @@ describe('UserController', () => {
       sub: 'u-2',
       role: 'moderator',
       status: 'active',
-      isAdmin: false,
     });
   });
 
@@ -70,7 +68,6 @@ describe('UserController', () => {
         sub: 'u-3',
         role: 'admin',
         status: 'active',
-        isAdmin: true,
       },
       {
         page: 2,

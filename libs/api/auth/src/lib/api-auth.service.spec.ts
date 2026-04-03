@@ -56,7 +56,6 @@ describe('ApiAuthService', () => {
       email: 'tester@example.com',
       role: 'moderator',
       status: 'active',
-      isAdmin: false,
       password: 'ignored-in-test',
     });
 
@@ -74,31 +73,7 @@ describe('ApiAuthService', () => {
       expect.objectContaining({
         role: 'moderator',
         status: 'active',
-        isAdmin: false,
       }),
-      expect.any(Object),
-    );
-  });
-
-  it('falls back to admin role when legacy user has only isAdmin=true', async () => {
-    vi.spyOn(service, 'comparePasswords').mockResolvedValue(true);
-
-    userServiceMock.findOneByUsername.mockResolvedValue({
-      _id: { toString: () => 'user-id-2' },
-      username: 'legacy-admin',
-      email: 'legacy@example.com',
-      isAdmin: true,
-      password: 'ignored',
-    });
-
-    jwtServiceMock.signAsync.mockResolvedValueOnce('access-token-2').mockResolvedValueOnce('refresh-token-2');
-    jwtServiceMock.verifyAsync.mockResolvedValueOnce({ exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 });
-
-    await service.login({ username: 'legacy-admin', password: 'password' });
-
-    expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ role: 'admin', status: 'active', isAdmin: true }),
       expect.any(Object),
     );
   });
@@ -110,7 +85,6 @@ describe('ApiAuthService', () => {
       email: 'root@example.com',
       role: 'super-admin',
       status: 'active',
-      isAdmin: true,
       jti: 'jti-root',
     });
 
@@ -122,7 +96,7 @@ describe('ApiAuthService', () => {
 
     expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ role: 'super-admin', status: 'active', isAdmin: true }),
+      expect.objectContaining({ role: 'super-admin', status: 'active' }),
       expect.any(Object),
     );
   });
@@ -134,7 +108,6 @@ describe('ApiAuthService', () => {
       email: 'tester@example.com',
       role: 'user',
       status: 'active',
-      isAdmin: false,
       jti: 'jti-1',
     });
     userServiceMock.isRefreshTokenSessionValid.mockResolvedValue(false);

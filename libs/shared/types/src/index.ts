@@ -11,7 +11,6 @@ export interface UserRef {
   avatar?: string;
   role?: UserRole;
   status?: UserStatus;
-  isAdmin?: boolean;
 }
 
 export interface BlogPost {

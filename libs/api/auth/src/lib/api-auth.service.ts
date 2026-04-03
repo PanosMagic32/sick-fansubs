@@ -29,18 +29,10 @@ export class ApiAuthService {
     this.refreshTokenExpiration = this.configService.get<string>('JWT_REFRESH_EXPIRATION_TIME') ?? '7d';
   }
 
-  private toRoleAndStatus(payload: { role?: UserRole; status?: UserStatus; isAdmin?: boolean }): {
-    role: UserRole;
-    status: UserStatus;
-    isAdmin: boolean;
-  } {
-    const role = payload.role ?? (payload.isAdmin ? 'admin' : 'user');
+  private toRoleAndStatus(payload: { role?: UserRole; status?: UserStatus }): { role: UserRole; status: UserStatus } {
+    const role = payload.role ?? 'user';
     const status = payload.status ?? 'active';
-    return {
-      role,
-      status,
-      isAdmin: role === 'admin' || role === 'super-admin',
-    };
+    return { role, status };
   }
 
   private async generateAccessToken(payload: AuthJwtPayload): Promise<string> {
@@ -165,7 +157,7 @@ export class ApiAuthService {
 
   async validateUser(username: string, pass: string): Promise<AuthJwtPayload> {
     const user = await this.userService.findOneByUsername(username);
-    const role = user.role ?? (user.isAdmin ? 'admin' : 'user');
+    const role = user.role ?? 'user';
     const status = user.status ?? 'active';
 
     if (user && (await this.comparePasswords(pass, user.password))) {
@@ -175,7 +167,6 @@ export class ApiAuthService {
         email: user.email,
         role,
         status,
-        isAdmin: role === 'admin' || role === 'super-admin',
       };
     }
 
@@ -240,7 +231,6 @@ export class ApiAuthService {
       email: refreshPayload.email,
       role: refreshPayload.role,
       status: refreshPayload.status,
-      isAdmin: refreshPayload.isAdmin,
     });
   }
 

@@ -4,5 +4,4 @@ export interface AuthActor {
   sub: string;
   role: UserRole;
   status: UserStatus;
-  isAdmin: boolean;
 }

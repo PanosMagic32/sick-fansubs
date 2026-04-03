@@ -28,9 +28,9 @@ describe('UserService', () => {
   });
 
   it('denies findAll for non-admin-like roles', async () => {
-    await expect(
-      service.findAll({ sub: 'u-1', role: 'moderator', status: 'active', isAdmin: false }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.findAll({ sub: 'u-1', role: 'moderator', status: 'active' })).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('allows findAll for admin-like roles and maps role/status', async () => {
@@ -40,7 +40,8 @@ describe('UserService', () => {
         username: 'legacy-admin',
         email: 'legacy@example.com',
         avatar: 'https://example.com/a.png',
-        isAdmin: true,
+        role: 'admin',
+        status: 'active',
         favoriteBlogPostIds: [],
         createdBlogPostIds: [],
       }),
@@ -48,21 +49,20 @@ describe('UserService', () => {
 
     userModelMock.find.mockReturnValue({ exec: vi.fn().mockResolvedValue([mockDoc]) });
 
-    const result = await service.findAll({ sub: 'admin-id', role: 'admin', status: 'active', isAdmin: true });
+    const result = await service.findAll({ sub: 'admin-id', role: 'admin', status: 'active' });
 
     expect(result[0]).toEqual(
       expect.objectContaining({
         id: 'u-1',
         role: 'admin',
         status: 'active',
-        isAdmin: true,
       }),
     );
   });
 
   it('denies findManagementUsers for non-admin-like roles', async () => {
     await expect(
-      service.findManagementUsers({ sub: 'u-1', role: 'moderator', status: 'active', isAdmin: false }, {}),
+      service.findManagementUsers({ sub: 'u-1', role: 'moderator', status: 'active' }, {}),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -91,7 +91,7 @@ describe('UserService', () => {
     userModelMock.countDocuments = countDocumentsMock;
 
     const result = await service.findManagementUsers(
-      { sub: 'admin-id', role: 'admin', status: 'active', isAdmin: true },
+      { sub: 'admin-id', role: 'admin', status: 'active' },
       { page: 2, pageSize: 20, search: 'alpha', sortBy: 'username', sortDirection: 'asc' },
     );
 
@@ -107,7 +107,7 @@ describe('UserService', () => {
     expect(findMock).toHaveBeenCalled();
   });
 
-  it('creates user with default role/status/isAdmin', async () => {
+  it('creates user with default role/status', async () => {
     userModelMock.findOne.mockResolvedValue(null);
     userModelMock.create.mockResolvedValue({
       _id: { toString: () => 'u-2' },
@@ -126,7 +126,6 @@ describe('UserService', () => {
       expect.objectContaining({
         role: 'user',
         status: 'active',
-        isAdmin: false,
       }),
     );
   });

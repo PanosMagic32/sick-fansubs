@@ -1,6 +1,6 @@
 {
   "name": "sick",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "license": "MIT",
   "scripts": {
     "ng": "nx",
@@ -13,7 +13,6 @@
     "lint-staged": "lint-staged --allow-empty",
     "docker:dev": "docker compose -f docker-compose.dev.yml up -d --build --remove-orphans",
     "docker:prod": "docker compose build --pull && docker compose up -d --force-recreate --remove-orphans",
-    "users:backfill-role-status": "ts-node tools/security/backfill-user-role-status.ts",
     "prepare": "husky install",
     "format:check": "prettier apps/**/*.{ts,html,scss,json} libs/**/*.{ts,html,scss,json} --check",
     "format:fix": "prettier apps/**/*.{ts,html,scss,json} libs/**/*.{ts,html,scss,json} --write",

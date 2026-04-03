@@ -6,7 +6,6 @@ export interface AuthJwtPayload {
   email: string;
   role?: UserRole;
   status?: UserStatus;
-  isAdmin?: boolean;
 }
 
 export interface RefreshTokenPayload extends AuthJwtPayload {
@@ -19,5 +18,4 @@ export interface AuthSessionPayload {
   email: string;
   role: UserRole;
   status: UserStatus;
-  isAdmin: boolean;
 }

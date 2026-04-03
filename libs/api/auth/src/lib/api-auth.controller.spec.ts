@@ -29,7 +29,6 @@ describe('ApiAuthController', () => {
         email: 'mod@example.com',
         role: 'moderator',
         status: 'active',
-        isAdmin: false,
       },
     });
 
@@ -39,27 +38,6 @@ describe('ApiAuthController', () => {
       email: 'mod@example.com',
       role: 'moderator',
       status: 'active',
-      isAdmin: false,
-    });
-  });
-
-  it('falls back to admin role when only legacy isAdmin=true is present', async () => {
-    const result = await controller.session({
-      user: {
-        sub: 'u-2',
-        username: 'legacy-admin',
-        email: 'legacy@example.com',
-        isAdmin: true,
-      },
-    });
-
-    expect(result).toEqual({
-      sub: 'u-2',
-      username: 'legacy-admin',
-      email: 'legacy@example.com',
-      role: 'admin',
-      status: 'active',
-      isAdmin: true,
     });
   });
 });

@@ -21,9 +21,6 @@ export class User {
   @Prop({ type: String })
   avatar!: string;
 
-  @Prop({ type: Boolean, default: false })
-  isAdmin!: boolean;
-
   @Prop({ type: String, enum: USER_ROLES, default: 'user' })
   role!: UserRole;
 
