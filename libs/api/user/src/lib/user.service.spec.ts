@@ -1,4 +1,3 @@
-import { ForbiddenException } from '@nestjs/common';
 import { vi } from 'vitest';
 
 import { UserService } from './user.service';
@@ -27,10 +26,10 @@ describe('UserService', () => {
     expect(service).toBeDefined();
   });
 
-  it('denies findAll for non-admin-like roles', async () => {
-    await expect(service.findAll({ sub: 'u-1', role: 'moderator', status: 'active' })).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+  it('allows findAll for moderator role', async () => {
+    userModelMock.find.mockReturnValue({ exec: vi.fn().mockResolvedValue([]) });
+
+    await expect(service.findAll({ sub: 'u-1', role: 'moderator', status: 'active' })).resolves.toEqual([]);
   });
 
   it('allows findAll for admin-like roles and maps role/status', async () => {
@@ -60,10 +59,26 @@ describe('UserService', () => {
     );
   });
 
-  it('denies findManagementUsers for non-admin-like roles', async () => {
-    await expect(
-      service.findManagementUsers({ sub: 'u-1', role: 'moderator', status: 'active' }, {}),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+  it('allows findManagementUsers for moderator role', async () => {
+    const findExec = vi.fn().mockResolvedValue([]);
+    const findLimit = vi.fn().mockReturnValue({ exec: findExec });
+    const findSkip = vi.fn().mockReturnValue({ limit: findLimit });
+    const findSort = vi.fn().mockReturnValue({ skip: findSkip });
+    const findMock = vi.fn().mockReturnValue({ sort: findSort });
+    const countExec = vi.fn().mockResolvedValue(0);
+    const countDocumentsMock = vi.fn().mockReturnValue({ exec: countExec });
+
+    userModelMock.find = findMock;
+    userModelMock.countDocuments = countDocumentsMock;
+
+    await expect(service.findManagementUsers({ sub: 'u-1', role: 'moderator', status: 'active' }, {})).resolves.toEqual(
+      expect.objectContaining({
+        users: [],
+        count: 0,
+        page: 1,
+        pageSize: 10,
+      }),
+    );
   });
 
   it('returns paginated management users for admin-like roles', async () => {

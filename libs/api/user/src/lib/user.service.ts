@@ -137,6 +137,12 @@ export class UserService {
     throw new ForbiddenException('Insufficient permissions.');
   }
 
+  private assertDashboardReader(actor: AuthActor): void {
+    if (hasAdminRole(actor.role) || actor.role === 'moderator') return;
+
+    throw new ForbiddenException('Insufficient permissions.');
+  }
+
   private assertCanAccessUser(id: string, actor: AuthActor): void {
     if (hasAdminRole(actor.role) || actor.sub === id) {
       return;
@@ -242,14 +248,14 @@ export class UserService {
   }
 
   async findAll(actor: AuthActor): Promise<Array<ReturnType<UserService['toPublicUser']>>> {
-    this.assertAdmin(actor);
+    this.assertDashboardReader(actor);
 
     const users = await this.userModel.find().exec();
     return users.map((user) => this.toPublicUser(user));
   }
 
   async findManagementUsers(actor: AuthActor, query: FindManagementUsersQuery): Promise<FindManagementUsersResponse> {
-    this.assertAdmin(actor);
+    this.assertDashboardReader(actor);
 
     const page = Number.isFinite(query.page) && (query.page ?? 0) > 0 ? Math.floor(query.page as number) : 1;
     const pageSize =
