@@ -18,10 +18,10 @@ function getArg(name: string): string | undefined {
 }
 
 async function run() {
-  const uri = process.env['DATABASE_URL_DEV'] || process.env['DATABASE_URL'];
+  const uri = process.env['DATABASE_URL_DEV'];
 
   if (!uri) {
-    throw new Error('Missing DATABASE_URL_DEV or DATABASE_URL environment variable.');
+    throw new Error('Missing DATABASE_URL_DEV environment variable.');
   }
 
   const dbName =
