@@ -105,3 +105,4 @@ pnpm nx lint account
 - Only the logged-in user can edit their own account via this page (enforced by `requireAuthGuard` + the API's `assertCanAccessUser` RBAC helper)
 - Password field is optional on update — only submitted if the user fills it in
 - Password confirmation is validated client-side only; the API does not have a `confirmPassword` field
+- Account page container applies responsive inline spacing so main cards do not render edge-to-edge on mobile

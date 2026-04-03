@@ -6,9 +6,10 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 
 ## MVP Scope (Milestone 2)
 
-- Dashboard shell (implemented)
+- Dashboard shell with tab navigation (implemented)
 - Route guard for staff access (implemented)
-- Users list with search/filter (planned)
+- Users route skeleton under dashboard tabs (implemented)
+- Users list with search/filter and actions (planned)
 - User detail page (planned)
 - Role management flows (planned)
 - Status management flows (planned)
@@ -17,11 +18,17 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 
 ```
 /dashboard                    -> shell (role-gated)
-/dashboard/users              -> users list (planned)
+/dashboard/users              -> users area (placeholder route implemented)
 /dashboard/users/:id          -> user detail (planned)
 /dashboard/content            -> (future) content operations
 /dashboard/audit              -> (future) audit logs
 ```
+
+## Current UX Notes
+
+- Dashboard shell uses Material tab-nav links (`/dashboard`, `/dashboard/users`) above a nested router outlet.
+- Tab bar is sticky below the global header; routed content includes top offset to avoid overlap.
+- On narrow viewports, dashboard container expands full width to align with mobile shell behavior.
 
 ## Role Access
 

@@ -123,3 +123,4 @@ pnpm nx lint projects
 - Timestamps and usernames are displayed in Greek ("Προστέθηκε: ... από", "Επεξεργάστηκε: ... από")
 - Editor username shown only if `updatedBy` exists and differs from `creator`; falls back to "Άγνωστος χρήστης" if username unavailable
 - During migration window, edit payload omits `batchDownloadLinks` when no complete link pairs are present, preventing accidental overwrite of legacy links
+- Project list and card styles include `min-width: 0`/wrapping safeguards so long metadata does not cause horizontal overflow on mobile

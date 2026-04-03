@@ -46,6 +46,8 @@ The Angular SPA for sick-fansubs — a Greek fansub group's website. Fully stand
 
 `AppComponent` renders a 3-column `MatSidenavContainer` shell with `<sf-header>`, `<sf-sidenav>`, and `<router-outlet>`.
 
+On mobile breakpoints, shell side sections are hidden and the main section renders without artificial side gutters so feature pages can control their own spacing.
+
 Session hydration is handled in `app.config.ts` through `provideAppInitializer`, which calls `TokenService.restoreSession()` during app bootstrap.
 
 ## Nx Tasks

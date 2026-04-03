@@ -837,9 +837,13 @@ Goal:
 
 Current implementation status (April 2026):
 
-- `libs/web/dashboard` scaffolded with shell route and staff guard
+- `libs/web/dashboard` scaffolded with staff guard and tabbed shell navigation
 - `/dashboard` route wired in the web app
+- dashboard children are now lazy-loaded by feature (`/dashboard` overview and `/dashboard/users`)
 - account page now exposes a role-aware CTA for staff users to open dashboard
+- responsive shell behavior was tightened for mobile (no empty side gutters/sections)
+- account page now uses explicit responsive inline spacing so cards do not render edge-to-edge
+- projects list/cards now avoid mobile overflow by allowing action rows and metadata to wrap safely
 - users list/detail and management actions remain pending in Milestone 2
 
 ## Milestone 3: Operational Hardening
