@@ -49,9 +49,9 @@ export class ProjectItemComponent {
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);
   protected readonly creatorAvatarUrl = computed(() => this.project().creator?.avatar || this.defaultAvatarPath);
-  protected readonly createdByUsername = computed(() => this.project().creator?.username || 'kushoyarou');
+  protected readonly createdByUsername = computed(() => this.project().creator?.username || 'Kushoyarou');
   protected readonly editedByUsername = computed(
-    () => this.project().updatedBy?.username || this.project().creator?.username || 'kushoyarou',
+    () => this.project().updatedBy?.username || this.project().creator?.username || 'Kushoyarou',
   );
   protected readonly hasBeenEdited = computed(() => {
     if (!this.project().updatedBy) {

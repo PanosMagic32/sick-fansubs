@@ -46,9 +46,9 @@ export default class ProjectDetailsComponent {
 
   protected readonly project = this.projectService.getProjectById(this.id);
   protected readonly creatorAvatarUrl = computed(() => this.project.value()?.creator?.avatar || this.defaultAvatarPath);
-  protected readonly createdByUsername = computed(() => this.project.value()?.creator?.username || 'kushoyarou');
+  protected readonly createdByUsername = computed(() => this.project.value()?.creator?.username || 'Kushoyarou');
   protected readonly editedByUsername = computed(
-    () => this.project.value()?.updatedBy?.username || this.project.value()?.creator?.username || 'kushoyarou',
+    () => this.project.value()?.updatedBy?.username || this.project.value()?.creator?.username || 'Kushoyarou',
   );
   protected readonly hasBeenEdited = computed(() => {
     const project = this.project.value();

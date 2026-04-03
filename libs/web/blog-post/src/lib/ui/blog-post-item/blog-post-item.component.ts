@@ -60,9 +60,9 @@ export class BlogPostItemComponent {
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);
   protected readonly creatorAvatarUrl = computed(() => this.blogPost().creator?.avatar || this.defaultAvatarPath);
-  protected readonly createdByUsername = computed(() => this.blogPost().creator?.username || 'kushoyarou');
+  protected readonly createdByUsername = computed(() => this.blogPost().creator?.username || 'Kushoyarou');
   protected readonly editedByUsername = computed(
-    () => this.blogPost().updatedBy?.username || this.blogPost().creator?.username || 'kushoyarou',
+    () => this.blogPost().updatedBy?.username || this.blogPost().creator?.username || 'Kushoyarou',
   );
   protected readonly hasBeenEdited = computed(() => {
     if (!this.blogPost().updatedBy) {
