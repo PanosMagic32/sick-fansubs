@@ -1,23 +1,25 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { vi } from 'vitest';
+
 import { ApiAuthService } from './api-auth.service';
 
 describe('ApiAuthService', () => {
   let service: ApiAuthService;
 
   const jwtServiceMock = {
-    signAsync: jest.fn(),
-    verifyAsync: jest.fn(),
+    signAsync: vi.fn(),
+    verifyAsync: vi.fn(),
   };
 
   const userServiceMock = {
-    findOneByUsername: jest.fn(),
-    storeRefreshTokenSession: jest.fn(),
-    isRefreshTokenSessionValid: jest.fn(),
-    clearRefreshTokenSession: jest.fn(),
+    findOneByUsername: vi.fn(),
+    storeRefreshTokenSession: vi.fn(),
+    isRefreshTokenSessionValid: vi.fn(),
+    clearRefreshTokenSession: vi.fn(),
   };
 
   const configServiceMock = {
-    get: jest.fn((key: string) => {
+    get: vi.fn((key: string) => {
       switch (key) {
         case 'JWT_SECRET':
           return 'access_secret';
@@ -36,7 +38,7 @@ describe('ApiAuthService', () => {
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     service = new ApiAuthService(jwtServiceMock as never, userServiceMock as never, configServiceMock as never);
   });
@@ -46,12 +48,14 @@ describe('ApiAuthService', () => {
   });
 
   it('creates access and refresh tokens on login', async () => {
-    jest.spyOn(service, 'comparePasswords').mockResolvedValue(true);
+    vi.spyOn(service, 'comparePasswords').mockResolvedValue(true);
 
     userServiceMock.findOneByUsername.mockResolvedValue({
       _id: { toString: () => 'user-id-1' },
       username: 'tester',
       email: 'tester@example.com',
+      role: 'moderator',
+      status: 'active',
       isAdmin: false,
       password: 'ignored-in-test',
     });
@@ -65,6 +69,62 @@ describe('ApiAuthService', () => {
     expect(result.accessToken).toBe('access-token-1');
     expect(result.refreshToken).toBe('refresh-token-1');
     expect(userServiceMock.storeRefreshTokenSession).toHaveBeenCalledTimes(1);
+    expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        role: 'moderator',
+        status: 'active',
+        isAdmin: false,
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('falls back to admin role when legacy user has only isAdmin=true', async () => {
+    vi.spyOn(service, 'comparePasswords').mockResolvedValue(true);
+
+    userServiceMock.findOneByUsername.mockResolvedValue({
+      _id: { toString: () => 'user-id-2' },
+      username: 'legacy-admin',
+      email: 'legacy@example.com',
+      isAdmin: true,
+      password: 'ignored',
+    });
+
+    jwtServiceMock.signAsync.mockResolvedValueOnce('access-token-2').mockResolvedValueOnce('refresh-token-2');
+    jwtServiceMock.verifyAsync.mockResolvedValueOnce({ exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 });
+
+    await service.login({ username: 'legacy-admin', password: 'password' });
+
+    expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ role: 'admin', status: 'active', isAdmin: true }),
+      expect.any(Object),
+    );
+  });
+
+  it('preserves super-admin role from refresh payload', async () => {
+    jwtServiceMock.verifyAsync.mockResolvedValueOnce({
+      sub: 'user-id-3',
+      username: 'root',
+      email: 'root@example.com',
+      role: 'super-admin',
+      status: 'active',
+      isAdmin: true,
+      jti: 'jti-root',
+    });
+
+    userServiceMock.isRefreshTokenSessionValid.mockResolvedValue(true);
+    jwtServiceMock.signAsync.mockResolvedValueOnce('access-token-root').mockResolvedValueOnce('refresh-token-root');
+    jwtServiceMock.verifyAsync.mockResolvedValueOnce({ exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 });
+
+    await service.refresh('refresh-token-root');
+
+    expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ role: 'super-admin', status: 'active', isAdmin: true }),
+      expect.any(Object),
+    );
   });
 
   it('rejects refresh when refresh session is revoked', async () => {
@@ -72,6 +132,8 @@ describe('ApiAuthService', () => {
       sub: 'user-id-1',
       username: 'tester',
       email: 'tester@example.com',
+      role: 'user',
+      status: 'active',
       isAdmin: false,
       jti: 'jti-1',
     });
