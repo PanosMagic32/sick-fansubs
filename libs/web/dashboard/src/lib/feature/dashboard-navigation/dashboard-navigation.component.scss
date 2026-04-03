@@ -21,6 +21,10 @@
   gap: 0.35rem;
 }
 
+.dashboard-layout mat-tab-nav-panel {
+  display: block;
+}
+
 .dashboard-content {
   padding: 1rem;
   padding-top: calc(1rem + 48px);

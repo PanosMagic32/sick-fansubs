@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { MatIcon } from '@angular/material/icon';
-import { MatTabLink, MatTabNav } from '@angular/material/tabs';
+import { MatTabLink, MatTabNav, MatTabNavPanel } from '@angular/material/tabs';
 
 interface DashboardTab {
   readonly label: string;
@@ -16,7 +16,7 @@ interface DashboardTab {
   selector: 'sf-dashboard-navigation',
   templateUrl: './dashboard-navigation.component.html',
   styleUrl: './dashboard-navigation.component.scss',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIcon, MatTabNav, MatTabLink],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIcon, MatTabNav, MatTabLink, MatTabNavPanel],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardNavigationComponent {

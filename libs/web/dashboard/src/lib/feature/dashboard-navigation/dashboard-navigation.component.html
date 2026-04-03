@@ -1,5 +1,5 @@
 <section class="dashboard-layout">
-  <nav mat-tab-nav-bar aria-label="Dashboard sections">
+  <nav mat-tab-nav-bar [tabPanel]="tabPanel" aria-label="Dashboard sections">
     @for (tab of tabs; track tab.path) {
       <a
         mat-tab-link
@@ -15,7 +15,9 @@
     }
   </nav>
 
-  <section class="dashboard-content">
-    <router-outlet />
-  </section>
+  <mat-tab-nav-panel #tabPanel>
+    <section class="dashboard-content">
+      <router-outlet />
+    </section>
+  </mat-tab-nav-panel>
 </section>

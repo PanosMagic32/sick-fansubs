@@ -1,8 +1,144 @@
+@use 'breakpoints' as bp;
+
 .dashboard-users {
   padding: 0.5rem;
+
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
 }
 
-.dashboard-users p {
+.summary-row {
+  display: flex;
+  min-width: 0;
+
+  mat-chip-set {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  @include bp.bp-down('md') {
+    mat-chip-set {
+      width: 100%;
+    }
+  }
+}
+
+.summary-chip {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: color-mix(in srgb, var(--mat-sys-surface-container) 70%, transparent);
+}
+
+.summary-chip.active {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 50%, var(--mat-sys-outline-variant));
+}
+
+.summary-chip.suspended {
+  border-color: color-mix(in srgb, var(--mat-sys-error) 50%, var(--mat-sys-outline-variant));
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+
+  @include bp.bp-down('lg') {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-field {
+  width: 100%;
+}
+
+.users-table-shell {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+
+.users-table {
+  width: 100%;
+  min-width: 0;
+
+  th.mat-mdc-header-cell {
+    font-weight: 600;
+  }
+
+  td.mat-mdc-cell,
+  th.mat-mdc-header-cell {
+    padding: 0.65rem 0.85rem;
+  }
+
+  @include bp.bp-down('md') {
+    .mat-column-email,
+    .mat-column-updatedAt {
+      display: none;
+    }
+  }
+}
+
+.cell-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--mat-sys-primary) 15%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.cell-email {
+  overflow-wrap: anywhere;
+}
+
+.cell-date {
+  white-space: nowrap;
+}
+
+.pill {
+  border-radius: 999px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  padding: 0.15rem 0.6rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.pill.role {
+  border-color: color-mix(in srgb, var(--mat-sys-secondary) 40%, var(--mat-sys-outline-variant));
+}
+
+.pill.active {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 50%, var(--mat-sys-outline-variant));
+}
+
+.pill.suspended {
+  border-color: color-mix(in srgb, var(--mat-sys-error) 50%, var(--mat-sys-outline-variant));
+}
+
+.date {
+  font-size: 0.82rem;
+  opacity: 0.72;
+}
+
+.state-message {
   margin: 0;
   opacity: 0.85;
+}
+
+.state-message.error {
+  color: var(--mat-sys-error);
 }

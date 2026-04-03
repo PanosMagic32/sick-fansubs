@@ -5,7 +5,108 @@
     </mat-card-header>
 
     <mat-card-content>
-      <p>Η σελίδα διαχείρισης χρηστών θα συνδεθεί με τα API endpoints στο επόμενο βήμα.</p>
+      <section class="summary-row" aria-label="Σύνοψη χρηστών">
+        <mat-chip-set aria-label="Στατιστικά χρηστών">
+          <mat-chip class="summary-chip">Σύνολο: {{ totalUsersCount() }}</mat-chip>
+          <mat-chip class="summary-chip active">Ενεργοί: {{ activeUsersCount() }}</mat-chip>
+          <mat-chip class="summary-chip suspended">Σε αναστολή: {{ suspendedUsersCount() }}</mat-chip>
+        </mat-chip-set>
+      </section>
+
+      <section class="filters" aria-label="Φίλτρα χρηστών">
+        <mat-form-field appearance="outline" class="filter-field search-field">
+          <mat-label>Αναζήτηση</mat-label>
+          <input
+            #searchInput
+            matInput
+            [value]="searchText()"
+            (input)="onSearchChange(searchInput.value)"
+            placeholder="Όνομα ή email"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Ρόλος</mat-label>
+          <mat-select [value]="roleFilter()" (selectionChange)="onRoleFilterChange($event)">
+            @for (option of roleOptions; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Κατάσταση</mat-label>
+          <mat-select [value]="statusFilter()" (selectionChange)="onStatusFilterChange($event)">
+            @for (option of statusOptions; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </section>
+
+      @if (usersResource.isLoading()) {
+        <p class="state-message">Φόρτωση χρηστών...</p>
+      } @else if (hasError()) {
+        <p class="state-message error">Αδυναμία φόρτωσης χρηστών. Ελέγξτε τα δικαιώματα πρόσβασης.</p>
+      } @else if (totalUsersCount() === 0) {
+        <p class="state-message">Δεν βρέθηκαν χρήστες με τα επιλεγμένα φίλτρα.</p>
+      } @else {
+        <section class="users-table-shell" aria-label="Πίνακας χρηστών">
+          <table mat-table [dataSource]="users()" matSort (matSortChange)="onSortChange($event)" class="users-table">
+            <ng-container matColumnDef="username">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Όνομα</th>
+              <td mat-cell *matCellDef="let user">
+                <div class="cell-user">
+                  <span class="avatar" aria-hidden="true">
+                    <mat-icon>person</mat-icon>
+                  </span>
+                  <span>{{ user.username }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+              <td mat-cell *matCellDef="let user" class="cell-email">{{ user.email }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Ρόλος</th>
+              <td mat-cell *matCellDef="let user">
+                <span class="pill role">{{ roleLabel(user.role) }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Κατάσταση</th>
+              <td mat-cell *matCellDef="let user">
+                <span class="pill" [class.active]="user.status === 'active'" [class.suspended]="user.status === 'suspended'">
+                  {{ statusLabel(user.status) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="updatedAt">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Ενημέρωση</th>
+              <td mat-cell *matCellDef="let user" class="cell-date">
+                {{ user.updatedAt || user.createdAt | date: 'd/M/yyyy, HH:mm' }}
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+
+          <mat-paginator
+            [length]="totalUsersCount()"
+            [pageIndex]="currentPage() - 1"
+            [pageSize]="pageSize()"
+            [pageSizeOptions]="pageSizeOptions"
+            (page)="onPageChange($event)"
+            showFirstLastButtons
+          />
+        </section>
+      }
     </mat-card-content>
   </mat-card>
 </section>
