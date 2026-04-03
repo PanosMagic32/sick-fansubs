@@ -66,5 +66,5 @@ This monorepo is a **Greek fansub group's website** — Angular 21 frontend + Ne
 - **API**: Controller → Service → Mongoose Schema. All routes under `/api`. Write endpoints for `blog-post` and `project` are guarded by `JwtAuthGuard` + `AdminGuard`.
 - **Web**: All feature libs use strict `data-access / feature / ui` layering. Signals everywhere (`httpResource`, `signal()`, `toSignal()`).
 - **Styling**: Shared design tokens and responsive helpers live in `libs/web/shared/src/lib/styles` and are consumed via SCSS include paths.
-- **Auth flow**: Angular `authGuard` / `requireAuthGuard` rely on role-aware `TokenService` session signals (`role`, `status`, compatibility `isAdmin`) → `JwtAuthGuard` on protected API routes.
+- **Auth flow**: Angular `authGuard` / `requireAuthGuard` rely on role-aware `TokenService` session signals (`role`, `status`) → `JwtAuthGuard` on protected API routes.
 - **UI language**: All user-facing strings are in **Greek**.

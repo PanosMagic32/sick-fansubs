@@ -61,7 +61,7 @@ Imports `User` type from `@api/user`.
 #### `blog-post-list/blog-post-list.component.ts` — `BlogPostListComponent` (`sf-blog-post-list`)
 
 - Paginated list; syncs `page` and `pageSize` to query params via `ActivatedRoute`
-- Shows FAB for creating (visible only to admin-like roles via `TokenService.isAdmin`)
+- Shows FAB for creating (visible only to admin/super-admin roles via `TokenService.canManageContent`)
 - Syncs authenticated user's favorites and handles add/remove favorite actions with optimistic-ish signal updates
 - Uses `BlogPostItemComponent` for each post card
 - `MatPaginator` for navigation

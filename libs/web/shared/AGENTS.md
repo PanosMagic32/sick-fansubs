@@ -14,8 +14,8 @@ Cross-feature frontend infrastructure: app shell UI, auth/session interceptors, 
 
 ## Public Exports (Auth-related)
 
-- `TokenService` signals: `isAuthenticated`, `role`, `status`, `isAdmin`, `userId`, `isInitialized`
-- `TokenService` computed helpers: `isStaff`, `isAdminLike`
+- `TokenService` signals: `isAuthenticated`, `role`, `status`, `userId`, `isInitialized`
+- `TokenService` computed helpers: `isStaff`, `canManageContent`
 - `TokenService` methods: `hasRole()`, `hasAnyRole()`, `canAccessDashboard()`, `isValidToken()`, `getUserId()`, `restoreSession()`, `logout()`, `removeToken()`
 - `jwtInterceptor`
 - `mapAuthSessionErrorMessage`
@@ -30,8 +30,9 @@ Cross-feature frontend infrastructure: app shell UI, auth/session interceptors, 
 
 ## Notes
 
-- Session state is signal-based (`isAuthenticated`, `role`, `status`, `isAdmin`, `userId`)
-- `isAdmin` is maintained as a compatibility signal derived from role (`admin` or `super-admin`)
+- Session state is signal-based (`isAuthenticated`, `role`, `status`, `userId`)
+- Content-management access is role-based (`admin` or `super-admin`) via `canManageContent`
+- `MenuService` exposes responsive breakpoint state as signals (`isHandset`, `isSmall`, `isMedium`) used by `HeaderComponent`
 - Logout button is shown for authenticated users
 - `provideAppInitializer` restores session at app startup
 

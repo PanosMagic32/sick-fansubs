@@ -32,6 +32,7 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 - On narrow viewports, dashboard container expands full width to align with mobile shell behavior.
 - Users view fetches staff-visible users from `GET /api/user/management` with server-side pagination, filtering, and sorting.
 - Search requests from the users table are debounced (signals + RxJS interop) before calling the API.
+- Users table renders real user avatars from the API and falls back to `/logo/logo.png` on missing or invalid avatar URLs.
 
 ## Role Access
 
@@ -60,7 +61,8 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 - `src/lib/data-access/dashboard.service.ts` — Staff operations
 - `src/lib/data-access/dashboard.guard.ts` — Staff-only route protection
 - `src/lib/feature/dashboard-shell/dashboard-shell.component.ts` — Layout
-- `src/lib/feature/users-list/users-list.component.ts` — Users table (planned)
+- `src/lib/feature/dashboard-users/dashboard-users.component.ts` — Users table with server-side filters/sort/pagination
+- `src/lib/feature/dashboard-users/dashboard-users.routes.ts` — Users feature route
 - `src/lib/feature/user-detail/user-detail.component.ts` — User inspector (planned)
 - `src/lib/dashboard.routes.ts` — Lazy-loaded route tree
 
