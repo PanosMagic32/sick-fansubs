@@ -841,10 +841,12 @@ Current implementation status (April 2026):
 - `/dashboard` route wired in the web app
 - dashboard children are now lazy-loaded by feature (`/dashboard` overview and `/dashboard/users`)
 - account page now exposes a role-aware CTA for staff users to open dashboard
+- dashboard users page now uses a Material table backed by server-side pagination/sort/filter
+- dedicated staff endpoint added: `GET /api/user/management` (page, pageSize, search, role, status, sortBy, sortDirection)
 - responsive shell behavior was tightened for mobile (no empty side gutters/sections)
 - account page now uses explicit responsive inline spacing so cards do not render edge-to-edge
 - projects list/cards now avoid mobile overflow by allowing action rows and metadata to wrap safely
-- users list/detail and management actions remain pending in Milestone 2
+- user detail and management actions remain pending in Milestone 2
 
 ## Milestone 3: Operational Hardening
 

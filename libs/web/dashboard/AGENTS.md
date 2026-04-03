@@ -9,7 +9,8 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 - Dashboard shell with tab navigation (implemented)
 - Route guard for staff access (implemented)
 - Users route skeleton under dashboard tabs (implemented)
-- Users list with search/filter and actions (planned)
+- Users list with server-side pagination/sort/filter (implemented)
+- Users management actions (role/status mutations) (planned)
 - User detail page (planned)
 - Role management flows (planned)
 - Status management flows (planned)
@@ -18,7 +19,7 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 
 ```
 /dashboard                    -> shell (role-gated)
-/dashboard/users              -> users area (placeholder route implemented)
+/dashboard/users              -> users list with server-side table
 /dashboard/users/:id          -> user detail (planned)
 /dashboard/content            -> (future) content operations
 /dashboard/audit              -> (future) audit logs
@@ -29,6 +30,8 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 - Dashboard shell uses Material tab-nav links (`/dashboard`, `/dashboard/users`) above a nested router outlet.
 - Tab bar is sticky below the global header; routed content includes top offset to avoid overlap.
 - On narrow viewports, dashboard container expands full width to align with mobile shell behavior.
+- Users view fetches staff-visible users from `GET /api/user/management` with server-side pagination, filtering, and sorting.
+- Search requests from the users table are debounced (signals + RxJS interop) before calling the API.
 
 ## Role Access
 
