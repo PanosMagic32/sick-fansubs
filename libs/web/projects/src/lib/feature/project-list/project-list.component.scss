@@ -4,6 +4,7 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100%;
+  min-width: 0;
 }
 
 .create-post-btn {
@@ -17,6 +18,11 @@
   grid-template-columns: 1fr;
   gap: 2rem;
   padding: 2rem 1rem 0;
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+  }
 
   @include bp.bp-up('md') {
     padding: 2rem;

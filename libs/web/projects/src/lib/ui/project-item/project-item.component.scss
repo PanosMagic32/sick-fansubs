@@ -1,7 +1,9 @@
 @use 'mixins' as mx;
+@use 'breakpoints' as bp;
 
 .project-card {
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
 
@@ -49,15 +51,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
 
     .project-actions-date {
       margin-left: 1rem;
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      min-width: 0;
 
       p {
         margin: 0;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    @include bp.bp-down('sm') {
+      align-items: flex-start;
+
+      .project-actions-date {
+        margin-left: 0;
       }
     }
   }

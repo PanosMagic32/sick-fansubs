@@ -1,0 +1,18 @@
+.grid-container {
+  margin: 0;
+}
+
+.dashboard-card {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+}
+
+.dashboard-card-content {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}

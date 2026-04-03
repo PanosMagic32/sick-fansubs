@@ -1,0 +1,25 @@
+.sidenav-container {
+  min-height: calc(100vh - 64px);
+}
+
+.sidenav {
+  width: 260px;
+}
+
+.sidenav .mat-toolbar {
+  background: inherit;
+}
+
+.mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dashboard-content {
+  padding: 1rem;
+}
+
+.active-link {
+  font-weight: 600;
+}

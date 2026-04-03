@@ -1,0 +1,35 @@
+@use 'breakpoints' as bp;
+
+:host {
+  display: block;
+}
+
+.dashboard-layout {
+  display: block;
+}
+
+.dashboard-layout nav[mat-tab-nav-bar] {
+  position: sticky;
+  top: var(--sf-header-height);
+  z-index: 1;
+  min-height: 48px;
+  padding: 0 1rem;
+  background: var(--mat-sys-surface);
+}
+
+.dashboard-layout .mdc-tab {
+  gap: 0.35rem;
+}
+
+.dashboard-content {
+  padding: 1rem;
+  padding-top: calc(1rem + 48px);
+}
+
+@include bp.bp-down('lg') {
+  .dashboard-layout {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+}

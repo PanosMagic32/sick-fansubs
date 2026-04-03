@@ -6,6 +6,16 @@
   flex-direction: column;
   gap: var(--sf-space-lg);
   margin: var(--sf-space-2xl) 0;
+  padding-inline: var(--sf-space-md);
+  box-sizing: border-box;
+
+  @include bp.bp-up('md') {
+    padding-inline: var(--sf-space-lg);
+  }
+
+  @include bp.bp-up('xl') {
+    padding-inline: var(--sf-space-xl);
+  }
 
   .account-ready-layout {
     display: flex;

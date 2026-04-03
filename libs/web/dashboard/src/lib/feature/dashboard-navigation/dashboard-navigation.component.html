@@ -1,0 +1,21 @@
+<section class="dashboard-layout">
+  <nav mat-tab-nav-bar aria-label="Dashboard sections">
+    @for (tab of tabs; track tab.path) {
+      <a
+        mat-tab-link
+        [routerLink]="tab.path"
+        [routerLinkActiveOptions]="{ exact: !!tab.exact }"
+        routerLinkActive
+        #rla="routerLinkActive"
+        [active]="rla.isActive"
+      >
+        <mat-icon>{{ tab.icon }}</mat-icon>
+        <span>{{ tab.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <section class="dashboard-content">
+    <router-outlet />
+  </section>
+</section>
