@@ -6,7 +6,7 @@ import { TokenService } from '@web/shared';
 export const adminGuard: CanActivateFn = () => {
   const tokenService = inject(TokenService);
 
-  if (tokenService.isAuthenticated() && tokenService.isAdmin()) {
+  if (tokenService.isAuthenticated() && tokenService.hasAnyRole(['super-admin', 'admin'])) {
     return true;
   }
 

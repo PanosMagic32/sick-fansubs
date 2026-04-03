@@ -1,10 +1,14 @@
 /* eslint-disable no-underscore-dangle */
+import type { UserRole, UserStatus } from '@shared/types';
+
 export class User {
   constructor(
     public username: string,
     public email?: string,
     public id?: string,
     public avatar?: string,
+    private _role?: UserRole,
+    private _status?: UserStatus,
     private _isAdmin?: boolean,
     private _password?: string,
     private _accessToken?: string,
@@ -15,6 +19,14 @@ export class User {
 
   get isAdmin() {
     return this._isAdmin;
+  }
+
+  get role() {
+    return this._role;
+  }
+
+  get status() {
+    return this._status;
   }
 
   get accessToken() {

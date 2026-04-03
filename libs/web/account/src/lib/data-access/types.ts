@@ -1,4 +1,5 @@
 import { BlogPost } from '@shared/types';
+import type { UserRole, UserStatus } from '@shared/types';
 
 export type AccountViewState = 'loading' | 'error' | 'ready' | 'idle';
 
@@ -21,7 +22,9 @@ export interface UserProfile {
   username: string;
   email: string;
   avatar?: string;
-  isAdmin: boolean;
+  role?: UserRole;
+  status?: UserStatus;
+  isAdmin?: boolean;
   favoriteBlogPostIds: string[];
   createdBlogPostIds: string[];
   createdAt?: string;
