@@ -33,17 +33,16 @@ describe('TokenService', () => {
       email: 'mod@example.com',
       role: 'moderator',
       status: 'active',
-      isAdmin: false,
     });
 
     expect(service.isAuthenticated()).toBe(true);
     expect(service.role()).toBe('moderator');
     expect(service.status()).toBe('active');
-    expect(service.isAdmin()).toBe(false);
+    expect(service.canManageContent()).toBe(false);
     expect(service.canAccessDashboard()).toBe(true);
   });
 
-  it('falls back to admin role when only isAdmin=true is returned', () => {
+  it('defaults role/status when not provided', () => {
     service.restoreSession().subscribe();
 
     const req = httpMock.expectOne('/api/auth/session');
@@ -51,13 +50,12 @@ describe('TokenService', () => {
       sub: 'u-2',
       username: 'legacy',
       email: 'legacy@example.com',
-      isAdmin: true,
     });
 
-    expect(service.role()).toBe('admin');
+    expect(service.role()).toBe('user');
     expect(service.status()).toBe('active');
-    expect(service.isAdmin()).toBe(true);
-    expect(service.hasAnyRole(['super-admin', 'admin'])).toBe(true);
+    expect(service.canManageContent()).toBe(false);
+    expect(service.hasAnyRole(['super-admin', 'admin'])).toBe(false);
   });
 
   it('clears session state on restore failure', () => {

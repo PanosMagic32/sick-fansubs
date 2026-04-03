@@ -9,17 +9,12 @@ export class User {
     public avatar?: string,
     private _role?: UserRole,
     private _status?: UserStatus,
-    private _isAdmin?: boolean,
     private _password?: string,
     private _accessToken?: string,
     private _oneSignalId?: string,
     private _pushId?: string,
     private _pushToken?: string,
   ) {}
-
-  get isAdmin() {
-    return this._isAdmin;
-  }
 
   get role() {
     return this._role;

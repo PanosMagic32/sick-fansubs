@@ -39,15 +39,12 @@ export class AuthService {
     this._isLoading.set(true);
 
     this.httpClient
-      .post<{ id: string; username: string; email: string; role?: UserRole; status?: UserStatus; isAdmin?: boolean }>(
-        '/api/user',
-        {
-          username,
-          email,
-          password,
-          avatar,
-        },
-      )
+      .post<{ id: string; username: string; email: string; role?: UserRole; status?: UserStatus }>('/api/user', {
+        username,
+        email,
+        password,
+        avatar,
+      })
       .subscribe({
         next: () => {
           this._isLoading.set(false);

@@ -4,7 +4,7 @@
     Projects
   </button>
 
-  @if (isAdmin()) {
+  @if (canManageContent()) {
     <button mat-stroked-button type="button" (click)="onEditProject()">
       <mat-icon>edit</mat-icon>
       Επεξεργασία

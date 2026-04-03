@@ -51,7 +51,7 @@ export class BlogPostItemComponent {
   readonly blogPost = input.required<BlogPost>();
   readonly index = input.required<number>();
   readonly currentPage = input.required<number>();
-  readonly isAdmin = input.required<boolean>();
+  readonly canManageContent = input.required<boolean>();
   readonly isAuthenticated = input.required<boolean>();
   readonly isFavorite = input.required<boolean>();
   readonly isFavoriteActionPending = input.required<boolean>();

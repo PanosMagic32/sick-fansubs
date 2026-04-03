@@ -42,7 +42,7 @@ export default class ProjectDetailsComponent {
   readonly id = input.required<string>();
 
   private readonly defaultAvatarPath = '/logo/logo.png';
-  protected readonly isAdmin = this.tokenService.isAdmin;
+  protected readonly canManageContent = this.tokenService.canManageContent;
 
   protected readonly project = this.projectService.getProjectById(this.id);
   protected readonly creatorAvatarUrl = computed(() => this.project.value()?.creator?.avatar || this.defaultAvatarPath);

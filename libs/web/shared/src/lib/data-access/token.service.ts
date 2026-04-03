@@ -10,15 +10,11 @@ interface AuthSessionResponse {
   email: string;
   role?: UserRole;
   status?: UserStatus;
-  isAdmin?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
 export class TokenService {
   private readonly httpClient = inject(HttpClient);
-
-  private _isAdmin = signal(false);
-  isAdmin = this._isAdmin.asReadonly();
 
   private _role = signal<UserRole>('user');
   role = this._role.asReadonly();
@@ -27,7 +23,7 @@ export class TokenService {
   status = this._status.asReadonly();
 
   isStaff = computed(() => this._role() !== 'user');
-  isAdminLike = computed(() => this._role() === 'admin' || this._role() === 'super-admin');
+  canManageContent = computed(() => this.hasAnyRole(['super-admin', 'admin']));
 
   private _userId = signal<string | null>(null);
   userId = this._userId.asReadonly();
@@ -65,18 +61,16 @@ export class TokenService {
   }
 
   private applySession(session: AuthSessionResponse) {
-    const role = session.role ?? (session.isAdmin ? 'admin' : 'user');
+    const role = session.role ?? 'user';
     const status = session.status ?? 'active';
 
     this._role.set(role);
     this._status.set(status);
-    this._isAdmin.set(role === 'admin' || role === 'super-admin');
     this._userId.set(session.sub || null);
     this._isAuthenticated.set(Boolean(session.sub));
   }
 
   removeToken() {
-    this._isAdmin.set(false);
     this._role.set('user');
     this._status.set('active');
     this._userId.set(null);

@@ -40,7 +40,7 @@ export class BlogPostListComponent {
   protected readonly pageSize = signal(DEFAULT_PAGE_SIZE);
   protected readonly pageSizeOptions = signal(PAGE_SIZE_OPTIONS);
 
-  protected readonly isAdmin = this.tokenService.isAdmin;
+  protected readonly canManageContent = this.tokenService.canManageContent;
   protected readonly userId = this.tokenService.userId;
   protected readonly activeUserId = computed(() => (this.tokenService.isValidToken() ? this.userId() : null));
   protected readonly favoriteBlogPostIds = this.favoriteBlogPostIdsState.asReadonly();

@@ -30,7 +30,7 @@ export class AccountProfileSummaryComponent {
   get roleLabel(): string {
     const role = this.profile().role;
     if (role) return this.roleLabelMap[role] ?? 'Χρήστης';
-    return this.profile().isAdmin ? 'Διαχειριστής' : 'Χρήστης';
+    return 'Χρήστης';
   }
 
   onAvatarImageError(): void {

@@ -19,7 +19,6 @@ export interface DashboardUser {
   avatar?: string;
   role: UserRole;
   status: UserStatus;
-  isAdmin: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

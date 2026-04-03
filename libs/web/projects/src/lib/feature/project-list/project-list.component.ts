@@ -34,7 +34,7 @@ export class ProjectListComponent {
   protected readonly pageSize = signal(DEFAULT_PAGE_SIZE);
   protected readonly pageSizeOptions = signal(PAGE_SIZE_OPTIONS);
 
-  protected readonly isAdmin = this.tokenService.isAdmin;
+  protected readonly canManageContent = this.tokenService.canManageContent;
 
   protected readonly projects = this.projectsService.getProjects(this.pageSize, this.currentPage);
   protected readonly totalProjects = computed(() => this.projects.value()?.count ?? 0);

@@ -4,7 +4,7 @@
     <mat-card-title>{{ searchResult().title }}</mat-card-title>
     <mat-card-subtitle>{{ searchResult().subtitle }}</mat-card-subtitle>
 
-    @if (isAdmin()) {
+    @if (canManageContent()) {
       <div class="edit-btn">
         <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit(searchResult().type)">
           <mat-icon>edit</mat-icon>

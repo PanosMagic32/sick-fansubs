@@ -3,7 +3,7 @@
 }
 
 <div class="create-post-btn">
-  @if (isAdmin()) {
+  @if (canManageContent()) {
     <button mat-fab extended color="primary" (click)="onCreateProject()">
       <mat-icon>add</mat-icon>
       Προσθήκη νέου project
@@ -14,7 +14,7 @@
 <div class="projects-container">
   @if (projects.value() && totalProjects() > 0 && !projects.isLoading()) {
     @for (project of projects.value()!.projects; track project._id) {
-      <sf-project-item [project]="project" [index]="$index" [isAdmin]="isAdmin()" />
+      <sf-project-item [project]="project" [index]="$index" [canManageContent]="canManageContent()" />
     }
   } @else {
     @if (!projects.isLoading()) {

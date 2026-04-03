@@ -45,7 +45,7 @@ export class ProjectItemComponent {
 
   readonly project = input.required<Project>();
   readonly index = input.required<number>();
-  readonly isAdmin = input.required<boolean>();
+  readonly canManageContent = input.required<boolean>();
 
   protected readonly imgDownloadPriority = computed(() => this.index() === 0 || this.index() === 1);
   protected readonly creatorAvatarUrl = computed(() => this.project().creator?.avatar || this.defaultAvatarPath);

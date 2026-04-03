@@ -24,7 +24,6 @@ export interface UserProfile {
   avatar?: string;
   role?: UserRole;
   status?: UserStatus;
-  isAdmin?: boolean;
   favoriteBlogPostIds: string[];
   createdBlogPostIds: string[];
   createdAt?: string;

@@ -32,7 +32,7 @@
         </button>
       }
 
-      @if (isAdmin()) {
+      @if (canManageContent()) {
         <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
           <mat-icon>edit</mat-icon>
         </button>

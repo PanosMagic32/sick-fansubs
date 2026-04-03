@@ -3,7 +3,7 @@
 }
 
 <div class="create-post-btn">
-  @if (isAdmin()) {
+  @if (canManageContent()) {
     <button mat-fab extended color="primary" (click)="onCreatePost()">
       <mat-icon>add</mat-icon>
       Προσθήκη νέου post
@@ -22,7 +22,7 @@
         [class.first]="$index === 0 && currentPage() === 1"
         [blogPost]="post"
         [index]="$index"
-        [isAdmin]="isAdmin()"
+        [canManageContent]="canManageContent()"
         [isAuthenticated]="isAuthenticated()"
         [isFavorite]="isFavorite(post._id)"
         [isFavoriteActionPending]="favoriteActionPendingPostId() === post._id"

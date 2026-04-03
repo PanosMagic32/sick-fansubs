@@ -8,7 +8,7 @@
     ></div>
     <mat-card-title>{{ project().title }}</mat-card-title>
 
-    @if (isAdmin()) {
+    @if (canManageContent()) {
       <div class="edit-btn">
         <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
           <mat-icon>edit</mat-icon>

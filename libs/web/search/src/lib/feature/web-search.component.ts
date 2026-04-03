@@ -52,7 +52,7 @@ export class WebSearchComponent implements OnDestroy {
   protected readonly pageSizeOptions = signal(PAGE_SIZE_OPTIONS);
   protected readonly searchType = signal<SearchTypeOption>('all');
 
-  protected readonly isAdmin = this.tokenService.isAdmin;
+  protected readonly canManageContent = this.tokenService.canManageContent;
   protected readonly isLoading = this.searchService.isLoading;
   protected readonly results = this.searchService.results;
 

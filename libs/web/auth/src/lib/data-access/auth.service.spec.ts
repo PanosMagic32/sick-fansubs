@@ -69,7 +69,7 @@ describe('AuthService', () => {
 
     const req = httpMock.expectOne('/api/user');
     expect(req.request.method).toBe('POST');
-    req.flush({ id: 'u-1', username: 'new-user', email: 'new@example.com', role: 'user', status: 'active', isAdmin: false });
+    req.flush({ id: 'u-1', username: 'new-user', email: 'new@example.com', role: 'user', status: 'active' });
 
     expect(snackBarMock.open).toHaveBeenCalledWith('Η εγγραφή ολοκληρώθηκε. Συνδεθείτε για να συνεχίσετε.', 'OK', {
       duration: 3000,

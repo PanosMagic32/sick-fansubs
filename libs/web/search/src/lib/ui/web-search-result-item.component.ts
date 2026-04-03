@@ -20,7 +20,7 @@ export class WebSearchResultItemComponent {
   private readonly activatedRoute = inject(ActivatedRoute);
 
   readonly searchResult = input.required<Searchable>();
-  readonly isAdmin = input.required<boolean>();
+  readonly canManageContent = input.required<boolean>();
 
   onEdit(type: SearchTypeOption) {
     const path = type === 'blog-post' ? `/${this.searchResult()._id}/edit` : `/projects/${this.searchResult()._id}/edit`;
