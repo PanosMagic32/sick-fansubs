@@ -24,6 +24,7 @@ User domain module for profile management, favorites, and auth-adjacent account 
 
 - `POST /api/user` is protected by credential throttling (`5/min`)
 - Protected user routes keep self-or-staff enforcement via role-aware checks
+- `GET /api/user/management` is staff-only and supports server-side pagination, search, role/status filters, and sorting for dashboard user management
 - `PATCH /api/user/:id` — when a password change is included, the active refresh-token session is invalidated immediately via `clearRefreshTokenSession()` after the update succeeds
 
 ## Existing Account Data
