@@ -1,22 +1,24 @@
-# Account Pages Plan (Active)
+# Account Pages Plan (Completed Milestone)
 
-## Scope
+## Scope Delivered
 
-Continue account UX work now that auth/session hardening and media upload delivery are complete.
+Account UX and safety enhancements are now implemented, including favorites improvements across posts and projects.
 
-## Active Next Steps
+## Completed
 
 ### P1 — Account UX and Safety Enhancements
 
-1. Add unsaved-changes route protection for account edits.
-2. Add account deletion flow with explicit confirmation and forced logout.
-3. Add optional favorites sort controls (newest/oldest).
+1. Unsaved-changes route protection for account edits.
+2. Account deletion flow with explicit confirmation and forced logout.
+3. Favorites sort controls (`newest` / `oldest`) applied server-side before pagination.
+4. Favorite projects support as a separate feature from favorite posts.
+5. Account favorites rendering improved with tabbed sections (Posts/Projects) for better mobile ergonomics.
 
-### P2 — Optional Security Extension
+### P2 — Security Extension
 
-1. Add optional email verification during registration (SMTP-backed).
+1. Optional email verification during registration remains out of scope for this milestone.
 
-## Validation Checklist For Next Work
+## Validation Checklist For Follow-up Work
 
 1. Keep all user-facing strings in Greek.
 2. Preserve `httpResource` + signals architecture.

@@ -2,18 +2,18 @@
 
 ## Purpose
 
-Staff dashboard for user management, metrics, and operational tools. Role-gated feature area for `super-admin`, `admin`, and optionally `moderator` roles.
+Staff dashboard for user management, metrics, and operational tools. Role-gated feature area for `super-admin`, `admin`, and `moderator`.
 
-## MVP Scope (Milestone 2)
+## Current Scope Status
 
 - Dashboard shell with tab navigation (implemented)
-- Route guard for staff access (implemented)
-- Users route skeleton under dashboard tabs (implemented)
+- Staff route guard (implemented)
+- Users route under dashboard tabs (implemented)
 - Users list with server-side pagination/sort/filter (implemented)
-- Users management actions (role/status mutations) (planned)
+- Row-level user actions (status, role, delete) (implemented)
+- Bulk user status actions with selection (implemented)
 - User detail page (planned)
-- Role management flows (planned)
-- Status management flows (planned)
+- Content and audit subareas (planned)
 
 ## Route Structure
 
@@ -27,74 +27,39 @@ Staff dashboard for user management, metrics, and operational tools. Role-gated 
 
 ## Current UX Notes
 
-- Dashboard shell uses Material tab-nav links (`/dashboard`, `/dashboard/users`) above a nested router outlet.
-- Tab bar is sticky below the global header; routed content includes top offset to avoid overlap.
-- On narrow viewports, dashboard container expands full width to align with mobile shell behavior.
-- Users view fetches staff-visible users from `GET /api/user/management` with server-side pagination, filtering, and sorting.
-- Search requests from the users table are debounced (signals + RxJS interop) before calling the API.
-- Users table renders real user avatars from the API and falls back to `/logo/logo.png` on missing or invalid avatar URLs.
+- Dashboard shell uses Material tab-nav links above nested router outlet.
+- Tab bar remains sticky under the global header.
+- Users view reads from `GET /api/user/management` with server-side search/filter/sort/pagination.
+- Search input is debounced.
+- Table supports:
+  - row selection + select-all per page
+  - row action menu (status/role/delete)
+  - bulk status updates for selected users
+- Row/bulk actions use in-flight disable states to prevent duplicate submissions.
+- Avatars use API values with fallback to `/logo/logo.png`.
 
-## Role Access
+## Role Access Rules
 
-- `super-admin`: Full dashboard access
-- `admin`: Full dashboard access (no super-admin user management)
-- `moderator`: Dashboard access with limited actions (view users, optional status changes)
-- `user`: No dashboard access
+- `super-admin`: Full dashboard access and user management.
+- `admin`: Full dashboard access, cannot manage `super-admin` users.
+- `moderator`: Dashboard access with restricted management actions.
+- `user`: No dashboard access.
 
 ## Internal Architecture
 
-- `src/lib/data-access/` — Staff service layer (user CRUD, role/status updates)
-- `src/lib/feature/` — Route components (dashboard shell, users list, user detail)
-- `src/lib/ui/` — Reusable dashboard components (action cards, user tables, modals)
-- `src/lib/utils/` — Authorization helpers and permission checks
-- `src/lib/dashboard.routes.ts` — Dashboard feature routes
-- `src/index.ts` — Public API exports
-
-## Key Dependencies
-
-- `@web/shared` — TokenService for session state and role checks
-- `@shared/types` — UserRole, UserStatus, UserRef types
-- `@angular/material` — Dashboard UI components
-
-## Key Files (After Generation)
-
-- `src/lib/data-access/dashboard.service.ts` — Staff operations
-- `src/lib/data-access/dashboard.guard.ts` — Staff-only route protection
-- `src/lib/feature/dashboard-shell/dashboard-shell.component.ts` — Layout
-- `src/lib/feature/dashboard-users/dashboard-users.component.ts` — Users table with server-side filters/sort/pagination
-- `src/lib/feature/dashboard-users/dashboard-users.routes.ts` — Users feature route
-- `src/lib/feature/user-detail/user-detail.component.ts` — User inspector (planned)
-- `src/lib/dashboard.routes.ts` — Lazy-loaded route tree
-
-## Authorization Patterns
-
-- Use `dashboardGuard` for route-level gate
-- Use `tokenService.canAccessDashboard()` as the single staff-access predicate
-- Use `canManageUser(actor, targetUser)` in dashboard.service for safe staff actions
-- Hide actions the current role cannot complete; also enforce server-side
+- `src/lib/data-access/` — staff service layer (`getManagementUsers`, `updateUserRole`, `updateUserStatus`, `deleteUser`).
+- `src/lib/feature/` — route components (shell, home, users).
+- `src/lib/dashboard.routes.ts` — lazy-loaded dashboard route tree.
+- `src/index.ts` — public API exports.
 
 ## Validation Commands
 
 ```bash
 pnpm nx lint dashboard
 pnpm nx test dashboard
+pnpm nx build web --configuration=development
 ```
 
 ## Integration with Web App
 
-Dashboard is lazy-loaded under `/dashboard` route using `loadChildren()` from the web app root routing module.
-
-```typescript
-// in web app routing
-{
-  path: 'dashboard',
-  loadChildren: () => import('@web/dashboard').then(m => m.dashboardRoutes)
-}
-
-// in dashboard.routes.ts
-{
-  path: '',
-  canActivate: [dashboardGuard],
-  component: DashboardShellComponent,
-}
-```
+Dashboard is lazy-loaded under `/dashboard` via `loadChildren()` from web app routing.

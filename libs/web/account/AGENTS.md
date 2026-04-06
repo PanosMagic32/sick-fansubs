@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Authenticated user account management page. Allows the logged-in user to view/update profile data and manage favorite blog posts.
+Authenticated user account management page. Allows the logged-in user to view/update profile data and manage favorites for both blog posts and projects.
 
 ## Path Alias
 
@@ -16,9 +16,9 @@ Authenticated user account management page. Allows the logged-in user to view/up
 
 ## Routes (`src/lib/lib.routes.ts`)
 
-| Path                     | Guard              | Component             | Load  |
-| ------------------------ | ------------------ | --------------------- | ----- |
-| ``(mounted at`/account`) | `requireAuthGuard` | `WebAccountComponent` | Eager |
+| Path                     | Guards                                    | Component             | Load  |
+| ------------------------ | ----------------------------------------- | --------------------- | ----- |
+| ``(mounted at`/account`) | `requireAuthGuard`, `unsavedChangesGuard` | `WebAccountComponent` | Eager |
 
 ## Key Files
 
@@ -28,20 +28,18 @@ Authenticated user account management page. Allows the logged-in user to view/up
 
 Angular `httpResource`-based service (signals-driven):
 
-- `getUserProfile(userId: Signal<string>)` — `GET /api/user/:id`; returns `HttpResourceRef<UserProfile>`. Runs reactively when `userId` signal changes.
-- `updateUserProfile(userId, data: WritableSignal<UpdateUserRequest | null>)` — `PATCH /api/user/:id`; fires only when `data` signal is non-null (on-demand mutation pattern).
-- `getFavoriteBlogPostIds(userId)` — `GET /api/user/:id/favorites`
-- `getFavoriteBlogPosts(userId, pageSize, currentPage)` — `GET /api/user/:id/favorites/posts?pagesize=<n>&page=<n>` (paginated populated favorites)
-- `addFavoriteBlogPost(userId, postId)` — `PUT /api/user/:id/favorites/:postId`
-- `removeFavoriteBlogPost(userId, postId)` — `DELETE /api/user/:id/favorites/:postId`
+- `getUserProfile(userId: Signal<string>)` — `GET /api/user/:id`; returns `HttpResourceRef<UserProfile>`.
+- `updateUserProfile(userId, data: WritableSignal<UpdateUserRequest | null>)` — `PATCH /api/user/:id`.
+- `getFavoriteBlogPostIds(userId)` — `GET /api/user/:id/favorites`.
+- `getFavoriteBlogPosts(userId, pageSize, currentPage, sortOrder)` — `GET /api/user/:id/favorites/posts?pagesize=<n>&page=<n>&sort=<newest|oldest>`.
+- `removeFavoriteBlogPost(userId, postId)` — `DELETE /api/user/:id/favorites/:postId`.
+- `getFavoriteProjectIds(userId)` — `GET /api/user/:id/favorites/projects`.
+- `getFavoriteProjects(userId, pageSize, currentPage, sortOrder)` — `GET /api/user/:id/favorites/projects/items?pagesize=<n>&page=<n>&sort=<newest|oldest>`.
+- `removeFavoriteProject(userId, projectId)` — `DELETE /api/user/:id/favorites/projects/:projectId`.
 
 #### `types.ts`
 
-Shared account feature types:
-
-- `AccountViewState`
-- `FavoritesViewState`
-- `FavoritesPageChange`
+Shared account feature types include profile and favorites view/pagination state for both posts and projects.
 
 ### `src/lib/feature/`
 
@@ -49,48 +47,29 @@ Shared account feature types:
 
 Smart component:
 
-- Gets `userId` from `TokenService.userId` signal
-- Loads user profile via `getUserProfile(userId)` — pre-fills form via `effect()` when resource resolves
-- Reactive form fields: `email?`, `avatar?`, `password?`, `confirmPassword?`
-- Password confirmation cross-field validator
-- Submit sets `updateRequest` signal → triggers `updateUserProfile` PATCH
-- Loads favorite ids + paginated populated favorites and renders a dedicated favorites card
-- Maintains local favorites pagination state (current page, page size, page-size options)
-- Supports removing favorites and refreshes favorites ids and populated favorites resources
-- Handles expired sessions by clearing token and redirecting to login
-- Uses shared `StatusCardComponent` from `@web/shared` for loading/error shell states
-- Success/error snackbar notifications (Greek messages)
+- Gets `userId` from `TokenService.userId` signal.
+- Loads user profile and pre-fills form fields via reactive effects.
+- Applies password confirmation validation.
+- Submits profile updates via signal-driven mutation trigger.
+- Maintains independent favorites state for posts and projects.
+- Uses API-side sort (`newest` / `oldest`) for favorites before pagination.
+- Renders favorites in tabs (Posts/Projects).
+- Handles favorite removals and refreshes ids + paginated resources.
+- Handles expired sessions by clearing token and redirecting to login.
+- Uses Greek snackbar notifications.
 
 ### `src/lib/ui/`
 
-#### `ui/profile-summary/account-profile-summary.component.ts`
-
-Presentational profile summary block (avatar, username, email, role badge).
-
-- Renders Greek role labels (`Υπερδιαχειριστής`, `Διαχειριστής`, `Συντονιστής`, `Χρήστης`)
-- Shows a dedicated bottom CTA section for dashboard access when `canAccessDashboard` is true
-- Emits `openDashboard` output to parent container
-
-#### `ui/profile-form/account-profile-form.component.ts`
-
-Presentational profile edit/password/security form. Receives form + UI flags via signal inputs and emits UI actions via outputs.
-
-#### `ui/favorites/account-favorites.component.ts`
-
-Presentational favorites card. Uses signal inputs/outputs, a computed `FavoritesViewState` switch for loading/error/empty/ready rendering, and a paginator emitting `FavoritesPageChange`.
-
-## Update Flow
-
-1. User fills form + submits
-2. Component sets `updateRequest` signal to the new data
-3. `httpResource` detects signal change → sends `PATCH /api/user/:id`
-4. On success: shows snackbar, clears `updateRequest` signal (so resource won't re-fire)
+- `ui/profile-summary/account-profile-summary.component.ts` — profile overview + dashboard CTA for staff.
+- `ui/profile-form/account-profile-form.component.ts` — presentational edit form.
+- `ui/favorites/account-favorites.component.ts` — favorite blog posts list/card.
+- `ui/favorite-projects/account-favorite-projects.component.ts` — favorite projects list/card.
 
 ## Dependencies
 
-- `@web/auth` — `requireAuthGuard` (for route protection)
-- `@web/shared` — `TokenService`, `StatusCardComponent` (loading/error shell)
-- `@web/dashboard` — navigation target (`/dashboard`) exposed only for staff roles
+- `@web/auth` — `requireAuthGuard`.
+- `@web/shared` — `TokenService`, `StatusCardComponent`, shared dialogs.
+- `@web/dashboard` — navigation target (`/dashboard`) for staff roles.
 
 ## Nx Tasks
 
@@ -98,11 +77,9 @@ Presentational favorites card. Uses signal inputs/outputs, a computed `Favorites
 pnpm nx lint account
 ```
 
-`account` currently exposes only a `lint` target.
-
 ## Notes
 
-- Only the logged-in user can edit their own account via this page (enforced by `requireAuthGuard` + the API's `assertCanAccessUser` RBAC helper)
-- Password field is optional on update — only submitted if the user fills it in
-- Password confirmation is validated client-side only; the API does not have a `confirmPassword` field
-- Account page container applies responsive inline spacing so main cards do not render edge-to-edge on mobile
+- Only the logged-in user can access/update their own account data.
+- Password field remains optional on profile update.
+- Favorites sorting is API-driven to keep paginated ordering correct.
+- Account layout remains responsive with mobile-safe spacing and tabbed favorites sections.
