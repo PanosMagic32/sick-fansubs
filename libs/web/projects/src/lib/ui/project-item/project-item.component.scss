@@ -29,8 +29,19 @@
       margin-bottom: 0.5rem;
     }
 
-    .edit-btn {
+    .header-actions {
       margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .favorite-button {
+      color: var(--sf-color-favorite, #e53935);
+
+      &.is-favorite {
+        background-color: color-mix(in srgb, var(--sf-color-favorite, #e53935) 14%, transparent);
+      }
     }
   }
 

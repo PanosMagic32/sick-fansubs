@@ -1,5 +1,5 @@
 import { DatePipe, Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { MatButton } from '@angular/material/button';
@@ -7,6 +7,7 @@ import { MatCard, MatCardAvatar, MatCardContent, MatCardHeader, MatCardImage, Ma
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { TokenService } from '@web/shared';
 
@@ -38,15 +39,38 @@ export default class ProjectDetailsComponent {
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly tokenService = inject(TokenService);
   private readonly projectService = inject(ProjectsService);
+  private readonly snackBar = inject(MatSnackBar);
 
   readonly id = input.required<string>();
+  private readonly addFavoriteRequest = signal<string | null>(null);
+  private readonly removeFavoriteRequest = signal<string | null>(null);
+  private readonly favoriteProjectIdsState = signal<string[]>([]);
 
   private readonly defaultAvatarPath = '/logo/logo.png';
   protected readonly canManageContent = this.tokenService.canManageContent;
+  protected readonly userId = this.tokenService.userId;
+  protected readonly activeUserId = computed(() => (this.tokenService.isValidToken() ? this.userId() : null));
+  protected readonly isAuthenticated = computed(() => Boolean(this.activeUserId()));
+  protected readonly favoriteActionPending = computed(() =>
+    Boolean(this.addFavoriteRequest() ?? this.removeFavoriteRequest()),
+  );
 
   protected readonly project = this.projectService.getProjectById(this.id);
+  protected readonly favoriteProjectIdsResource = this.projectService.getFavoriteProjectIds(this.activeUserId);
+  protected readonly addFavoriteResource = this.projectService.addFavoriteProject(
+    this.activeUserId,
+    this.addFavoriteRequest,
+  );
+  protected readonly removeFavoriteResource = this.projectService.removeFavoriteProject(
+    this.activeUserId,
+    this.removeFavoriteRequest,
+  );
   protected readonly creatorAvatarUrl = computed(() => this.project.value()?.creator?.avatar || this.defaultAvatarPath);
   protected readonly createdByUsername = computed(() => this.project.value()?.creator?.username || 'Kushoyarou');
+  protected readonly isFavorite = computed(() => {
+    const projectId = this.project.value()?._id;
+    return Boolean(projectId && this.favoriteProjectIdsState().includes(projectId));
+  });
   protected readonly editedByUsername = computed(
     () => this.project.value()?.updatedBy?.username || this.project.value()?.creator?.username || 'Kushoyarou',
   );
@@ -72,6 +96,65 @@ export default class ProjectDetailsComponent {
 
     return updatedMs > createdMs;
   });
+
+  constructor() {
+    effect(() => {
+      if (!this.activeUserId()) {
+        this.favoriteProjectIdsState.set([]);
+      }
+    });
+
+    effect(() => {
+      if (!this.favoriteProjectIdsResource.hasValue()) {
+        return;
+      }
+
+      const favoriteIds = this.favoriteProjectIdsResource.value()?.favoriteProjectIds;
+      if (favoriteIds) {
+        this.favoriteProjectIdsState.set([...favoriteIds]);
+      }
+    });
+
+    effect(() => {
+      const error = this.addFavoriteResource.error();
+      if (error) {
+        this.snackBar.open('Αποτυχία προσθήκης project στα αγαπημένα.', 'OK', { duration: 3000 });
+        this.addFavoriteRequest.set(null);
+        return;
+      }
+
+      if (!this.addFavoriteResource.hasValue()) {
+        return;
+      }
+
+      const favoriteIds = this.addFavoriteResource.value()?.favoriteProjectIds;
+      if (favoriteIds) {
+        this.favoriteProjectIdsState.set([...favoriteIds]);
+        this.snackBar.open('Το project προστέθηκε στα αγαπημένα.', 'OK', { duration: 3000 });
+        this.addFavoriteRequest.set(null);
+      }
+    });
+
+    effect(() => {
+      const error = this.removeFavoriteResource.error();
+      if (error) {
+        this.snackBar.open('Αποτυχία αφαίρεσης project από τα αγαπημένα.', 'OK', { duration: 3000 });
+        this.removeFavoriteRequest.set(null);
+        return;
+      }
+
+      if (!this.removeFavoriteResource.hasValue()) {
+        return;
+      }
+
+      const favoriteIds = this.removeFavoriteResource.value()?.favoriteProjectIds;
+      if (favoriteIds) {
+        this.favoriteProjectIdsState.set([...favoriteIds]);
+        this.snackBar.open('Το project αφαιρέθηκε από τα αγαπημένα.', 'OK', { duration: 3000 });
+        this.removeFavoriteRequest.set(null);
+      }
+    });
+  }
 
   getBatchLinks(project: Project): ProjectBatchDownloadLink[] {
     return (project.batchDownloadLinks ?? [])
@@ -118,5 +201,28 @@ export default class ProjectDetailsComponent {
     this.router.navigate(['..', this.id(), 'edit'], {
       relativeTo: this.activatedRoute,
     });
+  }
+
+  onToggleFavorite() {
+    const projectId = this.project.value()?._id;
+    if (!projectId) {
+      return;
+    }
+
+    if (!this.activeUserId()) {
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    if (this.favoriteActionPending()) {
+      return;
+    }
+
+    if (this.isFavorite()) {
+      this.removeFavoriteRequest.set(projectId);
+      return;
+    }
+
+    this.addFavoriteRequest.set(projectId);
   }
 }

@@ -8,13 +8,27 @@
     ></div>
     <mat-card-title>{{ project().title }}</mat-card-title>
 
-    @if (canManageContent()) {
-      <div class="edit-btn">
+    <div class="header-actions">
+      @if (isAuthenticated()) {
+        <button
+          mat-icon-button
+          type="button"
+          class="favorite-button"
+          [class.is-favorite]="isFavorite()"
+          [disabled]="isFavoriteActionPending()"
+          [attr.aria-label]="isFavorite() ? 'Αφαίρεση από τα αγαπημένα projects' : 'Προσθήκη στα αγαπημένα projects'"
+          (click)="onFavoriteToggle()"
+        >
+          <mat-icon>{{ isFavorite() ? 'favorite' : 'favorite_border' }}</mat-icon>
+        </button>
+      }
+
+      @if (canManageContent()) {
         <button mat-mini-fab color="warn" aria-label="edit button" (click)="onEdit()">
           <mat-icon>edit</mat-icon>
         </button>
-      </div>
-    }
+      }
+    </div>
   </mat-card-header>
 
   <img

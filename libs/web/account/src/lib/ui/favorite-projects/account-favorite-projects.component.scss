@@ -115,10 +115,10 @@
     margin: var(--sf-space-xs) 0;
     opacity: 0.8;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    line-clamp: 2;
+    line-clamp: 3;
   }
 
   .favorite-actions {
@@ -128,29 +128,5 @@
     margin-top: var(--sf-space-sm);
     padding-top: var(--sf-space-sm);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .favorite-download-buttons {
-    display: flex;
-    gap: var(--sf-space-sm);
-
-    mat-icon {
-      font-size: 1.25rem;
-      width: 1.25rem;
-      height: 1.25rem;
-    }
-  }
-
-  .favorite-tags {
-    display: flex;
-    gap: var(--sf-space-xs);
-    flex-wrap: wrap;
-
-    .tag {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      background-color: rgba(255, 255, 255, 0.08);
-    }
   }
 }

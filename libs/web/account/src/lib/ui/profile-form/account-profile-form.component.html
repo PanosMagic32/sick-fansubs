@@ -164,4 +164,17 @@
     <mat-icon>logout</mat-icon>
     Αποσύνδεση
   </button>
+
+  <div class="danger-zone">
+    <div class="danger-header">
+      <mat-icon class="danger-icon">warning</mat-icon>
+      <h4 class="danger-title">Κίνδυνος</h4>
+    </div>
+
+    <p>Διαγράψτε μόνο αν θέλετε να αφαιρέσετε πλήρως τον λογαριασμό σας. Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.</p>
+    <button mat-raised-button color="warn" type="button" (click)="onDeleteAccount()">
+      <mat-icon>delete_forever</mat-icon>
+      Διαγραφή Λογαριασμού
+    </button>
+  </div>
 </div>

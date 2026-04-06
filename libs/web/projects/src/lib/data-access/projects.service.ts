@@ -3,7 +3,7 @@ import { inject, Injectable, Signal, WritableSignal } from '@angular/core';
 
 import { WebConfigService } from '@web/shared';
 
-import type { Project, ProjectBatchDownloadLink, ProjectResponse } from './project.interface';
+import type { FavoriteProjectIdsResponse, Project, ProjectBatchDownloadLink, ProjectResponse } from './project.interface';
 
 const HTTP_URL_PATTERN = /^https?:\/\//i;
 const MAGNET_URL_PATTERN = /^magnet:\?xt=/i;
@@ -238,6 +238,49 @@ export class ProjectsService {
 
       return {
         url: `${this.webConfigService.API_URL}/project/${projectId}`,
+        method: 'DELETE',
+      };
+    });
+  }
+
+  getFavoriteProjectIds(userId: Signal<string | null>): HttpResourceRef<FavoriteProjectIdsResponse | undefined> {
+    return httpResource<FavoriteProjectIdsResponse>(() => {
+      const id = userId();
+      if (!id) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/projects`,
+      };
+    });
+  }
+
+  addFavoriteProject(
+    userId: Signal<string | null>,
+    projectId: WritableSignal<string | null>,
+  ): HttpResourceRef<FavoriteProjectIdsResponse | undefined> {
+    return httpResource<FavoriteProjectIdsResponse>(() => {
+      const id = userId();
+      const favoriteProjectId = projectId();
+      if (!id || !favoriteProjectId) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/projects/${favoriteProjectId}`,
+        method: 'PUT',
+      };
+    });
+  }
+
+  removeFavoriteProject(
+    userId: Signal<string | null>,
+    projectId: WritableSignal<string | null>,
+  ): HttpResourceRef<FavoriteProjectIdsResponse | undefined> {
+    return httpResource<FavoriteProjectIdsResponse>(() => {
+      const id = userId();
+      const favoriteProjectId = projectId();
+      if (!id || !favoriteProjectId) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/projects/${favoriteProjectId}`,
         method: 'DELETE',
       };
     });

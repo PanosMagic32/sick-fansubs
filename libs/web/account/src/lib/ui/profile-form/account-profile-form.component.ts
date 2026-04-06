@@ -29,6 +29,7 @@ export class AccountProfileFormComponent {
   readonly saveChanges = output<void>();
   readonly resetForm = output<void>();
   readonly logout = output<void>();
+  readonly deleteAccount = output<void>();
 
   selectedAvatarFileName: string | null = null;
 
@@ -65,5 +66,9 @@ export class AccountProfileFormComponent {
 
   onLogout(): void {
     this.logout.emit();
+  }
+
+  onDeleteAccount(): void {
+    this.deleteAccount.emit();
   }
 }

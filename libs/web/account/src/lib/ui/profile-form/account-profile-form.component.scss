@@ -99,3 +99,28 @@
     word-break: break-word;
   }
 }
+
+.danger-zone {
+  margin-top: 24px;
+  padding: var(--sf-space-md);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-left: 4px solid #d32f2f;
+  border-radius: 4px;
+  background-color: rgba(211, 47, 47, 0.04);
+}
+
+.danger-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sf-space-xs);
+  margin-bottom: 8px;
+}
+
+.danger-icon {
+  color: #d32f2f;
+}
+
+.danger-title {
+  color: #d32f2f;
+  margin: 0;
+}

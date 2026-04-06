@@ -1,5 +1,6 @@
-import { httpResource, HttpResourceRef } from '@angular/common/http';
+import { HttpClient, httpResource, HttpResourceRef } from '@angular/common/http';
 import { Injectable, Signal, inject } from '@angular/core';
+import { Observable } from 'rxjs';
 
 import type { UserRole, UserStatus } from '@shared/types';
 import { WebConfigService } from '@web/shared';
@@ -33,6 +34,7 @@ export interface DashboardUsersManagementResponse {
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private readonly webConfigService = inject(WebConfigService);
+  private readonly httpClient = inject(HttpClient);
 
   getUsers(): HttpResourceRef<DashboardUser[] | undefined> {
     return httpResource<DashboardUser[]>(() => ({
@@ -81,5 +83,21 @@ export class DashboardService {
         url: `${this.webConfigService.API_URL}/user/management?${query.toString()}`,
       };
     });
+  }
+
+  updateUserRole(userId: string, newRole: UserRole): Observable<DashboardUser> {
+    return this.httpClient.patch<DashboardUser>(`${this.webConfigService.API_URL}/user/${userId}/role`, {
+      role: newRole,
+    });
+  }
+
+  updateUserStatus(userId: string, newStatus: UserStatus): Observable<DashboardUser> {
+    return this.httpClient.patch<DashboardUser>(`${this.webConfigService.API_URL}/user/${userId}/status`, {
+      status: newStatus,
+    });
+  }
+
+  deleteUser(userId: string): Observable<DashboardUser> {
+    return this.httpClient.delete<DashboardUser>(`${this.webConfigService.API_URL}/user/${userId}`);
   }
 }

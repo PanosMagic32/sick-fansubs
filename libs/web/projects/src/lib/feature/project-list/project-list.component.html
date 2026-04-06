@@ -14,7 +14,15 @@
 <div class="projects-container">
   @if (projects.value() && totalProjects() > 0 && !projects.isLoading()) {
     @for (project of projects.value()!.projects; track project._id) {
-      <sf-project-item [project]="project" [index]="$index" [canManageContent]="canManageContent()" />
+      <sf-project-item
+        [project]="project"
+        [index]="$index"
+        [canManageContent]="canManageContent()"
+        [isAuthenticated]="isAuthenticated()"
+        [isFavorite]="isFavorite(project._id)"
+        [isFavoriteActionPending]="favoriteActionPendingProjectId() === project._id"
+        (favoriteToggle)="onToggleFavorite($event)"
+      />
     }
   } @else {
     @if (!projects.isLoading()) {

@@ -4,6 +4,13 @@
     Projects
   </button>
 
+  @if (isAuthenticated()) {
+    <button mat-stroked-button type="button" (click)="onToggleFavorite()" [disabled]="favoriteActionPending()">
+      <mat-icon>{{ isFavorite() ? 'favorite' : 'favorite_border' }}</mat-icon>
+      {{ isFavorite() ? 'Στα αγαπημένα' : 'Προσθήκη στα αγαπημένα' }}
+    </button>
+  }
+
   @if (canManageContent()) {
     <button mat-stroked-button type="button" (click)="onEditProject()">
       <mat-icon>edit</mat-icon>

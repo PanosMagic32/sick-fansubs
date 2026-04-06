@@ -8,6 +8,9 @@ import {
   UpdateUserRequest,
   FavoriteBlogPostIdsResponse,
   FavoriteBlogPostsResponse,
+  FavoriteProjectIdsResponse,
+  FavoriteProjectsResponse,
+  FavoriteSortOrder,
   MediaUploadResponse,
 } from './types';
 
@@ -91,13 +94,57 @@ export class UserService {
     userId: Signal<string>,
     pageSize: Signal<number>,
     currentPage: Signal<number>,
+    sortOrder: Signal<FavoriteSortOrder>,
   ): HttpResourceRef<FavoriteBlogPostsResponse | undefined> {
     return httpResource<FavoriteBlogPostsResponse>(() => {
       const id = userId();
       if (!id) return;
 
       return {
-        url: `${this.webConfigService.API_URL}/user/${id}/favorites/posts?pagesize=${pageSize()}&page=${currentPage()}`,
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/posts?pagesize=${pageSize()}&page=${currentPage()}&sort=${sortOrder()}`,
+      };
+    });
+  }
+
+  getFavoriteProjectIds(userId: Signal<string>): HttpResourceRef<FavoriteProjectIdsResponse | undefined> {
+    return httpResource<FavoriteProjectIdsResponse>(() => {
+      const id = userId();
+      if (!id) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/projects`,
+      };
+    });
+  }
+
+  removeFavoriteProject(
+    userId: Signal<string>,
+    projectId: WritableSignal<string | null>,
+  ): HttpResourceRef<FavoriteProjectIdsResponse | undefined> {
+    return httpResource<FavoriteProjectIdsResponse>(() => {
+      const id = userId();
+      const favoriteProjectId = projectId();
+      if (!id || !favoriteProjectId) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/projects/${favoriteProjectId}`,
+        method: 'DELETE',
+      };
+    });
+  }
+
+  getFavoriteProjects(
+    userId: Signal<string>,
+    pageSize: Signal<number>,
+    currentPage: Signal<number>,
+    sortOrder: Signal<FavoriteSortOrder>,
+  ): HttpResourceRef<FavoriteProjectsResponse | undefined> {
+    return httpResource<FavoriteProjectsResponse>(() => {
+      const id = userId();
+      if (!id) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}/favorites/projects/items?pagesize=${pageSize()}&page=${currentPage()}&sort=${sortOrder()}`,
       };
     });
   }
@@ -107,5 +154,17 @@ export class UserService {
     formData.append('file', file);
 
     return this.httpClient.post<MediaUploadResponse>(`${this.webConfigService.API_URL}/media/images`, formData);
+  }
+
+  deleteAccount(userId: Signal<string>): HttpResourceRef<void | undefined> {
+    return httpResource<void>(() => {
+      const id = userId();
+      if (!id) return;
+
+      return {
+        url: `${this.webConfigService.API_URL}/user/${id}`,
+        method: 'DELETE',
+      };
+    });
   }
 }

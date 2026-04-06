@@ -28,6 +28,20 @@
     min-width: 0;
   }
 
+  .account-secondary-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .favorites-tabs {
+    width: 100%;
+
+    ::ng-deep .mat-mdc-tab-body-content {
+      padding-top: var(--sf-space-sm);
+    }
+  }
+
   // On ultra-wide screens, show profile and favorites side-by-side.
   @media (min-width: 2000px) {
     .account-ready-layout {

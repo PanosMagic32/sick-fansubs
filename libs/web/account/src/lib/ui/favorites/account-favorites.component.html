@@ -10,7 +10,18 @@
 
   <mat-card-content>
     <div class="favorites-content">
-      <h3>Οι αγαπημένες μου αναρτήσεις ({{ favoriteBlogPostIds().length }})</h3>
+      <div class="favorites-header">
+        <h3>Οι αγαπημένες μου αναρτήσεις ({{ favoriteBlogPostIds().length }})</h3>
+        <button
+          mat-icon-button
+          [matTooltip]="'Ταξινόμηση: ' + (sortOrder() === 'newest' ? 'Νεότερες πρώτα' : 'Παλαιότερες πρώτα')"
+          type="button"
+          (click)="onToggleSort()"
+          class="sort-button"
+        >
+          <mat-icon>{{ sortOrder() === 'newest' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+        </button>
+      </div>
 
       @switch (viewState()) {
         @case ('loading-ids') {

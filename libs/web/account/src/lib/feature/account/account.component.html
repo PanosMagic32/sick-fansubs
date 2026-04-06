@@ -55,30 +55,60 @@
                 (saveChanges)="onSaveChanges()"
                 (resetForm)="onResetForm()"
                 (logout)="onLogout()"
+                (deleteAccount)="onDeleteAccount()"
               />
             </mat-card-content>
           </mat-card>
         </div>
 
         <div class="account-secondary-column">
-          <sf-account-favorites
-            [favoriteBlogPostIds]="favoriteBlogPostIds()"
-            [favoriteBlogPosts]="favoriteBlogPosts()"
-            [favoritePostsTotal]="favoriteBlogPostsTotal()"
-            [currentPage]="favoritePostsPage()"
-            [pageSize]="favoritePostsPageSizeValue()"
-            [pageSizeOptions]="favoritePostsPageSizeOptions()"
-            [isFavoriteIdsLoading]="favoriteBlogPostIdsResource.isLoading()"
-            [hasFavoriteIdsError]="!!favoriteBlogPostIdsResource.error()"
-            [isFavoritePostsLoading]="favoriteBlogPostsResource.isLoading()"
-            [hasFavoritePostsError]="!!favoriteBlogPostsResource.error()"
-            [isRemovingFavorite]="removeFavoriteResource.isLoading()"
-            (retryLoadFavoriteIds)="onRetryLoadFavoriteIds()"
-            (retryLoadFavoritePosts)="onRetryLoadFavoritePosts()"
-            (removeFavorite)="onRemoveFavorite($event)"
-            (download)="onDownload($event)"
-            (pageChange)="onFavoritePostsPageChange($event)"
-          />
+          <mat-tab-group class="favorites-tabs" animationDuration="200ms" mat-stretch-tabs="false">
+            <mat-tab label="Αναρτήσεις">
+              <sf-account-favorites
+                [favoriteBlogPostIds]="favoriteBlogPostIds()"
+                [favoriteBlogPosts]="favoriteBlogPosts()"
+                [favoritePostsTotal]="favoriteBlogPostsTotal()"
+                [currentPage]="favoritePostsPage()"
+                [pageSize]="favoritePostsPageSizeValue()"
+                [pageSizeOptions]="favoritePostsPageSizeOptions()"
+                [isFavoriteIdsLoading]="favoriteBlogPostIdsResource.isLoading()"
+                [hasFavoriteIdsError]="!!favoriteBlogPostIdsResource.error()"
+                [isFavoritePostsLoading]="favoriteBlogPostsResource.isLoading()"
+                [hasFavoritePostsError]="!!favoriteBlogPostsResource.error()"
+                [isRemovingFavorite]="removeFavoriteResource.isLoading()"
+                [sortOrder]="favoriteSortOrderValue()"
+                (retryLoadFavoriteIds)="onRetryLoadFavoriteIds()"
+                (retryLoadFavoritePosts)="onRetryLoadFavoritePosts()"
+                (removeFavorite)="onRemoveFavorite($event)"
+                (download)="onDownload($event)"
+                (pageChange)="onFavoritePostsPageChange($event)"
+                (toggleSort)="toggleFavoriteSortOrder()"
+              />
+            </mat-tab>
+
+            <mat-tab label="Projects">
+              <sf-account-favorite-projects
+                [favoriteProjectIds]="favoriteProjectIds()"
+                [favoriteProjects]="favoriteProjects()"
+                [favoriteProjectsTotal]="favoriteProjectsTotal()"
+                [currentPage]="favoriteProjectsPage()"
+                [pageSize]="favoriteProjectsPageSizeValue()"
+                [pageSizeOptions]="favoriteProjectsPageSizeOptions()"
+                [isFavoriteIdsLoading]="favoriteProjectIdsResource.isLoading()"
+                [hasFavoriteIdsError]="!!favoriteProjectIdsResource.error()"
+                [isFavoriteProjectsLoading]="favoriteProjectsResource.isLoading()"
+                [hasFavoriteProjectsError]="!!favoriteProjectsResource.error()"
+                [isRemovingFavorite]="removeFavoriteProjectResource.isLoading()"
+                [sortOrder]="favoriteProjectsSortOrderValue()"
+                (retryLoadFavoriteIds)="onRetryLoadFavoriteProjectIds()"
+                (retryLoadFavoriteProjects)="onRetryLoadFavoriteProjects()"
+                (removeFavorite)="onRemoveFavoriteProject($event)"
+                (openProject)="onOpenFavoriteProject($event)"
+                (pageChange)="onFavoriteProjectsPageChange($event)"
+                (toggleSort)="toggleFavoriteProjectsSortOrder()"
+              />
+            </mat-tab>
+          </mat-tab-group>
         </div>
       </div>
     }

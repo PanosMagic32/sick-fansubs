@@ -5,19 +5,19 @@ import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginator, type PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import type { BlogPost } from '@shared/types';
+import type { Project } from '@shared/types';
 
-import { FavoritesPageChange, FavoritesViewState } from '../../data-access/types';
+import { FavoriteProjectsViewState, FavoriteSortOrder, FavoritesPageChange } from '../../data-access/types';
 
 @Component({
-  selector: 'sf-account-favorites',
-  templateUrl: './account-favorites.component.html',
-  styleUrl: './account-favorites.component.scss',
+  selector: 'sf-account-favorite-projects',
+  standalone: true,
+  templateUrl: './account-favorite-projects.component.html',
+  styleUrl: './account-favorite-projects.component.scss',
   imports: [
     DatePipe,
     MatCard,
@@ -29,40 +29,39 @@ import { FavoritesPageChange, FavoritesViewState } from '../../data-access/types
     MatProgressSpinner,
     MatButton,
     MatIconButton,
-    MatMenuModule,
     MatPaginator,
     MatTooltipModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AccountFavoritesComponent {
-  readonly favoriteBlogPostIds = input.required<string[]>();
-  readonly favoriteBlogPosts = input.required<BlogPost[]>();
-  readonly favoritePostsTotal = input.required<number>();
+export class AccountFavoriteProjectsComponent {
+  readonly favoriteProjectIds = input.required<string[]>();
+  readonly favoriteProjects = input.required<Project[]>();
+  readonly favoriteProjectsTotal = input.required<number>();
   readonly currentPage = input.required<number>();
   readonly pageSize = input.required<number>();
   readonly pageSizeOptions = input.required<number[]>();
   readonly isFavoriteIdsLoading = input.required<boolean>();
   readonly hasFavoriteIdsError = input.required<boolean>();
-  readonly isFavoritePostsLoading = input.required<boolean>();
-  readonly hasFavoritePostsError = input.required<boolean>();
+  readonly isFavoriteProjectsLoading = input.required<boolean>();
+  readonly hasFavoriteProjectsError = input.required<boolean>();
   readonly isRemovingFavorite = input.required<boolean>();
-  readonly sortOrder = input<'newest' | 'oldest'>('newest');
+  readonly sortOrder = input<FavoriteSortOrder>('newest');
 
   readonly retryLoadFavoriteIds = output<void>();
-  readonly retryLoadFavoritePosts = output<void>();
+  readonly retryLoadFavoriteProjects = output<void>();
   readonly removeFavorite = output<string>();
-  readonly download = output<string | undefined>();
+  readonly openProject = output<string>();
   readonly pageChange = output<FavoritesPageChange>();
   readonly toggleSort = output<void>();
 
-  readonly viewState = computed<FavoritesViewState>(() => {
+  readonly viewState = computed<FavoriteProjectsViewState>(() => {
     if (this.isFavoriteIdsLoading()) return 'loading-ids';
     if (this.hasFavoriteIdsError()) return 'ids-error';
-    if (!this.favoriteBlogPostIds().length) return 'empty-ids';
-    if (this.isFavoritePostsLoading()) return 'loading-posts';
-    if (this.hasFavoritePostsError()) return 'posts-error';
-    if (!this.favoriteBlogPosts().length) return 'empty-posts';
+    if (!this.favoriteProjectIds().length) return 'empty-ids';
+    if (this.isFavoriteProjectsLoading()) return 'loading-projects';
+    if (this.hasFavoriteProjectsError()) return 'projects-error';
+    if (!this.favoriteProjects().length) return 'empty-projects';
     return 'ready';
   });
 
@@ -70,20 +69,24 @@ export class AccountFavoritesComponent {
     this.retryLoadFavoriteIds.emit();
   }
 
-  onRetryLoadFavoritePosts(): void {
-    this.retryLoadFavoritePosts.emit();
+  onRetryLoadFavoriteProjects(): void {
+    this.retryLoadFavoriteProjects.emit();
   }
 
-  onRemoveFavorite(postId: string | undefined): void {
-    if (!postId || this.isRemovingFavorite()) {
+  onRemoveFavorite(projectId: string | undefined): void {
+    if (!projectId || this.isRemovingFavorite()) {
       return;
     }
 
-    this.removeFavorite.emit(postId);
+    this.removeFavorite.emit(projectId);
   }
 
-  onDownload(url: string | undefined): void {
-    this.download.emit(url);
+  onOpenProject(projectId: string | undefined): void {
+    if (!projectId) {
+      return;
+    }
+
+    this.openProject.emit(projectId);
   }
 
   onPageChange(event: PageEvent): void {

@@ -1,3 +1,4 @@
+export * from './lib/ui/confirm-dialog/confirm-dialog.component';
 export * from './lib/ui/header/header.component';
 export * from './lib/ui/no-content/no-content.component';
 export * from './lib/ui/status-card/status-card.component';
