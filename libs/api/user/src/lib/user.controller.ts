@@ -6,11 +6,18 @@ import type { UserRole, UserStatus } from '@shared/types';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { resolveStatus } from './authorization/role.helpers';
 import { CredentialThrottlerGuard } from './guards/credential-throttler.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import type { AuthActor } from './types/auth-actor.types';
-import type { FavoriteBlogPostsResponse, FindManagementUsersResponse } from './user.service';
+import type {
+  FavoriteBlogPostsResponse,
+  FavoriteProjectsResponse,
+  FavoriteSortOrder,
+  FindManagementUsersResponse,
+} from './user.service';
 import { UserService } from './user.service';
 
 @ApiTags('User')
@@ -127,11 +134,40 @@ export class UserController {
     @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
     @Query('pagesize') pageSize?: string,
     @Query('page') page?: string,
+    @Query('sort') sort?: FavoriteSortOrder,
   ): Promise<FavoriteBlogPostsResponse> {
     const parsedPageSize = pageSize ? Number.parseInt(pageSize, 10) : undefined;
     const parsedPage = page ? Number.parseInt(page, 10) : undefined;
+    const parsedSort: FavoriteSortOrder = sort === 'oldest' ? 'oldest' : 'newest';
 
-    return this.userService.getFavoriteBlogPosts(id, this.getActorFromRequest(req), parsedPageSize, parsedPage);
+    return this.userService.getFavoriteBlogPosts(id, this.getActorFromRequest(req), parsedPageSize, parsedPage, parsedSort);
+  }
+
+  @ApiParam({ name: 'id' })
+  @Get(':id/favorites/projects')
+  @UseGuards(JwtAuthGuard)
+  async getFavoriteProjectsIds(
+    @Param('id') id: string,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
+  ) {
+    return this.userService.getFavoriteProjectIds(id, this.getActorFromRequest(req));
+  }
+
+  @ApiParam({ name: 'id' })
+  @Get(':id/favorites/projects/items')
+  @UseGuards(JwtAuthGuard)
+  async getFavoriteProjects(
+    @Param('id') id: string,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
+    @Query('pagesize') pageSize?: string,
+    @Query('page') page?: string,
+    @Query('sort') sort?: FavoriteSortOrder,
+  ): Promise<FavoriteProjectsResponse> {
+    const parsedPageSize = pageSize ? Number.parseInt(pageSize, 10) : undefined;
+    const parsedPage = page ? Number.parseInt(page, 10) : undefined;
+    const parsedSort: FavoriteSortOrder = sort === 'oldest' ? 'oldest' : 'newest';
+
+    return this.userService.getFavoriteProjects(id, this.getActorFromRequest(req), parsedPageSize, parsedPage, parsedSort);
   }
 
   @ApiParam({ name: 'id' })
@@ -159,6 +195,30 @@ export class UserController {
   }
 
   @ApiParam({ name: 'id' })
+  @ApiParam({ name: 'projectId' })
+  @Put(':id/favorites/projects/:projectId')
+  @UseGuards(JwtAuthGuard)
+  async addFavoriteProject(
+    @Param('id') id: string,
+    @Param('projectId') projectId: string,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
+  ) {
+    return this.userService.addFavoriteProject(id, projectId, this.getActorFromRequest(req));
+  }
+
+  @ApiParam({ name: 'id' })
+  @ApiParam({ name: 'projectId' })
+  @Delete(':id/favorites/projects/:projectId')
+  @UseGuards(JwtAuthGuard)
+  async removeFavoriteProject(
+    @Param('id') id: string,
+    @Param('projectId') projectId: string,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
+  ) {
+    return this.userService.removeFavoriteProject(id, projectId, this.getActorFromRequest(req));
+  }
+
+  @ApiParam({ name: 'id' })
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   async update(
@@ -174,5 +234,27 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string, @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }) {
     return this.userService.remove(id, this.getActorFromRequest(req));
+  }
+
+  @ApiParam({ name: 'id' })
+  @Patch(':id/role')
+  @UseGuards(JwtAuthGuard)
+  async updateRole(
+    @Param('id') id: string,
+    @Body() updateUserRoleDto: UpdateUserRoleDto,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
+  ) {
+    return this.userService.updateUserRole(id, updateUserRoleDto.role, this.getActorFromRequest(req));
+  }
+
+  @ApiParam({ name: 'id' })
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() updateUserStatusDto: UpdateUserStatusDto,
+    @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } },
+  ) {
+    return this.userService.updateUserStatus(id, updateUserStatusDto.status, this.getActorFromRequest(req));
   }
 }

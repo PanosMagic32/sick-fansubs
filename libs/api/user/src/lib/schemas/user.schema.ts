@@ -30,6 +30,9 @@ export class User {
   @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
   favoriteBlogPostIds!: Types.ObjectId[];
 
+  @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'Project', default: [] })
+  favoriteProjectIds!: Types.ObjectId[];
+
   @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'BlogPost', default: [] })
   createdBlogPostIds!: Types.ObjectId[];
 
