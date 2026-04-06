@@ -10,9 +10,15 @@ describe('UserController', () => {
     findOne: vi.fn(),
     getFavoriteBlogPostIds: vi.fn(),
     getFavoriteBlogPosts: vi.fn(),
+    getFavoriteProjectIds: vi.fn(),
+    getFavoriteProjects: vi.fn(),
     addFavoriteBlogPost: vi.fn(),
     removeFavoriteBlogPost: vi.fn(),
+    addFavoriteProject: vi.fn(),
+    removeFavoriteProject: vi.fn(),
     update: vi.fn(),
+    updateUserRole: vi.fn(),
+    updateUserStatus: vi.fn(),
     remove: vi.fn(),
   };
 
@@ -79,5 +85,99 @@ describe('UserController', () => {
         sortDirection: 'asc',
       },
     );
+  });
+
+  it('maps favorite posts pagination and sort params correctly', async () => {
+    userServiceMock.getFavoriteBlogPosts.mockResolvedValue({ posts: [], count: 0 });
+
+    await controller.getFavoritePosts('u-9', { user: { sub: 'u-9', role: 'user', status: 'active' } }, '24', '3', 'oldest');
+
+    expect(userServiceMock.getFavoriteBlogPosts).toHaveBeenCalledWith(
+      'u-9',
+      {
+        sub: 'u-9',
+        role: 'user',
+        status: 'active',
+      },
+      24,
+      3,
+      'oldest',
+    );
+  });
+
+  it('maps favorite projects pagination and sort params correctly', async () => {
+    userServiceMock.getFavoriteProjects.mockResolvedValue({ projects: [], count: 0 });
+
+    await controller.getFavoriteProjects(
+      'u-7',
+      { user: { sub: 'u-7', role: 'user', status: 'active' } },
+      '12',
+      '2',
+      'newest',
+    );
+
+    expect(userServiceMock.getFavoriteProjects).toHaveBeenCalledWith(
+      'u-7',
+      {
+        sub: 'u-7',
+        role: 'user',
+        status: 'active',
+      },
+      12,
+      2,
+      'newest',
+    );
+  });
+
+  it('defaults favorite post sort to newest when query sort is invalid', async () => {
+    userServiceMock.getFavoriteBlogPosts.mockResolvedValue({ posts: [], count: 0 });
+
+    await controller.getFavoritePosts(
+      'u-11',
+      { user: { sub: 'u-11', role: 'user', status: 'active' } },
+      '10',
+      '1',
+      'invalid' as never,
+    );
+
+    expect(userServiceMock.getFavoriteBlogPosts).toHaveBeenCalledWith(
+      'u-11',
+      {
+        sub: 'u-11',
+        role: 'user',
+        status: 'active',
+      },
+      10,
+      1,
+      'newest',
+    );
+  });
+
+  it('maps role update payload and actor to user service', async () => {
+    userServiceMock.updateUserRole.mockResolvedValue({ id: 'u-8', role: 'moderator' });
+
+    await controller.updateRole(
+      'u-8',
+      { role: 'moderator' },
+      { user: { sub: 'sa-1', role: 'super-admin', status: 'active' } },
+    );
+
+    expect(userServiceMock.updateUserRole).toHaveBeenCalledWith('u-8', 'moderator', {
+      sub: 'sa-1',
+      role: 'super-admin',
+      status: 'active',
+    });
+  });
+
+  it('maps status update payload and actor to user service', async () => {
+    userServiceMock.updateUserStatus.mockResolvedValue({ id: 'u-8', status: 'suspended' });
+
+    await controller.updateStatus('u-8', { status: 'suspended' }, { user: { sub: 'a-1', role: 'admin', status: 'active' } });
+
+    expect(userServiceMock.updateUserStatus).toHaveBeenCalledWith('u-8', 'suspended', {
+      sub: 'a-1',
+      role: 'admin',
+      status: 'active',
+    });
   });
 });
