@@ -1,4 +1,3 @@
-/* eslint-disable no-underscore-dangle */
 import type { UserRole, UserStatus } from '@shared/types';
 
 export class User {
