@@ -2,7 +2,7 @@ export const environment = {
   production: true,
   config: {
     API_URL: 'https://sickfansubs.com/api',
-    APP_VERSION: '1.3.0',
+    APP_VERSION: '1.3.1',
     FACEBOOK_URL: 'https://www.facebook.com/SickFansubs/',
     DISCORD_URL: 'https://discord.com/invite/28aCBqu',
     GITHUB_URL: 'https://github.com/PanosMagic32/sick-fansubs',
