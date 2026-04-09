@@ -3,6 +3,8 @@
 @use 'mixins' as mx;
 
 .post-card {
+  margin: 1rem 0;
+
   mat-card-header {
     .post-header-image {
       background-image: url('/logo/logo.png');
@@ -95,9 +97,64 @@
   }
 
   @include bp.bp-up('2xl') {
-    margin: 1rem 0;
     width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+  }
+}
+
+.post-card.is-latest {
+  border: 2px solid #44593f;
+
+  @include bp.bp-up('4xl') {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    padding: 0.5rem;
+
+    > img[mat-card-image] {
+      grid-column: 1;
+      grid-row: 1 / 5;
+      width: 100%;
+      height: 100%;
+      min-height: 550px;
+      margin: 0;
+      object-fit: cover;
+    }
+
+    > mat-card-header,
+    > mat-card-content,
+    > mat-divider,
+    > mat-card-actions.post-actions {
+      grid-column: 2;
+      margin: 0;
+    }
+
+    > mat-card-header {
+      padding: 1.25rem 1.5rem 0.75rem;
+      align-self: start;
+    }
+
+    > mat-card-content {
+      display: flex;
+      padding: 0;
+      min-height: 0;
+
+      .post-description {
+        margin: 0 1.5rem;
+        flex: 1;
+        text-align: left;
+      }
+    }
+
+    > mat-card-actions.post-actions {
+      padding: 0.75rem 1.5rem 1.25rem;
+      align-self: end;
+
+      .post-actions-date {
+        margin-left: 0;
+      }
+    }
   }
 }

@@ -1,8 +1,4 @@
-<mat-card
-  class="post-card"
-  [style.border]="index() === 0 && currentPage() === 1 ? '2px solid #44593f !important' : ''"
-  [style.margin]="index() === 0 && currentPage() === 1 ? '1rem auto' : '1rem 0'"
->
+<mat-card class="post-card" [class.is-latest]="index() === 0 && currentPage() === 1">
   <mat-card-header>
     <div
       mat-card-avatar
