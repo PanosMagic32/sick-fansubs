@@ -19,7 +19,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Install all dependencies once and reuse this layer for app builders
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --side-effects-cache
 
 # ========================================
 # API build stage
@@ -63,7 +63,9 @@ COPY --from=api-builder /app/dist/apps/api/pnpm-lock.yaml ./pnpm-lock.yaml
 # pnpm v10+ blocks dependency build scripts unless explicitly allowed.
 # The dist package.json does not carry root-level pnpm config, so we recreate it.
 RUN printf "onlyBuiltDependencies:\n  - '@nestjs/core'\n  - '@scarf/scarf'\n  - 'bcrypt'\n  - 'sharp'\n" > pnpm-workspace.yaml
-RUN pnpm install --prod --frozen-lockfile
+
+# Install runtime dependencies, allowing postinstall scripts
+RUN pnpm install --prod --frozen-lockfile --side-effects-cache
 
 # ========================================
 # API production image

@@ -20,7 +20,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Install all dependencies once and reuse this layer for app builders
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --side-effects-cache
 
 # ========================================
 # Web build stage
