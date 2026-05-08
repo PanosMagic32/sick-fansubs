@@ -1,6 +1,7 @@
 {
   "name": "sick",
   "version": "1.3.2",
+  "packageManager": "pnpm@11.0.8",
   "license": "MIT",
   "scripts": {
     "ng": "nx",
@@ -132,22 +133,5 @@
     "validate-branch-name": "^1.3.2",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@nestjs/core",
-      "@parcel/watcher",
-      "@scarf/scarf",
-      "@swc/core",
-      "bcrypt",
-      "esbuild",
-      "less",
-      "lmdb",
-      "msgpackr-extract",
-      "nx",
-      "oxc-resolver",
-      "sharp",
-      "unrs-resolver"
-    ]
   }
 }

@@ -1,0 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'libs/*'
+  - 'libs/*/*'
+
+allowBuilds:
+  '@nestjs/core': true
+  '@parcel/watcher': true
+  '@scarf/scarf': true
+  '@swc/core': true
+  'bcrypt': true
+  'esbuild': true
+  'less': true
+  'lmdb': true
+  'msgpackr-extract': true
+  'nx': true
+  'oxc-resolver': true
+  'sharp': true
+  'unrs-resolver': true

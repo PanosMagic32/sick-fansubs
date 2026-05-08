@@ -1,5 +1,6 @@
 ARG NODE_VERSION=lts-alpine
 ARG NGINX_VERSION=1.27-alpine
+ARG PNPM_VERSION=11.0.8
 
 # ========================================
 # Base Node.js stage
@@ -7,8 +8,11 @@ ARG NGINX_VERSION=1.27-alpine
 FROM node:${NODE_VERSION} AS node-base
 WORKDIR /app
 
-# Install pnpm globally
-RUN npm install -g pnpm@latest
+# Use Corepack to install an exact pnpm version
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+
+# Disable Husky git hook installation in container builds
+ENV HUSKY=0
 
 # ========================================
 # Workspace dependencies
@@ -17,7 +21,7 @@ FROM node-base AS workspace-deps
 WORKDIR /app
 
 # Copy package files for dependency installation
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install all dependencies once and reuse this layer for app builders
 RUN pnpm install --frozen-lockfile --side-effects-cache
