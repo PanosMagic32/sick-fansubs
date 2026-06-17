@@ -101,7 +101,9 @@ export class ApiAuthService {
     const durationText = duration.trim();
     const match = durationText.match(/^(\d+)(ms|s|m|h|d)?$/i);
 
-    if (!match) return 0;
+    if (!match) {
+      throw new Error(`Invalid duration format: "${duration}". Expected format like "15m", "1h", "7d".`);
+    }
 
     const value = Number.parseInt(match[1], 10);
     const unit = (match[2] ?? 'ms').toLowerCase();
