@@ -47,9 +47,7 @@ export class ApiBlogPostService {
       .populate('updatedBy', 'username avatar')
       .sort({ dateTimeCreated: 'desc' });
 
-    if (pageSize && currentPage) {
-      query.skip(pageSize * currentPage).limit(pageSize);
-    }
+    query.skip(pageSize * currentPage).limit(pageSize);
 
     const posts = await query.exec();
     const count = await this.blogPostModel.countDocuments();

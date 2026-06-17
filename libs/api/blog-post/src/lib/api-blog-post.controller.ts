@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
+import { PaginationDto } from '@api/shared';
 import { AdminGuard, JwtAuthGuard } from '@api/user';
 
 import { ApiBlogPostService } from './api-blog-post.service';
@@ -24,10 +25,8 @@ export class ApiBlogPostController {
   }
 
   @Get()
-  async findAll(
-    @Query() params: { pagesize: number; page: number; startId?: string },
-  ): Promise<{ posts: BlogPost[]; count: number }> {
-    return this.apiBlogPostService.findAll(params.pagesize, params.page);
+  async findAll(@Query() pagination: PaginationDto): Promise<{ posts: BlogPost[]; count: number }> {
+    return this.apiBlogPostService.findAll(pagination.pagesize, pagination.page);
   }
 
   @ApiParam({ name: 'id' })

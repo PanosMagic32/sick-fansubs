@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
+import { PaginationDto } from '@api/shared';
 import { AdminGuard, JwtAuthGuard } from '@api/user';
 
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -24,10 +25,8 @@ export class ProjectController {
   }
 
   @Get()
-  async findAll(
-    @Query() params: { pagesize: number; page: number; startId?: string },
-  ): Promise<{ projects: Project[]; count: number }> {
-    return this.projectService.findAll(params.pagesize, params.page);
+  async findAll(@Query() pagination: PaginationDto): Promise<{ projects: Project[]; count: number }> {
+    return this.projectService.findAll(pagination.pagesize, pagination.page);
   }
 
   @ApiParam({ name: 'id' })

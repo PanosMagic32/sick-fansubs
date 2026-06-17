@@ -89,9 +89,7 @@ export class ProjectService {
       .populate('updatedBy', 'username avatar')
       .sort({ dateTimeCreated: 'desc' });
 
-    if (pageSize && currentPage) {
-      query.skip(pageSize * currentPage).limit(pageSize);
-    }
+    query.skip(pageSize * currentPage).limit(pageSize);
 
     const projects = await query.exec();
     const count = await this.projectModel.countDocuments();
