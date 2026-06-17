@@ -10,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
-import { Model, Types } from 'mongoose';
+import { Model, Types, type FilterQuery } from 'mongoose';
 
 import type { Project, ProjectBatchDownloadLink, UserRole, UserStatus } from '@shared/types';
 import { escapeRegex } from '@api/shared';
@@ -533,23 +533,28 @@ export class UserService {
     this.assertAdmin(actor);
     this.assertValidId(id);
 
-    // Prevent non-super-admins from promoting users to super-admin
-    const targetUser = await this.findOneEntityById(id);
-    if (newRole === 'super-admin' && actor.role !== 'super-admin') {
-      throw new ForbiddenException('Only super-admins can promote to super-admin.');
+    // Prevent self-targeting
+    if (actor.sub === id) {
+      throw new BadRequestException('Δεν μπορείτε να αλλάξετε τον ρόλο του εαυτού σας.');
     }
 
-    // Prevent non-super-admins from changing super-admin roles
-    if (targetUser.role === 'super-admin' && actor.role !== 'super-admin') {
-      throw new ForbiddenException('Only super-admins can change super-admin roles.');
+    // Build atomic filter with authorization preconditions embedded
+    const filter: FilterQuery<User> = { _id: new Types.ObjectId(id) };
+
+    if (actor.role !== 'super-admin') {
+      if (newRole === 'super-admin') {
+        throw new ForbiddenException('Μόνο οι super-admin μπορούν να προάγουν σε super-admin.');
+      }
+      // Atomic guard: non-super-admins cannot touch super-admin users
+      filter.role = { $ne: 'super-admin' };
     }
 
     const updatedUser = await this.userModel
-      .findByIdAndUpdate(id, { $set: { role: newRole } }, { new: true, runValidators: true })
+      .findOneAndUpdate(filter, { $set: { role: newRole } }, { new: true, runValidators: true })
       .exec();
 
     if (!updatedUser) {
-      throw new NotFoundException('User not found.');
+      throw new ForbiddenException('Ο χρήστης δε βρέθηκε ή δεν επιτρέπεται η ενέργεια.');
     }
 
     return this.toPublicUser(updatedUser);
@@ -563,18 +568,24 @@ export class UserService {
     this.assertAdmin(actor);
     this.assertValidId(id);
 
-    // Prevent non-super-admins from changing super-admin status
-    const targetUser = await this.findOneEntityById(id);
-    if (targetUser.role === 'super-admin' && actor.role !== 'super-admin') {
-      throw new ForbiddenException('Only super-admins can change super-admin status.');
+    // Prevent self-targeting
+    if (actor.sub === id) {
+      throw new BadRequestException('Δεν μπορείτε να αλλάξετε την κατάσταση του εαυτού σας.');
+    }
+
+    const filter: FilterQuery<User> = { _id: new Types.ObjectId(id) };
+
+    if (actor.role !== 'super-admin') {
+      // Atomic guard: non-super-admins cannot touch super-admin users
+      filter.role = { $ne: 'super-admin' };
     }
 
     const updatedUser = await this.userModel
-      .findByIdAndUpdate(id, { $set: { status: newStatus } }, { new: true, runValidators: true })
+      .findOneAndUpdate(filter, { $set: { status: newStatus } }, { new: true, runValidators: true })
       .exec();
 
     if (!updatedUser) {
-      throw new NotFoundException('User not found.');
+      throw new ForbiddenException('Ο χρήστης δε βρέθηκε ή δεν επιτρέπεται η ενέργεια.');
     }
 
     return this.toPublicUser(updatedUser);
