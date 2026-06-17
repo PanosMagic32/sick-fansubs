@@ -1,12 +1,14 @@
 import { HttpBackend, HttpClient, HttpErrorResponse } from '@angular/common/http';
 import type { HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, finalize, Observable, share, switchMap, throwError } from 'rxjs';
 
 import { TokenService } from './token.service';
 import { mapAuthSessionErrorMessage } from './map-auth-session-error-message';
 
 const AUTH_ROUTES = ['/api/auth/login', '/api/auth/refresh', '/api/auth/logout', '/api/auth/session'];
+
+let refreshInProgress: Observable<unknown> | null = null;
 
 export const jwtInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
   const tokenService = inject(TokenService);
@@ -15,7 +17,7 @@ export const jwtInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>,
   const isRelativeApiUrl = request.url.startsWith('/api');
   const isAbsoluteApiUrl = /^https?:\/\/[^/]+\/api(?:\/|$)/.test(request.url);
   const isAPIUrl = isRelativeApiUrl || isAbsoluteApiUrl;
-  const isAuthRoute = AUTH_ROUTES.some((authRoute) => request.url.includes(authRoute));
+  const isAuthRoute = AUTH_ROUTES.some((authRoute) => request.url === authRoute);
 
   if (isAPIUrl) {
     request = request.clone({
@@ -29,7 +31,17 @@ export const jwtInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>,
         return throwError(() => error);
       }
 
-      return rawHttpClient.post('/api/auth/refresh', {}, { withCredentials: true }).pipe(
+      // Deduplicate concurrent refresh requests
+      if (!refreshInProgress) {
+        refreshInProgress = rawHttpClient.post('/api/auth/refresh', {}, { withCredentials: true }).pipe(
+          finalize(() => {
+            refreshInProgress = null;
+          }),
+          share(),
+        );
+      }
+
+      return refreshInProgress.pipe(
         switchMap(() => next(request)),
         catchError((refreshError: unknown) => {
           tokenService.removeToken();

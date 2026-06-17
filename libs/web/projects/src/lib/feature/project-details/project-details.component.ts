@@ -9,7 +9,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { TokenService } from '@web/shared';
+import { openSafeUrl, TokenService } from '@web/shared';
 
 import { ProjectsService } from '../../data-access/projects.service';
 import type { Project, ProjectBatchDownloadLink } from '../../data-access/project.interface';
@@ -189,7 +189,7 @@ export default class ProjectDetailsComponent {
   }
 
   onDownload(link: string) {
-    window.open(link, '_system');
+    openSafeUrl(link);
   }
 
   onBackToProjects() {

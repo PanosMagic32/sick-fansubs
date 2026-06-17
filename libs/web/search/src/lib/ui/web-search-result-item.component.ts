@@ -6,6 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIcon } from '@angular/material/icon';
 
+import { openSafeUrl } from '@web/shared';
+
 import { Searchable, SearchTypeOption } from '../data-access/search-form.interface';
 
 @Component({
@@ -36,7 +38,6 @@ export class WebSearchResultItemComponent {
   }
 
   onDownload(link: string | undefined) {
-    if (!link) return;
-    window.open(link);
+    openSafeUrl(link);
   }
 }

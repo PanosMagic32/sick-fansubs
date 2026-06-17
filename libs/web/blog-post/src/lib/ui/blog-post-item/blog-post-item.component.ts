@@ -17,6 +17,7 @@ import { MatChip } from '@angular/material/chips';
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import type { BlogPost } from '../../data-access/blog-post.interface';
 
@@ -46,6 +47,7 @@ import type { BlogPost } from '../../data-access/blog-post.interface';
 })
 export class BlogPostItemComponent {
   private readonly router = inject(Router);
+  private readonly snackBar = inject(MatSnackBar);
   private readonly defaultAvatarPath = '/logo/logo.png';
 
   readonly blogPost = input.required<BlogPost>();
@@ -87,12 +89,17 @@ export class BlogPostItemComponent {
   });
 
   onDownload(url: string | undefined) {
-    if (url) {
+    if (!url) return;
+
+    try {
       const downloadURL = new URL(url);
+      if (downloadURL.protocol !== 'http:' && downloadURL.protocol !== 'https:') return;
       const a = document.createElement('a');
       a.href = downloadURL.href;
       a.download = downloadURL.pathname.split('/').pop() || '';
       a.click();
+    } catch {
+      this.snackBar.open('Αδυναμία λήψης αρχείου. Παρακαλώ επικοινωνήστε με τους διαχειριστές.', 'OK', { duration: 5000 });
     }
   }
 
