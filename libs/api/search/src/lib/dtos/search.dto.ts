@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDate, IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsDate, IsEnum, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class SearchDto {
   @IsOptional()
@@ -24,6 +24,7 @@ export class SearchDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Max(100)
   pageSize = 10;
 
   @Type(() => Number)

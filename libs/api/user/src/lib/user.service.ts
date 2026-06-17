@@ -612,7 +612,7 @@ export class UserService {
     const favoriteBlogPostIds = this.toPublicUser(user).favoriteBlogPostIds;
     const count = favoriteBlogPostIds.length;
 
-    const normalizedPageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
+    const normalizedPageSize = Math.min(Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10, 100);
     const normalizedCurrentPage = Number.isFinite(currentPage) && currentPage > 0 ? Math.floor(currentPage) : 1;
     if (!favoriteBlogPostIds.length) {
       return { posts: [], count };
@@ -705,7 +705,7 @@ export class UserService {
     const favoriteProjectIds = this.toPublicUser(user).favoriteProjectIds;
     const count = favoriteProjectIds.length;
 
-    const normalizedPageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
+    const normalizedPageSize = Math.min(Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10, 100);
     const normalizedCurrentPage = Number.isFinite(currentPage) && currentPage > 0 ? Math.floor(currentPage) : 1;
 
     if (!favoriteProjectIds.length) return { projects: [], count };
