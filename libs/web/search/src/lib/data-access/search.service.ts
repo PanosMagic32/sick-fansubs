@@ -20,6 +20,11 @@ export class SearchService {
   private _results = signal<SearchResponse>({ results: [], total: 0 });
   results = this._results.asReadonly();
 
+  clearResults() {
+    this._results.set({ results: [], total: 0 });
+    this._isLoading.set(false);
+  }
+
   search(searchTerm: string, searchType: 'all' | 'blog-post' | 'project', pageSize: number, currentPage: number) {
     this._isLoading.set(true);
 

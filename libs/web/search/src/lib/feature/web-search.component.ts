@@ -95,11 +95,8 @@ export class WebSearchComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
-    // TODO: temp cleanup
-    this.activatedRoute.snapshot.queryParams = {};
-    this.activatedRoute.snapshot.params = {};
-    this.searchService.results().results = [];
-    this.searchService.results().total = 0;
+    this.searchService.clearResults();
+    this.router.navigate([], { queryParams: {}, replaceUrl: true });
   }
 
   onSubmit() {
