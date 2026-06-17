@@ -10,3 +10,4 @@ export * from './lib/data-access/media.service';
 export * from './lib/data-access/token.service';
 export * from './lib/data-access/web-config.service';
 export * from './lib/utils/safe-url';
+export * from './lib/data-access/map-api-error-message';

@@ -10,7 +10,7 @@ import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { MediaService } from '@web/shared';
+import { mapApiErrorMessage, MediaService } from '@web/shared';
 import type { EditBlogPost } from '../../data-access/blog-post.interface';
 import { BlogPostService } from '../../data-access/blog-post.service';
 import type { PostFormModel } from '../../data-access/post-form.interface';
@@ -104,12 +104,7 @@ export default class BlogPostEditComponent {
     effect(() => {
       const error = this.updateResource.error();
       if (error) {
-        const message =
-          error instanceof HttpErrorResponse && error.status !== 0
-            ? error.error?.message || 'Αποτυχία ενημέρωσης.'
-            : 'Αδυναμία σύνδεσης.';
-
-        this.snackBar.open(message, 'OK', { duration: 4000 });
+        this.snackBar.open(mapApiErrorMessage(error), 'OK', { duration: 4000 });
         this.updateRequest.set(null);
       }
     });
@@ -123,12 +118,7 @@ export default class BlogPostEditComponent {
     effect(() => {
       const error = this.deleteResource.error();
       if (error) {
-        const message =
-          error instanceof HttpErrorResponse && error.status !== 0
-            ? error.error?.message || 'Αποτυχία διαγραφής.'
-            : 'Αδυναμία σύνδεσης.';
-
-        this.snackBar.open(message, 'OK', { duration: 4000 });
+        this.snackBar.open(mapApiErrorMessage(error), 'OK', { duration: 4000 });
         this.deleteRequest.set(null);
       }
     });

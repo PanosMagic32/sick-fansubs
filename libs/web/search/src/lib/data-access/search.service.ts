@@ -3,7 +3,7 @@ import { inject, Injectable, signal } from '@angular/core';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { WebConfigService } from '@web/shared';
+import { mapApiErrorMessage, WebConfigService } from '@web/shared';
 
 import { SearchResponse } from './search-form.interface';
 import { catchError, of, tap } from 'rxjs';
@@ -34,7 +34,7 @@ export class SearchService {
       )
       .pipe(
         catchError((err) => {
-          this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
+          this.openSnackBar(mapApiErrorMessage(err), 'OK');
           this._isLoading.set(false);
           return of({ results: [], total: 0 });
         }),
