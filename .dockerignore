@@ -37,6 +37,7 @@ docker-compose*.yml
 DOCKER.md
 
 # Environment (except .env.example)
+.env
 .env.local
 .env.*.local
 *.env.backup

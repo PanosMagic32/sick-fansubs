@@ -44,8 +44,8 @@ services:
     env_file:
       - .env
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     ports:
       - '${MINIO_PORT:-9000}:9000'
       - '127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001'
