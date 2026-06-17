@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
-import { PaginationDto } from '@api/shared';
+import { PaginationDto, ParseMongoIdPipe } from '@api/shared';
 import { AdminGuard, JwtAuthGuard } from '@api/user';
 
 import { ApiBlogPostService } from './api-blog-post.service';
@@ -31,7 +31,7 @@ export class ApiBlogPostController {
 
   @ApiParam({ name: 'id' })
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<BlogPost | undefined> {
+  async findOne(@Param('id', ParseMongoIdPipe) id: string): Promise<BlogPost | undefined> {
     return this.apiBlogPostService.findOne(id);
   }
 
@@ -39,7 +39,7 @@ export class ApiBlogPostController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseMongoIdPipe) id: string,
     @Body() updateBlogPostDto: UpdateBlogPostDto,
     @Req() req: { user?: { sub?: string } },
   ) {
@@ -49,7 +49,7 @@ export class ApiBlogPostController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async delete(@Param('id') id: string, @Req() req: { user?: { sub?: string } }) {
+  async delete(@Param('id', ParseMongoIdPipe) id: string, @Req() req: { user?: { sub?: string } }) {
     return this.apiBlogPostService.delete(id, this.getActorIdFromRequest(req));
   }
 }

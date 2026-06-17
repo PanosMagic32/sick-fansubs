@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
-import { PaginationDto } from '@api/shared';
+import { PaginationDto, ParseMongoIdPipe } from '@api/shared';
 import { AdminGuard, JwtAuthGuard } from '@api/user';
 
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -31,7 +31,7 @@ export class ProjectController {
 
   @ApiParam({ name: 'id' })
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseMongoIdPipe) id: string) {
     return this.projectService.findOne(id);
   }
 
@@ -39,7 +39,7 @@ export class ProjectController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseMongoIdPipe) id: string,
     @Body() updateProjectDto: UpdateProjectDto,
     @Req() req: { user?: { sub?: string } },
   ) {
@@ -49,7 +49,7 @@ export class ProjectController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id', ParseMongoIdPipe) id: string) {
     return this.projectService.remove(id);
   }
 }
