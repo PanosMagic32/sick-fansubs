@@ -25,8 +25,8 @@ export class MediaService {
 
   constructor(private readonly configService: ConfigService) {
     const endpoint = this.configService.get<string>('MINIO_ENDPOINT', 'http://minio:9000');
-    const accessKeyId = this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin');
-    const secretAccessKey = this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin');
+    const accessKeyId = this.configService.get<string>('MINIO_ROOT_USER', 'minioadmin');
+    const secretAccessKey = this.configService.get<string>('MINIO_ROOT_PASSWORD', 'minioadmin');
     const region = this.configService.get<string>('MINIO_REGION', 'us-east-1');
 
     this.bucket = this.configService.get<string>('MINIO_BUCKET', 'images');
