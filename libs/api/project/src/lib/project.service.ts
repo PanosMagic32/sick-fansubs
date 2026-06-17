@@ -119,7 +119,7 @@ export class ProjectService {
       }
 
       const updatedProject = await this.projectModel
-        .findByIdAndUpdate({ _id: id }, payload, { new: true, runValidators: true })
+        .findByIdAndUpdate(id, payload, { new: true, runValidators: true })
         .exec();
 
       if (updatedProject && existingProject.thumbnail !== updatedProject.thumbnail) {
@@ -133,7 +133,7 @@ export class ProjectService {
   }
 
   async remove(id: string) {
-    const deletedProject = await this.projectModel.findByIdAndDelete({ _id: id }).exec();
+    const deletedProject = await this.projectModel.findByIdAndDelete(id).exec();
     if (!deletedProject) {
       throw new NotFoundException();
     }

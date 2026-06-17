@@ -102,6 +102,6 @@ export class ApiBlogPostService {
   }
 
   async count(options: FilterQuery<BlogPostDocument>) {
-    return this.blogPostModel.countDocuments(options).sort({ dateTimeCreated: 'desc' }).exec();
+    return this.blogPostModel.countDocuments(options).exec();
   }
 }

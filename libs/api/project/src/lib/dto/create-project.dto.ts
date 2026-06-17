@@ -49,12 +49,12 @@ export class BatchDownloadLinkDto {
 export class CreateProjectDto {
   @ApiProperty({ type: String })
   @IsString()
-  @MinLength(1)
+  @MinLength(3)
   readonly title!: string;
 
   @ApiProperty({ type: String })
   @IsString()
-  @MinLength(1)
+  @MinLength(10)
   readonly description!: string;
 
   @ApiProperty({ type: String })
