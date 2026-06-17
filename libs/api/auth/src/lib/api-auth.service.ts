@@ -163,11 +163,11 @@ export class ApiAuthService {
     const status = user.status ?? 'active';
 
     if (!(await this.comparePasswords(pass, user.password))) {
-      throw new ForbiddenException('Λανθασμένα στοιχεία χρήστη.');
+      throw new ForbiddenException('Invalid credentials.');
     }
 
     if (status !== 'active') {
-      throw new ForbiddenException('Ο λογαριασμός σας έχει ανασταλεί.');
+      throw new ForbiddenException('Your account has been suspended.');
     }
 
     return {

@@ -10,7 +10,7 @@ import { Types } from 'mongoose';
 export class ParseMongoIdPipe implements PipeTransform<string, string> {
   transform(value: string): string {
     if (!Types.ObjectId.isValid(value)) {
-      throw new BadRequestException('Μη έγκυρο αναγνωριστικό.');
+      throw new BadRequestException('Invalid identifier.');
     }
     return value;
   }

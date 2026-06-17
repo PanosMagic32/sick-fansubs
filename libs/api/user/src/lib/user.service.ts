@@ -594,7 +594,7 @@ export class UserService {
 
     // Prevent self-targeting
     if (actor.sub === id) {
-      throw new BadRequestException('Δεν μπορείτε να αλλάξετε τον ρόλο του εαυτού σας.');
+      throw new BadRequestException('Cannot change your own role.');
     }
 
     // Build atomic filter with authorization preconditions embedded
@@ -602,7 +602,7 @@ export class UserService {
 
     if (actor.role !== 'super-admin') {
       if (newRole === 'super-admin') {
-        throw new ForbiddenException('Μόνο οι super-admin μπορούν να προάγουν σε super-admin.');
+        throw new ForbiddenException('Only super-admins can promote to super-admin.');
       }
       // Atomic guard: non-super-admins cannot touch super-admin users
       filter.role = { $ne: 'super-admin' };
@@ -613,7 +613,7 @@ export class UserService {
       .exec();
 
     if (!updatedUser) {
-      throw new ForbiddenException('Ο χρήστης δε βρέθηκε ή δεν επιτρέπεται η ενέργεια.');
+      throw new ForbiddenException('User not found or operation not permitted.');
     }
 
     return this.toPublicUser(updatedUser);
@@ -629,7 +629,7 @@ export class UserService {
 
     // Prevent self-targeting
     if (actor.sub === id) {
-      throw new BadRequestException('Δεν μπορείτε να αλλάξετε την κατάσταση του εαυτού σας.');
+      throw new BadRequestException('Cannot change your own status.');
     }
 
     const filter: FilterQuery<User> = { _id: new Types.ObjectId(id) };
@@ -644,7 +644,7 @@ export class UserService {
       .exec();
 
     if (!updatedUser) {
-      throw new ForbiddenException('Ο χρήστης δε βρέθηκε ή δεν επιτρέπεται η ενέργεια.');
+      throw new ForbiddenException('User not found or operation not permitted.');
     }
 
     return this.toPublicUser(updatedUser);

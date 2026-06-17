@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: AuthJwtPayload) {
     if (payload.status && payload.status !== 'active') {
-      throw new UnauthorizedException('Ο λογαριασμός σας έχει ανασταλεί.');
+      throw new UnauthorizedException('Your account has been suspended.');
     }
     return payload;
   }
