@@ -65,39 +65,42 @@ export default class ProjectDetailsComponent {
     this.activeUserId,
     this.removeFavoriteRequest,
   );
+
   protected readonly creatorAvatarUrl = computed(() => this.project.value()?.creator?.avatar || this.defaultAvatarPath);
   protected readonly createdByUsername = computed(() => this.project.value()?.creator?.username || 'Kushoyarou');
+
   protected readonly isFavorite = computed(() => {
     const projectId = this.project.value()?._id;
     return Boolean(projectId && this.favoriteProjectIdsState().includes(projectId));
   });
+
   protected readonly editedByUsername = computed(
     () => this.project.value()?.updatedBy?.username || this.project.value()?.creator?.username || 'Kushoyarou',
   );
+
   protected readonly hasBeenEdited = computed(() => {
     const project = this.project.value();
-    if (!project?.updatedBy) {
-      return false;
-    }
+    if (!project?.updatedBy) return false;
 
     const updatedAt = project.updatedAt;
     const createdAt = project.dateTimeCreated;
-
-    if (!updatedAt || !createdAt) {
-      return false;
-    }
+    if (!updatedAt || !createdAt) return false;
 
     const updatedMs = new Date(updatedAt).getTime();
     const createdMs = new Date(createdAt).getTime();
-
-    if (Number.isNaN(updatedMs) || Number.isNaN(createdMs)) {
-      return false;
-    }
+    if (Number.isNaN(updatedMs) || Number.isNaN(createdMs)) return false;
 
     return updatedMs > createdMs;
   });
 
   constructor() {
+    effect(() => {
+      const error = this.project.error();
+      if (error) {
+        this.snackBar.open('Αποτυχία φόρτωσης project.', 'OK', { duration: 4000 });
+      }
+    });
+
     effect(() => {
       if (!this.activeUserId()) {
         this.favoriteProjectIdsState.set([]);
@@ -105,9 +108,7 @@ export default class ProjectDetailsComponent {
     });
 
     effect(() => {
-      if (!this.favoriteProjectIdsResource.hasValue()) {
-        return;
-      }
+      if (!this.favoriteProjectIdsResource.hasValue()) return;
 
       const favoriteIds = this.favoriteProjectIdsResource.value()?.favoriteProjectIds;
       if (favoriteIds) {
@@ -123,16 +124,15 @@ export default class ProjectDetailsComponent {
         return;
       }
 
-      if (!this.addFavoriteResource.hasValue()) {
-        return;
-      }
+      if (!this.addFavoriteResource.hasValue()) return;
 
       const favoriteIds = this.addFavoriteResource.value()?.favoriteProjectIds;
       if (favoriteIds) {
         this.favoriteProjectIdsState.set([...favoriteIds]);
         this.snackBar.open('Το project προστέθηκε στα αγαπημένα.', 'OK', { duration: 3000 });
-        this.addFavoriteRequest.set(null);
       }
+
+      this.addFavoriteRequest.set(null);
     });
 
     effect(() => {
@@ -143,16 +143,15 @@ export default class ProjectDetailsComponent {
         return;
       }
 
-      if (!this.removeFavoriteResource.hasValue()) {
-        return;
-      }
+      if (!this.removeFavoriteResource.hasValue()) return;
 
       const favoriteIds = this.removeFavoriteResource.value()?.favoriteProjectIds;
       if (favoriteIds) {
         this.favoriteProjectIdsState.set([...favoriteIds]);
         this.snackBar.open('Το project αφαιρέθηκε από τα αγαπημένα.', 'OK', { duration: 3000 });
-        this.removeFavoriteRequest.set(null);
       }
+
+      this.removeFavoriteRequest.set(null);
     });
   }
 
@@ -205,18 +204,14 @@ export default class ProjectDetailsComponent {
 
   onToggleFavorite() {
     const projectId = this.project.value()?._id;
-    if (!projectId) {
-      return;
-    }
+    if (!projectId) return;
 
     if (!this.activeUserId()) {
       this.router.navigate(['/auth/login']);
       return;
     }
 
-    if (this.favoriteActionPending()) {
-      return;
-    }
+    if (this.favoriteActionPending()) return;
 
     if (this.isFavorite()) {
       this.removeFavoriteRequest.set(projectId);

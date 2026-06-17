@@ -90,6 +90,7 @@ export default class BlogPostEditComponent {
           downloadLink4kTorrent: post.downloadLink4kTorrent ?? '',
           downloadLink4k: post.downloadLink4k ?? '',
         });
+
         this.editForm.markAsPristine();
       }
     });
@@ -101,8 +102,34 @@ export default class BlogPostEditComponent {
     });
 
     effect(() => {
+      const error = this.updateResource.error();
+      if (error) {
+        const message =
+          error instanceof HttpErrorResponse && error.status !== 0
+            ? error.error?.message || 'Αποτυχία ενημέρωσης.'
+            : 'Αδυναμία σύνδεσης.';
+
+        this.snackBar.open(message, 'OK', { duration: 4000 });
+        this.updateRequest.set(null);
+      }
+    });
+
+    effect(() => {
       if (this.deleteResource.value()) {
         this.router.navigate(['../..'], { replaceUrl: true });
+      }
+    });
+
+    effect(() => {
+      const error = this.deleteResource.error();
+      if (error) {
+        const message =
+          error instanceof HttpErrorResponse && error.status !== 0
+            ? error.error?.message || 'Αποτυχία διαγραφής.'
+            : 'Αδυναμία σύνδεσης.';
+
+        this.snackBar.open(message, 'OK', { duration: 4000 });
+        this.deleteRequest.set(null);
       }
     });
   }
