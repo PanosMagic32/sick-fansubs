@@ -1,5 +1,6 @@
 import { BlogPost } from '@api/blog-post';
 import { Project } from '@api/project';
+import { escapeRegex } from '@api/shared';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Document, type FilterQuery, Model, type PipelineStage } from 'mongoose';
@@ -37,7 +38,7 @@ export class ApiSearchService {
     modelType: Searchable['type'],
     skip: number,
     limit: number,
-  ): Promise<{ results: Searchable[]; count: number }> {
+  ): Promise<{ results: Searchable[]; total: number }> {
     const sortStage: PipelineStage.Sort = { $sort: sort };
 
     const pipeline: PipelineStage[] = [
@@ -67,7 +68,7 @@ export class ApiSearchService {
 
     return {
       results,
-      count: totalCount,
+      total: totalCount,
     };
   }
 
@@ -82,13 +83,14 @@ export class ApiSearchService {
 
     const skip = normalizedPagination.page * normalizedPagination.pageSize;
     const limit = normalizedPagination.pageSize;
+    const sanitizedSearchTerm = searchTerm ? escapeRegex(searchTerm) : undefined;
 
     const baseQuery = {
       ...(searchTerm && {
         $or: [
-          { title: { $regex: searchTerm, $options: 'i' } },
-          { description: { $regex: searchTerm, $options: 'i' } },
-          { subtitle: { $regex: searchTerm, $options: 'i' } },
+          { title: { $regex: sanitizedSearchTerm, $options: 'i' } },
+          { description: { $regex: sanitizedSearchTerm, $options: 'i' } },
+          { subtitle: { $regex: sanitizedSearchTerm, $options: 'i' } },
         ],
       }),
       ...(filters?.dateFrom || filters?.dateTo
@@ -102,7 +104,7 @@ export class ApiSearchService {
     } as const;
 
     // Execute searches based on type
-    const searches: Promise<{ results: Searchable[]; count: number }>[] = [];
+    const searches: Promise<{ results: Searchable[]; total: number }>[] = [];
 
     if (type === 'all' || type === 'blog-post') {
       searches.push(this.searchModel(this.blogPostModel, baseQuery, sorting, 'blog-post', skip, limit));
@@ -118,23 +120,25 @@ export class ApiSearchService {
     const combinedResults = searchResults.reduce(
       (acc, curr) => ({
         results: [...acc.results, ...curr.results],
-        total: acc.total + curr.count,
+        total: acc.total + curr.total,
       }),
       { results: [], total: 0 },
     );
 
     // For 'all' type, re-sort combined results to account for cross-collection sorting
     if (type === 'all' && sorting) {
-      const [sortField, sortOrder] = Object.entries(sorting)[0] as [string, 1 | -1] | undefined;
+      const firstEntry = Object.entries(sorting)[0];
+      if (!firstEntry) return combinedResults;
 
-      if (!sortField) {
-        return combinedResults;
-      }
+      const [sortField, sortOrder] = firstEntry;
 
       combinedResults.results.sort((a, b) => {
         const aVal = a[sortField as keyof Searchable];
         const bVal = b[sortField as keyof Searchable];
+
+        if (aVal == null || bVal == null) return 0;
         if (aVal === bVal) return 0;
+
         if (sortOrder === -1) {
           return aVal < bVal ? 1 : -1;
         } else {

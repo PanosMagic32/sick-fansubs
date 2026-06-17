@@ -1,9 +1,10 @@
 import { Type } from 'class-transformer';
-import { IsDate, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDate, IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class SearchDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   searchTerm?: string;
 
   @IsOptional()

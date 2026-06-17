@@ -20,6 +20,7 @@
       "@api/media": ["libs/api/media/src/index.ts"],
       "@api/project": ["libs/api/project/src/index.ts"],
       "@api/search": ["libs/api/search/src/index.ts"],
+      "@api/shared": ["libs/api/shared/src/index.ts"],
       "@api/user": ["libs/api/user/src/index.ts"],
       "@web/about": ["libs/web/about/src/index.ts"],
       "@web/auth": ["libs/web/auth/src/index.ts"],

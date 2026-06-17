@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 import { Model, Types } from 'mongoose';
 
 import type { Project, ProjectBatchDownloadLink, UserRole, UserStatus } from '@shared/types';
+import { escapeRegex } from '@api/shared';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -411,10 +412,8 @@ export class UserService {
     } = {};
 
     if (normalizedSearch) {
-      filters.$or = [
-        { username: { $regex: normalizedSearch, $options: 'i' } },
-        { email: { $regex: normalizedSearch, $options: 'i' } },
-      ];
+      const safeSearch = escapeRegex(normalizedSearch);
+      filters.$or = [{ username: { $regex: safeSearch, $options: 'i' } }, { email: { $regex: safeSearch, $options: 'i' } }];
     }
 
     if (query.role) {
