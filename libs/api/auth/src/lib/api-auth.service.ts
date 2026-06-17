@@ -218,24 +218,29 @@ export class ApiAuthService {
       throw new UnauthorizedException('Refresh token invalid or expired.');
     }
 
-    const isValidSession = await this.userService.isRefreshTokenSessionValid(
-      refreshPayload.sub,
+    const identity = this.toRoleAndStatus(refreshPayload);
+    const sessionPayload = { ...refreshPayload, ...identity };
+
+    // Generate new token pair
+    const accessToken = await this.generateAccessToken(sessionPayload);
+    const newRefreshTokenData = await this.generateRefreshToken(sessionPayload);
+
+    // Atomically rotate: validates old token AND writes new one in a single DB operation.
+    // If a concurrent request already rotated this token (JTI changed), the update fails.
+    await this.userService.rotateRefreshTokenSession(
+      sessionPayload.sub,
       refreshToken,
       refreshPayload.jti,
+      newRefreshTokenData.token,
+      newRefreshTokenData.jti,
+      newRefreshTokenData.expiresAt,
     );
 
-    if (!isValidSession) {
-      await this.userService.clearRefreshTokenSession(refreshPayload.sub);
-      throw new UnauthorizedException('Refresh token revoked.');
-    }
-
-    return this.createSession({
-      sub: refreshPayload.sub,
-      username: refreshPayload.username,
-      email: refreshPayload.email,
-      role: refreshPayload.role,
-      status: refreshPayload.status,
-    });
+    return {
+      username: sessionPayload.username,
+      accessToken,
+      refreshToken: newRefreshTokenData.token,
+    };
   }
 
   async logout(refreshToken: string): Promise<void> {

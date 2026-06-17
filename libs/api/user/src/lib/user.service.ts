@@ -1,6 +1,7 @@
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import {
   BadRequestException,
+  UnauthorizedException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -919,6 +920,58 @@ export class UserService {
     if (user.refreshTokenExpiresAt.getTime() <= Date.now()) return false;
 
     return this.comparePasswords(refreshToken, user.refreshTokenHash);
+  }
+
+  async rotateRefreshTokenSession(
+    id: string,
+    oldRefreshToken: string,
+    oldJti: string,
+    newRefreshToken: string,
+    newJti: string,
+    newExpiresAt: Date,
+  ): Promise<void> {
+    this.assertValidId(id);
+
+    // Verify the old token hash before attempting rotation
+    const user = await this.findOneEntityById(id);
+    if (!user.refreshTokenHash || !user.refreshTokenJti) {
+      throw new UnauthorizedException('No active refresh session.');
+    }
+    if (user.refreshTokenJti !== oldJti) {
+      throw new UnauthorizedException('Refresh token already used.');
+    }
+    if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedException('Refresh token expired.');
+    }
+    const isHashValid = await this.comparePasswords(oldRefreshToken, user.refreshTokenHash);
+    if (!isHashValid) {
+      throw new UnauthorizedException('Refresh token invalid.');
+    }
+
+    // Atomic rotation: only succeeds if JTI still matches (not rotated by a concurrent request)
+    const newHash = await this.hashPassword(newRefreshToken);
+    const updatedUser = await this.userModel
+      .findOneAndUpdate(
+        {
+          _id: id,
+          refreshTokenJti: oldJti,
+          refreshTokenExpiresAt: { $gt: new Date() },
+        },
+        {
+          $set: {
+            refreshTokenHash: newHash,
+            refreshTokenJti: newJti,
+            refreshTokenExpiresAt: newExpiresAt,
+          },
+        },
+        { new: true },
+      )
+      .exec();
+
+    if (!updatedUser) {
+      await this.clearRefreshTokenSession(id);
+      throw new UnauthorizedException('Refresh token already used.');
+    }
   }
 
   private async comparePasswords(password: string, storedPasswordHash: string): Promise<boolean> {
