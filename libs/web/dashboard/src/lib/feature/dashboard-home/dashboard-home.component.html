@@ -1,9 +1,9 @@
 <div class="grid-container">
   <h1 class="mat-h1">Επισκόπηση</h1>
 
-  @if (usersResource.isLoading()) {
+  @if (statsResource.isLoading()) {
     <p class="dashboard-state">Φόρτωση στατιστικών...</p>
-  } @else if (usersResource.error()) {
+  } @else if (statsResource.error()) {
     <p class="dashboard-state error">Αδυναμία φόρτωσης στατιστικών dashboard.</p>
   } @else {
     <mat-grid-list [cols]="isHandset() ? 1 : 2" rowHeight="230px">

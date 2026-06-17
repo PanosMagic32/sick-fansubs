@@ -6,7 +6,7 @@ import { map } from 'rxjs';
 import { MatCard, MatCardContent, MatCardHeader, MatCardSubtitle, MatCardTitle } from '@angular/material/card';
 import { MatGridList, MatGridTile } from '@angular/material/grid-list';
 
-import { DashboardService } from '../../data-access/dashboard.service';
+import { DashboardMetrics, DashboardService } from '../../data-access/dashboard.service';
 
 interface HomeMetricCard {
   title: string;
@@ -27,91 +27,32 @@ export class DashboardHomeComponent {
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly dashboardService = inject(DashboardService);
 
-  protected readonly usersResource = this.dashboardService.getUsers();
+  protected readonly statsResource = this.dashboardService.getStats();
 
-  protected readonly metrics = computed(() => {
-    const users = this.usersResource.value() ?? [];
-    const now = Date.now();
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  protected readonly metrics = computed<DashboardMetrics>(
+    () =>
+      this.statsResource.value() ?? {
+        totalUsers: 0,
+        activeUsers: 0,
+        suspendedUsers: 0,
+        staffMembers: 0,
+        superAdmins: 0,
+        adminCount: 0,
+        moderatorCount: 0,
+        newLast30Days: 0,
+      },
+  );
 
-    const activeUsers = users.filter((user) => user.status === 'active').length;
-    const suspendedUsers = users.filter((user) => user.status === 'suspended').length;
-    const staffMembers = users.filter((user) => user.role !== 'user').length;
-    const superAdmins = users.filter((user) => user.role === 'super-admin').length;
-    const newLast30Days = users.filter((user) => {
-      if (!user.createdAt) return false;
-      const createdAtMs = new Date(user.createdAt).getTime();
-      if (Number.isNaN(createdAtMs)) return false;
-      return now - createdAtMs <= thirtyDaysMs;
-    }).length;
-
-    return {
-      totalUsers: users.length,
-      activeUsers,
-      suspendedUsers,
-      staffMembers,
-      superAdmins,
-      newLast30Days,
-    };
-  });
-
-  protected readonly cards = computed<ReadonlyArray<HomeMetricCard>>(() => {
+  protected readonly cards = computed<HomeMetricCard[]>(() => {
     const metric = this.metrics();
     const isHandset = this.isHandset();
-
-    if (isHandset) {
-      return [
-        {
-          title: 'Συνολικοί Χρήστες',
-          subtitle: 'Συνολικό μέγεθος κοινότητας',
-          value: String(metric.totalUsers),
-          cols: 1,
-          rows: 1,
-        },
-        {
-          title: 'Ενεργοί Χρήστες',
-          subtitle: 'Λογαριασμοί σε ενεργή κατάσταση',
-          value: String(metric.activeUsers),
-          cols: 1,
-          rows: 1,
-        },
-        {
-          title: 'Χρήστες Σε Αναστολή',
-          subtitle: 'Λογαριασμοί με περιορισμένη πρόσβαση',
-          value: String(metric.suspendedUsers),
-          cols: 1,
-          rows: 1,
-        },
-        {
-          title: 'Μέλη Staff',
-          subtitle: 'super-admin, admin, moderator',
-          value: String(metric.staffMembers),
-          cols: 1,
-          rows: 1,
-        },
-        {
-          title: 'Νέα Μέλη (30 ημέρες)',
-          subtitle: 'Πρόσφατες εγγραφές',
-          value: String(metric.newLast30Days),
-          cols: 1,
-          rows: 1,
-        },
-        {
-          title: 'Super Admins',
-          subtitle: 'Κρίσιμοι λογαριασμοί διαχείρισης',
-          value: String(metric.superAdmins),
-          cols: 1,
-          rows: 1,
-        },
-      ];
-    }
 
     return [
       {
         title: 'Συνολικοί Χρήστες',
         subtitle: 'Συνολικό μέγεθος κοινότητας',
         value: String(metric.totalUsers),
-        cols: 2,
+        cols: isHandset ? 1 : 2,
         rows: 1,
       },
       {
@@ -130,15 +71,8 @@ export class DashboardHomeComponent {
       },
       {
         title: 'Μέλη Staff',
-        subtitle: 'super-admin, admin, moderator',
+        subtitle: 'Συνολικός αριθμός προσωπικού',
         value: String(metric.staffMembers),
-        cols: 1,
-        rows: 1,
-      },
-      {
-        title: 'Νέα Μέλη (30 ημέρες)',
-        subtitle: 'Πρόσφατες εγγραφές',
-        value: String(metric.newLast30Days),
         cols: 1,
         rows: 1,
       },
@@ -146,7 +80,28 @@ export class DashboardHomeComponent {
         title: 'Super Admins',
         subtitle: 'Κρίσιμοι λογαριασμοί διαχείρισης',
         value: String(metric.superAdmins),
-        cols: 2,
+        cols: isHandset ? 1 : 2,
+        rows: 1,
+      },
+      {
+        title: 'Admins',
+        subtitle: 'Διαχειριστές περιεχομένου',
+        value: String(metric.adminCount),
+        cols: 1,
+        rows: 1,
+      },
+      {
+        title: 'Moderators',
+        subtitle: 'Συντονιστές κοινότητας',
+        value: String(metric.moderatorCount),
+        cols: 1,
+        rows: 1,
+      },
+      {
+        title: 'Νέα Μέλη (30 ημέρες)',
+        subtitle: 'Πρόσφατες εγγραφές',
+        value: String(metric.newLast30Days),
+        cols: isHandset ? 1 : 2,
         rows: 1,
       },
     ];

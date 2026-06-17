@@ -9,8 +9,11 @@ export interface DashboardMetrics {
   totalUsers: number;
   activeUsers: number;
   suspendedUsers: number;
+  staffMembers: number;
+  superAdmins: number;
   adminCount: number;
   moderatorCount: number;
+  newLast30Days: number;
 }
 
 export interface DashboardUser {
@@ -36,9 +39,9 @@ export class DashboardService {
   private readonly webConfigService = inject(WebConfigService);
   private readonly httpClient = inject(HttpClient);
 
-  getUsers(): HttpResourceRef<DashboardUser[] | undefined> {
-    return httpResource<DashboardUser[]>(() => ({
-      url: `${this.webConfigService.API_URL}/user`,
+  getStats(): HttpResourceRef<DashboardMetrics | undefined> {
+    return httpResource<DashboardMetrics>(() => ({
+      url: `${this.webConfigService.API_URL}/user/stats`,
     }));
   }
 
