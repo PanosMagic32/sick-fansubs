@@ -1,5 +1,6 @@
 ARG NODE_VERSION=lts-alpine
-ARG PNPM_VERSION=11.0.8
+ARG PNPM_VERSION=11.7.0
+ARG MINIMUM_RELEASE_AGE=86400
 
 # ========================================
 # Base Node.js stage
@@ -23,7 +24,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install all dependencies once and reuse this layer for app builders
-RUN pnpm install --frozen-lockfile --side-effects-cache
+RUN pnpm install --frozen-lockfile --side-effects-cache --config.minimumReleaseAge=${MINIMUM_RELEASE_AGE}
 
 # ========================================
 # API build stage

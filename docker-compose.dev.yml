@@ -14,6 +14,7 @@ services:
       target: api-dev
       args:
         NODE_VERSION: 24-alpine
+        MINIMUM_RELEASE_AGE: 0
     env_file:
       - .env
     entrypoint: []
@@ -21,6 +22,7 @@ services:
       NODE_ENV: development
       PORT: 3333
       MINIO_PUBLIC_BASE_URL: http://localhost:4200
+      PNPM_CONFIG_MINIMUM_RELEASE_AGE: '0'
     ports:
       - "3333:3333"
       - "9229:9229"  # Node.js debugger port
@@ -69,11 +71,13 @@ services:
       target: web-dev
       args:
         NODE_VERSION: 24-alpine
+        MINIMUM_RELEASE_AGE: 0
     env_file:
       - .env
     entrypoint: []
     environment:
       NODE_ENV: development
+      PNPM_CONFIG_MINIMUM_RELEASE_AGE: '0'
     ports:
       - "4200:4200"
     depends_on:
