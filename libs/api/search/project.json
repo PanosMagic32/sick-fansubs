@@ -1,7 +1,7 @@
 {
   "name": "api-search",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/api/blog-post/src",
+  "sourceRoot": "libs/api/search/src",
   "projectType": "library",
   "tags": ["scope:api"],
   "// targets": "to see all targets run: nx show project api-search --web",

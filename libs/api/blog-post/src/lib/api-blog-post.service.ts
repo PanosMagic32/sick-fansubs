@@ -69,7 +69,7 @@ export class ApiBlogPostService {
     if (existingBlogPost) {
       const updatedBlogPost = await this.blogPostModel
         .findByIdAndUpdate(
-          { _id: id },
+          id,
           { ...updateBlogPostDto, updatedBy: new Types.ObjectId(actorId) },
           { new: true, runValidators: true },
         )

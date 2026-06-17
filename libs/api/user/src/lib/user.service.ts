@@ -948,6 +948,12 @@ export class UserService {
       throw new UnauthorizedException('Refresh token invalid.');
     }
 
+    // Reject suspended users — status may have changed since token was issued
+    if (user.status !== 'active') {
+      await this.clearRefreshTokenSession(id);
+      throw new UnauthorizedException('Your account has been suspended.');
+    }
+
     // Atomic rotation: only succeeds if JTI still matches (not rotated by a concurrent request)
     const newHash = await this.hashPassword(newRefreshToken);
     const updatedUser = await this.userModel
