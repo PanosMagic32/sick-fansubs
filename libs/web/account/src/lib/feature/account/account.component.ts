@@ -21,7 +21,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 
 import type { BlogPost, Project } from '@shared/types';
 
-import { ConfirmDialogComponent, StatusCardComponent, TokenService } from '@web/shared';
+import { ConfirmDialogComponent, openSafeUrl, StatusCardComponent, TokenService } from '@web/shared';
 
 import { AccountFavoritesComponent } from '../../ui/favorites/account-favorites.component';
 import { AccountFavoriteProjectsComponent } from '../../ui/favorite-projects/account-favorite-projects.component';
@@ -373,10 +373,6 @@ export class WebAccountComponent implements OnInit {
 
   private isHttpProtocol(protocol: string): boolean {
     return protocol === 'http:' || protocol === 'https:';
-  }
-
-  private isAllowedDownloadProtocol(protocol: string): boolean {
-    return this.isHttpProtocol(protocol) || protocol === 'magnet:';
   }
 
   private handleUnauthorized(error: unknown): boolean {
@@ -751,20 +747,9 @@ export class WebAccountComponent implements OnInit {
   }
 
   onDownload(url: string | undefined) {
-    const downloadURL = this.parseUrl(url);
-    if (!downloadURL || !this.isAllowedDownloadProtocol(downloadURL.protocol)) {
+    openSafeUrl(url, () => {
       this.snackBar.open('Μη έγκυρος σύνδεσμος λήψης.', 'OK', { duration: 3000 });
-      return;
-    }
-
-    const anchor = document.createElement('a');
-    anchor.href = downloadURL.href;
-    if (downloadURL.protocol !== 'magnet:') {
-      anchor.download = downloadURL.pathname.split('/').pop() || '';
-      anchor.target = '_blank';
-      anchor.rel = 'noopener noreferrer';
-    }
-    anchor.click();
+    });
   }
 
   onAvatarImageError() {

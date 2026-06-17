@@ -19,6 +19,8 @@ import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
+import { openSafeUrl } from '@web/shared';
+
 import type { BlogPost } from '../../data-access/blog-post.interface';
 
 @Component({
@@ -89,18 +91,9 @@ export class BlogPostItemComponent {
   });
 
   onDownload(url: string | undefined) {
-    if (!url) return;
-
-    try {
-      const downloadURL = new URL(url);
-      if (downloadURL.protocol !== 'http:' && downloadURL.protocol !== 'https:') return;
-      const a = document.createElement('a');
-      a.href = downloadURL.href;
-      a.download = downloadURL.pathname.split('/').pop() || '';
-      a.click();
-    } catch {
+    openSafeUrl(url, () => {
       this.snackBar.open('Αδυναμία λήψης αρχείου. Παρακαλώ επικοινωνήστε με τους διαχειριστές.', 'OK', { duration: 5000 });
-    }
+    });
   }
 
   onEdit() {
