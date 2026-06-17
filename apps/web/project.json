@@ -4,7 +4,7 @@
   "projectType": "application",
   "prefix": "sf",
   "sourceRoot": "apps/web/src",
-  "tags": [],
+  "tags": ["scope:web"],
   "targets": {
     "build": {
       "executor": "@nx/angular:application",

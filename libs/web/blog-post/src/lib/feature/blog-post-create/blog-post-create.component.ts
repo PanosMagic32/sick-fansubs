@@ -10,7 +10,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { MediaService, NoContentComponent } from '@web/shared';
+import { mapApiErrorMessage, MediaService, NoContentComponent } from '@web/shared';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import type { CreateBlogPost } from '../../data-access/blog-post.interface';
@@ -88,6 +88,14 @@ export default class BlogPostCreateComponent {
     effect(() => {
       if (this.createBlogPost.hasValue() && !this.createBlogPost.error() && !this.createBlogPost.isLoading()) {
         this.router.navigate(['/'], { relativeTo: this.activatedRoute });
+      }
+    });
+
+    effect(() => {
+      const error = this.createBlogPost.error();
+      if (error) {
+        this.snackBar.open(mapApiErrorMessage(error), 'OK', { duration: 4000 });
+        this.blogPost.set(null);
       }
     });
   }

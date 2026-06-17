@@ -122,6 +122,13 @@ export default class BlogPostEditComponent {
         this.deleteRequest.set(null);
       }
     });
+
+    effect(() => {
+      const error = this.blogPost.error();
+      if (error) {
+        this.snackBar.open(mapApiErrorMessage(error), 'OK', { duration: 4000 });
+      }
+    });
   }
 
   onSave() {

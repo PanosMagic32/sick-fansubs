@@ -9,7 +9,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { openSafeUrl, TokenService } from '@web/shared';
+import { mapApiErrorMessage, openSafeUrl, TokenService } from '@web/shared';
 
 import { ProjectsService } from '../../data-access/projects.service';
 import type { Project, ProjectBatchDownloadLink } from '../../data-access/project.interface';
@@ -97,7 +97,7 @@ export default class ProjectDetailsComponent {
     effect(() => {
       const error = this.project.error();
       if (error) {
-        this.snackBar.open('Αποτυχία φόρτωσης project.', 'OK', { duration: 4000 });
+        this.snackBar.open(mapApiErrorMessage(error), 'OK', { duration: 4000 });
       }
     });
 
@@ -119,7 +119,7 @@ export default class ProjectDetailsComponent {
     effect(() => {
       const error = this.addFavoriteResource.error();
       if (error) {
-        this.snackBar.open('Αποτυχία προσθήκης project στα αγαπημένα.', 'OK', { duration: 3000 });
+        this.snackBar.open(mapApiErrorMessage(error), 'OK', { duration: 3000 });
         this.addFavoriteRequest.set(null);
         return;
       }
@@ -138,7 +138,7 @@ export default class ProjectDetailsComponent {
     effect(() => {
       const error = this.removeFavoriteResource.error();
       if (error) {
-        this.snackBar.open('Αποτυχία αφαίρεσης project από τα αγαπημένα.', 'OK', { duration: 3000 });
+        this.snackBar.open(mapApiErrorMessage(error), 'OK', { duration: 3000 });
         this.removeFavoriteRequest.set(null);
         return;
       }
