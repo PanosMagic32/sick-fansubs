@@ -64,6 +64,17 @@ export interface FindManagementUsersResponse {
   pageSize: number;
 }
 
+export interface UserStatsResponse {
+  totalUsers: number;
+  activeUsers: number;
+  suspendedUsers: number;
+  staffMembers: number;
+  superAdmins: number;
+  adminCount: number;
+  moderatorCount: number;
+  newLast30Days: number;
+}
+
 @Injectable()
 export class UserService {
   private toRoleAndStatus(user: { role?: UserRole; status?: UserStatus }): { role: UserRole; status: UserStatus } {
@@ -388,11 +399,58 @@ export class UserService {
     };
   }
 
-  async findAll(actor: AuthActor): Promise<Array<ReturnType<UserService['toPublicUser']>>> {
+  async getStats(actor: AuthActor): Promise<UserStatsResponse> {
     this.assertDashboardReader(actor);
 
-    const users = await this.userModel.find().exec();
-    return users.map((user) => this.toPublicUser(user));
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [result] = await this.userModel
+      .aggregate([
+        {
+          $facet: {
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  totalUsers: { $sum: 1 },
+                  activeUsers: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+                  suspendedUsers: { $sum: { $cond: [{ $eq: ['$status', 'suspended'] }, 1, 0] } },
+                  staffMembers: { $sum: { $cond: [{ $ne: ['$role', 'user'] }, 1, 0] } },
+                  superAdmins: { $sum: { $cond: [{ $eq: ['$role', 'super-admin'] }, 1, 0] } },
+                  adminCount: { $sum: { $cond: [{ $eq: ['$role', 'admin'] }, 1, 0] } },
+                  moderatorCount: { $sum: { $cond: [{ $eq: ['$role', 'moderator'] }, 1, 0] } },
+                },
+              },
+            ],
+            newLast30Days: [{ $match: { createdAt: { $gte: thirtyDaysAgo } } }, { $count: 'count' }],
+          },
+        },
+      ])
+      .exec();
+
+    const totals = result.totals[0] || {
+      totalUsers: 0,
+      activeUsers: 0,
+      suspendedUsers: 0,
+      staffMembers: 0,
+      superAdmins: 0,
+      adminCount: 0,
+      moderatorCount: 0,
+    };
+
+    const newCount = result.newLast30Days[0]?.count ?? 0;
+
+    return {
+      totalUsers: totals.totalUsers,
+      activeUsers: totals.activeUsers,
+      suspendedUsers: totals.suspendedUsers,
+      staffMembers: totals.staffMembers,
+      superAdmins: totals.superAdmins,
+      adminCount: totals.adminCount,
+      moderatorCount: totals.moderatorCount,
+      newLast30Days: newCount,
+    };
   }
 
   async findManagementUsers(actor: AuthActor, query: FindManagementUsersQuery): Promise<FindManagementUsersResponse> {

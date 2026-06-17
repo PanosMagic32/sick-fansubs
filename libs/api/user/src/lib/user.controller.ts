@@ -17,6 +17,7 @@ import type {
   FavoriteProjectsResponse,
   FavoriteSortOrder,
   FindManagementUsersResponse,
+  UserStatsResponse,
 } from './user.service';
 import { UserService } from './user.service';
 
@@ -80,10 +81,10 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
-  @Get()
+  @Get('stats')
   @UseGuards(JwtAuthGuard)
-  async findAll(@Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }) {
-    return this.userService.findAll(this.getActorFromRequest(req));
+  async getStats(@Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }): Promise<UserStatsResponse> {
+    return this.userService.getStats(this.getActorFromRequest(req));
   }
 
   @Get('management')
