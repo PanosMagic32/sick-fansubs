@@ -37,6 +37,9 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
 
+  // Trust the reverse proxy (nginx) for correct client IP in rate limiting.
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
+
   const port = process.env.PORT || 3333;
 
   await app.listen(port);

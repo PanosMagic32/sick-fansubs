@@ -233,6 +233,7 @@ export class UserController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async remove(@Param('id') id: string, @Req() req: { user?: { sub?: string; role?: UserRole; status?: UserStatus } }) {
     return this.userService.remove(id, this.getActorFromRequest(req));
   }
@@ -240,6 +241,7 @@ export class UserController {
   @ApiParam({ name: 'id' })
   @Patch(':id/role')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async updateRole(
     @Param('id') id: string,
     @Body() updateUserRoleDto: UpdateUserRoleDto,
@@ -251,6 +253,7 @@ export class UserController {
   @ApiParam({ name: 'id' })
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async updateStatus(
     @Param('id') id: string,
     @Body() updateUserStatusDto: UpdateUserStatusDto,

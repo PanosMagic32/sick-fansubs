@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { PaginationDto, ParseMongoIdPipe } from '@api/shared';
@@ -15,7 +27,10 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   private getActorIdFromRequest(req: { user?: { sub?: string } }): string {
-    return req.user?.sub ?? '';
+    if (!req.user?.sub) {
+      throw new UnauthorizedException('User not authenticated.');
+    }
+    return req.user.sub;
   }
 
   @Post()

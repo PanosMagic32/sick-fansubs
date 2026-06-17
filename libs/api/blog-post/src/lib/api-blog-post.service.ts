@@ -86,12 +86,10 @@ export class ApiBlogPostService {
   }
 
   async delete(id: string, actorId: string) {
-    const existingBlogPost = await this.blogPostModel.findById(id).exec();
+    const existingBlogPost = await this.blogPostModel.findByIdAndDelete(id).exec();
     if (!existingBlogPost) {
       throw new NotFoundException();
     }
-
-    await this.blogPostModel.deleteOne({ _id: id }).exec();
 
     const creatorId = existingBlogPost.creator instanceof Types.ObjectId ? existingBlogPost.creator.toString() : actorId;
 
