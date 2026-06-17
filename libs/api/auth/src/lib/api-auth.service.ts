@@ -160,19 +160,21 @@ export class ApiAuthService {
     const role = user.role ?? 'user';
     const status = user.status ?? 'active';
 
-    if (user && (await this.comparePasswords(pass, user.password))) {
-      return {
-        sub: user._id.toString(),
-        username: user.username,
-        email: user.email,
-        role,
-        status,
-      };
+    if (!(await this.comparePasswords(pass, user.password))) {
+      throw new ForbiddenException('Λανθασμένα στοιχεία χρήστη.');
     }
 
-    if (!user) throw new NotFoundException('User not found.');
+    if (status !== 'active') {
+      throw new ForbiddenException('Ο λογαριασμός σας έχει ανασταλεί.');
+    }
 
-    throw new ForbiddenException('Invalid user credentials.');
+    return {
+      sub: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      role,
+      status,
+    };
   }
 
   private async createSession(payload: AuthJwtPayload) {
