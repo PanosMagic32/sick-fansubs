@@ -109,7 +109,12 @@ export default class BlogPostEditComponent {
 
   onSave() {
     if (this.editForm.valid) {
-      this.updateRequest.set(this.editForm.getRawValue() as EditBlogPost);
+      const rawValue = this.editForm.getRawValue();
+      this.updateRequest.set({
+        ...rawValue,
+        downloadLink4k: rawValue.downloadLink4k || undefined,
+        downloadLink4kTorrent: rawValue.downloadLink4kTorrent || undefined,
+      } as EditBlogPost);
     }
   }
 

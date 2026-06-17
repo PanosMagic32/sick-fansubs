@@ -102,8 +102,8 @@ export default class BlogPostCreateComponent {
       thumbnail: this.createForm.value.thumbnail ?? '',
       downloadLinkTorrent: this.createForm.value.downloadLinkTorrent ?? '',
       downloadLink: this.createForm.value.downloadLink ?? '',
-      downloadLink4kTorrent: this.createForm.value.downloadLink4kTorrent ?? '',
-      downloadLink4k: this.createForm.value.downloadLink4k ?? '',
+      downloadLink4kTorrent: this.createForm.value.downloadLink4kTorrent || undefined,
+      downloadLink4k: this.createForm.value.downloadLink4k || undefined,
       dateTimeCreated: new Date(),
     };
 
