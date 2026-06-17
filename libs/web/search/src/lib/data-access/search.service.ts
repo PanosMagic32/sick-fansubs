@@ -6,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { WebConfigService } from '@web/shared';
 
 import { SearchResponse } from './search-form.interface';
-import { catchError, tap } from 'rxjs';
+import { catchError, of, tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
@@ -31,7 +31,7 @@ export class SearchService {
         catchError((err) => {
           this.openSnackBar(err.status === 0 ? 'Άγνωστο σφάλμα.' : err.error.message, 'OK');
           this._isLoading.set(false);
-          return [];
+          return of({ results: [], total: 0 });
         }),
         tap((res) => {
           this._results.set({
