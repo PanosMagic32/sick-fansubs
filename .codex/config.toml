@@ -1,6 +1,6 @@
 [mcp_servers.nx-mcp]
 command = "npx"
-args = [ "nx-mcp@latest", "--minimal" ]
+args = [ "nx", "mcp", "--minimal" ]
 
 [features]
 multi_agent = true
