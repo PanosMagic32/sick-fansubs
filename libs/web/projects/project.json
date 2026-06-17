@@ -4,10 +4,12 @@
   "sourceRoot": "libs/web/projects/src",
   "prefix": "sf",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:web"],
+  "// targets": "to see all targets run: nx show project projects --web",
   "targets": {
     "lint": {
-      "executor": "@nx/eslint:lint"
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     }
   }
 }

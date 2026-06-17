@@ -3,11 +3,12 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/api/media/src",
   "projectType": "library",
+  "tags": ["scope:api"],
+  "// targets": "to see all targets run: nx show project api-media --web",
   "targets": {
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"]
     }
-  },
-  "tags": []
+  }
 }

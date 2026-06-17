@@ -3,10 +3,12 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/api/blog-post/src",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:api"],
+  "// targets": "to see all targets run: nx show project api-search --web",
   "targets": {
     "lint": {
-      "executor": "@nx/eslint:lint"
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     }
   }
 }

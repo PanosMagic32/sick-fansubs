@@ -9,6 +9,7 @@
     "build": {
       "executor": "@nx/angular:application",
       "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apps/web",
         "index": "apps/web/src/index.html",
@@ -54,11 +55,15 @@
           "extractLicenses": false,
           "sourceMap": true
         }
-      },
-      "defaultConfiguration": "production"
+      }
     },
     "serve": {
       "executor": "@nx/angular:dev-server",
+      "defaultConfiguration": "development",
+      "continuous": true,
+      "options": {
+        "proxyConfig": "apps/web/proxy.conf.json"
+      },
       "configurations": {
         "production": {
           "buildTarget": "web:build:production"
@@ -66,21 +71,13 @@
         "development": {
           "buildTarget": "web:build:development"
         }
-      },
-      "defaultConfiguration": "development",
-      "options": {
-        "proxyConfig": "apps/web/proxy.conf.json"
-      },
-      "continuous": true
+      }
     },
     "extract-i18n": {
       "executor": "@nx/angular:extract-i18n",
       "options": {
         "buildTarget": "web:build"
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint"
     },
     "serve-static": {
       "executor": "@nx/web:file-server",
@@ -89,6 +86,10 @@
         "staticFilePath": "dist/apps/web/browser",
         "spa": true
       }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     }
   }
 }

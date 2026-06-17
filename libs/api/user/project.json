@@ -3,6 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/api/user/src",
   "projectType": "library",
+  "tags": ["scope:api"],
   "targets": {
     "test": {
       "executor": "nx:run-commands",
@@ -14,6 +15,5 @@
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"]
     }
-  },
-  "tags": []
+  }
 }

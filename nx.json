@@ -114,5 +114,31 @@
     ]
   },
   "defaultBase": "main",
-  "analytics": false
+  "analytics": false,
+  "plugins": [
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      },
+      "include": [
+        "apps/api/**/*",
+        "apps/web/**/*",
+        "libs/api/auth/**/*",
+        "libs/api/blog-post/**/*",
+        "libs/api/media/**/*",
+        "libs/api/project/**/*",
+        "libs/api/search/**/*",
+        "libs/api/user/**/*",
+        "libs/web/about/**/*",
+        "libs/web/account/**/*",
+        "libs/web/auth/**/*",
+        "libs/web/blog-post/**/*",
+        "libs/web/dashboard/**/*",
+        "libs/web/projects/**/*",
+        "libs/web/search/**/*",
+        "libs/web/shared/**/*"
+      ]
+    }
+  ]
 }

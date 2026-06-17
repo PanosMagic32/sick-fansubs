@@ -1,11 +1,9 @@
 {
-  "name": "account",
+  "name": "api-shared",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/web/account/src",
-  "prefix": "sf",
+  "sourceRoot": "libs/api/shared/src",
   "projectType": "library",
-  "tags": ["scope:web"],
-  "// targets": "to see all targets run: nx show project account --web",
+  "tags": ["scope:api"],
   "targets": {
     "lint": {
       "executor": "@nx/eslint:lint",
