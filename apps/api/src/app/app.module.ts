@@ -24,6 +24,22 @@ import { HealthController } from './health.controller';
     ApiMediaModule,
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: (config: Record<string, unknown>) => {
+        const required = ['JWT_SECRET', 'JWT_REFRESH_SECRET'];
+        const dbKey = config['NODE_ENV'] === 'production' ? 'DATABASE_URL' : 'DATABASE_URL_DEV';
+
+        for (const key of required) {
+          if (!config[key]) {
+            throw new Error(`Missing required environment variable: ${key}`);
+          }
+        }
+
+        if (!config[dbKey]) {
+          throw new Error(`Missing required environment variable: ${dbKey}`);
+        }
+
+        return config;
+      },
     }),
     ThrottlerModule.forRoot([
       {

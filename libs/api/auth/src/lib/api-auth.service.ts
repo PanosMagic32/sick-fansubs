@@ -23,9 +23,9 @@ export class ApiAuthService {
     private readonly userService: UserService,
     private readonly configService: ConfigService,
   ) {
-    this.accessTokenSecret = this.configService.get<string>('JWT_SECRET') ?? 'dev_access_secret';
+    this.accessTokenSecret = this.configService.get<string>('JWT_SECRET');
     this.accessTokenExpiration = this.configService.get<string>('JWT_EXPIRATION_TIME') ?? '15m';
-    this.refreshTokenSecret = this.configService.get<string>('JWT_REFRESH_SECRET') ?? this.accessTokenSecret;
+    this.refreshTokenSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
     this.refreshTokenExpiration = this.configService.get<string>('JWT_REFRESH_EXPIRATION_TIME') ?? '7d';
   }
 
