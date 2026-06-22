@@ -31,16 +31,16 @@ export class CreateBlogPostDto {
   @ApiProperty({ type: String })
   @IsString()
   @MinLength(1)
-  @Matches(URL_PATTERN, {
-    message: 'Download link must start with http:// or https://',
+  @Matches(MAGNET_PATTERN, {
+    message: 'Magnet download link must start with magnet:?xt=',
   })
   readonly downloadLink!: string;
 
   @ApiProperty({ type: String })
   @IsString()
   @MinLength(1)
-  @Matches(MAGNET_PATTERN, {
-    message: 'Torrent download link must start with magnet:?xt=',
+  @Matches(URL_PATTERN, {
+    message: 'Torrent download link must start with http:// or https://',
   })
   readonly downloadLinkTorrent!: string;
 
@@ -48,8 +48,8 @@ export class CreateBlogPostDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @Matches(URL_PATTERN, {
-    message: '4K download link must start with http:// or https://',
+  @Matches(MAGNET_PATTERN, {
+    message: '4K magnet download link must start with magnet:?xt=',
   })
   readonly downloadLink4k!: string;
 
@@ -57,8 +57,8 @@ export class CreateBlogPostDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @Matches(MAGNET_PATTERN, {
-    message: '4K torrent download link must start with magnet:?xt=',
+  @Matches(URL_PATTERN, {
+    message: '4K torrent download link must start with http:// or https://',
   })
   readonly downloadLink4kTorrent!: string;
 
