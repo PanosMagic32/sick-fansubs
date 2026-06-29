@@ -4,22 +4,10 @@ import type { UserRole, UserStatus } from '@shared/types';
 export type AccountViewState = 'loading' | 'error' | 'ready' | 'idle';
 
 export type FavoritesViewState =
-  | 'loading-ids'
-  | 'ids-error'
-  | 'empty-ids'
-  | 'loading-posts'
-  | 'posts-error'
-  | 'empty-posts'
-  | 'ready';
+  'loading-ids' | 'ids-error' | 'empty-ids' | 'loading-posts' | 'posts-error' | 'empty-posts' | 'ready';
 
 export type FavoriteProjectsViewState =
-  | 'loading-ids'
-  | 'ids-error'
-  | 'empty-ids'
-  | 'loading-projects'
-  | 'projects-error'
-  | 'empty-projects'
-  | 'ready';
+  'loading-ids' | 'ids-error' | 'empty-ids' | 'loading-projects' | 'projects-error' | 'empty-projects' | 'ready';
 
 export interface FavoritesPageChange {
   page: number;
