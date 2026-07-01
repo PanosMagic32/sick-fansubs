@@ -19,17 +19,12 @@ export const jwtInterceptor: HttpInterceptorFn = (request: HttpRequest<unknown>,
   const rawHttpClient = new HttpClient(httpBackend);
 
   const apiBase = webConfig.API_URL;
-  if (!apiBase) {
-    return next(request);
-  }
-  const isApiUrl = request.url.startsWith(apiBase) || request.url.startsWith('/api');
-  const isAuthRoute = AUTH_PATHS.some((path) => request.url === webConfig.resolveApiUrl(path));
+  if (!apiBase) return next(request);
 
-  if (isApiUrl) {
-    request = request.clone({
-      withCredentials: true,
-    });
-  }
+  const isApiUrl = request.url.startsWith(apiBase) || request.url.startsWith('/api');
+  if (isApiUrl) request = request.clone({ withCredentials: true });
+
+  const isAuthRoute = AUTH_PATHS.some((path) => request.url === webConfig.resolveApiUrl(path));
 
   return next(request).pipe(
     catchError((error: unknown) => {

@@ -10,7 +10,8 @@ import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { MediaService } from '@web/shared';
+import { MediaService } from '@web/shared/data-access';
+
 import { batchMagnetUrlValidator, batchTorrentUrlValidator } from '../../data-access/batch-link.validators';
 import type { BatchDownloadLinkFormModel, ProjectFormModel } from '../../data-access/project-form.interface';
 import type { Project, ProjectBatchDownloadLink } from '../../data-access/project.interface';

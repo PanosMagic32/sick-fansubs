@@ -3,7 +3,8 @@ import { inject, Injectable, signal } from '@angular/core';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { mapApiErrorMessage, WebConfigService } from '@web/shared';
+import { WebConfigService } from '@web/shared';
+import { mapApiErrorMessage } from '@web/shared/data-access';
 
 import { SearchResponse } from './search-form.interface';
 import { catchError, of, tap } from 'rxjs';

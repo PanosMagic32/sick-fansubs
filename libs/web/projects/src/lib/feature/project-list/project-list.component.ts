@@ -9,7 +9,8 @@ import { MatPaginator, type PageEvent } from '@angular/material/paginator';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { NoContentComponent, TokenService } from '@web/shared';
+import { TokenService } from '@web/shared';
+import { NoContentComponent } from '@web/shared/ui';
 
 import { ProjectsService } from '../../data-access/projects.service';
 import { ProjectItemComponent } from '../../ui/project-item/project-item.component';

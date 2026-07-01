@@ -3,7 +3,7 @@ import { CanDeactivateFn } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { map, of, take } from 'rxjs';
 
-import { ConfirmDialogComponent } from '@web/shared';
+import { ConfirmDialogComponent } from '@web/shared/ui';
 
 import { WebAccountComponent } from '../feature/account/account.component';
 

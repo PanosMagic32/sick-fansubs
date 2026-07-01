@@ -6,7 +6,8 @@ import { firstValueFrom } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import type { UserRole, UserStatus } from '@shared/types';
-import { mapAuthSessionErrorMessage, TokenService, WebConfigService } from '@web/shared';
+import { TokenService, WebConfigService } from '@web/shared';
+import { mapAuthSessionErrorMessage } from '@web/shared/data-access';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

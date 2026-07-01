@@ -11,7 +11,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatIcon } from '@angular/material/icon';
 import { MatPaginator, type PageEvent } from '@angular/material/paginator';
 
-import { NoContentComponent, StatusCardComponent, TokenService } from '@web/shared';
+import { TokenService } from '@web/shared';
+import { NoContentComponent, StatusCardComponent } from '@web/shared/ui';
 
 import { SearchFormModel, SearchTypeOption } from '../data-access/search-form.interface';
 import { SearchService } from '../data-access/search.service';

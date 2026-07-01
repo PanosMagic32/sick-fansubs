@@ -10,7 +10,9 @@ import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { mapApiErrorMessage, MediaService } from '@web/shared';
+import { mapApiErrorMessage } from '@web/shared/data-access';
+import { MediaService } from '@web/shared/data-access';
+
 import type { EditBlogPost } from '../../data-access/blog-post.interface';
 import { BlogPostService } from '../../data-access/blog-post.service';
 import type { PostFormModel } from '../../data-access/post-form.interface';

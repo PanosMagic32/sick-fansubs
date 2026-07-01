@@ -2,7 +2,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
+import { WebConfigService } from './web-config.service';
 import { TokenService } from './token.service';
+
+const TEST_API_URL = '/api/v1';
 
 describe('TokenService', () => {
   let service: TokenService;
@@ -10,8 +13,11 @@ describe('TokenService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [TokenService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [TokenService, WebConfigService, provideHttpClient(), provideHttpClientTesting()],
     });
+
+    const webConfig = TestBed.inject(WebConfigService);
+    webConfig.API_URL = TEST_API_URL;
 
     service = TestBed.inject(TokenService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -24,7 +30,7 @@ describe('TokenService', () => {
   it('maps explicit role/status from session payload', () => {
     service.restoreSession().subscribe();
 
-    const req = httpMock.expectOne('/api/auth/session');
+    const req = httpMock.expectOne(`${TEST_API_URL}/auth/session`);
     expect(req.request.method).toBe('GET');
 
     req.flush({
@@ -45,7 +51,7 @@ describe('TokenService', () => {
   it('defaults role/status when not provided', () => {
     service.restoreSession().subscribe();
 
-    const req = httpMock.expectOne('/api/auth/session');
+    const req = httpMock.expectOne(`${TEST_API_URL}/auth/session`);
     req.flush({
       sub: 'u-2',
       username: 'legacy',
@@ -61,7 +67,7 @@ describe('TokenService', () => {
   it('clears session state on restore failure', () => {
     service.restoreSession().subscribe();
 
-    const req = httpMock.expectOne('/api/auth/session');
+    const req = httpMock.expectOne(`${TEST_API_URL}/auth/session`);
     req.flush({}, { status: 401, statusText: 'Unauthorized' });
 
     expect(service.isAuthenticated()).toBe(false);

@@ -19,7 +19,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { openSafeUrl } from '@web/shared';
+import { openSafeUrl } from '@web/shared/utils';
 
 import type { BlogPost } from '../../data-access/blog-post.interface';
 

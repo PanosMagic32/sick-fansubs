@@ -9,7 +9,9 @@ import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { mapApiErrorMessage, openSafeUrl, TokenService } from '@web/shared';
+import { TokenService } from '@web/shared';
+import { mapApiErrorMessage } from '@web/shared/data-access';
+import { openSafeUrl } from '@web/shared/utils';
 
 import { ProjectsService } from '../../data-access/projects.service';
 import type { Project, ProjectBatchDownloadLink } from '../../data-access/project.interface';

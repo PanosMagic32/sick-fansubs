@@ -19,7 +19,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 
 import type { UserRole, UserStatus } from '@shared/types';
-import { ConfirmDialogComponent, TokenService } from '@web/shared';
+import { TokenService } from '@web/shared';
+import { ConfirmDialogComponent } from '@web/shared/ui';
 
 import { DashboardService } from '../../data-access/dashboard.service';
 

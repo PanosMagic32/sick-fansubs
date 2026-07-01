@@ -7,9 +7,11 @@ import { vi } from 'vitest';
 
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { TokenService } from '@web/shared';
+import { TokenService, WebConfigService } from '@web/shared';
 
 import { AuthService } from './auth.service';
+
+const TEST_API_URL = '/api/v1';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -33,6 +35,7 @@ describe('AuthService', () => {
     TestBed.configureTestingModule({
       providers: [
         AuthService,
+        WebConfigService,
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: Router, useValue: routerMock },
@@ -40,6 +43,9 @@ describe('AuthService', () => {
         { provide: TokenService, useValue: tokenServiceMock },
       ],
     });
+
+    const webConfig = TestBed.inject(WebConfigService);
+    webConfig.API_URL = TEST_API_URL;
 
     service = TestBed.inject(AuthService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -52,7 +58,7 @@ describe('AuthService', () => {
   it('navigates home after successful login and session restore', async () => {
     service.login('tester', 'Password1!');
 
-    const req = httpMock.expectOne('/api/auth/login');
+    const req = httpMock.expectOne(`${TEST_API_URL}/auth/login`);
     expect(req.request.method).toBe('POST');
     req.flush({ username: 'tester' });
 
@@ -67,7 +73,7 @@ describe('AuthService', () => {
   it('navigates to login after successful signup', () => {
     service.signUp('new-user', 'new@example.com', 'Password1!', 'https://example.com/avatar.png');
 
-    const req = httpMock.expectOne('/api/user');
+    const req = httpMock.expectOne(`${TEST_API_URL}/user`);
     expect(req.request.method).toBe('POST');
     req.flush({ id: 'u-1', username: 'new-user', email: 'new@example.com', role: 'user', status: 'active' });
 
@@ -81,7 +87,7 @@ describe('AuthService', () => {
   it('shows conflict message on signup 409 error', () => {
     service.signUp('existing-user', 'existing@example.com', 'Password1!');
 
-    const req = httpMock.expectOne('/api/user');
+    const req = httpMock.expectOne(`${TEST_API_URL}/user`);
     req.flush({ message: 'Conflict' }, { status: 409, statusText: 'Conflict' });
 
     expect(snackBarMock.open).toHaveBeenCalledWith('Το email ή το όνομα χρήστη χρησιμοποιείται ήδη.', 'OK', {

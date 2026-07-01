@@ -6,7 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIcon } from '@angular/material/icon';
 
-import { openSafeUrl } from '@web/shared';
+import { openSafeUrl } from '@web/shared/utils';
 
 import { Searchable, SearchTypeOption } from '../data-access/search-form.interface';
 

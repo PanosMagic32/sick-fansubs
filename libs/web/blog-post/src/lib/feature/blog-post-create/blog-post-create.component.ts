@@ -10,7 +10,9 @@ import { MatIcon } from '@angular/material/icon';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { mapApiErrorMessage, MediaService, NoContentComponent } from '@web/shared';
+import { mapApiErrorMessage } from '@web/shared/data-access';
+import { MediaService } from '@web/shared/data-access';
+import { NoContentComponent } from '@web/shared/ui';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import type { CreateBlogPost } from '../../data-access/blog-post.interface';

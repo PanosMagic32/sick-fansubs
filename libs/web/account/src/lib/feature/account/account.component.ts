@@ -21,7 +21,9 @@ import { MatTabsModule } from '@angular/material/tabs';
 
 import type { BlogPost, Project } from '@shared/types';
 
-import { ConfirmDialogComponent, openSafeUrl, StatusCardComponent, TokenService } from '@web/shared';
+import { TokenService } from '@web/shared';
+import { openSafeUrl } from '@web/shared/utils';
+import { ConfirmDialogComponent, StatusCardComponent } from '@web/shared/ui';
 
 import { AccountFavoritesComponent } from '../../ui/favorites/account-favorites.component';
 import { AccountFavoriteProjectsComponent } from '../../ui/favorite-projects/account-favorite-projects.component';

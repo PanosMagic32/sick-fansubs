@@ -28,6 +28,9 @@
       "@web/projects": ["libs/web/projects/src/index.ts"],
       "@web/search": ["libs/web/search/src/index.ts"],
       "@web/shared": ["libs/web/shared/src/index.ts"],
+      "@web/shared/ui": ["libs/web/shared/src/ui.ts"],
+      "@web/shared/data-access": ["libs/web/shared/src/data-access.ts"],
+      "@web/shared/utils": ["libs/web/shared/src/utils.ts"],
       "@web/account": ["libs/web/account/src/index.ts"],
       "@web/dashboard": ["libs/web/dashboard/src/index.ts"],
       "@shared/types": ["libs/shared/types/src/index.ts"]
