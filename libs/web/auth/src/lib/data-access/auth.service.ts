@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import type { UserRole, UserStatus } from '@shared/types';
-import { mapAuthSessionErrorMessage, TokenService } from '@web/shared';
+import { mapAuthSessionErrorMessage, TokenService, WebConfigService } from '@web/shared';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -14,6 +14,7 @@ export class AuthService {
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly tokenService = inject(TokenService);
+  private readonly webConfig = inject(WebConfigService);
 
   private _isLoading = signal(false);
   isLoading = this._isLoading.asReadonly();
@@ -21,30 +22,35 @@ export class AuthService {
   login(username: string, password: string) {
     this._isLoading.set(true);
 
-    this.httpClient.post<{ username: string }>('/api/auth/login', { username, password }).subscribe({
-      next: () => {
-        void firstValueFrom(this.tokenService.restoreSession()).then(() => {
+    this.httpClient
+      .post<{ username: string }>(this.webConfig.resolveApiUrl('/auth/login'), { username, password })
+      .subscribe({
+        next: () => {
+          void firstValueFrom(this.tokenService.restoreSession()).then(() => {
+            this._isLoading.set(false);
+            this.router.navigate(['/'], { replaceUrl: true });
+          });
+        },
+        error: (err) => {
           this._isLoading.set(false);
-          this.router.navigate(['/'], { replaceUrl: true });
-        });
-      },
-      error: (err) => {
-        this._isLoading.set(false);
-        this.openSnackBar(this.getAuthErrorMessage(err), 'OK');
-      },
-    });
+          this.openSnackBar(this.getAuthErrorMessage(err), 'OK');
+        },
+      });
   }
 
   signUp(username: string, email: string, password: string, avatar?: string) {
     this._isLoading.set(true);
 
     this.httpClient
-      .post<{ id: string; username: string; email: string; role?: UserRole; status?: UserStatus }>('/api/user', {
-        username,
-        email,
-        password,
-        avatar,
-      })
+      .post<{ id: string; username: string; email: string; role?: UserRole; status?: UserStatus }>(
+        this.webConfig.resolveApiUrl('/user'),
+        {
+          username,
+          email,
+          password,
+          avatar,
+        },
+      )
       .subscribe({
         next: () => {
           this._isLoading.set(false);

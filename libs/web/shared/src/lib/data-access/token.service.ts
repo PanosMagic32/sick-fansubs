@@ -3,6 +3,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, map, of, tap } from 'rxjs';
 
 import type { UserRole, UserStatus } from '@shared/types';
+import { WebConfigService } from './web-config.service';
 
 interface AuthSessionResponse {
   sub: string;
@@ -15,6 +16,7 @@ interface AuthSessionResponse {
 @Injectable({ providedIn: 'root' })
 export class TokenService {
   private readonly httpClient = inject(HttpClient);
+  private readonly webConfig = inject(WebConfigService);
 
   private _role = signal<UserRole>('user');
   role = this._role.asReadonly();
@@ -35,23 +37,25 @@ export class TokenService {
   isInitialized = this._isInitialized.asReadonly();
 
   restoreSession() {
-    return this.httpClient.get<AuthSessionResponse>('/api/auth/session', { withCredentials: true }).pipe(
-      tap((session) => {
-        this.applySession(session);
-      }),
-      map(() => undefined),
-      catchError(() => {
-        this.removeToken();
-        return of(undefined);
-      }),
-      tap(() => {
-        this._isInitialized.set(true);
-      }),
-    );
+    return this.httpClient
+      .get<AuthSessionResponse>(this.webConfig.resolveApiUrl('/auth/session'), { withCredentials: true })
+      .pipe(
+        tap((session) => {
+          this.applySession(session);
+        }),
+        map(() => undefined),
+        catchError(() => {
+          this.removeToken();
+          return of(undefined);
+        }),
+        tap(() => {
+          this._isInitialized.set(true);
+        }),
+      );
   }
 
   logout() {
-    return this.httpClient.post('/api/auth/logout', {}, { withCredentials: true }).pipe(
+    return this.httpClient.post(this.webConfig.resolveApiUrl('/auth/logout'), {}, { withCredentials: true }).pipe(
       tap(() => this.removeToken()),
       catchError(() => {
         this.removeToken();

@@ -65,4 +65,9 @@ export class WebConfigService {
   set TRACKER_URL(trackerUrl) {
     this.trackerUrl = trackerUrl;
   }
+
+  /** Build a full API URL from a relative path. */
+  resolveApiUrl(path: string): string {
+    return `${this.apiUrl}${path}`;
+  }
 }
