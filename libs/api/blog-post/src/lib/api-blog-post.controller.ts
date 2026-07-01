@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 import { PaginationDto, ParseMongoIdPipe } from '@api/shared';
 import { AdminGuard, JwtAuthGuard } from '@api/user';
@@ -35,6 +36,7 @@ export class ApiBlogPostController {
 
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async create(@Body() createBlogPostDto: CreateBlogPostDto, @Req() req: { user?: { sub?: string } }) {
     return this.apiBlogPostService.create(createBlogPostDto, this.getActorIdFromRequest(req));
   }
@@ -53,6 +55,7 @@ export class ApiBlogPostController {
   @ApiParam({ name: 'id' })
   @Patch(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async update(
     @Param('id', ParseMongoIdPipe) id: string,
     @Body() updateBlogPostDto: UpdateBlogPostDto,
@@ -64,6 +67,7 @@ export class ApiBlogPostController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async delete(@Param('id', ParseMongoIdPipe) id: string, @Req() req: { user?: { sub?: string } }) {
     return this.apiBlogPostService.delete(id, this.getActorIdFromRequest(req));
   }

@@ -50,7 +50,11 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.set('toJSON', {
   transform: (_doc, ret) => {
-    delete (ret as unknown as Record<string, unknown>)['password'];
+    const record = ret as unknown as Record<string, unknown>;
+    delete record['password'];
+    delete record['refreshTokenHash'];
+    delete record['refreshTokenJti'];
+    delete record['refreshTokenExpiresAt'];
     return ret;
   },
 });

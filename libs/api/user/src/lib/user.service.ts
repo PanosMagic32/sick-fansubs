@@ -580,6 +580,8 @@ export class UserService {
     this.assertValidId(id);
     await this.assertCanDeleteUser(id, actor);
 
+    this.logger.warn(`User deletion: actor ${actor.sub} (${actor.role}) deleting user ${id}`);
+
     const deletedUser = await this.userModel.findByIdAndDelete(id).exec();
     if (!deletedUser) {
       throw new NotFoundException('User not found.');
@@ -591,6 +593,8 @@ export class UserService {
   async updateUserRole(id: string, newRole: UserRole, actor: AuthActor): Promise<ReturnType<UserService['toPublicUser']>> {
     this.assertAdmin(actor);
     this.assertValidId(id);
+
+    this.logger.warn(`Role change: actor ${actor.sub} (${actor.role}) changing user ${id} to role ${newRole}`);
 
     // Prevent self-targeting
     if (actor.sub === id) {
@@ -626,6 +630,8 @@ export class UserService {
   ): Promise<ReturnType<UserService['toPublicUser']>> {
     this.assertAdmin(actor);
     this.assertValidId(id);
+
+    this.logger.warn(`Status change: actor ${actor.sub} (${actor.role}) changing user ${id} to status ${newStatus}`);
 
     // Prevent self-targeting
     if (actor.sub === id) {

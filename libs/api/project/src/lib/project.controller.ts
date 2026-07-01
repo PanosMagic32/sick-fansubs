@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 import { PaginationDto, ParseMongoIdPipe } from '@api/shared';
 import { AdminGuard, JwtAuthGuard } from '@api/user';
@@ -35,6 +36,7 @@ export class ProjectController {
 
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async create(@Body() createProjectDto: CreateProjectDto, @Req() req: { user?: { sub?: string } }) {
     return this.projectService.create(createProjectDto, this.getActorIdFromRequest(req));
   }
@@ -53,6 +55,7 @@ export class ProjectController {
   @ApiParam({ name: 'id' })
   @Patch(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async update(
     @Param('id', ParseMongoIdPipe) id: string,
     @Body() updateProjectDto: UpdateProjectDto,
@@ -64,6 +67,7 @@ export class ProjectController {
   @ApiParam({ name: 'id' })
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async remove(@Param('id', ParseMongoIdPipe) id: string) {
     return this.projectService.remove(id);
   }

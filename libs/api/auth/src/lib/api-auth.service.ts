@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -13,6 +13,8 @@ import type { AuthJwtPayload, RefreshTokenPayload } from './types/auth-session.t
 
 @Injectable()
 export class ApiAuthService {
+  private readonly logger = new Logger(ApiAuthService.name);
+
   private readonly accessTokenSecret: string;
   private readonly accessTokenExpiration: string;
   private readonly refreshTokenSecret: string;
@@ -163,6 +165,7 @@ export class ApiAuthService {
     const status = user.status ?? 'active';
 
     if (!(await this.comparePasswords(pass, user.password))) {
+      this.logger.warn(`Failed login attempt for username: ${username}`);
       throw new ForbiddenException('Invalid credentials.');
     }
 
@@ -201,6 +204,7 @@ export class ApiAuthService {
 
   async login(loginUserDto: LoginUserDto): Promise<{ username: string; accessToken: string; refreshToken: string }> {
     const payload = await this.validateUser(loginUserDto.username, loginUserDto.password);
+    this.logger.log(`Successful login for user: ${payload.username}`);
 
     return this.createSession(payload);
   }
@@ -235,6 +239,8 @@ export class ApiAuthService {
       newRefreshTokenData.jti,
       newRefreshTokenData.expiresAt,
     );
+
+    this.logger.log(`Token refreshed for user: ${sessionPayload.username}`);
 
     return {
       username: sessionPayload.username,
