@@ -76,6 +76,8 @@ services:
     ports:
       - '${WEB_HTTP_PORT:-80}:8080'
       - '${WEB_HTTPS_PORT:-443}:8443'
+    volumes:
+      - ${CERT_PATH}:/etc/nginx/certs:ro
     depends_on:
       api:
         condition: service_healthy
