@@ -7,17 +7,17 @@ const MAGNET_PATTERN = /^magnet:\?xt=/i;
 export class CreateBlogPostDto {
   @ApiProperty({ type: String })
   @IsString()
-  @MinLength(3)
+  @MinLength(1)
   readonly title!: string;
 
   @ApiProperty({ type: String })
   @IsString()
-  @MinLength(3)
+  @MinLength(1)
   readonly subtitle!: string;
 
   @ApiProperty({ type: String })
   @IsString()
-  @MinLength(10)
+  @MinLength(1)
   readonly description!: string;
 
   @ApiProperty({ type: String })
