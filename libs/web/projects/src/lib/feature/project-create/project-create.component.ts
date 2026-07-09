@@ -89,11 +89,11 @@ export default class ProjectCreateComponent {
       }),
       downloadLinkTorrent: new FormControl('', {
         nonNullable: true,
-        validators: [Validators.required, batchTorrentUrlValidator()],
+        validators: [batchTorrentUrlValidator()],
       }),
       downloadLink: new FormControl('', {
         nonNullable: true,
-        validators: [Validators.required, batchMagnetUrlValidator()],
+        validators: [batchMagnetUrlValidator()],
       }),
       downloadLink4kTorrent: new FormControl('', {
         nonNullable: true,
@@ -115,13 +115,15 @@ export default class ProjectCreateComponent {
         batchDownloadLinks: this.batchDownloadLinks.controls
           .map((control) => ({
             name: String(control.controls.name.value ?? '').trim(),
-            downloadLinkTorrent: String(control.controls.downloadLinkTorrent.value ?? '').trim(),
-            downloadLink: String(control.controls.downloadLink.value ?? '').trim(),
+            downloadLinkTorrent: String(control.controls.downloadLinkTorrent.value ?? '').trim() || undefined,
+            downloadLink: String(control.controls.downloadLink.value ?? '').trim() || undefined,
             downloadLink4kTorrent: String(control.controls.downloadLink4kTorrent.value ?? '').trim() || undefined,
             downloadLink4k: String(control.controls.downloadLink4k.value ?? '').trim() || undefined,
           }))
           .filter(
-            (link) => link.name.length > 0 && link.downloadLinkTorrent.length > 0 && link.downloadLink.length > 0,
+            (link) =>
+              link.name.length > 0 &&
+              ((link.downloadLinkTorrent && link.downloadLink) || (link.downloadLink4kTorrent && link.downloadLink4k)),
           ) as ProjectBatchDownloadLink[],
         dateTimeCreated: new Date(),
       } as Project;

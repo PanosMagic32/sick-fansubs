@@ -78,11 +78,7 @@
 
         <mat-form-field class="batch-torrent" appearance="fill">
           <mat-label>Σύνδεσμος torrent {{ i + 1 }}</mat-label>
-          <textarea matInput formControlName="downloadLinkTorrent" type="text" required></textarea>
-
-          @if (linkForm.controls.downloadLinkTorrent.touched && linkForm.controls.downloadLinkTorrent.hasError('required')) {
-            <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
-          }
+          <textarea matInput formControlName="downloadLinkTorrent" type="text"></textarea>
 
           @if (
             linkForm.controls.downloadLinkTorrent.touched &&
@@ -94,11 +90,7 @@
 
         <mat-form-field class="batch-magnet" appearance="fill">
           <mat-label>Σύνδεσμος magnet {{ i + 1 }}</mat-label>
-          <textarea matInput formControlName="downloadLink" type="text" required></textarea>
-
-          @if (linkForm.controls.downloadLink.touched && linkForm.controls.downloadLink.hasError('required')) {
-            <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
-          }
+          <textarea matInput formControlName="downloadLink" type="text"></textarea>
 
           @if (linkForm.controls.downloadLink.touched && linkForm.controls.downloadLink.hasError('invalidBatchMagnetUrl')) {
             <mat-error> Επιτρέπονται μόνο σύνδεσμοι magnet της μορφής magnet:?xt=...</mat-error>
@@ -127,6 +119,12 @@
             <mat-error> Επιτρέπονται μόνο σύνδεσμοι magnet της μορφής magnet:?xt=...</mat-error>
           }
         </mat-form-field>
+
+        @if (linkForm.touched && linkForm.hasError('atLeastOneResolution')) {
+          <mat-error class="form-level-error">
+            Πρέπει να συμπληρώσετε τουλάχιστον ένα πλήρες ζεύγος (torrent και magnet) για μία ανάλυση (1080p ή 2160p).
+          </mat-error>
+        }
 
         @if (batchDownloadLinks.controls.length > 1) {
           <button mat-mini-fab type="button" color="warn" class="delete-btn" (click)="onDeleteBatchDownloadLink(i)">

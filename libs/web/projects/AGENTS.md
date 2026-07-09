@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Fansub project pages — ongoing subtitle series or batch releases. Each project can have multiple batch download links. Supports paginated list, project details view, and admin create/edit flows.
+Fansub project pages — ongoing subtitle series or batch releases. Each project can have multiple batch download links. Each batch link requires at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet), or both. Supports paginated list, project details view, and admin create/edit flows.
 
 ## Path Alias
 
@@ -59,7 +59,7 @@ Imports `User` type from `@api/user`.
 `ProjectFormModel` — typed `FormGroup` shape:
 
 - `title`, `description`, `thumbnail`
-- `batchDownloadLinks: FormArray<FormControl<string>>` — dynamic array
+- `batchDownloadLinks: FormArray<FormGroup<BatchDownloadLinkFormModel>>` — dynamic array; each group has cross-field validation requiring at least one resolution pair
 
 ### `src/lib/feature/`
 
@@ -77,12 +77,15 @@ Imports `User` type from `@api/user`.
 
 - Reactive form with dynamic `batchDownloadLinks` `FormArray`
 - Add / remove download link fields at runtime
+- Each batch link group has `atLeastOneResolution` cross-field validator
+- Submit filter keeps only links with at least one complete resolution pair
 - On success: navigates to `/projects`
 
 #### `project-details/project-details.component.ts` (lazy)
 
 - Read-only view of a single project
-- Lists all batch download links; opens each with `window.open()`
+- Lists all batch download links; opens each with `openSafeUrl()`
+- 1080p and 2160p download buttons are rendered conditionally per batch link
 - Back button via `Location.back()`
 - Admin-only edit action button (`/projects/:id/edit`)
 
@@ -91,15 +94,14 @@ Imports `User` type from `@api/user`.
 - Pre-fills form from loaded project (including rebuilding `batchDownloadLinks` `FormArray`)
 - Handles update (PATCH) + delete (DELETE)
 - Mirrors `ProjectCreateComponent` for link add/remove
-- Edit mode currently allows temporarily incomplete batch-link controls during migration
-- TODO in code: restore strict required validators after legacy data migration
+- Submit filter keeps only links with at least one complete resolution pair
 
 ### `src/lib/ui/`
 
 | Component                        | Selector               | Description                                                                                                                                                                              |
 | -------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `project-item.component.ts`      | `sf-project-item`      | Card with creator/editor metadata: 70px circular avatar with fallback to logo, title, created/edited dates with creator/editor usernames in Greek, edit FAB for admins. Responsive grid. |
-| `project-item-form.component.ts` | `sf-project-item-form` | Dumb form presentation. Renders base fields + dynamic batch download link list with add/remove controls.                                                                                 |
+| `project-item-form.component.ts` | `sf-project-item-form` | Dumb form presentation. Renders base fields + dynamic batch download link list with add/remove controls. Each batch link group validates at least one resolution pair.                   |
 
 ## Dependencies
 
@@ -117,10 +119,9 @@ pnpm nx lint projects
 
 ## Notes
 
-- `batchDownloadLinks` is a `FormArray` — always rebuild it when pre-filling form from an existing project (clear first, then patch each entry)
+- Each batch download link must contain at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet); both pairs may be provided
 - The `/projects/create` route must come **before** `/projects/:id` in the route list to avoid `create` being matched as an `:id` param — verify `lib.routes.ts` ordering
 - Creator avatar is 70px circular with 35% secondary color border and soft shadow; defaults to `/logo/logo.png` if creator has no avatar
 - Timestamps and usernames are displayed in Greek ("Προστέθηκε: ... από", "Επεξεργάστηκε: ... από")
 - Editor username shown only if `updatedBy` exists and differs from `creator`; falls back to "Άγνωστος χρήστης" if username unavailable
-- During migration window, edit payload omits `batchDownloadLinks` when no complete link pairs are present, preventing accidental overwrite of legacy links
 - Project list and card styles include `min-width: 0`/wrapping safeguards so long metadata does not cause horizontal overflow on mobile

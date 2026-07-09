@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, type ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 
 import { MatButton } from '@angular/material/button';
@@ -21,6 +21,18 @@ import type { PostFormModel } from '../../data-access/post-form.interface';
 import { BlogPostFormComponent } from '../../ui/blog-post-form/blog-post-form.component';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+function atLeastOneResolution(form: AbstractControl): ValidationErrors | null {
+  const dl = String(form.get('downloadLink')?.value ?? '').trim();
+  const dlTorrent = String(form.get('downloadLinkTorrent')?.value ?? '').trim();
+  const dl4k = String(form.get('downloadLink4k')?.value ?? '').trim();
+  const dl4kTorrent = String(form.get('downloadLink4kTorrent')?.value ?? '').trim();
+
+  const has1080p = dl.length > 0 && dlTorrent.length > 0;
+  const has2160p = dl4k.length > 0 && dl4kTorrent.length > 0;
+
+  return has1080p || has2160p ? null : { atLeastOneResolution: true };
+}
 
 @Component({
   selector: 'sf-blog-post-create',
@@ -53,38 +65,39 @@ export default class BlogPostCreateComponent {
   protected readonly createBlogPost = this.blogPostService.createBlogPost(this.blogPost);
   protected readonly isThumbnailUploadInProgress = this.thumbnailUploadInProgress.asReadonly();
 
-  protected readonly createForm = new FormGroup<PostFormModel>({
-    title: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    subtitle: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    description: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    thumbnail: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    downloadLinkTorrent: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    downloadLink: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    downloadLink4kTorrent: new FormControl('', {
-      nonNullable: true,
-    }),
-    downloadLink4k: new FormControl('', {
-      nonNullable: true,
-    }),
-  });
+  protected readonly createForm = new FormGroup<PostFormModel>(
+    {
+      title: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      subtitle: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      description: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      thumbnail: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      downloadLinkTorrent: new FormControl('', {
+        nonNullable: true,
+      }),
+      downloadLink: new FormControl('', {
+        nonNullable: true,
+      }),
+      downloadLink4kTorrent: new FormControl('', {
+        nonNullable: true,
+      }),
+      downloadLink4k: new FormControl('', {
+        nonNullable: true,
+      }),
+    },
+    { validators: [atLeastOneResolution] },
+  );
 
   constructor() {
     effect(() => {
@@ -110,8 +123,8 @@ export default class BlogPostCreateComponent {
       subtitle: this.createForm.value.subtitle ?? '',
       description: this.createForm.value.description ?? '',
       thumbnail: this.createForm.value.thumbnail ?? '',
-      downloadLinkTorrent: this.createForm.value.downloadLinkTorrent ?? '',
-      downloadLink: this.createForm.value.downloadLink ?? '',
+      downloadLinkTorrent: this.createForm.value.downloadLinkTorrent || undefined,
+      downloadLink: this.createForm.value.downloadLink || undefined,
       downloadLink4kTorrent: this.createForm.value.downloadLink4kTorrent || undefined,
       downloadLink4k: this.createForm.value.downloadLink4k || undefined,
       dateTimeCreated: new Date(),

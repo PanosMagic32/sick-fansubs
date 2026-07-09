@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The root route of the app. Manages the blog post feed — the list of fansub subtitle releases with download links (standard, torrent, 4K, 4K torrent). Supports paginated browsing, creation, and editing for admins.
+The root route of the app. Manages the blog post feed — the list of fansub subtitle releases with download links for 1080p and/or 2160p (4K) resolutions. Supports paginated browsing, creation, and editing for admins. At least one complete resolution pair (torrent + magnet) is required per post.
 
 ## Path Alias
 
@@ -41,12 +41,12 @@ Angular `httpResource`-based service (signals-driven):
 
 #### `blog-post.interface.ts`
 
-| Type               | Description                                                                                                                                                                                                         |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BlogPost`         | Full entity: `_id?`, `title`, `subtitle`, `description`, `thumbnail`, `downloadLink`, `downloadLinkTorrent`, `downloadLink4k?`, `downloadLink4kTorrent?`, `dateTimeCreated`, `creator?`, `updatedAt?`, `updatedBy?` |
-| `CreateBlogPost`   | `Omit<BlogPost, '_id' \| 'creator' \| 'updatedAt' \| 'updatedBy'>`                                                                                                                                                  |
-| `EditBlogPost`     | `Omit<BlogPost, 'dateTimeCreated' \| 'creator' \| 'updatedAt' \| 'updatedBy'>`                                                                                                                                      |
-| `BlogPostResponse` | `{ posts: BlogPost[]; count: number }`                                                                                                                                                                              |
+| Type               | Description                                                                                                                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BlogPost`         | Full entity: `_id?`, `title`, `subtitle`, `description`, `thumbnail`, `downloadLink?`, `downloadLinkTorrent?`, `downloadLink4k?`, `downloadLink4kTorrent?`, `dateTimeCreated`, `creator?`, `updatedAt?`, `updatedBy?` |
+| `CreateBlogPost`   | `Omit<BlogPost, '_id' \| 'creator' \| 'updatedAt' \| 'updatedBy'>`                                                                                                                                                    |
+| `EditBlogPost`     | `Omit<BlogPost, 'dateTimeCreated' \| 'creator' \| 'updatedAt' \| 'updatedBy'>`                                                                                                                                        |
+| `BlogPostResponse` | `{ posts: BlogPost[]; count: number }`                                                                                                                                                                                |
 
 Imports `User` type from `@api/user`.
 
@@ -70,20 +70,22 @@ Imports `User` type from `@api/user`.
 
 - Reactive form backed by `PostFormModel`
 - Uses a `blogPost` signal — submitting sets the signal, which triggers the `httpResource` POST
+- Has `atLeastOneResolution` cross-field validator on the FormGroup: at least one complete pair (1080p torrent+magnet or 2160p torrent+magnet) must be filled
 - On success: navigates away
 
 #### `blog-post-edit/blog-post-edit.component.ts` (lazy)
 
 - `id` bound via `input.required<string>()` from route param
 - Loads existing post to pre-fill form
+- Has same `atLeastOneResolution` cross-field validator
 - Handles update (PATCH) + delete (DELETE) via separate signals
 
 ### `src/lib/ui/`
 
-| Component                     | Selector            | Description                                                                                                                                                                                               |
-| ----------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `blog-post-form.component.ts` | `sf-blog-post-form` | Dumb/presentational — renders field set. Receives `form: FormGroup<PostFormModel>` as input.                                                                                                              |
-| `blog-post-item.component.ts` | `sf-blog-post-item` | Card with creator/editor metadata: 70px circular avatar with fallback to logo, title, subtitle, created/edited dates with creator/editor usernames in Greek, download buttons, favorite toggle, edit FAB. |
+| Component                     | Selector            | Description                                                                                                                                                                                                                            |
+| ----------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `blog-post-form.component.ts` | `sf-blog-post-form` | Dumb/presentational — renders field set. Receives `form: FormGroup<PostFormModel>` as input. Displays form-level error when no complete resolution pair is provided.                                                                   |
+| `blog-post-item.component.ts` | `sf-blog-post-item` | Card with creator/editor metadata: 70px circular avatar with fallback to logo, title, subtitle, created/edited dates with creator/editor usernames in Greek, download buttons (conditional per resolution), favorite toggle, edit FAB. |
 
 ## Dependencies
 
@@ -94,14 +96,15 @@ Imports `User` type from `@api/user`.
 ## Nx Tasks
 
 ```bash
-pnpm nx lint web-blog-post
+pnpm nx lint blog-post
 ```
 
 `blog-post` currently exposes only a `lint` target.
 
 ## Notes
 
-- `downloadLink4k` and `downloadLink4kTorrent` are optional — validate their presence before rendering download buttons
+- All resolution fields are now optional individually; at least one complete pair (1080p torrent+magnet or 2160p torrent+magnet) must be provided
+- Download buttons for each resolution (1080p / 2160p) are rendered conditionally — only shown when the corresponding fields are present
 - Image priority (`loading="eager"`) is applied to first two items for LCP optimization
 - Creator avatar is 70px circular with 35% secondary color border and soft shadow; defaults to `/logo/logo.png` if creator has no avatar
 - Timestamps and usernames are displayed in Greek ("Προστέθηκε: ... από", "Επεξεργάστηκε: ... από")

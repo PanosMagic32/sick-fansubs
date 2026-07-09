@@ -58,26 +58,28 @@
           <p class="batch-title">{{ link.name }}</p>
 
           <div class="download-buttons">
-            <button matButton [matMenuTriggerFor]="menu1080p" type="button">
-              <mat-icon>keyboard_arrow_down</mat-icon>
-              <span>1080p</span>
-            </button>
+            @if (link.downloadLinkTorrent || link.downloadLink) {
+              <button matButton [matMenuTriggerFor]="menu1080p" type="button">
+                <mat-icon>keyboard_arrow_down</mat-icon>
+                <span>1080p</span>
+              </button>
 
-            <mat-menu #menu1080p="matMenu">
-              @if (link.downloadLinkTorrent) {
-                <button mat-menu-item type="button" (click)="onDownload(link.downloadLinkTorrent)">
-                  <mat-icon>file_download</mat-icon>
-                  <span>Torrent</span>
-                </button>
-              }
+              <mat-menu #menu1080p="matMenu">
+                @if (link.downloadLinkTorrent) {
+                  <button mat-menu-item type="button" (click)="onDownload(link.downloadLinkTorrent)">
+                    <mat-icon>file_download</mat-icon>
+                    <span>Torrent</span>
+                  </button>
+                }
 
-              @if (link.downloadLink) {
-                <button mat-menu-item type="button" (click)="onDownload(link.downloadLink)">
-                  <img src="images/magnet.png" class="magnet-icon" />
-                  <span>Magnet</span>
-                </button>
-              }
-            </mat-menu>
+                @if (link.downloadLink) {
+                  <button mat-menu-item type="button" (click)="onDownload(link.downloadLink)">
+                    <img src="images/magnet.png" class="magnet-icon" />
+                    <span>Magnet</span>
+                  </button>
+                }
+              </mat-menu>
+            }
 
             @if (link.downloadLink4k || link.downloadLink4kTorrent) {
               <button matButton [matMenuTriggerFor]="menu2160p" type="button">

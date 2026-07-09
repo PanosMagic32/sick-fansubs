@@ -78,26 +78,12 @@
 
   <mat-form-field class="input" appearance="fill">
     <mat-label>Σύνδεσμος λήψης torrent</mat-label>
-    <textarea
-      matInput
-      type="text"
-      placeholder="Σύνδεσμος λήψης torrent"
-      formControlName="downloadLinkTorrent"
-      required
-    ></textarea>
-
-    @if (formControls.downloadLinkTorrent.touched && formControls.downloadLinkTorrent.hasError('required')) {
-      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
-    }
+    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης torrent" formControlName="downloadLinkTorrent"></textarea>
   </mat-form-field>
 
   <mat-form-field class="input" appearance="fill">
     <mat-label>Σύνδεσμος λήψης magnet</mat-label>
-    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης magnet" formControlName="downloadLink" required></textarea>
-
-    @if (formControls.downloadLink.touched && formControls.downloadLink.hasError('required')) {
-      <mat-error> Το πεδίο είναι υποχρεωτικό. </mat-error>
-    }
+    <textarea matInput type="text" placeholder="Σύνδεσμος λήψης magnet" formControlName="downloadLink"></textarea>
   </mat-form-field>
 
   <mat-form-field class="input" appearance="fill">
@@ -114,4 +100,10 @@
     <mat-label>Σύνδεσμος λήψης magnet 4K</mat-label>
     <textarea matInput type="text" placeholder="Σύνδεσμος λήψης magnet 4K" formControlName="downloadLink4k"></textarea>
   </mat-form-field>
+
+  @if (form().touched && form().hasError('atLeastOneResolution')) {
+    <mat-error class="form-level-error">
+      Πρέπει να συμπληρώσετε τουλάχιστον ένα πλήρες ζεύγος (torrent και magnet) για μία ανάλυση (1080p ή 2160p).
+    </mat-error>
+  }
 </form>

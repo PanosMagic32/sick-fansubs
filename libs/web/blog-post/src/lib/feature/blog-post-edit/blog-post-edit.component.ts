@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, type ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { Router } from '@angular/router';
 
@@ -19,6 +19,18 @@ import type { PostFormModel } from '../../data-access/post-form.interface';
 import { BlogPostFormComponent } from '../../ui/blog-post-form/blog-post-form.component';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+function atLeastOneResolution(form: AbstractControl): ValidationErrors | null {
+  const dl = String(form.get('downloadLink')?.value ?? '').trim();
+  const dlTorrent = String(form.get('downloadLinkTorrent')?.value ?? '').trim();
+  const dl4k = String(form.get('downloadLink4k')?.value ?? '').trim();
+  const dl4kTorrent = String(form.get('downloadLink4kTorrent')?.value ?? '').trim();
+
+  const has1080p = dl.length > 0 && dlTorrent.length > 0;
+  const has2160p = dl4k.length > 0 && dl4kTorrent.length > 0;
+
+  return has1080p || has2160p ? null : { atLeastOneResolution: true };
+}
 
 @Component({
   selector: 'sf-blog-post-edit',
@@ -45,38 +57,39 @@ export default class BlogPostEditComponent {
 
   protected readonly isThumbnailUploadInProgress = this.thumbnailUploadInProgress.asReadonly();
 
-  protected readonly editForm = new FormGroup<PostFormModel>({
-    title: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    subtitle: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    description: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    thumbnail: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    downloadLinkTorrent: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    downloadLink: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    downloadLink4kTorrent: new FormControl('', {
-      nonNullable: true,
-    }),
-    downloadLink4k: new FormControl('', {
-      nonNullable: true,
-    }),
-  });
+  protected readonly editForm = new FormGroup<PostFormModel>(
+    {
+      title: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      subtitle: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      description: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      thumbnail: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      downloadLinkTorrent: new FormControl('', {
+        nonNullable: true,
+      }),
+      downloadLink: new FormControl('', {
+        nonNullable: true,
+      }),
+      downloadLink4kTorrent: new FormControl('', {
+        nonNullable: true,
+      }),
+      downloadLink4k: new FormControl('', {
+        nonNullable: true,
+      }),
+    },
+    { validators: [atLeastOneResolution] },
+  );
 
   constructor() {
     effect(() => {
@@ -88,7 +101,7 @@ export default class BlogPostEditComponent {
           description: post.description,
           thumbnail: post.thumbnail,
           downloadLinkTorrent: post.downloadLinkTorrent ?? '',
-          downloadLink: post.downloadLink,
+          downloadLink: post.downloadLink ?? '',
           downloadLink4kTorrent: post.downloadLink4kTorrent ?? '',
           downloadLink4k: post.downloadLink4k ?? '',
         });
@@ -138,6 +151,8 @@ export default class BlogPostEditComponent {
       const rawValue = this.editForm.getRawValue();
       this.updateRequest.set({
         ...rawValue,
+        downloadLink: rawValue.downloadLink || undefined,
+        downloadLinkTorrent: rawValue.downloadLinkTorrent || undefined,
         downloadLink4k: rawValue.downloadLink4k || undefined,
         downloadLink4kTorrent: rawValue.downloadLink4kTorrent || undefined,
       } as EditBlogPost);

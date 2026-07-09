@@ -123,10 +123,22 @@ export class ProjectsService {
 
     const normalizedBatchDownloadLinks = rawBatchDownloadLinks
       .map((link, index) => this.normalizeBatchDownloadLink(link, index))
-      .filter(
-        (link): link is ProjectBatchDownloadLink =>
-          !!link && (link.downloadLinkTorrent.length > 0 || link.downloadLink.length > 0),
-      );
+      .filter((link): link is ProjectBatchDownloadLink => {
+        if (!link) return false;
+        const has1080p = Boolean(
+          link.downloadLinkTorrent &&
+          link.downloadLink &&
+          link.downloadLinkTorrent.length > 0 &&
+          link.downloadLink.length > 0,
+        );
+        const has2160p = Boolean(
+          link.downloadLink4kTorrent &&
+          link.downloadLink4k &&
+          link.downloadLink4kTorrent.length > 0 &&
+          link.downloadLink4k.length > 0,
+        );
+        return has1080p || has2160p;
+      });
 
     return {
       _id: this.toStringValue(project['_id']),

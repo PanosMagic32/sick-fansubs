@@ -186,7 +186,9 @@ export default class ProjectDetailsComponent {
           downloadLink4k: magnet4k,
         };
       })
-      .filter((link) => link.downloadLinkTorrent || link.downloadLink);
+      .filter(
+        (link) => (link.downloadLinkTorrent && link.downloadLink) || (link.downloadLink4kTorrent && link.downloadLink4k),
+      );
   }
 
   onDownload(link: string) {

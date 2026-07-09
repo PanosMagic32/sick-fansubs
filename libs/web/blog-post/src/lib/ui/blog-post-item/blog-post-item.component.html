@@ -61,26 +61,28 @@
     </div>
 
     <div class="download-buttons">
-      <button matButton [matMenuTriggerFor]="menu1080p" aria-label="Example icon-button with a menu">
-        <mat-icon>keyboard_arrow_down</mat-icon>
-        <span>1080p</span>
-      </button>
+      @if (blogPost().downloadLinkTorrent || blogPost().downloadLink) {
+        <button matButton [matMenuTriggerFor]="menu1080p" aria-label="Example icon-button with a menu">
+          <mat-icon>keyboard_arrow_down</mat-icon>
+          <span>1080p</span>
+        </button>
 
-      <mat-menu #menu1080p="matMenu">
-        @if (blogPost().downloadLinkTorrent) {
-          <button mat-menu-item (click)="onDownload(blogPost().downloadLinkTorrent)">
-            <mat-icon>file_download</mat-icon>
-            <span>Torrent</span>
-          </button>
-        }
+        <mat-menu #menu1080p="matMenu">
+          @if (blogPost().downloadLinkTorrent) {
+            <button mat-menu-item (click)="onDownload(blogPost().downloadLinkTorrent)">
+              <mat-icon>file_download</mat-icon>
+              <span>Torrent</span>
+            </button>
+          }
 
-        @if (blogPost().downloadLink) {
-          <button mat-menu-item (click)="onDownload(blogPost().downloadLink)">
-            <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
-            <span>Magnet</span>
-          </button>
-        }
-      </mat-menu>
+          @if (blogPost().downloadLink) {
+            <button mat-menu-item (click)="onDownload(blogPost().downloadLink)">
+              <img src="images/magnet.png" style="padding-right: 1rem; margin-bottom: -3px" />
+              <span>Magnet</span>
+            </button>
+          }
+        </mat-menu>
+      }
 
       @if (blogPost().downloadLink4k || blogPost().downloadLink4kTorrent) {
         <button matButton [matMenuTriggerFor]="menu2160p" aria-label="Example icon-button with a menu">

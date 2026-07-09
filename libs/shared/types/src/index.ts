@@ -19,8 +19,8 @@ export interface BlogPost {
   subtitle: string;
   description: string;
   thumbnail: string;
-  downloadLinkTorrent: string;
-  downloadLink: string;
+  downloadLinkTorrent?: string;
+  downloadLink?: string;
   dateTimeCreated: Date | string;
   downloadLink4kTorrent?: string;
   downloadLink4k?: string;
@@ -47,8 +47,8 @@ export interface Project {
 
 export interface ProjectBatchDownloadLink {
   name: string;
-  downloadLinkTorrent: string;
-  downloadLink: string;
+  downloadLinkTorrent?: string;
+  downloadLink?: string;
   downloadLink4kTorrent?: string;
   downloadLink4k?: string;
 }

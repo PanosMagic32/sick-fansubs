@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
-import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormArray, FormControl, FormGroup } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -58,15 +58,12 @@ export default class ProjectEditComponent {
   protected readonly editForm = new FormGroup<ProjectFormModel>({
     title: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
     }),
     description: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
     }),
     thumbnail: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
     }),
     batchDownloadLinks: new FormArray<FormGroup<BatchDownloadLinkFormModel>>([this.createBatchDownloadLinkGroup()]),
   });
@@ -86,7 +83,6 @@ export default class ProjectEditComponent {
     downloadLink4kTorrent = '',
     downloadLink4k = '',
   ): FormGroup<BatchDownloadLinkFormModel> {
-    // TODO: Re-enable required validators for edit mode after legacy project link migration is complete.
     return new FormGroup<BatchDownloadLinkFormModel>({
       name: new FormControl(name, {
         nonNullable: true,
@@ -192,12 +188,14 @@ export default class ProjectEditComponent {
       const normalizedBatchDownloadLinks = this.batchDownloadLinksControls.controls
         .map((control, index) => ({
           name: String(control.controls.name.value ?? '').trim() || `Batch ${index + 1}`,
-          downloadLinkTorrent: String(control.controls.downloadLinkTorrent.value ?? '').trim(),
-          downloadLink: String(control.controls.downloadLink.value ?? '').trim(),
+          downloadLinkTorrent: String(control.controls.downloadLinkTorrent.value ?? '').trim() || undefined,
+          downloadLink: String(control.controls.downloadLink.value ?? '').trim() || undefined,
           downloadLink4kTorrent: String(control.controls.downloadLink4kTorrent.value ?? '').trim() || undefined,
           downloadLink4k: String(control.controls.downloadLink4k.value ?? '').trim() || undefined,
         }))
-        .filter((link) => link.downloadLinkTorrent.length > 0 && link.downloadLink.length > 0) as ProjectBatchDownloadLink[];
+        .filter(
+          (link) => (link.downloadLinkTorrent && link.downloadLink) || (link.downloadLink4kTorrent && link.downloadLink4k),
+        ) as ProjectBatchDownloadLink[];
 
       const updatePayload: Project = {
         ...formValue,
