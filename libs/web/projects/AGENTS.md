@@ -37,11 +37,20 @@ Angular `httpResource`-based service (signals-driven):
 - `updateProject(id, data: Signal<EditProject | null>)` → fires when signal is non-null
 - `deleteProject(id: Signal<string | null>)` → fires when signal is non-null
 
-Compatibility parsing in this service normalizes legacy payloads before they reach UI components:
+Compatibility parsing normalizes legacy payloads into the current `Project` shape:
 
 - list responses returned as arrays, numeric-key objects, or single project objects
 - `_id` values returned as plain strings or Mongo Extended JSON (`{ "$oid": "..." }`)
 - `batchDownloadLinks` entries returned as structured objects, plain strings, or char-indexed objects
+- Filter in `normalizeProject()` keeps only batches with at least one complete resolution pair
+
+#### `batch-link.validators.ts`
+
+Validator functions shared across all project form components:
+
+- `batchTorrentUrlValidator()` — validates torrent URLs start with `http://` or `https://`
+- `batchMagnetUrlValidator()` — validates magnet URLs start with `magnet:?xt=`
+- `atLeastOneResolutionForBatch()` — cross-field FormGroup validator: requires at least one complete pair (torrent+magnet for 1080p or 2160p)
 
 #### `project.interface.ts`
 
@@ -59,7 +68,7 @@ Imports `User` type from `@api/user`.
 `ProjectFormModel` — typed `FormGroup` shape:
 
 - `title`, `description`, `thumbnail`
-- `batchDownloadLinks: FormArray<FormGroup<BatchDownloadLinkFormModel>>` — dynamic array; each group has cross-field validation requiring at least one resolution pair
+- `batchDownloadLinks: FormArray<FormGroup<BatchDownloadLinkFormModel>>` — dynamic array; each group has `atLeastOneResolutionForBatch` validator
 
 ### `src/lib/feature/`
 
@@ -68,7 +77,7 @@ Imports `User` type from `@api/user`.
 - Paginated list; syncs `page` and `pageSize` to query params
 - Shows FAB for creating (visible only to admins)
 - Uses `ProjectItemComponent` for each card
-- Responsive grid layout via semantic breakpoints:
+- Responsive grid:
   - base: 1 column
   - `2xl`: 2 columns
   - `4xl`: 3 columns
@@ -76,15 +85,15 @@ Imports `User` type from `@api/user`.
 #### `project-create/project-create.component.ts` (lazy)
 
 - Reactive form with dynamic `batchDownloadLinks` `FormArray`
-- Add / remove download link fields at runtime
-- Each batch link group has `atLeastOneResolution` cross-field validator
+- Initial batch group includes `atLeastOneResolutionForBatch` cross-field validator (imported from `batch-link.validators.ts`)
 - Submit filter keeps only links with at least one complete resolution pair
+- Empty resolution fields sent as `undefined`
 - On success: navigates to `/projects`
 
 #### `project-details/project-details.component.ts` (lazy)
 
 - Read-only view of a single project
-- Lists all batch download links; opens each with `openSafeUrl()`
+- `getBatchLinks()` normalizes and filters batch links to only show those with complete pairs
 - 1080p and 2160p download buttons are rendered conditionally per batch link
 - Back button via `Location.back()`
 - Admin-only edit action button (`/projects/:id/edit`)
@@ -92,16 +101,16 @@ Imports `User` type from `@api/user`.
 #### `project-edit/project-edit.component.ts` (lazy)
 
 - Pre-fills form from loaded project (including rebuilding `batchDownloadLinks` `FormArray`)
-- Handles update (PATCH) + delete (DELETE)
-- Mirrors `ProjectCreateComponent` for link add/remove
+- `createBatchDownloadLinkGroup()` includes `atLeastOneResolutionForBatch` validator
 - Submit filter keeps only links with at least one complete resolution pair
+- Handles update (PATCH) + delete (DELETE)
 
 ### `src/lib/ui/`
 
-| Component                        | Selector               | Description                                                                                                                                                                              |
-| -------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `project-item.component.ts`      | `sf-project-item`      | Card with creator/editor metadata: 70px circular avatar with fallback to logo, title, created/edited dates with creator/editor usernames in Greek, edit FAB for admins. Responsive grid. |
-| `project-item-form.component.ts` | `sf-project-item-form` | Dumb form presentation. Renders base fields + dynamic batch download link list with add/remove controls. Each batch link group validates at least one resolution pair.                   |
+| Component                        | Selector               | Description                                                                                                                                                                 |
+| -------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project-item.component.ts`      | `sf-project-item`      | Card with creator/editor metadata: 70px circular avatar with fallback to logo, title, created/edited dates, edit FAB for admins, favorite toggle.                           |
+| `project-item-form.component.ts` | `sf-project-item-form` | Dumb form presentation. Renders base fields + dynamic batch links with add/remove. `onAddBatchDownloadLink()` creates groups with `atLeastOneResolutionForBatch` validator. |
 
 ## Dependencies
 
@@ -120,8 +129,10 @@ pnpm nx lint projects
 ## Notes
 
 - Each batch download link must contain at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet); both pairs may be provided
-- The `/projects/create` route must come **before** `/projects/:id` in the route list to avoid `create` being matched as an `:id` param — verify `lib.routes.ts` ordering
-- Creator avatar is 70px circular with 35% secondary color border and soft shadow; defaults to `/logo/logo.png` if creator has no avatar
+- `atLeastOneResolutionForBatch` validator is defined in `batch-link.validators.ts` and imported by `project-create`, `project-edit`, and `project-item-form`
+- 1080p download fields no longer have `required` HTML attributes or `Validators.required` in batch link groups
+- The `/projects/create` route must come **before** `/projects/:id` in the route list — verify `lib.routes.ts` ordering
+- Creator avatar is 70px circular with 35% secondary color border and soft shadow; defaults to `/logo/logo.png`
 - Timestamps and usernames are displayed in Greek ("Προστέθηκε: ... από", "Επεξεργάστηκε: ... από")
-- Editor username shown only if `updatedBy` exists and differs from `creator`; falls back to "Άγνωστος χρήστης" if username unavailable
-- Project list and card styles include `min-width: 0`/wrapping safeguards so long metadata does not cause horizontal overflow on mobile
+- Editor username shown only if `updatedBy` exists and differs from `creator`
+- Project list and card styles include `min-width: 0`/wrapping safeguards for mobile overflow

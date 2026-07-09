@@ -70,21 +70,22 @@ Imports `User` type from `@api/user`.
 
 - Reactive form backed by `PostFormModel`
 - Uses a `blogPost` signal — submitting sets the signal, which triggers the `httpResource` POST
-- Has `atLeastOneResolution` cross-field validator on the FormGroup: at least one complete pair (1080p torrent+magnet or 2160p torrent+magnet) must be filled
+- Has local `atLeastOneResolution` cross-field validator on the FormGroup: at least one complete pair (1080p torrent+magnet or 2160p torrent+magnet) must be filled
+- Empty resolution fields are sent as `undefined` (not empty strings)
 - On success: navigates away
 
 #### `blog-post-edit/blog-post-edit.component.ts` (lazy)
 
 - `id` bound via `input.required<string>()` from route param
 - Loads existing post to pre-fill form
-- Has same `atLeastOneResolution` cross-field validator
+- Has the same local `atLeastOneResolution` cross-field validator
 - Handles update (PATCH) + delete (DELETE) via separate signals
 
 ### `src/lib/ui/`
 
 | Component                     | Selector            | Description                                                                                                                                                                                                                            |
 | ----------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `blog-post-form.component.ts` | `sf-blog-post-form` | Dumb/presentational — renders field set. Receives `form: FormGroup<PostFormModel>` as input. Displays form-level error when no complete resolution pair is provided.                                                                   |
+| `blog-post-form.component.ts` | `sf-blog-post-form` | Dumb/presentational — renders field set. Receives `form: FormGroup<PostFormModel>` as input. Displays form-level Greek error when no complete resolution pair is provided. 1080p fields no longer have `required` HTML attribute.      |
 | `blog-post-item.component.ts` | `sf-blog-post-item` | Card with creator/editor metadata: 70px circular avatar with fallback to logo, title, subtitle, created/edited dates with creator/editor usernames in Greek, download buttons (conditional per resolution), favorite toggle, edit FAB. |
 
 ## Dependencies
@@ -103,8 +104,9 @@ pnpm nx lint blog-post
 
 ## Notes
 
-- All resolution fields are now optional individually; at least one complete pair (1080p torrent+magnet or 2160p torrent+magnet) must be provided
-- Download buttons for each resolution (1080p / 2160p) are rendered conditionally — only shown when the corresponding fields are present
+- All resolution fields (`downloadLink`, `downloadLinkTorrent`, `downloadLink4k`, `downloadLink4kTorrent`) are optional individually; at least one complete pair (torrent + magnet for 1080p or 2160p) must be provided
+- Download buttons for each resolution are rendered conditionally — only shown when at least one link for that resolution exists
+- Empty resolution fields are coerced to `undefined` before submission (not sent as empty strings)
 - Image priority (`loading="eager"`) is applied to first two items for LCP optimization
 - Creator avatar is 70px circular with 35% secondary color border and soft shadow; defaults to `/logo/logo.png` if creator has no avatar
 - Timestamps and usernames are displayed in Greek ("Προστέθηκε: ... από", "Επεξεργάστηκε: ... από")

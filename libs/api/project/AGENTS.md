@@ -31,10 +31,10 @@ Full CRUD REST API for fansub "projects" — ongoing subtitle series or batch re
 
 ### Service (`src/lib/project.service.ts`)
 
-- `create(dto)` — validates batch links via `validateBatchLinks()`, creates a new project document with `creator` ref
+- `create(dto, creatorId)` — validates batch links via `validateBatchLinks()`, creates document with `creator` ref and auto-generated slug
 - `findAll(pageSize, currentPage)` — sorted by `dateTimeCreated` descending; populates `creator` and `updatedBy` refs
 - `findOne(id)` — throws `NotFoundException` if missing; populates `creator` and `updatedBy` refs
-- `update(id, dto, actorId)` — validates batch links if present, updates document and sets `updatedBy` ref to `actorId`; populates refs
+- `update(id, dto, actorId)` — validates batch links if present via `validateBatchLinks()`, regenerates slug if title changed, updates document and sets `updatedBy` ref
 - `remove(id)` — throws `NotFoundException` if missing
 
 ### Schema (`src/lib/schemas/project.schema.ts`)
@@ -44,6 +44,7 @@ MongoDB collection: `projects`
 | Field                | Type                | Notes                                                                                                                                                                                                |
 | -------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title`              | String              | Required                                                                                                                                                                                             |
+| `slug`               | String              | Auto-generated unique URL slug                                                                                                                                                                       |
 | `description`        | String              | Required                                                                                                                                                                                             |
 | `thumbnail`          | String              | URL                                                                                                                                                                                                  |
 | `dateTimeCreated`    | String              | ISO string                                                                                                                                                                                           |
@@ -59,9 +60,8 @@ MongoDB collection: `projects`
 | `create-project.dto.ts` | `title`, `description`, `thumbnail`, `batchDownloadLinks: BatchDownloadLinkDto[]`, `dateTimeCreated`; batch link validation in service layer |
 | `update-project.dto.ts` | `PartialType(CreateProjectDto)` — all optional; batch link validation in `ProjectService.update()` when links are present                    |
 
-`BatchDownloadLinkDto` uses class-validator metadata (`@IsString`, `@MinLength`, `@Matches`, etc.) for individual field validation.
-`ProjectService.validateBatchLinks()` enforces that each batch link has at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet), throwing `BadRequestException` otherwise.
-This is required because the API uses global `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
+`BatchDownloadLinkDto` uses `class-validator` metadata (`@IsString`, `@MinLength`, `@Matches`, etc.) for individual field validation. All four download link fields are `@IsOptional()`.
+`ProjectService.validateBatchLinks()` enforces that each batch link has at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet), throwing `BadRequestException` otherwise. Called by both `create()` and `update()`.
 
 ## Dependencies
 

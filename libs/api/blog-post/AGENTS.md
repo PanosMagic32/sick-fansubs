@@ -31,10 +31,10 @@ Full CRUD REST API for blog posts — the fansub group's release announcements. 
 
 ### Service (`src/lib/api-blog-post.service.ts`)
 
-- `create(dto)` — creates a new blog post document with `creator` ref
+- `create(dto, creatorId)` — validates resolution via `validateResolution()`, creates document with `creator` ref
 - `findAll(pageSize, currentPage)` — sorted by `dateTimeCreated` descending; populates `creator` and `updatedBy` refs
 - `findOne(id)` — throws `NotFoundException` if missing; populates `creator` and `updatedBy` refs
-- `update(id, dto, actorId)` — updates document and sets `updatedBy` ref to `actorId`; populates refs
+- `update(id, dto, actorId)` — merges existing + incoming resolution fields, validates via `validateResolution()`, updates document and sets `updatedBy` ref
 - `delete(id)` — throws `NotFoundException` if missing
 - `count(options?)` — document count for pagination
 
@@ -59,15 +59,14 @@ MongoDB collection: `blogposts`
 
 ### DTOs
 
-| File                      | Notes                                                                                                                                            |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `base-blog-post.dto.ts`   | All fields with `@ApiProperty`; all resolution fields are `@IsOptional()`                                                                        |
-| `create-blog-post.dto.ts` | Extends `BaseBlogPostDto`; resolution pair validation handled by `ApiBlogPostService.validateResolution()` — requires at least one complete pair |
-| `update-blog-post.dto.ts` | `PartialType(BaseBlogPostDto)` — all optional; no class-level resolution validation (partial updates allowed)                                    |
-| `search-blog-post.dto.ts` | `searchTerm?`, `pageSize?` (min 1, default 10), `page?` (min 0, default 0)                                                                       |
+| File                      | Notes                                                                      |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `create-blog-post.dto.ts` | All fields with `@ApiProperty`; all resolution fields are `@IsOptional()`  |
+| `update-blog-post.dto.ts` | `PartialType(CreateBlogPostDto)` — all optional                            |
+| `search-blog-post.dto.ts` | `searchTerm?`, `pageSize?` (min 1, default 10), `page?` (min 0, default 0) |
 
-`create-blog-post.dto.ts` extends `BaseBlogPostDto` (all resolution fields `@IsOptional()`).
-`ApiBlogPostService.create()` calls `validateResolution()` which throws `BadRequestException` if no complete resolution pair is provided.
+`CreateBlogPostDto` uses `class-validator` decorators (`@IsString`, `@MinLength`, `@IsDateString`, `@Matches`, etc.).
+Resolution pair validation is handled at the **service layer**: `ApiBlogPostService.validateResolution()` checks that at least one complete pair (1080p torrent+magnet or 2160p torrent+magnet) is present, throwing `BadRequestException` otherwise. Both `create()` and `update()` call this validator — on update, existing fields are merged with the incoming DTO before validation.
 
 ## Dependencies
 
@@ -84,8 +83,8 @@ pnpm nx lint api-blog-post
 
 ## Notes
 
-- At least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet) is required on create; both pairs can be provided
-- Update (PATCH) does not enforce the resolution pair constraint — partial updates to non-resolution fields are allowed
+- At least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet) is required; both pairs can be provided
+- Update (PATCH) validates the merged result of existing + incoming resolution fields, preventing incomplete pairs
 - Pagination uses `pagesize` (lowercase) query param — keep in sync with frontend `BlogPostService`
 - `dateTimeCreated` is stored as a string (not a `Date`) — used for display sorting
 - `updatedAt` is a Mongoose timestamp — automatically set on create and update
