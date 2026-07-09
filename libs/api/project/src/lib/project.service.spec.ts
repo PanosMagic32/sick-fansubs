@@ -80,7 +80,7 @@ describe('ProjectService', () => {
   const projectModelMock = {
     create: vi.fn(),
     find: vi.fn().mockReturnValue(findQueryChain),
-    findOne: vi.fn().mockReturnValue(slugFindOneChain), // default: createUniqueSlug path
+    findOne: vi.fn().mockReturnValue(slugFindOneChain),
     findById: vi.fn().mockReturnValue(findByIdChain),
     findByIdAndUpdate: vi.fn().mockReturnValue(findByIdAndUpdateChain),
     findByIdAndDelete: vi.fn().mockReturnValue(findByIdAndDeleteChain),

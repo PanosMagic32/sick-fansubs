@@ -14,7 +14,8 @@ import {
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
-import { PaginationDto, ParseMongoIdPipe } from '@api/shared';
+import { PaginationDto } from '@api/shared/dto';
+import { ParseMongoIdPipe } from '@api/shared';
 import { AdminGuard, JwtAuthGuard } from '@api/user';
 
 import { CreateProjectDto } from './dto/create-project.dto';

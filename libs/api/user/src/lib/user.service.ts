@@ -14,7 +14,7 @@ import * as bcrypt from 'bcrypt';
 import { Model, Types, type FilterQuery } from 'mongoose';
 
 import type { Project, ProjectBatchDownloadLink, UserRole, UserStatus } from '@shared/types';
-import { escapeRegex } from '@api/shared/utils';
+import { escapeRegex } from '@api/shared';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
