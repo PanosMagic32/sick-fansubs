@@ -26,10 +26,10 @@ export class BlogPost {
   downloadLinkTorrent?: string;
 
   @Prop()
-  downloadLink4k!: string;
+  downloadLink4k?: string;
 
   @Prop()
-  downloadLink4kTorrent!: string;
+  downloadLink4kTorrent?: string;
 
   @Prop({ required: true })
   dateTimeCreated!: string;

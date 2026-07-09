@@ -79,8 +79,13 @@ export class ApiBlogPostService {
   }
 
   async update(id: string, updateBlogPostDto: UpdateBlogPostDto, actorId: string): Promise<BlogPost | undefined | null> {
-    const existingBlogPost = await this.blogPostModel.findById(id).select('thumbnail').exec();
+    const existingBlogPost = await this.blogPostModel
+      .findById(id)
+      .select('thumbnail downloadLink downloadLinkTorrent downloadLink4k downloadLink4kTorrent')
+      .exec();
+
     if (existingBlogPost) {
+      this.validateResolution({ ...existingBlogPost.toObject(), ...updateBlogPostDto });
       const updatedBlogPost = await this.blogPostModel
         .findByIdAndUpdate(
           id,

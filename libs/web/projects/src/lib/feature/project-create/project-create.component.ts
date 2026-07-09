@@ -12,7 +12,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { MediaService } from '@web/shared/data-access';
 
-import { batchMagnetUrlValidator, batchTorrentUrlValidator } from '../../data-access/batch-link.validators';
+import {
+  atLeastOneResolutionForBatch,
+  batchMagnetUrlValidator,
+  batchTorrentUrlValidator,
+} from '../../data-access/batch-link.validators';
 import type { BatchDownloadLinkFormModel, ProjectFormModel } from '../../data-access/project-form.interface';
 import type { Project, ProjectBatchDownloadLink } from '../../data-access/project.interface';
 import { ProjectsService } from '../../data-access/projects.service';
@@ -82,28 +86,31 @@ export default class ProjectCreateComponent {
   }
 
   private createBatchDownloadLinkGroup(): FormGroup<BatchDownloadLinkFormModel> {
-    return new FormGroup<BatchDownloadLinkFormModel>({
-      name: new FormControl('', {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-      downloadLinkTorrent: new FormControl('', {
-        nonNullable: true,
-        validators: [batchTorrentUrlValidator()],
-      }),
-      downloadLink: new FormControl('', {
-        nonNullable: true,
-        validators: [batchMagnetUrlValidator()],
-      }),
-      downloadLink4kTorrent: new FormControl('', {
-        nonNullable: true,
-        validators: [batchTorrentUrlValidator()],
-      }),
-      downloadLink4k: new FormControl('', {
-        nonNullable: true,
-        validators: [batchMagnetUrlValidator()],
-      }),
-    });
+    return new FormGroup<BatchDownloadLinkFormModel>(
+      {
+        name: new FormControl('', {
+          nonNullable: true,
+          validators: [Validators.required],
+        }),
+        downloadLinkTorrent: new FormControl('', {
+          nonNullable: true,
+          validators: [batchTorrentUrlValidator()],
+        }),
+        downloadLink: new FormControl('', {
+          nonNullable: true,
+          validators: [batchMagnetUrlValidator()],
+        }),
+        downloadLink4kTorrent: new FormControl('', {
+          nonNullable: true,
+          validators: [batchTorrentUrlValidator()],
+        }),
+        downloadLink4k: new FormControl('', {
+          nonNullable: true,
+          validators: [batchMagnetUrlValidator()],
+        }),
+      },
+      { validators: [atLeastOneResolutionForBatch] },
+    );
   }
 
   onSubmit() {

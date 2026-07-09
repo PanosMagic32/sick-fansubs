@@ -1,33 +1,17 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import {
-  AbstractControl,
-  type FormArray,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  type ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { type FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { MatButton, MatMiniFabButton } from '@angular/material/button';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 
-import { batchMagnetUrlValidator, batchTorrentUrlValidator } from '../../data-access/batch-link.validators';
+import {
+  atLeastOneResolutionForBatch,
+  batchMagnetUrlValidator,
+  batchTorrentUrlValidator,
+} from '../../data-access/batch-link.validators';
 import type { BatchDownloadLinkFormModel, ProjectFormModel } from '../../data-access/project-form.interface';
-
-function atLeastOneResolutionForBatch(form: AbstractControl): ValidationErrors | null {
-  const dl = String(form.get('downloadLink')?.value ?? '').trim();
-  const dlTorrent = String(form.get('downloadLinkTorrent')?.value ?? '').trim();
-  const dl4k = String(form.get('downloadLink4k')?.value ?? '').trim();
-  const dl4kTorrent = String(form.get('downloadLink4kTorrent')?.value ?? '').trim();
-
-  const has1080p = dl.length > 0 && dlTorrent.length > 0;
-  const has2160p = dl4k.length > 0 && dl4kTorrent.length > 0;
-
-  return has1080p || has2160p ? null : { atLeastOneResolution: true };
-}
 
 @Component({
   selector: 'sf-project-item-form',
@@ -67,15 +51,11 @@ export class ProjectItemFormComponent {
       this.lastPreviewSource = source;
     }
 
-    if (this.thumbnailPreviewLoadError) {
-      return null;
-    }
+    if (this.thumbnailPreviewLoadError) return null;
 
     try {
       const parsedUrl = new URL(source, window.location.origin);
-      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        return null;
-      }
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
 
       return parsedUrl.href;
     } catch {
