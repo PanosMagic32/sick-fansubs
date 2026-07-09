@@ -10,6 +10,14 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm vitest run --config vitest.config.ts --environment jsdom libs/web/search/src"
+      },
+      "configurations": {},
+      "parallelism": true
     }
   }
 }

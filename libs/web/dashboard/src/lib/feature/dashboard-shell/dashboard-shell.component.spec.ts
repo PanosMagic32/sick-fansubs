@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
 import { DashboardShellComponent } from './dashboard-shell.component';
 
 describe('DashboardShellComponent', () => {
