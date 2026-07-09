@@ -5,7 +5,7 @@ describe('UserController', () => {
   let controller: UserController;
   const userServiceMock = {
     create: vi.fn(),
-    findAll: vi.fn(),
+    getStats: vi.fn(),
     findManagementUsers: vi.fn(),
     findOne: vi.fn(),
     getFavoriteBlogPostIds: vi.fn(),
@@ -31,28 +31,48 @@ describe('UserController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('maps actor defaults when role/status are missing', async () => {
-    userServiceMock.findAll.mockResolvedValue([]);
+  it('maps getStats actor defaults when role/status are missing', async () => {
+    userServiceMock.getStats.mockResolvedValue({ totalUsers: 0, activeUsers: 0, suspendedUsers: 0, roleDistribution: {} });
 
-    await controller.findAll({ user: { sub: 'u-1' } });
+    await controller.getStats({ user: { sub: 'u-1' } });
 
-    expect(userServiceMock.findAll).toHaveBeenCalledWith({
+    expect(userServiceMock.getStats).toHaveBeenCalledWith({
       sub: 'u-1',
       role: 'user',
       status: 'active',
     });
   });
 
-  it('maps explicit role actor and derives non-admin correctly', async () => {
-    userServiceMock.findAll.mockResolvedValue([]);
+  it('maps explicit role actor and passes to findManagementUsers', async () => {
+    userServiceMock.findManagementUsers.mockResolvedValue({ users: [], count: 0, page: 1, pageSize: 10 });
 
-    await controller.findAll({ user: { sub: 'u-2', role: 'moderator', status: 'active' } });
+    await controller.findManagementUsers(
+      { user: { sub: 'u-2', role: 'moderator', status: 'active' } },
+      '2',
+      '20',
+      'john',
+      'moderator',
+      undefined,
+      'username',
+      'asc',
+    );
 
-    expect(userServiceMock.findAll).toHaveBeenCalledWith({
-      sub: 'u-2',
-      role: 'moderator',
-      status: 'active',
-    });
+    expect(userServiceMock.findManagementUsers).toHaveBeenCalledWith(
+      {
+        sub: 'u-2',
+        role: 'moderator',
+        status: 'active',
+      },
+      {
+        page: 2,
+        pageSize: 20,
+        search: 'john',
+        role: 'moderator',
+        status: undefined,
+        sortBy: 'username',
+        sortDirection: 'asc',
+      },
+    );
   });
 
   it('maps management query params and actor correctly', async () => {

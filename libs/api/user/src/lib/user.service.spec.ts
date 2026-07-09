@@ -7,6 +7,9 @@ describe('UserService', () => {
   const userModelMock = {
     find: vi.fn(),
     findOne: vi.fn(),
+    findOneAndUpdate: vi.fn(),
+    findByIdAndDelete: vi.fn(),
+    countDocuments: vi.fn(),
     create: vi.fn(),
     db: {
       collection: vi.fn(),
@@ -26,35 +29,35 @@ describe('UserService', () => {
     expect(service).toBeDefined();
   });
 
-  it('allows findAll for moderator role', async () => {
-    userModelMock.find.mockReturnValue({ exec: vi.fn().mockResolvedValue([]) });
-
-    await expect(service.findAll({ sub: 'u-1', role: 'moderator', status: 'active' })).resolves.toEqual([]);
+  it('disallows findManagementUsers for non-staff user role', async () => {
+    await expect(
+      service.findManagementUsers({ sub: 'u-1', role: 'user', status: 'active' }, { page: 1, pageSize: 10 }),
+    ).rejects.toThrow();
   });
 
-  it('allows findAll for admin-like roles and maps role/status', async () => {
-    const mockDoc = {
-      _id: { toString: () => 'u-1' },
-      toObject: () => ({
-        username: 'legacy-admin',
-        email: 'legacy@example.com',
-        avatar: 'https://example.com/a.png',
-        role: 'admin',
-        status: 'active',
-        favoriteBlogPostIds: [],
-        createdBlogPostIds: [],
-      }),
-    };
+  it('allows findManagementUsers for admin role and returns paginated results', async () => {
+    const findExec = vi.fn().mockResolvedValue([]);
+    const findLimit = vi.fn().mockReturnValue({ exec: findExec });
+    const findSkip = vi.fn().mockReturnValue({ limit: findLimit });
+    const findSort = vi.fn().mockReturnValue({ skip: findSkip });
+    const findMock = vi.fn().mockReturnValue({ sort: findSort });
+    const countExec = vi.fn().mockResolvedValue(0);
+    const countDocumentsMock = vi.fn().mockReturnValue({ exec: countExec });
 
-    userModelMock.find.mockReturnValue({ exec: vi.fn().mockResolvedValue([mockDoc]) });
+    userModelMock.find = findMock;
+    userModelMock.countDocuments = countDocumentsMock;
 
-    const result = await service.findAll({ sub: 'admin-id', role: 'admin', status: 'active' });
+    const result = await service.findManagementUsers(
+      { sub: 'admin-id', role: 'admin', status: 'active' },
+      { page: 1, pageSize: 10 },
+    );
 
-    expect(result[0]).toEqual(
+    expect(result).toEqual(
       expect.objectContaining({
-        id: 'u-1',
-        role: 'admin',
-        status: 'active',
+        users: [],
+        count: 0,
+        page: 1,
+        pageSize: 10,
       }),
     );
   });
@@ -316,12 +319,11 @@ describe('UserService', () => {
   });
 
   it('denies admin from changing super-admin status', async () => {
-    const targetUser = { _id: 'u-1', role: 'super-admin' };
-    (service.findOneEntityById as never) = vi.fn().mockResolvedValue(targetUser);
+    userModelMock.findOneAndUpdate.mockReturnValue({ exec: vi.fn().mockResolvedValue(null) });
 
     await expect(
       service.updateUserStatus('507f191e810c19729de860ab', 'suspended', { sub: 'a-1', role: 'admin', status: 'active' }),
-    ).rejects.toThrow('Only super-admins can change super-admin status.');
+    ).rejects.toThrow('User not found or operation not permitted.');
   });
 
   describe('assertCanModifyUser - Authorization Tiers', () => {

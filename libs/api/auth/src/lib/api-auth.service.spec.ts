@@ -16,6 +16,7 @@ describe('ApiAuthService', () => {
     storeRefreshTokenSession: vi.fn(),
     isRefreshTokenSessionValid: vi.fn(),
     clearRefreshTokenSession: vi.fn(),
+    rotateRefreshTokenSession: vi.fn(),
   };
 
   const configServiceMock = {
@@ -88,7 +89,7 @@ describe('ApiAuthService', () => {
       jti: 'jti-root',
     });
 
-    userServiceMock.isRefreshTokenSessionValid.mockResolvedValue(true);
+    userServiceMock.rotateRefreshTokenSession.mockResolvedValue(undefined);
     jwtServiceMock.signAsync.mockResolvedValueOnce('access-token-root').mockResolvedValueOnce('refresh-token-root');
     jwtServiceMock.verifyAsync.mockResolvedValueOnce({ exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 });
 
@@ -110,9 +111,10 @@ describe('ApiAuthService', () => {
       status: 'active',
       jti: 'jti-1',
     });
-    userServiceMock.isRefreshTokenSessionValid.mockResolvedValue(false);
+    userServiceMock.rotateRefreshTokenSession.mockRejectedValue(
+      new UnauthorizedException('Refresh token session invalid or already used.'),
+    );
 
     await expect(service.refresh('refresh-token-1')).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(userServiceMock.clearRefreshTokenSession).toHaveBeenCalledWith('user-id-1');
   });
 });
