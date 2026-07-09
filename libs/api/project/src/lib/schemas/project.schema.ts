@@ -9,11 +9,11 @@ class BatchDownloadLink {
   @Prop({ required: true })
   name!: string;
 
-  @Prop({ required: true })
-  downloadLinkTorrent!: string;
+  @Prop()
+  downloadLinkTorrent?: string;
 
-  @Prop({ required: true })
-  downloadLink!: string;
+  @Prop()
+  downloadLink?: string;
 
   @Prop()
   downloadLink4kTorrent?: string;
@@ -49,8 +49,8 @@ export class Project {
     type: [
       {
         name: { type: String, required: true },
-        downloadLinkTorrent: { type: String, required: true },
-        downloadLink: { type: String, required: true },
+        downloadLinkTorrent: { type: String },
+        downloadLink: { type: String },
         downloadLink4kTorrent: { type: String },
         downloadLink4k: { type: String },
       },

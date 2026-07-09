@@ -19,11 +19,11 @@ export class BlogPost {
   @Prop({ required: true })
   thumbnail!: string;
 
-  @Prop({ required: true })
-  downloadLink!: string;
+  @Prop()
+  downloadLink?: string;
 
-  @Prop({ required: true })
-  downloadLinkTorrent!: string;
+  @Prop()
+  downloadLinkTorrent?: string;
 
   @Prop()
   downloadLink4k!: string;

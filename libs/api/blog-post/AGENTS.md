@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Full CRUD REST API for blog posts — the fansub group's release announcements. Each blog post represents a subtitle release with download links for multiple formats (standard, torrent, 4K, 4K torrent).
+Full CRUD REST API for blog posts — the fansub group's release announcements. Each blog post represents a subtitle release with download links for 1080p and/or 2160p (4K) resolutions. At least one complete resolution pair (torrent + magnet) must be provided.
 
 ## Path Alias
 
@@ -41,31 +41,33 @@ Full CRUD REST API for blog posts — the fansub group's release announcements. 
 ### Schema (`src/lib/schemas/blog-post.schema.ts`)
 
 MongoDB collection: `blogposts`
-| Field | Type | Notes |
-|---|---|---|
-| `title` | String | Required |
-| `subtitle` | String | Required |
-| `description` | String | Required |
-| `thumbnail` | String | URL |
-| `downloadLink` | String | Primary download |
-| `downloadLinkTorrent` | String | Torrent variant |
-| `downloadLink4k` | String | Optional 4K |
-| `downloadLink4kTorrent` | String | Optional 4K torrent |
-| `dateTimeCreated` | String | ISO string |
-| `creator` | ObjectId ref `User` | Set on create |
-| `updatedAt` | Date | Mongoose timestamp (auto) |
-| `updatedBy` | ObjectId ref `User` | Set on update, optional |
+
+| Field                   | Type                | Notes                       |
+| ----------------------- | ------------------- | --------------------------- |
+| `title`                 | String              | Required                    |
+| `subtitle`              | String              | Required                    |
+| `description`           | String              | Required                    |
+| `thumbnail`             | String              | URL                         |
+| `downloadLink`          | String              | Optional 1080p magnet       |
+| `downloadLinkTorrent`   | String              | Optional 1080p torrent      |
+| `downloadLink4k`        | String              | Optional 2160p (4K) magnet  |
+| `downloadLink4kTorrent` | String              | Optional 2160p (4K) torrent |
+| `dateTimeCreated`       | String              | ISO string                  |
+| `creator`               | ObjectId ref `User` | Set on create               |
+| `updatedAt`             | Date                | Mongoose timestamp (auto)   |
+| `updatedBy`             | ObjectId ref `User` | Set on update, optional     |
 
 ### DTOs
 
-| File                      | Notes                                                                      |
-| ------------------------- | -------------------------------------------------------------------------- |
-| `create-blog-post.dto.ts` | All fields with `@ApiProperty`                                             |
-| `update-blog-post.dto.ts` | `PartialType(CreateBlogPostDto)` — all optional                            |
-| `search-blog-post.dto.ts` | `searchTerm?`, `pageSize?` (min 1, default 10), `page?` (min 0, default 0) |
+| File                      | Notes                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `base-blog-post.dto.ts`   | All fields with `@ApiProperty`; all resolution fields are `@IsOptional()`                                                                        |
+| `create-blog-post.dto.ts` | Extends `BaseBlogPostDto`; resolution pair validation handled by `ApiBlogPostService.validateResolution()` — requires at least one complete pair |
+| `update-blog-post.dto.ts` | `PartialType(BaseBlogPostDto)` — all optional; no class-level resolution validation (partial updates allowed)                                    |
+| `search-blog-post.dto.ts` | `searchTerm?`, `pageSize?` (min 1, default 10), `page?` (min 0, default 0)                                                                       |
 
-`create-blog-post.dto.ts` uses `class-validator` decorators (`@IsString`, `@MinLength`, `@IsDateString`, etc.).
-This is required because the API uses global `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
+`create-blog-post.dto.ts` extends `BaseBlogPostDto` (all resolution fields `@IsOptional()`).
+`ApiBlogPostService.create()` calls `validateResolution()` which throws `BadRequestException` if no complete resolution pair is provided.
 
 ## Dependencies
 
@@ -82,6 +84,8 @@ pnpm nx lint api-blog-post
 
 ## Notes
 
+- At least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet) is required on create; both pairs can be provided
+- Update (PATCH) does not enforce the resolution pair constraint — partial updates to non-resolution fields are allowed
 - Pagination uses `pagesize` (lowercase) query param — keep in sync with frontend `BlogPostService`
 - `dateTimeCreated` is stored as a string (not a `Date`) — used for display sorting
 - `updatedAt` is a Mongoose timestamp — automatically set on create and update

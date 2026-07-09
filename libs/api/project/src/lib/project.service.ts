@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -7,6 +7,9 @@ import { MediaService } from '@api/media';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Project, ProjectDocument } from './schemas/project.schema';
+
+const RESOLUTION_ERROR =
+  'Each batch download link must have at least one complete resolution pair (1080p or 2160p) with both torrent and magnet links';
 
 @Injectable()
 export class ProjectService {
@@ -62,7 +65,29 @@ export class ProjectService {
     return slug;
   }
 
+  private validateBatchLinks(
+    links?: {
+      downloadLink?: string;
+      downloadLinkTorrent?: string;
+      downloadLink4k?: string;
+      downloadLink4kTorrent?: string;
+    }[],
+  ): void {
+    if (!links || links.length === 0) return;
+
+    for (const link of links) {
+      const has1080p = !!(link.downloadLink?.trim() && link.downloadLinkTorrent?.trim());
+      const has2160p = !!(link.downloadLink4k?.trim() && link.downloadLink4kTorrent?.trim());
+
+      if (!has1080p && !has2160p) {
+        throw new BadRequestException(RESOLUTION_ERROR);
+      }
+    }
+  }
+
   async create(createProjectDto: CreateProjectDto, creatorId: string): Promise<Project> {
+    this.validateBatchLinks(createProjectDto.batchDownloadLinks);
+
     const slug = await this.createUniqueSlug(createProjectDto.title);
     const createProject = await this.projectModel.create({
       ...createProjectDto,
@@ -109,6 +134,8 @@ export class ProjectService {
   async update(id: string, updateProjectDto: UpdateProjectDto, actorId: string): Promise<Project | undefined | null> {
     const existingProject = await this.projectModel.findById(id).select('thumbnail').exec();
     if (existingProject) {
+      this.validateBatchLinks(updateProjectDto.batchDownloadLinks);
+
       const payload = { ...updateProjectDto, updatedBy: new Types.ObjectId(actorId) } as UpdateProjectDto & {
         slug?: string;
         updatedBy: Types.ObjectId;

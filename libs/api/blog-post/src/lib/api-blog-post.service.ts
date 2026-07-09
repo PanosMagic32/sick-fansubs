@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
 
@@ -8,6 +8,9 @@ import { UserService } from '@api/user';
 import { CreateBlogPostDto } from './dtos/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dtos/update-blog-post.dto';
 import { BlogPost, BlogPostDocument } from './schemas/blog-post.schema';
+
+const RESOLUTION_ERROR =
+  'At least one complete resolution pair (1080p or 2160p) must be provided with both torrent and magnet links';
 
 @Injectable()
 export class ApiBlogPostService {
@@ -25,7 +28,18 @@ export class ApiBlogPostService {
     return entity;
   }
 
+  private validateResolution(dto: CreateBlogPostDto): void {
+    const has1080p = !!(dto.downloadLink?.trim() && dto.downloadLinkTorrent?.trim());
+    const has2160p = !!(dto.downloadLink4k?.trim() && dto.downloadLink4kTorrent?.trim());
+
+    if (!has1080p && !has2160p) {
+      throw new BadRequestException(RESOLUTION_ERROR);
+    }
+  }
+
   async create(createBlogPostDto: CreateBlogPostDto, creatorId: string): Promise<{ id: string }> {
+    this.validateResolution(createBlogPostDto);
+
     const createdBlogPost = await this.blogPostModel.create({
       ...createBlogPostDto,
       creator: new Types.ObjectId(creatorId),

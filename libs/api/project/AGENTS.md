@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Full CRUD REST API for fansub "projects" — ongoing subtitle series or batch releases. Each project can have multiple batch download links.
+Full CRUD REST API for fansub "projects" — ongoing subtitle series or batch releases. Each project can have multiple batch download links. Each batch link requires at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet), or both.
 
 ## Path Alias
 
@@ -31,34 +31,36 @@ Full CRUD REST API for fansub "projects" — ongoing subtitle series or batch re
 
 ### Service (`src/lib/project.service.ts`)
 
-- `create(dto)` — creates a new project document with `creator` ref
+- `create(dto)` — validates batch links via `validateBatchLinks()`, creates a new project document with `creator` ref
 - `findAll(pageSize, currentPage)` — sorted by `dateTimeCreated` descending; populates `creator` and `updatedBy` refs
 - `findOne(id)` — throws `NotFoundException` if missing; populates `creator` and `updatedBy` refs
-- `update(id, dto, actorId)` — updates document and sets `updatedBy` ref to `actorId`; populates refs
+- `update(id, dto, actorId)` — validates batch links if present, updates document and sets `updatedBy` ref to `actorId`; populates refs
 - `remove(id)` — throws `NotFoundException` if missing
 
 ### Schema (`src/lib/schemas/project.schema.ts`)
 
 MongoDB collection: `projects`
-| Field | Type | Notes |
-|---|---|---|
-| `title` | String | Required |
-| `description` | String | Required |
-| `thumbnail` | String | URL |
-| `dateTimeCreated` | String | ISO string |
-| `creator` | ObjectId ref `User` | Set on create |
-| `updatedAt` | Date | Mongoose timestamp (auto) |
-| `updatedBy` | ObjectId ref `User` | Set on update, optional |
-| `batchDownloadLinks` | Object[] | Array of batch link objects (`name`, `downloadLinkTorrent`, `downloadLink`, optional 4K fields) |
+
+| Field                | Type                | Notes                                                                                                                                                                                                |
+| -------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`              | String              | Required                                                                                                                                                                                             |
+| `description`        | String              | Required                                                                                                                                                                                             |
+| `thumbnail`          | String              | URL                                                                                                                                                                                                  |
+| `dateTimeCreated`    | String              | ISO string                                                                                                                                                                                           |
+| `creator`            | ObjectId ref `User` | Set on create                                                                                                                                                                                        |
+| `updatedAt`          | Date                | Mongoose timestamp (auto)                                                                                                                                                                            |
+| `updatedBy`          | ObjectId ref `User` | Set on update, optional                                                                                                                                                                              |
+| `batchDownloadLinks` | Object[]            | Array of batch link objects (`name` required; `downloadLinkTorrent`, `downloadLink`, `downloadLink4kTorrent`, `downloadLink4k` — all optional individually, but at least one complete pair required) |
 
 ### DTOs
 
-| File                    | Notes                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- |
-| `create-project.dto.ts` | `title`, `description`, `thumbnail`, `batchDownloadLinks: BatchDownloadLinkDto[]`, `dateTimeCreated` |
-| `update-project.dto.ts` | `PartialType(CreateProjectDto)` — all optional                                                       |
+| File                    | Notes                                                                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create-project.dto.ts` | `title`, `description`, `thumbnail`, `batchDownloadLinks: BatchDownloadLinkDto[]`, `dateTimeCreated`; batch link validation in service layer |
+| `update-project.dto.ts` | `PartialType(CreateProjectDto)` — all optional; batch link validation in `ProjectService.update()` when links are present                    |
 
-`create-project.dto.ts` uses `class-validator` metadata (`@IsString`, `@MinLength`, `@IsArray`, `@IsDateString`, etc.).
+`BatchDownloadLinkDto` uses class-validator metadata (`@IsString`, `@MinLength`, `@Matches`, etc.) for individual field validation.
+`ProjectService.validateBatchLinks()` enforces that each batch link has at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet), throwing `BadRequestException` otherwise.
 This is required because the API uses global `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
 
 ## Dependencies
@@ -76,7 +78,8 @@ pnpm nx lint api-project
 
 ## Notes
 
-- `batchDownloadLinks` stores structured batch objects with required 1080p torrent/magnet URLs and optional 4K URLs
+- Each batch download link must contain at least one complete resolution pair (1080p torrent+magnet or 2160p torrent+magnet); both may be provided
+- `batchDownloadLinks` stores structured batch objects; 1080p and 2160p fields are all optional individually but validated together at the service layer
 - DTO validation enforces URL type patterns for torrent (`http/https`) and magnet (`magnet:?xt=`)
 - `updatedAt` is a Mongoose timestamp — automatically set on create and update
 - `creator` is set on create and never changes; `updatedBy` tracks the user who last edited the project

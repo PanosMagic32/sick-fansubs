@@ -11,21 +11,23 @@ export class BatchDownloadLinkDto {
   @MinLength(1)
   readonly name!: string;
 
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: false })
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @Matches(TORRENT_URL_PATTERN, {
     message: 'Torrent URL must start with http:// or https://',
   })
-  readonly downloadLinkTorrent!: string;
+  readonly downloadLinkTorrent?: string;
 
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: false })
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @Matches(MAGNET_URL_PATTERN, {
     message: 'Magnet URL must start with magnet:?xt=',
   })
-  readonly downloadLink!: string;
+  readonly downloadLink?: string;
 
   @ApiProperty({ type: String, required: false })
   @IsOptional()
