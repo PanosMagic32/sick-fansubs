@@ -223,7 +223,18 @@ export class ApiAuthService {
     }
 
     const identity = this.toRoleAndStatus(refreshPayload);
-    const sessionPayload = { ...refreshPayload, ...identity };
+
+    // Construct a clean session payload from the decoded refresh token.
+    // Spreading the verified payload would leak standard JWT claims (exp,
+    // iat, iss, aud) into the new signing payload, which jsonwebtoken@9
+    // rejects when expiresIn is also provided.
+    const sessionPayload: AuthJwtPayload = {
+      sub: refreshPayload.sub,
+      username: refreshPayload.username,
+      email: refreshPayload.email,
+      role: identity.role,
+      status: identity.status,
+    };
 
     // Generate new token pair
     const accessToken = await this.generateAccessToken(sessionPayload);

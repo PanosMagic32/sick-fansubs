@@ -102,6 +102,54 @@ describe('ApiAuthService', () => {
     );
   });
 
+  it('strips standard JWT claims (exp, iat) from the payload before signing new tokens', async () => {
+    // Simulate a real decoded refresh token — it includes exp, iat, iss, aud
+    // alongside custom claims.  These MUST NOT leak into the new signing payload.
+    jwtServiceMock.verifyAsync.mockResolvedValueOnce({
+      sub: 'user-id-2',
+      username: 'editor',
+      email: 'editor@example.com',
+      role: 'admin',
+      status: 'active',
+      jti: 'jti-editor',
+      exp: 1710000000,
+      iat: 1700000000,
+      iss: 'sick-fansubs',
+      aud: 'sick-fansubs-api',
+    });
+
+    userServiceMock.rotateRefreshTokenSession.mockResolvedValue(undefined);
+    jwtServiceMock.signAsync.mockResolvedValueOnce('access-token').mockResolvedValueOnce('refresh-token');
+    jwtServiceMock.verifyAsync.mockResolvedValueOnce({ exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 });
+
+    await service.refresh('refresh-token');
+
+    // The signing payload must NOT contain exp, iat, iss, aud.
+    expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.not.objectContaining({ exp: expect.anything(), iat: expect.anything() }),
+      expect.any(Object),
+    );
+    expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
+      2,
+      expect.not.objectContaining({ exp: expect.anything(), iat: expect.anything() }),
+      expect.any(Object),
+    );
+
+    // Core identity claims are preserved.
+    expect(jwtServiceMock.signAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        sub: 'user-id-2',
+        username: 'editor',
+        email: 'editor@example.com',
+        role: 'admin',
+        status: 'active',
+      }),
+      expect.any(Object),
+    );
+  });
+
   it('rejects refresh when refresh session is revoked', async () => {
     jwtServiceMock.verifyAsync.mockResolvedValue({
       sub: 'user-id-1',
