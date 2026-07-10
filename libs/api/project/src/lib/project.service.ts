@@ -112,7 +112,7 @@ export class ProjectService {
       .find()
       .populate('creator', 'username avatar')
       .populate('updatedBy', 'username avatar')
-      .sort({ dateTimeCreated: 'desc' });
+      .sort({ dateTimeCreated: 'desc', _id: 'desc' });
 
     query.skip(pageSize * currentPage).limit(pageSize);
 

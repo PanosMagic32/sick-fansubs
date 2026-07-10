@@ -351,7 +351,7 @@ describe('ApiBlogPostService', () => {
 
       await service.findAll(10, 0);
 
-      expect(query.sort).toHaveBeenCalledWith({ dateTimeCreated: 'desc' });
+      expect(query.sort).toHaveBeenCalledWith({ dateTimeCreated: 'desc', _id: 'desc' });
     });
 
     it('sets updatedAt to undefined on posts without updatedBy (sanitizeEditedMetadata)', async () => {
