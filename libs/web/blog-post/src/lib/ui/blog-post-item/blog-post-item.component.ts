@@ -1,5 +1,5 @@
 import { DatePipe, NgOptimizedImage } from '@angular/common';
-import { Component, computed, inject, input, output } from '@angular/core';
+import { Component, computed, inject, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { MatMiniFabButton, MatButton, MatIconButton } from '@angular/material/button';
@@ -27,6 +27,7 @@ import type { BlogPost } from '../../data-access/blog-post.interface';
   selector: 'sf-blog-post-item',
   templateUrl: './blog-post-item.component.html',
   styleUrl: './blog-post-item.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     NgOptimizedImage,
     DatePipe,

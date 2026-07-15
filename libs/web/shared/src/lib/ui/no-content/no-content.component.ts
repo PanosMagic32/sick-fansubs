@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'sf-no-content',
@@ -8,6 +8,7 @@ import { Component, input } from '@angular/core';
       <p>{{ errorMessage() }}</p>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
 })
 export class NoContentComponent {

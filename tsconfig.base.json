@@ -36,7 +36,12 @@
       "@web/account": ["libs/web/account/src/index.ts"],
       "@web/dashboard": ["libs/web/dashboard/src/index.ts"],
       "@shared/types": ["libs/shared/types/src/index.ts"]
-    }
+    },
+    "strict": false,
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "esModuleInterop": false,
+    "ignoreDeprecations": "6.0"
   },
   "exclude": ["node_modules", "tmp"]
 }

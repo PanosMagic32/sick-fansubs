@@ -1,4 +1,4 @@
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { type ApplicationConfig, inject, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -27,7 +27,7 @@ const appInitializerProvider = provideAppInitializer(() => {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
-    provideHttpClient(withInterceptors([jwtInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([jwtInterceptor])),
     provideRouter(appRoutes, withComponentInputBinding()),
     appInitializerProvider,
   ],
