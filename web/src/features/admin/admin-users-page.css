@@ -1,0 +1,296 @@
+/* Admin users tab — the member cards, the filter row, and the reset
+   affordance. A slim head always shows who the member is; one panel opens
+   per member. */
+
+.users-filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.users-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--sf-text-muted);
+}
+
+.users-filter select {
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--sf-border);
+    background: var(--sf-surface);
+    color: var(--sf-text);
+}
+
+.users-filter select:disabled {
+    opacity: 0.5;
+}
+
+/* ── Member cards ─────────────────────────────────────────────────── */
+
+.members-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.member-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.7rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 12px;
+    background: var(--sf-surface);
+}
+
+.member-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.member-head--static {
+    cursor: default;
+}
+
+.member-head:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Scale the avatar glyph with its box: the shared chip renders a 1.6rem
+   circle with a 0.7rem initial; stretched alone, the initial stays tiny. */
+.member-avatar {
+    flex: 0 0 auto;
+    display: block;
+    width: 3.5rem;
+    height: 3.5rem;
+}
+
+.member-avatar > .avatar {
+    width: 100%;
+    height: 100%;
+    font-size: 1.5rem;
+}
+
+.member-who {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.member-name {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.member-secondary,
+.member-meta {
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.member-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+}
+
+.member-chip {
+    padding: 0.1rem 0.55rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: var(--sf-text-muted);
+    white-space: nowrap;
+}
+
+.member-chip--role {
+    border-color: var(--sf-accent-light);
+    color: var(--sf-accent-light);
+}
+
+.member-chip--active {
+    border-color: var(--sf-success);
+    color: var(--sf-success-strong);
+}
+
+/* Suspension is reversible, so it is a cautionary amber rather than the
+   delete action's danger red. */
+.member-chip--suspended {
+    border-color: var(--sf-warning);
+    color: var(--sf-warning);
+}
+
+/* A STAGED value: the chip shows what the open panel would send. */
+.member-chip--staged {
+    border-style: dashed;
+}
+
+.member-chevron {
+    display: inline-flex;
+    align-self: center;
+    transition: transform 0.15s;
+}
+
+.member-card[data-open="true"] .member-chevron {
+    transform: rotate(180deg);
+}
+
+.member-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--sf-border);
+}
+
+.member-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.member-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+.member-field select {
+    padding: 0.5rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--sf-border);
+    background: var(--sf-surface);
+    color: var(--sf-text);
+    font: inherit;
+}
+
+.member-field select:disabled {
+    opacity: 0.5;
+}
+
+.member-save-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.member-save svg {
+    width: 1.1em;
+    height: 1.1em;
+}
+
+.member-dirty {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--sf-accent-light);
+}
+
+/* The leave cue beside the save: an unsaved staged edit dies with the panel
+   or the loaded page, and the user should know before they close it. */
+.member-leave-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--sf-text-muted);
+}
+
+/* The immediate actions: icon-only, so the panel stays narrow on a phone.
+   Each carries its own aria-label + title. */
+.member-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.member-action svg {
+    width: 1.1em;
+    height: 1.1em;
+}
+
+/* Phone band: the selects and the save take the full width, and the two icon
+   actions split the row evenly — comfortable targets instead of a squeezed
+   strip. */
+@media (max-width: 700px) {
+    .member-field select,
+    .member-save-row .member-save,
+    .member-save-row .member-cancel {
+        width: 100%;
+    }
+
+    .member-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* The one-time temp-password dialog — a native modal <dialog> (opened by
+   the page's post-render pass). The UA centers a modal dialog with
+   `margin: auto`; this rule re-asserts it, because an author margin would
+   win over the UA sheet and un-center the dialog. The ::backdrop dim is a
+   token mix so both themes veil the page behind it. */
+.reset-dialog {
+    margin: auto;
+    padding: 1rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 8px;
+    background: var(--sf-surface);
+    max-width: min(32rem, calc(100% - 2rem));
+}
+
+.reset-dialog::backdrop {
+    background: color-mix(in srgb, var(--sf-bg) 70%, transparent);
+}
+
+.reset-dialog-title {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.reset-dialog p {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+}
+
+.reset-password-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.reset-password-row code {
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 1.05rem;
+    letter-spacing: 0.05em;
+    user-select: all;
+}
+
+.reset-dialog-buttons {
+    display: flex;
+    gap: 0.5rem;
+}

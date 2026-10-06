@@ -1,0 +1,26 @@
+/* Avatar chip styles — shared by the blog and projects pages; the template
+   lives in shared/ui/avatar.ts. Imported by the consuming component so the
+   chip keeps ONE definition. */
+
+.avatar {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid var(--sf-border);
+}
+
+.avatar-initial {
+    background: var(--sf-surface);
+    color: var(--sf-accent-light);
+}
+
+.avatar-empty {
+    background: transparent;
+}

@@ -1,0 +1,158 @@
+# ┌─────────────────────────────────────────────────────────────┐
+# │  Sick-Fansubs stack. Project name "sick-fansubs" — its own  │
+# │  compose project, network, and volumes. Caddy is the TLS    │
+# │  edge on host port 443 behind Cloudflare; port 80 stays     │
+# │  unpublished (ACME uses the DNS challenge).                 │
+# │                                                             │
+# │  The GH Actions deploy workflow ships this file AND the     │
+# │  Caddyfile to the VPS and pulls the app/migrate/backup/     │
+# │  caddy images from ghcr.io; the manual build/scp channel    │
+# │  is closed; aux images pair via AUX_TAG.                    │
+# └─────────────────────────────────────────────────────────────┘
+
+name: sick-fansubs
+
+# The app's stderr stream and Caddy's access log both land in the Docker
+# json-file driver, which has no rotation by default: cap them here so a
+# busy day cannot fill the disk. The app's own file sink rotates separately
+# (internal/logging).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    image: ghcr.io/panosmagic32/sick-fansubs:${TAG:-dev}
+    user: "1000:1000"
+    logging: *default-logging
+    expose:
+      - "8080"
+    volumes:
+      - sick-data:/app/data
+    secrets:
+      # Compose file secrets: mounted
+      # at /run/secrets/ for uid 1000 only. mode is QUOTED — bare 0400
+      # parses as decimal YAML, not octal.
+      - source: smtp_api_key
+        target: smtp_api_key
+        uid: "1000"
+        gid: "1000"
+        mode: "0400"
+      # The VAPID private signing key: the app refuses to start in
+      # production without it.
+      - source: vapid_private_key
+        target: vapid_private_key
+        uid: "1000"
+        gid: "1000"
+        mode: "0400"
+    environment:
+      PORT: "8080"
+      DATA_DIR: /app/data
+      APP_ENV: production
+      PUBLIC_BASE_URL: https://sickfansubs.com
+      TRUSTED_ORIGIN: https://sickfansubs.com
+      # SMTP relay: non-secret config rides env; the API key is
+      # the file secret above. The VPS .env may override via
+      # ${SMTP_HOST:-...} style interpolation.
+      SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-resend}
+      # Sender: the verified root domain. The old
+      # onboarding@resend.dev default cannot reach real users — Resend
+      # 403s anything but the account owner's own address. No Reply-To:
+      # replies to the no-reply sender are meant to bounce.
+      SMTP_FROM: ${SMTP_FROM:-noreply@sickfansubs.com}
+      # VAPID public key: PUBLIC material baked into the
+      # web bundle too. The fallback is the committed PRODUCTION pair's
+      # public half; the VPS .env sets the same value.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-BHTZD8cRI0vmAwkO9fcsY7KwL2vL7vx1OByBARaSItTq2kqQNiPqLJa7zHSIgj8yRlAxGgO5ZAvxwMyMeNqafdc}
+    restart: unless-stopped
+    # The app's graceful shutdown allows 30 s for HTTP drain plus the
+    # cleanup join; Docker's default 10 s stop grace would SIGKILL it.
+    stop_grace_period: 45s
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  caddy:
+    # Built + pushed by the deploy workflow (Dockerfile.caddy — stock caddy
+    # lacks dns.providers.cloudflare). The Caddyfile is bind-mounted below
+    # and rides every deploy as a staged swap (Caddyfile.new) via the
+    # workflow scp + deploy.sh. Version-paired with the
+    # app image through AUX_TAG (the deploy script writes it beside TAG);
+    # ${AUX_TAG:-latest} keeps a fresh clone or an older .env on :latest.
+    image: ghcr.io/panosmagic32/sick-fansubs-caddy:${AUX_TAG:-latest}
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      # Fail closed: an unset token aborts at compose level rather than
+      # letting Caddy start and the ACME DNS challenge fail behind a
+      # "green" deploy (a dead edge must not deploy green).
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}
+
+  # One-shot: docker compose --profile migrate run --rm migrate
+  # (migrations are an explicit maintenance op, never run from the app
+  # process). STOP THE APP FIRST — the data volume is single-writer, so a
+  # manual run against a live app applies DDL to an active writer. The
+  # deploy script stops the app before migrating; a manual operator must
+  # too. Image version-paired with the app through AUX_TAG.
+  migrate:
+    image: ghcr.io/panosmagic32/sick-fansubs-migrate:${AUX_TAG:-latest}
+    profiles: ["migrate"]
+    user: "1000:1000"
+    logging: *default-logging
+    volumes:
+      - sick-data:/app/data
+    environment:
+      DATA_DIR: /app/data
+
+  # One-shot: docker compose --profile backup run --rm backup
+  # Creates the date-stamped age-encrypted unit under
+  # ./backups (host bind, so the host cron + mega scripts read it as
+  # sick-deploy) and prunes to the newest 10. APP_ENV=production fails
+  # closed without AGE_RECIPIENT — the key lands in backup.env (created
+  # by the owner at bring-up; see backup.md, shipped beside this file). The
+  # file is optional so a fresh clone brings the app/caddy stack up before
+  # the backup env exists — the backup run itself then fails with a clear
+  # "AGE_RECIPIENT is required" message.
+  backup:
+    image: ghcr.io/panosmagic32/sick-fansubs-backup:${AUX_TAG:-latest}
+    profiles: ["backup"]
+    user: "1000:1000"
+    logging: *default-logging
+    volumes:
+      - sick-data:/app/data
+      - ./backups:/app/backups
+    environment:
+      DATA_DIR: /app/data
+      BACKUP_DIR: /app/backups
+      APP_ENV: production
+    env_file:
+      - path: backup.env
+        required: false
+
+# Compose file secret: the value comes from the
+# owner-only VPS .env (SMTP_API_KEY) at `docker compose up` time — it
+# never appears in `docker compose config` output, the image, or the repo.
+# Rotation: edit the .env line, `docker compose up -d`.
+secrets:
+  smtp_api_key:
+    environment: SMTP_API_KEY
+  vapid_private_key:
+    environment: VAPID_PRIVATE_KEY
+
+volumes:
+  sick-data:
+  caddy-data:
+  caddy-config:

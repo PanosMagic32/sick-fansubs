@@ -1,0 +1,44 @@
+/* Comments section — the
+   click-to-load wrapper around the thread. Design tokens (--sf-*) inherit
+   from the app-shell host, so both themes work automatically. */
+
+:host {
+    display: block;
+    /* Scroll target for the expanding click: clear the sticky app header
+       (12px top offset + 56px height) with breathing room. */
+    scroll-margin-top: 84px;
+}
+
+/* The collapsed indicator owns the separation from the downloads card
+   above; once expanded the thread carries its own 2rem margin, so the two
+   states never stack. */
+.cs-indicator {
+    margin-top: 2rem;
+}
+
+.cs-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.cs-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--sf-text);
+    margin: 0;
+}
+
+/* The zero state — the same catalogue line the thread shows when it loads
+   an empty list. */
+.cs-hint {
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+    margin: 0;
+}
+
+/* «Μπες στη συζήτηση» — the owner's reference surface (unboxholics.com) uses
+the same call to action for its click-to-load discussion block; the look is
+the shared secondary control. */

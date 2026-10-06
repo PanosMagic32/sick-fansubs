@@ -1,0 +1,25 @@
+/* Install control — the shared secondary control, so the filled
+   donation pill stays the primary call inside the donation strip; the account
+   page renders it standalone in the profile panel. Design tokens inherit
+   from the host. */
+
+:host {
+    display: inline-flex;
+}
+
+/* Nothing to offer (installed, notifications granted, unsupported — the
+   component sets the attribute): the host must not occupy a flex slot, so
+   the donation strip falls back to its centered single-item layout. */
+:host([hidden]) {
+    display: none;
+}
+
+.install {
+    white-space: nowrap;
+}
+
+/* The iOS manual path is an instruction, not an action. */
+.install-hint {
+    font-size: 0.75rem;
+    opacity: 0.85;
+}

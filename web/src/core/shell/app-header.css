@@ -1,0 +1,507 @@
+:host {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    margin: 12px 12px 0 12px;
+    padding: 0 clamp(12px, 3vw, 24px);
+    border-radius: 16px;
+    box-shadow:
+        0 1px 0 var(--sf-border),
+        0 8px 32px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(12px);
+    background: var(--sf-surface);
+    position: sticky;
+    top: 12px;
+    z-index: 10;
+}
+
+.header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.logo {
+    height: 28px;
+    width: auto;
+    border-radius: 50%;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    /* Self-hosted IBM Plex Mono — see the @font-face block in
+       core/index.css. */
+    font-family: var(--sf-font-mono);
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--sf-accent-light);
+    letter-spacing: 0.02em;
+    text-decoration: none;
+}
+
+.brand:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 4px;
+}
+
+/* The signed-in account chip is a disclosure button for the account menu:
+   the panel is right-anchored under the chip and reuses the mobile
+   dropdown's opaque chrome at every width. */
+.account-menu-root {
+    position: relative;
+    display: inline-flex;
+}
+
+button.account-link {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--sf-text-muted);
+    font: inherit;
+    white-space: nowrap;
+    transition: color 0.15s;
+}
+
+button.account-link:hover {
+    color: var(--sf-accent-light);
+}
+
+button.account-link:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 4px;
+    border-radius: 2px;
+}
+
+.account-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 15rem;
+    padding: 8px;
+    gap: 6px;
+    background: var(--sf-bg);
+    border: 1px solid var(--sf-text-dim);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* Panel entries wear the shared button vocabulary (docs/patterns/web/components.md
+   rule 7) — `--secondary` for the account link and sign out, `--danger` for
+   sign-out-all. Only the layout is local: the panel's rows stretch full
+   width, align left, and keep a 44px target. */
+.account-menu-item {
+    width: 100%;
+    min-height: 44px;
+    justify-content: flex-start;
+    white-space: nowrap;
+}
+
+.account-menu-error {
+    margin: 4px 6px 2px;
+    color: var(--sf-error);
+    font-size: 0.85rem;
+}
+
+.header-center {
+    display: flex;
+    gap: clamp(12px, 2vw, 28px);
+    justify-content: center;
+}
+
+.header-center a {
+    color: var(--sf-text-muted);
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.15s;
+    white-space: nowrap;
+    /* Reserved pill geometry: every nav link carries the pill's padding
+       and radius permanently — the active state changes only colors, so
+       selecting a link never shifts its neighbours (the "jumping" header).
+       The icon-only band overrides both values below (its media query
+       comes later in the file). */
+    padding: 4px 14px;
+    border-radius: 999px;
+}
+
+/* Desktop-tier icon/label alignment: the glyph and the label sit on one
+   flex line — alignment is structural (align-items: center), not the
+   baseline vertical-align magic — and the 6px gap is explicit instead of
+   collapsed inter-element whitespace. The value matches the right-side
+   links' gap. */
+.header-center a {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.header-center a:hover {
+    color: var(--sf-accent-light);
+}
+
+.header-center a:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 4px;
+    border-radius: 2px;
+}
+
+/* Active nav item — pill background. Geometry (padding + radius) is
+   RESERVED on the base rule: the active state only swaps colors. */
+.header-center a[aria-current="page"] {
+    background: var(--sf-accent);
+    color: var(--sf-on-accent);
+}
+
+/* The icon color rule below sets accent on svg directly; inside the pill
+   it must match the white text or contrast fails (WCAG 1.4.11). */
+.header-center a[aria-current="page"] svg {
+    color: var(--sf-on-accent);
+}
+
+.header-center a[aria-current="page"]:hover {
+    color: var(--sf-on-accent);
+}
+
+/* Thin separator before the external Tracker link: external links read as
+   "leaves the site" in every tier — vertical on desktop/tablet, horizontal
+   inside the mobile dropdown (see the mobile media query below). */
+.nav-divider {
+    align-self: center;
+    width: 1px;
+    height: 1.25em;
+    background: var(--sf-border);
+    flex-shrink: 0;
+}
+
+.header-right {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-right a {
+    color: var(--sf-text-muted);
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.15s;
+    white-space: nowrap;
+}
+
+.header-right a:hover {
+    color: var(--sf-accent-light);
+}
+
+/* Active account link (aria-current from the router) — subtle accent,
+   matching the hover state; the center-nav pill stays the stronger
+   treatment. The account PANEL's entries are excluded: the entry for the
+   current route stays neutral there — a highlighted row inside the panel
+   would read as a stray state, not a location cue. */
+.header-right a[aria-current="page"]:not(.account-menu-item) {
+    color: var(--sf-accent-light);
+}
+
+/* The account link and the bell are icon-only below the ultrawide tier:
+   the avatar/bell glyph is
+   the visual, the label is clipped (sr-only pattern — never display:none)
+   so the accessible name is unchanged. The ultrawide query at the end of
+   the file un-clips the labels. The selector is deliberately
+   ELEMENT-AGNOSTIC (`.header-right .link-text`): the signed-in account
+   chip is a <button>, and an `a`-qualified clip silently exempted it. */
+.header-right .link-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* The account link, the avatar chip, and the theme toggle share ONE
+   footprint: a 40px circle. The chip's letter and the
+   toggle's glyph share the uniform 1.5rem size, so the two controls read
+   as a matched pair; the anonymous default icon keeps the 1.5rem glyph
+   centered in the same 40px box (stable footprint across auth states). */
+.header-right a.account-link,
+.header-right button.account-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+}
+
+.header-right a.account-link .avatar,
+.header-right button.account-link .avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+}
+
+.header-right a.account-link > svg,
+.header-right button.account-link > svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Notifications bell: the unread badge pins to the glyph (.bell-icon) so
+   it never drifts onto the revealed label; the box keeps the house
+   icon-target floor of 2rem. */
+.header-right a.bell-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px;
+    min-width: 2rem;
+    min-height: 2rem;
+}
+
+.bell-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.unread-badge {
+    position: absolute;
+    top: -3px;
+    right: -4px;
+    min-width: 1.1em;
+    height: 1.1em;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--sf-accent);
+    color: var(--sf-on-accent);
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.1em;
+    text-align: center;
+}
+
+.header-right a:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 4px;
+    border-radius: 2px;
+}
+
+.theme-btn {
+    /* Round control at the 40px house minimum — clears the WCAG 2.5.8
+       24px target minimum comfortably. */
+    border-radius: 50%;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.theme-btn svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.theme-btn:hover {
+    color: var(--sf-accent-light);
+}
+
+.hamburger {
+    display: none;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+/* All decorative icon spans use the accent color. */
+a [aria-hidden="true"],
+button [aria-hidden="true"] {
+    color: var(--sf-accent-light);
+}
+
+/* SVG icons inherit the accent color (alignment is structural now —
+   every header anchor is a flex container, so no baseline magic here). */
+a svg,
+button.theme-btn svg {
+    color: var(--sf-accent-light);
+}
+
+/* All header icons share ONE size: the glyph is a
+   uniform 1.5rem box — no per-link variance. The theme toggle is included
+   via its own rule below (it sized its icon through font-size before). */
+a svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* 700px — the icon-only band below starts at 700.01px, so fractional
+   viewport widths under zoom never fall in a gap between the two queries
+   (the band runs to 1300px). */
+@media (max-width: 700px) {
+    .hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* The right-side account chip stays on the phone band: the dropdown
+       does not repeat the account destination, so there is one entry at
+       every width (a specificity inversion made an earlier hide rule
+       inert). */
+
+    /* The external divider becomes a full-width horizontal line inside
+       the dropdown. */
+    .nav-divider {
+        width: 100%;
+        height: 1px;
+    }
+
+    /* In the dropdown the nav links read as buttons —
+       the account panel's entry shape — so every row is unmistakably
+       actionable. The active entry keeps the accent fill (the desktop
+       pill's location signal, now inside the button frame). */
+    .header-center a {
+        padding: 12px 16px;
+        border: 1px solid var(--sf-border);
+        border-radius: 10px;
+        background: var(--sf-surface);
+        justify-content: flex-start;
+    }
+
+    .header-center a[aria-current="page"] {
+        border-color: var(--sf-accent);
+    }
+
+    .header-center {
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        /* Mobile dropdown chrome: the open menu keeps the solid page
+           background plus a full border, a radius and a shadow, and it must
+           stay OPAQUE — a translucent fill let the page show through under
+           the menu. The border is what marks
+           the panel's edge, so it uses --sf-text-dim rather than
+           --sf-border: at 0.16 alpha the outline was there but not
+           DISTINCTIVE. No backdrop-filter: with an opaque fill there is
+           nothing left to blur. */
+        background: var(--sf-bg);
+        border: 1px solid var(--sf-text-dim);
+        border-radius: 16px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        padding: 12px 24px;
+        gap: 12px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        pointer-events: none;
+    }
+
+    /* Transitions live on .open only: crossing the breakpoint while the
+       menu is closed must not animate (the "dropdown flash"). Opening
+       still fades/slides in; closing snaps instantly. */
+    .header-center.open {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+        pointer-events: auto;
+        transition:
+            opacity 0.15s,
+            visibility 0.15s,
+            transform 0.15s;
+    }
+
+    .header-right {
+        gap: 6px;
+    }
+
+    /* The account panel becomes the full-width sheet under the bar:
+       right-anchored to a chip that sits near the right edge, the 15rem
+       panel runs off the LEFT of a phone viewport. The root
+       goes static so the panel resolves against the sticky header — the nav
+       dropdown's geometry — instead of the chip. */
+    .account-menu-root {
+        position: static;
+    }
+
+    .account-menu {
+        top: 64px;
+        left: 0;
+        right: 0;
+    }
+}
+
+/* Mid-size band (between the hamburger breakpoint and the full desktop
+   layout): collapse nav labels to icons only. Text uses the sr-only
+   pattern (clip, not display:none) so the accessible name is unchanged.
+   The trailing external arrow is hidden — the compass alone represents
+   the tracker in icon-only mode. Padding gives icon-only links a 44px
+   touch target.
+
+   `.header-center a` covers every nav link (the mobile-only account row is
+   gone — the header chip is the single account entry). */
+@media (min-width: 700.01px) and (max-width: 1300px) {
+    .header-center a,
+    .header-right a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 13px;
+        border-radius: 8px;
+    }
+
+    /* Extend the shared .sr-only clip to nav link labels inside this
+       band only. */
+    .sr-only,
+    .header-center .link-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .external-icon {
+        display: none;
+    }
+}
+
+/* Ultrawide tier (>1920px — bigger than FHD): the right-side links reveal
+   their labels — the bell's «Ειδοποιήσεις» and the account username join
+   their icons. The clip (never display:none) contract keeps the accessible
+   names identical at every width; the reveal only
+   changes what is VISIBLE. The .sr-only suffix inside the account link
+   stays clipped (the username gains its account context for AT). */
+@media (min-width: 1920.01px) {
+    .header-right .link-text {
+        position: static;
+        width: auto;
+        height: auto;
+        padding: 0;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .header-right a.account-link,
+    .header-right button.account-link,
+    .header-right a.bell-link {
+        padding: 6px 14px;
+    }
+}

@@ -1,0 +1,32 @@
+# Build the importavatars binary (legacy avatar processing + reference
+# rewrite + reconciliation report, cmd/importavatars — avatar slice).
+# This image is NOT a service — use it with a one-off docker run against the
+# stopped app's volume (mirrors Dockerfile.importmedia).
+FROM golang:1.27.1-alpine3.24 AS build
+
+WORKDIR /app
+COPY go.mod go.sum ./
+# Cache mounts (BuildKit): the Go module/build caches persist across
+# local builds (these images are built only by the Makefile targets); a
+# miss just rebuilds.
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY . .
+
+# Package build (not the single-file form): a future file split in
+# cmd/importavatars cannot break this image.
+# Both cache mounts ride the compile step — the download layer's
+# /go/pkg/mod is not in the image.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -o importavatars ./cmd/importavatars
+
+FROM alpine:3.24
+# Mirror the prod image's non-root user (pinned uid/gid 1000) and /app/data
+# so a one-off run can write the named volume (same adversarial-review fix
+# as Dockerfile.migrate).
+RUN apk add --no-cache ca-certificates && \
+    addgroup -S -g 1000 app && adduser -S -u 1000 -G app app && \
+    mkdir -p /app/data && chown app:app /app/data && chmod 700 /app/data
+COPY --from=build /app/importavatars /importavatars
+USER app
+ENTRYPOINT ["/importavatars"]

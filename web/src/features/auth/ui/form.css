@@ -1,0 +1,46 @@
+/* ── Shared auth-page chrome ──────────────────────────────────────────
+   The card container, the form column, and the footer link row — imported
+   by every auth page beside baseline.css, controls.css, and the shared
+   forms.css (which owns the `.field` block and the control boxes). The
+   submit controls are `.button .button--primary` from controls.css.
+
+   Selectors are intentionally unscoped: shadow DOM isolates each
+   component's styles, so these rules can only match elements inside the
+   component that imports this sheet. */
+
+/* Shared card container — the three pages duplicated this block.
+   width: 100% — as a flex item inside the shell's centered <main>, the
+   card would otherwise shrink-wrap to its content instead of filling up
+   to max-width. */
+.auth-card {
+    width: 100%;
+    max-width: 48rem;
+    margin: 3rem auto;
+    padding: 3rem;
+    background: var(--sf-surface);
+    border: 1px solid var(--sf-border);
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Link row under the form (e.g. "no account yet" / sign-in). */
+.footer-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.footer-link a {
+    color: var(--sf-accent);
+    text-decoration: none;
+}
+
+.footer-link a:hover {
+    text-decoration: underline;
+}

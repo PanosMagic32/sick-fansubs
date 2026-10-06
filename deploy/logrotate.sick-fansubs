@@ -1,0 +1,15 @@
+# Logrotate drop-in for the host-side cron logs of the stack.
+# Install once on the VPS:
+#   sudo cp ~/sick-fansubs/logrotate.sick-fansubs /etc/logrotate.d/sick-fansubs
+# copytruncate keeps the cron redirect's append fd valid, so a rotation needs
+# no restart of anything.
+/home/sick-deploy/sick-fansubs/backup-cron.log
+/home/sick-deploy/sick-fansubs/disk-cron.log {
+	su sick-deploy sick-deploy
+	weekly
+	rotate 4
+	missingok
+	notifempty
+	compress
+	copytruncate
+}

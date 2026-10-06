@@ -1,0 +1,100 @@
+# ── Go: build output, tooling ─────────────────────────────────
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with "go test -c"
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Local build artifact (make build)
+main
+*templ.go
+
+# Go workspace file
+go.work
+
+# Air (make dev-watch): scratch dir and build log
+tmp/
+build-errors.log
+
+# Local-only working notes (session state, briefs, review findings, patches):
+# they stay on the machine and never enter a commit.
+.scratch/
+
+# GoReleaser output (root-level dist/)
+/dist/
+
+# ── SQLite: runtime data (never commit live DBs) ──
+
+# Development/runtime data dir (database, WAL/SHM, future media)
+data/
+
+# Legacy root-level database (make clean)
+sick-fansubs.db
+sick-fansubs.db-wal
+sick-fansubs.db-shm
+
+# ── Sensitive migration evidence ───────────────────────────────
+
+# Production/dev data dumps — project rule 8: do not publish.
+# Kept local-only; backed up separately from the repository.
+docs/current-data/
+
+# Locally downloaded legacy media objects (media-import rehearsal).
+# Production media bytes — project rule 8: never commit.
+media-source/
+
+# ── Frontend: Lit + Vite + Bun ─────────────────────────────────
+
+# Dependencies (any level)
+node_modules/
+
+# Vite production build
+web/dist
+
+# Go embed staging dir is build output; track only the placeholder
+cmd/api/web/dist/*
+!cmd/api/web/dist/.gitkeep
+
+# ── Environment ────────────────────────────────────────────────
+
+.env
+.env.*
+!.env.example
+web/.env
+web/.env.*
+!web/.env.example
+.env*.local
+
+# ── IDE / editor ───────────────────────────────────────────────
+
+.vscode/
+.idea/
+.project
+.classpath
+*.launch
+.settings/
+
+# ── OS junk ────────────────────────────────────────────────────
+
+.DS_Store
+Thumbs.db
+
+# ── Misc tooling leftovers ─────────────────────────────────────
+
+.wrangler
+.output
+.vercel
+.netlify
+.vinxi
+app.config.timestamp_*.js
+
+# Local build artifact (go build ./cmd/api/... without -o)
+/api

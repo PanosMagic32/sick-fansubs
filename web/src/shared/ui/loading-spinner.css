@@ -1,0 +1,7 @@
+/* Loading paragraph (the shared spinner's layout). */
+
+.loading {
+    text-align: center;
+    color: var(--sf-text-dim);
+    padding: 3rem 0;
+}

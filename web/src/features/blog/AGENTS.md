@@ -1,0 +1,30 @@
+# web/src/features/blog — Agent Navigation
+
+Public blog feature: the blog list/detail endpoints + wire types (`data-access/`) and the home-page list + post detail views (`blog-list-page.ts`, `blog-detail-page.ts` at the feature root).
+
+## Open this file when
+
+- changing the blog wire contracts, the home page layout, the detail page, or blog copy.
+
+## Placement
+
+- `data-access/types.ts` mirrors the Go handler DTOs (`internal/handler/blog.go`, `internal/handler/blog_detail.go`) — update both sides together (shared AGENTS.md convention).
+- `data-access/blog-api.ts` owns `GET /api/v1/blog-posts` (`listBlogPosts` — public GET: no CSRF, default 401 auto-transition applies, `params.limit` forwarded; the API default stays 20) and `GET /api/v1/blog-posts/{id}` (`getBlogPost`, id URL-encoded as a path segment). The list's first-page limit of 10 is the shared `DEFAULT_PAGE_SIZE` (`shared/utils/url-cursor-paging.ts`).
+- `blog-list-page.ts` renders the four deliberate states (loading/empty/success/error) with the hero + grid layout, paginated via URL-carried cursors. Every card is a `<content-card>` (hero on page 1, `grid` cards after it), which owns the link to `/blog/{id}` (the hero card is `shape="hero"`, grid cards `shape="grid"`). It lives at the feature root (route targets at `features/<feature>/<page>.ts`).
+- `blog-detail-page.ts` renders loading/error/notFound/success for `/blog/:id`.
+- The avatar chip template and the date formatter/error mapper live in `shared/`: `shared/ui/avatar.ts` + `avatar.css`, `shared/utils/format.ts` (`formatDate`/`mapError`). The blog pages import them from there; the cards' avatar chips come with `<content-card>`, which imports its own sheets. Cross-feature imports are the recorded capability edges only (components.md rule 2) — this feature's edges are the detail pages' `favorite-toggle`/`follow-toggle`/`comments-section` imports.
+- The card fragments render inside `<content-card>` (`shared/ui/content-card.ts`), whose four shapes the blog pages compose: the quote treatment (❝ ❞), the meta line (avatar + sr username + date; `sr-username` on the grid cards, off on the hero) and the ❯❯ details marker. `requestSignal` lives in `shared/api/request-signal.ts`.
+
+## Folder-local conventions
+
+- Each page owns ONE AbortController for its in-flight request — aborted on teardown and superseded by newer loads; a stale response must never paint over a newer one. The detail page also reloads when `postId` changes (Routes reuses the element between two detail navigations — `willUpdate` + `hasUpdated` guard).
+- Pagination is URL-carried cursor paging (replaces load-more): `after`, `limit`, and the 1-based `page` ordinal ride the URL (Next stamps `page` = current + 1; a size change drops it); Next pushes the cursor, Previous is `history.back()`, results are REPLACED per page. Previous derives from the `sfPager` history-entry marker (survives a refresh; a shared/deep-linked page-N URL renders it DISABLED). The page-size select restarts at the first page (a cursor is only meaningful with the same limit). The hero renders ONLY on the first page (cursor-less URL) — page 2+ is grid-only, and the card titles are `h2` there (the hero's `h2` is absent; never `h1` → `h3`). Every failed load — first page or page turn — shows the SAME error state + retry; the pager is hidden on loading/error/empty. The state machine lives in `shared/utils/url-cursor-paging.ts` (`UrlCursorPagingController`); the pager UI is `shared/ui/pager-nav` (control row: Previous / size select / Next, buttons disabled at the boundaries; the «Σελίδα X από Y» caption BELOW the row is fed by `pageInfo.total`).
+- Dates use the shared `formatDateTimeNumeric` (`shared/utils/format.ts`) — the blogs/projects format. The long Greek formatter remains only where a full word form is wanted: the metrics page, the staff user card, and the account sessions list.
+- Detail meta: `updatedAt` renders only when it is strictly after `publishedAt` (genuine edits land days later in the real data; the migration fallback `updated_at_ms = created_at_ms` lands within seconds of publish and must not read as an edit). The hero has NO edited line.
+- Card fields (the geometry lives in `shared/ui/content-card.css`): description clamped on every card with the detail-page quote treatment — ❝ ❞ glyphs with a plain text style (no icon styling), italic dim text (hero adds a top margin so it separates from the title line; cards rely on the body gap). The subtitle rides the TITLE line behind a decorative en dash on grid and hero alike; the detail page keeps its stacked subtitle. Avatar chip beside the date. Icon-only details marker: two PLAIN chevrons (❯❯), `el.ui.details` as the aria-label. The hero carries no edited line.
+- Detail page: the description is the distinct element — ❝ ❞ glyphs (plain text style), 1.1rem, plus the accent bar under it; the title is plain. The lead block (thumbnail → byline) is `<content-card shape="detail">`; the page keeps the measure (`:host`/`.detail` sizing: `min(90%, 60rem)` — capped because the 90%-of-80rem image was oversized on 1080p displays), the downloads section, and the states.
+- Downloads section: plain rows only — resolution + magnet/torrent links, same structure as the project detail page. The layout-exploration toggle and `?downloads=` preselect are gone; do not reintroduce layout variants.
+- Detail not-found is the API's masked 404 (`/problems/not-found`) — a distinct state from the router fallback, with `el.blog.notFound` copy and a link home.
+- Download links (magnet/torrent) stay plain `<a>` elements — the app-shell interceptor passes non-http(s) schemes through natively (magnet: opens the torrent handler; never a pushState path).
+- Thumbnails use `alt=""` — presentational; the adjacent title conveys the content.
+- Follow bell: the detail page embeds `<follow-toggle kind="blog-posts" content-id={post.id}>` right after the `<favorite-toggle>` in the title row (the recorded cross-feature capability edge, components.md rule 2).

@@ -1,0 +1,9 @@
+[test]
+preload = ["./test-setup.ts"]
+
+# Bun resolves CSS imports (including Vite's `?inline`) to empty objects
+# under bun test. The text loader keeps them as CSS text so
+# baseline.test.ts can pin the shared in-shadow rules. Vite builds are
+# unaffected — bun is only the script runner there, Vite loads CSS itself.
+[loader]
+".css" = "text"

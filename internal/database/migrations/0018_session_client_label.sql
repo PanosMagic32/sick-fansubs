@@ -1,0 +1,21 @@
+-- 0018_session_client_label.sql — self-service session list (decision 0037).
+--
+-- The migration runner owns the transaction; do not add BEGIN/COMMIT/ROLLBACK
+-- statements here.
+--
+-- sessions.client_label: an OPTIONAL, closed-vocabulary device label derived
+-- from the User-Agent header at session creation ("Chrome · Android"). The raw
+-- user-agent string is never stored — the classifier writes only one of its
+-- own known labels, so client text can never reach this column (0037 §1).
+--
+-- No CHECK: the vocabulary lives in Go (internal/service/clientlabel.go), and
+-- a SQL CHECK would be a second, drifting copy of it. No index either: the
+-- list reads filter on user_id (already indexed) and per-user row counts are
+-- tiny.
+--
+-- No backfill and none is possible: a label exists only when a sign-in
+-- observed the user-agent, so every existing row keeps NULL ("Άγνωστη
+-- συσκευή"). Retention is the session row's lifetime (≤ 7 days) — the expiry
+-- cleanup and the staged-restore session purge delete the label with the row.
+
+ALTER TABLE sessions ADD COLUMN client_label TEXT;

@@ -1,0 +1,619 @@
+/* Content card — one element, four shapes (the rules live in
+   docs/patterns/web/components.md). The sheet is a BASE section of rules
+   the shapes share plus a DELTA section per shape; two base blocks are
+   shape-keyed because only some shapes clamp their text. A caller fills
+   inputs and never restyles a shape. Design tokens (--sf-*) inherit from
+   the app-shell host. */
+
+:host {
+    display: block;
+}
+
+/* ── Base: what every shape shares ── */
+
+.link {
+    display: block;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+.title {
+    color: var(--sf-text);
+    font-weight: 700;
+    margin: 0;
+}
+
+/* The decorative separator between a list card's title and subtitle — muted
+   like the subtitle it introduces. */
+.subtitle-sep {
+    color: var(--sf-text-muted);
+}
+
+.subtitle {
+    min-width: 0;
+    color: var(--sf-text-muted);
+}
+
+.description {
+    margin: 0;
+    color: var(--sf-text-dim);
+}
+
+/* The clamped shapes cut a description at two lines; the detail shape shows
+   it whole. */
+:host([shape="grid"]) .description,
+:host([shape="hero"]) .description,
+:host([shape="row"]) .description {
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* The quote treatment is the cards': the grid and hero descriptions are
+   italic, the row and detail ones are not. */
+:host([shape="grid"]) .description,
+:host([shape="hero"]) .description {
+    font-style: italic;
+}
+
+/* The grid and hero titles clamp too, at their own line counts. */
+:host([shape="grid"]) .title,
+:host([shape="hero"]) .title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* The list cards read "Title – Subtitle" on ONE line (owner request): a
+   wrapping flex row on the title's baseline, the separator decorative,
+   the subtitle muted. */
+.title-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    min-width: 0;
+}
+
+.title-line .title {
+    min-width: 0;
+}
+
+.frame {
+    background: var(--sf-surface);
+}
+
+.thumb {
+    display: block;
+    object-fit: cover;
+}
+
+/* A missing image keeps the cell as a border seam so the grid rhythm (and
+   the hero's two-column ratio) survives it. */
+.thumb-empty {
+    background: transparent;
+    border-bottom: 2px solid var(--sf-border);
+}
+
+/* The details marker (❯❯) every grid/hero footer ends with. */
+.more {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    color: var(--sf-accent-light);
+}
+
+/* The shape bodies are vertical flex columns (the non-dense row included;
+   its children stack exactly as they did in block layout). */
+.body {
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.meta {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.date {
+    color: var(--sf-text-dim);
+    font-size: 0.8rem;
+}
+
+.topline {
+    display: flex;
+    align-items: center;
+}
+
+/* The chip vocabulary: one badge, a tone per treatment the surfaces had. */
+.badge {
+    display: inline-block;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.badge[data-tone="accent"],
+.badge[data-tone="project"] {
+    padding: 2px 10px;
+    font-size: 0.8rem;
+}
+
+.badge[data-tone="accent"] {
+    background: var(--sf-accent);
+    color: var(--sf-on-accent);
+}
+
+.badge[data-tone="project"] {
+    background: var(--sf-project-bg);
+    border: 1px solid var(--sf-project);
+    color: var(--sf-project);
+}
+
+.badge[data-tone="latest"] {
+    flex-shrink: 0;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sf-success-strong);
+    border: 1px solid var(--sf-success);
+}
+
+.badge[data-tone="draft"],
+.badge[data-tone="published"],
+.badge[data-tone="archived"] {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    border: 1px dashed var(--sf-border);
+}
+
+.badge[data-tone="published"] {
+    border-style: solid;
+    color: var(--sf-success-strong);
+}
+
+.badge[data-tone="draft"] {
+    color: var(--sf-text-muted);
+}
+
+.badge[data-tone="archived"] {
+    color: var(--sf-text-muted);
+    opacity: 0.7;
+}
+
+/* ── grid: the blog/projects list cards ── */
+
+/* The grid fills its cell: the host is the grid item's child, so the
+   height chain (host → link → frame) has to start here for equal-height
+   cards whose footers line up. */
+:host([shape="grid"]) {
+    height: 100%;
+}
+
+:host([shape="grid"]) .frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 2px solid var(--sf-border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition:
+        border-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+:host([shape="grid"]) .link:hover .frame {
+    border-color: var(--sf-accent-light);
+    transform: translateY(-2px);
+}
+
+:host([shape="grid"]) .thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+}
+
+:host([shape="grid"]) .body {
+    gap: 0.45rem;
+    padding: 0.9rem 1rem 1rem;
+    flex: 1;
+}
+
+:host([shape="grid"]) .title {
+    font-size: 1.05rem;
+    line-height: 1.35;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+}
+
+:host([shape="grid"]) .title-line {
+    column-gap: 0.4rem;
+}
+
+:host([shape="grid"]) .subtitle {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+:host([shape="grid"]) .description {
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+:host([shape="grid"]) .footer {
+    padding-top: 0.5rem;
+    gap: 0.5rem;
+}
+
+:host([shape="grid"]) .meta {
+    gap: 0.4rem;
+}
+
+/* ── hero: the blog list's featured lead card ── */
+
+:host([shape="hero"]) .link {
+    margin-bottom: 1.25rem;
+}
+
+:host([shape="hero"]) .frame {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    border: 2px solid var(--sf-success);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+:host([shape="hero"]) .thumb {
+    width: 100%;
+    height: 100%;
+    min-height: 14rem;
+}
+
+:host([shape="hero"]) .body {
+    gap: 0.6rem;
+    padding: 1.5rem;
+}
+
+:host([shape="hero"]) .topline {
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+:host([shape="hero"]) .title {
+    font-size: 1.5rem;
+    line-height: 1.3;
+    line-clamp: 3;
+    -webkit-line-clamp: 3;
+}
+
+:host([shape="hero"]) .title-line {
+    column-gap: 0.45rem;
+    flex: 1 1 auto;
+}
+
+:host([shape="hero"]) .subtitle {
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+:host([shape="hero"]) .description {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+:host([shape="hero"]) .footer {
+    padding-top: 0.75rem;
+    gap: 0.75rem;
+}
+
+:host([shape="hero"]) .meta {
+    gap: 0.5rem;
+}
+
+@media (max-width: 1150px) {
+    :host([shape="hero"]) .frame {
+        grid-template-columns: 1fr;
+    }
+
+    /* Stacked hero: the thumb returns to a fixed 16:9 shape instead of
+       filling a column with no intrinsic height. */
+    :host([shape="hero"]) .thumb {
+        aspect-ratio: 16 / 9;
+        height: auto;
+        min-height: 0;
+    }
+}
+
+/* ── row: the search results and the favorites/admin lists ── */
+
+:host([shape="row"]) {
+    position: relative;
+}
+
+:host([shape="row"]) .frame {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--sf-border);
+    border-radius: 16px;
+    transition: border-color 0.15s;
+}
+
+:host([shape="row"]) .frame.link:hover {
+    border-color: var(--sf-accent-light);
+}
+
+:host([shape="row"]) .thumb {
+    height: 100px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+:host([shape="row"]) .body {
+    flex: 1;
+    min-width: 0;
+}
+
+:host([shape="row"]) .topline {
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+:host([shape="row"]) .title {
+    font-size: 1.1rem;
+    margin: 0 0 6px;
+}
+
+/* The row's inline title line renders when a subtitle input is set — every
+   row surface passes one when its kind has a subtitle. It matches the
+   plain title's spacing. */
+:host([shape="row"]) .title-line {
+    column-gap: 0.4rem;
+    margin: 0 0 6px;
+}
+
+:host([shape="row"]) .title-line .title {
+    margin: 0;
+}
+
+:host([shape="row"]) .description {
+    color: var(--sf-text-muted);
+    font-size: 0.95rem;
+}
+
+/* The row's meta stays a block beside the topline's other text (the base
+   flex row is for the card footers) and carries the muted tone with its
+   date. */
+:host([shape="row"]) .meta {
+    display: block;
+    color: var(--sf-text-muted);
+}
+
+:host([shape="row"]) .date {
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+}
+
+/* The compact geometry: the favorites and admin lists, where a row is a
+   management entry rather than a search result. */
+:host([shape="row"][dense]) .frame {
+    gap: 0.9rem;
+    padding: 0.6rem;
+    border-radius: 10px;
+}
+
+:host([shape="row"][dense]) .thumb {
+    width: 7rem;
+    height: 4.5rem;
+    border-radius: 8px;
+}
+
+:host([shape="row"][dense]) .body {
+    gap: 0.2rem;
+}
+
+:host([shape="row"][dense]) .topline {
+    gap: 0.6rem;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+:host([shape="row"][dense]) .title {
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* The dense body gap owns the vertical rhythm, so a dense row with and
+   without a subtitle sits the same way above its description. */
+:host([shape="row"][dense]) .title-line {
+    margin: 0;
+}
+
+:host([shape="row"][dense]) .secondary {
+    font-size: 0.78rem;
+    color: var(--sf-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+:host([shape="row"][dense]) .description {
+    font-size: 0.85rem;
+}
+
+:host([shape="row"][dense]) .meta,
+:host([shape="row"][dense]) .date {
+    font-size: 0.8rem;
+}
+
+/* The in-flow action joins the frame's flex line (a row's trailing
+   control) instead of sitting in a slot box of its own. */
+:host([shape="row"]) slot[name="actions"] {
+    display: contents;
+}
+
+/* The corner control's room: the first lines of the body start at the
+   frame's top-right, so the reservation covers them, not just the date. */
+:host([shape="row"][data-overlay]) .body {
+    padding-right: 2.5rem;
+}
+
+/* The corner control itself — the card owns its frame, so it owns where a
+   per-item overlay goes. */
+:host([shape="row"]) slot[name="overlay"]::slotted(*) {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+}
+
+@media (max-width: 700px) {
+    /* A phone squeezes the row's text column (the page's own padding grows
+       relatively), so the compact thumbnail steps down with it. */
+    :host([shape="row"][dense]) .thumb {
+        width: 5rem;
+        height: 3.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    /* The narrowest band stacks the row: the image owns a full-width 16:9
+       cell and the text owns the rest. The corner reservation goes with it
+       — the control now sits over the image. */
+    :host([shape="row"]) .frame {
+        flex-direction: column;
+    }
+
+    :host([shape="row"]) .thumb,
+    :host([shape="row"][dense]) .thumb {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 9;
+    }
+
+    :host([shape="row"][data-overlay]) .body {
+        padding-right: 0;
+    }
+}
+
+/* ── detail: the two detail pages' lead block ── */
+
+:host([shape="detail"]) .thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    border: 1px solid var(--sf-border);
+    margin-bottom: 1.5rem;
+}
+
+:host([shape="detail"]) .header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+:host([shape="detail"]) .title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+:host([shape="detail"]) .title-row .title {
+    flex: 1;
+    min-width: 0;
+}
+
+/* The slot is not a box: its controls join the title row's flex line. */
+:host([shape="detail"]) slot[name="actions"] {
+    display: contents;
+}
+
+:host([shape="detail"]) .title {
+    font-size: 1.75rem;
+    line-height: 1.25;
+}
+
+:host([shape="detail"]) .subtitle {
+    font-size: 1.05rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+:host([shape="detail"]) .detail-stats {
+    margin: 0 0 1.25rem;
+}
+
+:host([shape="detail"]) .description {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: var(--sf-text);
+    margin: 0 0 1.5rem;
+}
+
+/* The paragraph collapses whitespace (normal), so template line-layout
+   around the quote glyphs can never inject line breaks; the text span
+   alone preserves the data's line breaks (the API treats the description
+   as plain text). */
+:host([shape="detail"]) .description .description-text {
+    white-space: pre-line;
+}
+
+:host([shape="detail"]) .description::after {
+    content: "";
+    display: block;
+    width: 4rem;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--sf-accent);
+    margin-top: 0.75rem;
+}
+
+:host([shape="detail"]) .detail-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 1.25rem;
+}
+
+/* The byline's avatar is one step larger than the card chip's default. */
+:host([shape="detail"]) .meta-line .avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.75rem;
+}
+
+:host([shape="detail"]) .meta-line {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-text-dim);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+:host([shape="detail"]) .meta-label {
+    font-weight: 700;
+    color: var(--sf-text-muted);
+}
+
+:host([shape="detail"]) .meta-byline,
+:host([shape="detail"]) .meta-separator {
+    color: var(--sf-text-dim);
+}

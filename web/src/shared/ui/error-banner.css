@@ -1,0 +1,7 @@
+/* Alert paragraph (the shared banner's layout). */
+
+.error {
+    font-size: 0.9rem;
+    color: var(--sf-error);
+    margin: 0;
+}

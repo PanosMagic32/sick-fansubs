@@ -1,0 +1,157 @@
+/* Admin dashboard metrics tab — number cards plus
+   plain CSS bars. No chart library. */
+
+.metrics-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.metrics-section h2 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.metrics-since {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+}
+
+.metrics-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.metrics-card {
+    flex: 1 1 8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 8px;
+    background: var(--sf-surface);
+}
+
+.metrics-card-value {
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.metrics-card-label {
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+}
+
+.metrics-breakdowns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* The bar groups. ONE group is ONE grid, so its three columns are shared by
+   every row: the label column is sized by the group's longest label, the
+   track column takes ALL the space that is left, and the value column is as
+   wide as its own text.
+
+   Two rules matter here. The cap lives on the GROUP (a row has no box, see
+   below), so the bar cannot run the whole FHD width. And the label track is
+   `max-content`, not `minmax(8rem, 16rem)`: a content-sized track is frozen
+   at its content width, so the `1fr` track gets everything else, whereas a
+   `minmax` label track is grown with the free space in the same pass as the
+   flexible one and leaves the track a stub. Its floor and ceiling ride on
+   the label cell below. */
+.metrics-bars {
+    flex: 1 1 16rem;
+    min-width: 0;
+    max-width: 48rem;
+    display: grid;
+    grid-template-columns: max-content 1fr auto;
+    align-items: center;
+    column-gap: 0.6rem;
+    row-gap: 0.35rem;
+}
+
+.metrics-bars-title {
+    /* The title is a group-level line, not a column entry. */
+    grid-column: 1 / -1;
+    margin: 0 0 0.15rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+/* One bar row: three cells placed into the group's shared columns by
+   `display: contents`. The element stays in the DOM (the tests and the
+   markup read it), it just does not generate a box of its own — without a
+   box there is no per-row track sizing to disagree with its neighbours, and
+   the bars of a group start at the same x. */
+.metrics-bar-row {
+    display: contents;
+    font-size: 0.85rem;
+}
+
+.metrics-bar-label {
+    color: var(--sf-text-muted);
+    /* Never shrunk: the cell's own floor and ceiling size the group's label
+       column (contributions are clamped by min/max-width): 8rem keeps short
+       labels aligned, 16rem stops one long label from eating the bars. These
+       clamp the ellipsis's trigger, so a label wider than 16rem is the only
+       one that can ellipsize. Font size is inherited from the row (0.85rem) —
+       `display: contents` does not interrupt inheritance. */
+    min-width: 8rem;
+    max-width: 16rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.metrics-bar-track {
+    display: block;
+    height: 0.7rem;
+    border-radius: 999px;
+    background: var(--sf-border);
+    overflow: hidden;
+}
+
+.metrics-bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--sf-accent-light);
+}
+
+.metrics-bar-value {
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
+/* The share beside the count: printed ONLY where the
+   denominator is a real group total. The activity group prints counts alone —
+   its bars are relative to the section's largest counter, and a percentage
+   there would name a whole that does not exist (the section carries a
+   caption instead). */
+.metrics-bar-share {
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+/* The per-section scale caption. */
+.metrics-scale {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+/* The activity rows sit in TWO half-width groups: the pair fills the section
+   width and wraps to one column on narrow windows. Top-aligned, because the
+   two groups have unequal row counts and a stretched grid would space their
+   rows differently. */
+.activity-breakdowns {
+    align-items: flex-start;
+}

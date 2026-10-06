@@ -1,0 +1,129 @@
+/* ── Shared control vocabulary ─────────────────────────────────────────
+   The one button look for the whole tree: `.button` plus exactly one
+   variant (`--primary | --secondary | --danger | --ghost | --link`) and the
+   `--icon` / `--sm` modifiers. Every component imports this sheet beside
+   baseline.css (the architecture guard enforces it); the typed helper in
+   controls.ts builds the class list.
+
+   The vocabulary is CSS classes on native elements on purpose. A custom
+   element is never a form's submit button (the HTML Standard defines the
+   default button as the first submit button — button/input — in tree
+   order), and a submit button inside a child component's shadow root has
+   no form owner, so a shadow-DOM `<sf-button>` would silently break Enter
+   submission on every multi-field form. See docs/patterns/web/components.md.
+
+   Selectors are intentionally unscoped: shadow DOM isolates each
+   component's sheet, so these rules only match inside the component that
+   imported it. Semantic variants:
+
+   - --primary   the action the surface exists for; accent fill, white label,
+                 darker fill on hover (a light hover dropped white below AA)
+   - --secondary bordered surface; every neutral action
+   - --danger    bordered error tint; destructive actions
+   - --ghost     borderless; icon-row actions and quiet verbs
+   - --link      inline text action; no box, underline on hover */
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: none;
+    color: var(--sf-text);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
+}
+
+.button:disabled,
+.button[aria-disabled="true"] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* The icon box. The glyph itself carries aria-hidden (icons.ts), so the
+   label — visible text, or the catalog string on aria-label/title — is the
+   accessible name. */
+.button svg {
+    width: 1.1em;
+    height: 1.1em;
+}
+
+.button--primary {
+    background: var(--sf-accent);
+    border-color: var(--sf-accent);
+    color: var(--sf-on-accent);
+}
+
+.button--primary:hover:not(:disabled) {
+    background: var(--sf-accent-strong);
+    border-color: var(--sf-accent-strong);
+}
+
+.button--secondary {
+    background: var(--sf-surface);
+    border-color: var(--sf-border);
+}
+
+.button--secondary:hover:not(:disabled) {
+    border-color: var(--sf-accent-light);
+}
+
+.button--danger {
+    border-color: var(--sf-error);
+    color: var(--sf-error);
+}
+
+.button--danger:hover:not(:disabled) {
+    background: var(--sf-surface);
+}
+
+.button--ghost {
+    color: var(--sf-text-dim);
+}
+
+.button--ghost:hover:not(:disabled) {
+    color: var(--sf-text);
+}
+
+.button--link {
+    padding: 0;
+    border: none;
+    color: var(--sf-accent-light);
+    font-weight: 500;
+}
+
+.button--link:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+/* Icon-only controls keep a 2rem (36px at the root font size) target —
+   above the WCAG 2.5.8 minimum, matching the row density the row actions
+   were designed at. The modifier wins over --sm: shrinking a target below
+   2rem needs a recorded ruling, not a size class. */
+.button--icon {
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.35rem;
+}
+
+.button--sm {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+.button--sm.button--icon {
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.35rem;
+}

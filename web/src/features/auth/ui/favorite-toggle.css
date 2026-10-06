@@ -1,0 +1,44 @@
+/* Favorite toggle — the detail-page heart. The box
+   is the shared ghost icon control; the 1.5rem glyph and its states are
+   this component's own. */
+
+.favorite-toggle {
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--sf-text-muted);
+    transition:
+        color 0.15s,
+        transform 0.1s;
+}
+
+/* The filled heart reads as the favourite red; the outline heart as muted. */
+.favorite-toggle[data-favorited="true"] {
+    color: var(--sf-error);
+}
+
+/* The SVG heart box: inline-flex keeps the 1em icon
+ * centered inside the button — the same wrapper rule the thread's hearts
+ * carry (one icon-box convention). */
+.favorite-toggle .heart-glyph {
+    display: inline-flex;
+    align-items: center;
+}
+
+.favorite-toggle:hover:not(:disabled) {
+    color: var(--sf-error);
+    transform: scale(1.08);
+}
+
+/* The debounce window: the button stays ENABLED
+   so clicks can update the target — the dimmed glyph is the pending
+   feedback, the disabled state arrives with the request phase. */
+.favorite-toggle.is-pending:not(:disabled) {
+    opacity: 0.65;
+}
+
+/* The inline failure message under the heart (role="alert"). */
+.favorite-error {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    color: var(--sf-error);
+}

@@ -1,0 +1,123 @@
+:host {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(12px, 3vw, 24px);
+    padding: 16px clamp(12px, 3vw, 24px);
+    color: var(--sf-text-dim);
+    font-size: 0.8rem;
+    backdrop-filter: blur(12px);
+    background: var(--sf-surface);
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+}
+
+/* Desktop: floating pill */
+@media (min-width: 641px) {
+    :host {
+        margin: 0 12px 12px 12px;
+        border-radius: 16px;
+        box-shadow:
+            0 -1px 0 var(--sf-border),
+            0 -8px 32px rgba(0, 0, 0, 0.12);
+    }
+}
+
+/* Mobile: edge-to-edge */
+@media (max-width: 640px) {
+    :host {
+        border-top: 1px solid var(--sf-border);
+    }
+}
+
+/* Three-zone layout: status left, support center, copyright + version
+   right. Left and right flex to equal weight so the center zone is truly
+   centered. */
+.footer-left,
+.footer-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.footer-right {
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+
+.footer-center {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--sf-text-muted);
+}
+
+.footer-center a {
+    color: var(--sf-accent-light);
+    text-decoration: none;
+}
+
+.footer-center a:hover {
+    text-decoration: underline;
+}
+
+/* The support text may wrap inside its zone (the global nowrap on spans
+   would otherwise pin the zone's min-width on narrow screens). */
+.support-text {
+    white-space: normal;
+    text-align: center;
+}
+
+/* The support-zone divider exists only in the mobile column layout. */
+.support-divider {
+    display: none;
+}
+
+/* Mobile tier: the HOST stays a row with space-between — only the INNER
+   sections change direction. Support stacks text → divider → link;
+   copyright + version stack; the status stays vertically centered via the
+   host's align-items. */
+@media (max-width: 700px) {
+    .footer-center {
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .support-divider {
+        display: block;
+        width: 100%;
+        height: 1px;
+        background: var(--sf-border);
+    }
+
+    .footer-right {
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 0.25rem;
+    }
+}
+
+span {
+    white-space: nowrap;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+.status-dot.online {
+    background: var(--sf-success);
+}
+.status-dot.offline {
+    background: var(--sf-error);
+}
+.status-dot.loading {
+    background: var(--sf-text-dim);
+}

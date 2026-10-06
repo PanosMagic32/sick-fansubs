@@ -1,0 +1,127 @@
+/* Project create/edit form — the blog form
+   sheet mirrored with the .project-form root (full-sheet mirror precedent:
+   the detail sheets copy each other wholesale). */
+
+.downloads-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+.project-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-header {
+    display: flex;
+    align-items: center;
+    /* The blog form sheet's rules: the row wraps so a phone width never
+       pushes the back link out of the page. */
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* The back link hugs the right edge; the title and the state chip lead. */
+.form-header > a {
+    margin-left: auto;
+}
+
+.form-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+/* The live state chip — what the row IS. Same rules as the blog
+   form sheet (the two sheets mirror each other). */
+.state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.7rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+    white-space: nowrap;
+}
+
+.state-chip-prefix {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sf-text-dim);
+}
+
+.state-chip[data-status="published"] {
+    border-color: var(--sf-success);
+    color: var(--sf-success-strong);
+}
+
+.state-chip[data-status="archived"] {
+    opacity: 0.75;
+}
+
+.project-form form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.field textarea {
+    min-height: 8rem;
+    resize: vertical;
+}
+
+.slug-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+.current-thumbnail {
+    width: 100%;
+    max-width: 32rem;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--sf-border);
+}
+
+.form-actions {
+    display: flex;
+    /* The blog form sheet's rules. */
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.form-actions .delete-button {
+    margin-left: auto;
+}
+
+/* The primary action is the state-preserving save; publishing is the
+   secondary emphasis — the blog sheet's rules. */
+.form-actions .action-save {
+    border-color: var(--sf-accent-light);
+    font-weight: 700;
+}
+
+.form-actions .action-publish {
+    border-color: var(--sf-success);
+    color: var(--sf-success-strong);
+}
+
+.field-error,
+.form-error {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-error);
+}
+
+.form-success {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-success-strong);
+}

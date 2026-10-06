@@ -1,0 +1,57 @@
+/* Projects list page — page scaffolding only: the responsive card grid and
+   the reserved state block. The cards themselves are <content-card
+   shape="grid"> (shared/ui/content-card.css). Design tokens (--sf-*)
+   inherit from the app-shell host. */
+
+:host {
+    display: block;
+    padding: 0.5rem 0 3rem;
+}
+
+/* ── Page scaffolding ── */
+
+.empty {
+    color: var(--sf-text-muted);
+}
+
+/* Empty and error states are no-content views — centered like the blog
+   list. text-align inherits through the banner's shadow root, so the
+   alert text centers too. */
+.centered-state {
+    text-align: center;
+    max-width: 32rem;
+    margin: 2rem auto 0;
+}
+
+.retry {
+    margin-top: 1rem;
+}
+
+/* ── Card grid ── */
+
+.card-grid {
+    list-style: none;
+    /* UA stylesheet default: <ul> gets padding-inline-start: 40px even with
+       list-style: none — the grid content would sit 40px inset (visible as
+       a left inset). Reset it explicitly. */
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+/* ── Responsive (aligned with the header bands: tablet ≤1150px, mobile
+   ≤700px) ── */
+
+@media (max-width: 1150px) {
+    .card-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .card-grid {
+        grid-template-columns: 1fr;
+    }
+}

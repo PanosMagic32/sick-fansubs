@@ -1,0 +1,61 @@
+/* ── Shared form-control presentation ──────────────────────────────────
+   Raw controls carry the look: any native input/select/textarea a
+   component renders is styled here without a wrapper element. The `.field`
+   block adds the label stack and the message lines for form grids;
+   `form-field` (shared/ui/form-field.ts) is the directive form of the same
+   block, and dense toolbars (filters, grids) keep raw controls and their
+   own compact overrides.
+
+   `:where()` keeps the base selectors at zero specificity, so a
+   component's own rule always wins when a surface needs a different
+   density. Checkboxes, radios, and file inputs are excluded — their
+   geometry belongs to the component that lays them out.
+
+   Imported beside baseline.css and controls.css by every component that
+   renders a form control (there is no architecture guard for this sheet:
+   a component without controls does not need it). */
+
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"])),
+:where(select),
+:where(textarea) {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 8px;
+    background: var(--sf-bg);
+    color: var(--sf-text);
+    font: inherit;
+}
+
+:where(input, select, textarea):disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+:where(input, select, textarea)[aria-invalid="true"] {
+    border-color: var(--sf-error);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.field label {
+    font-size: 0.9rem;
+    color: var(--sf-text-dim);
+}
+
+/* Per-field error shown under the offending control, and the static hint
+   (e.g. the register email's recovery warning). */
+.field-error {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-error);
+}
+
+.field-hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-text-dim);
+}

@@ -1,0 +1,133 @@
+/* About page — a single centered column, narrower than the content pages
+   (the shell's default 48rem cap applies — no wide-route). Design tokens
+   (--sf-*) inherit from the app-shell host. */
+
+:host {
+    display: block;
+    padding: 0.5rem 0 3rem;
+}
+
+.about {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* The team logo — the same /logo/logo.png the header brand uses (400×400
+   square source): centered circular crop with a hairline border matching
+   the card treatment. */
+.about-logo {
+    width: 10rem;
+    height: 10rem;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+    margin: 0 auto 0.25rem;
+    border: 1px solid var(--sf-border);
+}
+
+.about-title {
+    font-size: 1.75rem;
+    font-weight: 700; /* IBM Plex tops out at 700 */
+    line-height: 1.25;
+    color: var(--sf-text);
+    margin: 0;
+}
+
+.about-subtitle {
+    font-size: 1.05rem;
+    color: var(--sf-text-muted);
+    margin: 0;
+}
+
+.about-intro {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--sf-text);
+    margin: 0.25rem 0 0;
+}
+
+.about-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 1rem;
+    color: var(--sf-text);
+    margin: 0.25rem 0 0;
+}
+
+.members-label {
+    color: var(--sf-text-muted);
+    font-weight: 700;
+}
+
+.members-names {
+    font-weight: 700;
+}
+
+/* ── Community links: each row is its own small card tinted with the
+      service's brand color — a nearly transparent background, a tinted
+      border, and a brand-colored marker. ── */
+
+.about-links {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.link-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--row-accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--row-accent) 45%, transparent);
+}
+
+/* Brand tones — border/marker/bg tint only; the link text stays on the
+   tint-safe token pair (per-brand link colors would need their own
+   contrast-verified pairs). The tones are token pairs in app-shell.css:
+   GitHub uses its slate gray (near-black would vanish in the dark theme)
+   and coffee an amber dark enough to read on the light surface. */
+.tone-facebook {
+    --row-accent: var(--sf-brand-facebook);
+}
+.tone-discord {
+    --row-accent: var(--sf-brand-discord);
+}
+.tone-github {
+    --row-accent: var(--sf-brand-github);
+}
+.tone-tracker {
+    --row-accent: var(--sf-brand-tracker);
+}
+.tone-coffee {
+    --row-accent: var(--sf-brand-coffee);
+}
+
+/* Decorative accent marker per row, tinted per service. */
+.link-row::before {
+    content: "›";
+    color: var(--row-accent);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.link-desc {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--sf-text);
+}
+
+/* Brand-name anchors inside the Greek sentences: the tint-safe text token
+   (the row tint drops the plain accent below 4.5:1 in the light theme) and
+   an underline, so the link is never distinguished by color alone. */
+.link-desc a {
+    color: var(--sf-link-on-tint);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}

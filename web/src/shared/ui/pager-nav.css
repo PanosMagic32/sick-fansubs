@@ -1,0 +1,121 @@
+/* Shared pager — one control row (Previous chip, page-size select chip,
+   Next chip) with the position line as a caption BELOW it. Buttons stay
+   visible and DISABLE at the boundaries so the row geometry is stable and
+   the disabled state communicates the boundary. The arrow chips are the
+   shared secondary icon control and show the glyph only — the words live in
+   the buttons' aria-labels — so the bar reads as chrome rather than
+   as a third content row. */
+
+:host {
+    display: block;
+}
+
+/* The controls are the primary chrome; the position line is a caption under
+   them, never a third chip on the row (owner ruling). */
+.pager-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 20px auto 0;
+}
+
+.pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    /* The row wraps instead of squeezing the size chip: the chip's label
+       must never wrap inside its dashed border. */
+    flex-wrap: wrap;
+    margin: 0;
+}
+
+.chip-arrow {
+    justify-content: center;
+}
+
+/* The size chip is a SETTING, not a third action (owner ruling): it
+   keeps the pill geometry but reads differently from the solid-outlined
+   action buttons — dashed border, subtle surface fill, muted caret — and
+   the WHOLE chip is the hit target: an invisible select stretches over
+   it, so any click opens the native dropdown. It is a label wrapping a
+   native select, not a button, so it carries its own base. */
+.size-chip {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--sf-border);
+    border-style: dashed;
+    border-radius: 999px;
+    background: var(--sf-surface);
+    color: var(--sf-text);
+    font: inherit;
+    /* The chip is one control, so its label never wraps inside the border
+       (the wrapped label is what made the pager look broken). */
+    white-space: nowrap;
+}
+
+/* Narrow screens: the label is the longest text on the row, so the chip keeps
+   only its value and caret. The words stay in the accessibility tree (the
+   visually-hidden recipe — `clip`, not `display: none`), so the select's
+   accessible name is unchanged; the row then fits one line instead of the
+   label wrapping inside the dashed border. The recipe mirrors the
+   baseline sheet's `.sr-only`; it is written out here because this hide is
+   CONDITIONAL, which a class cannot express. */
+@media (max-width: 480px) {
+    .size-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+}
+
+.size-chip:hover {
+    border-color: var(--sf-accent-light);
+}
+
+.size-chip:focus-within {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+.size-value {
+    font-weight: 700;
+}
+
+.size-caret {
+    color: var(--sf-text-muted);
+}
+
+/* The position caption is secondary to the controls: muted, centered under
+   the row, in the same size as the arrow chips. It never wraps — a broken
+   «Σελίδα 12 από 100» would read as two separate values. */
+.page-status {
+    color: var(--sf-text-muted);
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+/* The select covers the whole chip invisibly; the visible label/value are
+   decorative. The opened dropdown list still renders natively — opacity
+   only hides the select itself. */
+.size-select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}

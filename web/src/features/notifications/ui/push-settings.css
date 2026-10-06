@@ -1,0 +1,121 @@
+/* Push settings section — the account-page
+ * surface: subscribe/off buttons, the self-test press, per-kind toggles,
+ * the double-permission confirm <dialog>,
+ * and the state hints (denied/iOS/error). The controls are the shared
+ * vocabulary (primary for the section's own action, secondary for
+ * diagnostics, a quiet off switch that warms to the error colour). */
+
+.push-settings h2 {
+    margin: 0 0 0.5rem;
+}
+
+.push-explain,
+.push-hint,
+.push-note,
+.push-error,
+.push-test-result {
+    margin: 0 0 0.5rem;
+}
+
+.push-error {
+    color: var(--sf-error);
+    font-weight: 600;
+}
+
+.push-hint,
+.push-note,
+.push-test-result {
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+
+.push-actions {
+    margin: 0.5rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* The controls are the shared vocabulary: primary for the section's own
+action (turn push on, save), secondary for diagnostics/recovery (send a
+test, retry, cancel). Leaving this device's push stays QUIET until hovered
+(the off switch turns error-warm only under the pointer). */
+.push-actions .push-off:hover:not(:disabled) {
+    color: var(--sf-error);
+}
+
+/* The self-test result line is the section's only live region; it stays
+   mounted (see the template) and collapses while empty. */
+.push-test-result:empty {
+    display: none;
+}
+
+.push-retry {
+    display: block;
+    margin-top: 0.5rem;
+}
+
+/* The save row sits under the kind fieldset (it is a .push-actions row, so
+   the geometry is shared). */
+.push-save-row {
+    margin-top: 0.75rem;
+}
+
+.push-kinds {
+    border: 0;
+    margin: 0.5rem 0 0;
+    padding: 0;
+}
+
+.push-kind {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 44px;
+    padding: 0.4rem 0.5rem;
+    border-radius: 8px;
+}
+
+/* The toggles are this section's main action surface — a comfortable row
+   target, a visibly larger control, and a hover tint so the whole row reads
+   as the target. The tint is a color-mix of the text token: --sf-surface is
+   near-identical to the card fill it would composite over. */
+.push-kind:hover {
+    background: color-mix(in srgb, var(--sf-text) 7%, transparent);
+}
+
+.push-kind input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0;
+    flex: 0 0 auto;
+    accent-color: var(--sf-accent);
+}
+
+/* The native confirm dialog (showModal: focus trap + restore + Escape). */
+.push-dialog {
+    padding: 1rem;
+    border: 1px solid var(--sf-accent);
+    border-radius: 8px;
+    max-width: 32rem;
+}
+
+.push-dialog h3 {
+    margin: 0 0 0.5rem;
+}
+
+.push-dialog-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+/* Phone band: every control in the section becomes a full-width row —
+   comfortable thumb targets, and the primary action can never sit half-off
+   the row. */
+@media (max-width: 700px) {
+    .push-actions button,
+    .push-retry {
+        flex: 1 0 100%;
+    }
+}

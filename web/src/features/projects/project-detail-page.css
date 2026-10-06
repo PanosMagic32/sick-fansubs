@@ -1,0 +1,94 @@
+/* Projects detail page — structurally mirrors the blog detail
+   page: the lead block is the shared <content-card shape="detail"> (the
+   projects subtype has no subtitle; the thumbnail is null-guarded) plus the
+   plain downloads list. The blog's download-layout toggle is deliberately
+   not ported. This sheet owns the page's measure, downloads, and states.
+   Design tokens (--sf-*) inherit from the app-shell host. */
+
+:host {
+    display: block;
+    padding: 0.25rem 0 3rem;
+}
+
+/* Same measure as the blog detail page — kept for visual consistency
+   across the two detail pages. The detail column caps at 60rem (1080px at
+   the 112.5% root) instead of filling the 80rem wide route; the full-bleed
+   image would otherwise be oversized on 1080p displays. */
+.detail {
+    max-width: min(90%, 60rem);
+    margin: 0 auto;
+}
+
+/* The staff edit affordance, mirrored from the blog detail's
+   .admin-edit-link. ICON-only: the pencil is the visual and the accessible
+   name + hover title carry the wording. */
+.admin-edit-link {
+    align-self: center;
+    color: var(--sf-accent-light);
+    font-size: 1.05rem;
+}
+
+/* ── Downloads (plain rows — the blog layout toggle is NOT ported) ── */
+
+.downloads {
+    background: var(--sf-surface);
+    border: 1px solid var(--sf-border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+}
+
+.downloads-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--sf-text);
+    margin: 0 0 0.75rem;
+}
+
+.downloads-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.download-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.download-name {
+    font-weight: 700;
+    color: var(--sf-accent-light);
+    min-width: 4rem;
+}
+
+/* ── The lead block's avatar chips come with <content-card>, whose own
+   sheet sizes them for the detail byline ── */
+
+/* ── States (mirror the blog detail page's centered pattern) ── */
+
+.centered-state {
+    text-align: center;
+    max-width: 32rem;
+    margin: 2rem auto 0;
+}
+
+.not-found-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--sf-text);
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--sf-accent-light);
+}
+
+.retry {
+    margin-top: 1rem;
+}

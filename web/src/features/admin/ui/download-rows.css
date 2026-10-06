@@ -1,0 +1,110 @@
+/* Download-row editor styles. */
+
+.download-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+/* One row: label | magnet | torrent | the three row actions. The named areas
+   exist so the phone band below can re-place the same children without a
+   second markup shape. The two link tracks keep a 0 MINIMUM: a grid paints
+   its track minimums whatever the container is, so the old
+   `minmax(10rem, 2fr)` links forced a ~670px row — and the admin form page
+   with it — on any narrower viewport. */
+.download-row {
+    display: grid;
+    grid-template-columns:
+        minmax(6rem, 1fr) minmax(0, 2fr) minmax(0, 2fr)
+        auto auto auto;
+    grid-template-areas: "label magnet torrent up down remove";
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* One row: there are no action controls to place, so the fields
+   take the tracks those controls would have used instead of leaving three
+   empty ones — and the row keeps the same field widths as every other row in
+   the form when it is the only one. */
+.download-row[data-solo="true"] {
+    grid-template-columns: minmax(6rem, 1fr) minmax(0, 2fr) minmax(0, 2fr);
+    grid-template-areas: "label magnet torrent";
+}
+
+.download-label {
+    grid-area: label;
+}
+
+.download-magnet {
+    grid-area: magnet;
+}
+
+.download-torrent {
+    grid-area: torrent;
+}
+
+.row-up {
+    grid-area: up;
+}
+
+.row-down {
+    grid-area: down;
+}
+
+.row-remove {
+    grid-area: remove;
+}
+
+.download-label,
+.download-link {
+    width: 100%;
+    min-width: 0;
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--sf-border);
+    background: var(--sf-surface);
+    color: var(--sf-text);
+    font: inherit;
+    font-size: 0.85rem;
+}
+
+.row-button {
+    white-space: nowrap;
+}
+
+.row-add {
+    align-self: flex-start;
+}
+
+/* The phone band: the three-field row plus its actions
+   cannot fit a phone, so the fields stack full width and the actions take
+   their own right-aligned line. A separator keeps the stacked rows apart now
+   that the fields no longer sit side by side — without it the four items of
+   one row read like four rows. */
+@media (max-width: 700px) {
+    .download-row {
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+        grid-template-areas:
+            "label label label label"
+            "magnet magnet magnet magnet"
+            "torrent torrent torrent torrent"
+            ". up down remove";
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--sf-border);
+    }
+
+    /* The lone row has no actions line at all, so the fields simply stack. */
+    .download-row[data-solo="true"] {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "label"
+            "magnet"
+            "torrent";
+    }
+
+    .download-row:first-child {
+        padding-top: 0;
+        border-top: none;
+    }
+}

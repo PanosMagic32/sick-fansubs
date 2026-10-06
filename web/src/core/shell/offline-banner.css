@@ -1,0 +1,30 @@
+/* Offline banner — a slim strip under the
+   header, same width as the main content column (the 80rem wide-route cap
+   the shell's other strip uses). Design tokens inherit from the shell. */
+
+:host {
+    display: block;
+    width: calc(100% - 2 * clamp(12px, 3vw, 24px));
+    max-width: 80rem;
+    margin: 12px auto 0;
+}
+
+/* Online (the component sets the attribute): the author :host display beats
+   the UA sheet's [hidden] rule, so the guard cannot be dropped — without it
+   the empty strip keeps a flex slot plus its 12px margin on every route
+   (same pair as shared/pwa/install-control.css). */
+:host([hidden]) {
+    display: none;
+}
+
+.banner {
+    padding: 0.45rem 1rem;
+    background: var(--sf-surface);
+    /* The error token carries the state; the sentence stays --sf-text so it
+       reads as an explanation, not as a failure of the page. */
+    border: 1px solid var(--sf-error);
+    border-radius: 16px;
+    font-size: 0.85rem;
+    color: var(--sf-text);
+    text-align: center;
+}

@@ -1,0 +1,182 @@
+/* Admin logs tab. The page chrome,
+   the forbidden notice, and the tab row come from admin-page.css; the filter
+   row follows the users tab's. Two sections share these rules: the log tail
+   and the audit browser — the first tabular surfaces in the dashboard. */
+
+.logs-section {
+    margin-bottom: 2rem;
+}
+
+.logs-section h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.05rem;
+}
+
+/* A narrow window scrolls the table instead of squashing it: the fixed
+   columns stay nowrap, and the two free-text columns carry a width floor
+   so table layout cannot collapse them to one word per line. */
+.logs-scroll {
+    overflow-x: auto;
+}
+
+.logs-filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+}
+
+.logs-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+}
+
+.logs-filter select,
+.logs-filter input {
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--sf-border);
+    background: var(--sf-surface);
+    color: var(--sf-text);
+    font: inherit;
+}
+
+.logs-filter input[type="number"] {
+    width: 6rem;
+}
+
+.logs-hint,
+.logs-empty {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.logs-table th,
+.logs-table td {
+    text-align: left;
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid var(--sf-border);
+    vertical-align: top;
+}
+
+.logs-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sf-text-muted);
+}
+
+/* The instant and the level are fixed-width columns; the message and the
+   attribute JSON take the rest and may wrap (a structured field can be long). */
+.logs-time {
+    white-space: nowrap;
+    color: var(--sf-text-muted);
+}
+
+/* Status chips. One chip vocabulary for BOTH tables: the
+   log LEVEL and the audit RESULT. The word is the signal and stays `--sf-text`
+   (AA in both themes); the COLOUR rides the chip's border, which only needs
+   3:1 — the same shape the comments staff badge follows, because
+   `--sf-success` as 0.75rem text sits below 4.5:1 in the light theme. The
+   row tint repeats the colour as a block-level cue, mixed from the semantic
+   token so it follows the theme. */
+.logs-level,
+.audit-result {
+    display: inline-block;
+    padding: 1px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--sf-border);
+    color: var(--sf-text);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.logs-level[data-level="debug"] {
+    border-color: var(--sf-border);
+    color: var(--sf-text-dim);
+}
+
+.logs-level[data-level="info"] {
+    border-color: var(--sf-accent-light);
+}
+
+.logs-level[data-level="warn"] {
+    border-color: var(--sf-warning);
+}
+
+.logs-level[data-level="error"] {
+    border-color: var(--sf-error);
+}
+
+.audit-result[data-result="success"] {
+    border-color: var(--sf-success);
+}
+
+.audit-result[data-result="failure"] {
+    border-color: var(--sf-error);
+}
+
+/* A faint tint on the whole row so a run of failures reads as a block, not as
+   one coloured word per line. A low-alpha color-mix of the semantic tokens —
+   the notification feed's result pill shape — so the tint follows the theme.
+   Decorative only: no contrast requirement rides it. */
+.logs-row[data-level="warn"] {
+    background: color-mix(in srgb, var(--sf-warning) 7%, transparent);
+}
+
+.logs-row[data-level="error"],
+.audit-row[data-result="failure"] {
+    background: color-mix(in srgb, var(--sf-error) 6%, transparent);
+}
+
+.audit-row[data-result="success"] {
+    background: color-mix(in srgb, var(--sf-success) 6%, transparent);
+}
+
+.logs-message,
+.logs-fields {
+    min-width: 13rem;
+}
+
+.logs-message {
+    word-break: break-word;
+}
+
+.logs-fields {
+    word-break: break-word;
+    color: var(--sf-text-muted);
+    font-family: var(--sf-font-mono);
+    font-size: 0.8rem;
+}
+
+/* Audit rows: the opaque identifiers are monospace and tiny, the event label
+   is the readable part, and the target's role rides beside its id. */
+.audit-event {
+    white-space: nowrap;
+}
+
+.audit-id {
+    font-family: var(--sf-font-mono);
+    font-size: 0.75rem;
+    color: var(--sf-text-muted);
+    word-break: break-all;
+}
+
+.audit-role {
+    display: block;
+    color: var(--sf-text);
+    font-family: inherit;
+}

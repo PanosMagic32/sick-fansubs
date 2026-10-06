@@ -1,0 +1,243 @@
+:host {
+    --sf-bg: #0d0d12;
+    --sf-surface: rgba(13, 13, 18, 0.7);
+    /* Card edges need a visible border on both themes. */
+    --sf-border: rgba(255, 255, 255, 0.16);
+    --sf-text: #e5e1e6;
+    --sf-text-muted: #9e9eb8;
+    --sf-text-dim: #7c7d92;
+    --sf-accent: #3365cc;
+    --sf-accent-light: #8aaae0;
+    /* Inline link text on a brand-tinted surface (the about page's rows). */
+    --sf-link-on-tint: #8aaae0;
+    /* The hover/pressed FILL for accent-filled controls: DARKER than
+       --sf-accent, because a filled button's label is white and
+       --sf-accent-light is a LIGHT blue — darker is the one direction that
+       keeps white readable in both palettes (7.03:1 dark, 9.24:1 light). */
+    --sf-accent-strong: #2a55ab;
+    /* The label colour for accent-filled controls: white on --sf-accent
+       clears 4.5:1 in both themes. */
+    --sf-on-accent: #fff;
+    --sf-error: #e05555;
+    --sf-success: #3fb86a;
+    /* Small success TEXT (chips, status lines, success notes): a brighter
+       green keeps ≥4.5:1 on the near-black surface. --sf-success itself
+       carries borders and tints, which only need 3:1. */
+    --sf-success-strong: #4ac477;
+    /* Cautionary amber — the suspended chip and the panel's
+       danger action: declared here rather than left to a per-rule hex
+       fallback, so both themes get a value that clears 3:1 on its own
+       background. */
+    --sf-warning: #c9993a;
+    /* Project content tag (the search badge): a muted red —
+       distinct from --sf-error, which stays reserved for failure states. */
+    --sf-project: #e08a8a;
+    --sf-project-bg: rgba(224, 85, 85, 0.14);
+    --sf-focus-ring: rgba(138, 170, 224, 0.35);
+    --sf-dot: rgba(51, 101, 204, 0.1);
+    /* A tint of the accent — the unread feed row's surface. Its
+       own token: --sf-dot happens to share the value but names the shell's
+       dot grid, not a surface. */
+    --sf-accent-tint: rgba(51, 101, 204, 0.1);
+    /* The about page's per-service brand tones (border, marker, and the
+       color-mixed row tint). A token pair so the page itself carries no
+       literals; the light theme darkens each tone for a readable marker on
+       the light surface. */
+    --sf-brand-facebook: #1877f2;
+    --sf-brand-discord: #5865f2;
+    --sf-brand-github: #8b949e;
+    --sf-brand-tracker: #2bb3a3;
+    --sf-brand-coffee: #e6a817;
+    /* The mono stack: the brand wordmark and the log/audit tables. */
+    --sf-font-mono: "IBM Plex Mono", monospace;
+}
+
+:host(.light) {
+    --sf-bg: #f5f3f7;
+    --sf-surface: rgba(245, 243, 247, 0.85);
+    /* The 0.18 alpha keeps the light-theme border visible. */
+    --sf-border: rgba(0, 0, 0, 0.18);
+    --sf-text: #1b1b1f;
+    --sf-text-muted: #5c5d72;
+    --sf-text-dim: #6a6a7e;
+    --sf-accent: #2855a3;
+    --sf-accent-light: #3365cc;
+    /* The light theme's --sf-accent-light falls short of 4.5:1 on the 10%
+       brand tints, so the tinted rows take this darker value. */
+    --sf-link-on-tint: #2855a3;
+    /* The hover/pressed fill for accent-filled controls. */
+    --sf-accent-strong: #1f4685;
+    --sf-on-accent: #fff;
+    --sf-error: #c42b2b;
+    --sf-success: #2a8f4e;
+    /* The light theme's --sf-success lands around 3.7:1 as small text; the
+       darker variant is the one direction that clears 4.5:1 on the light
+       surface. */
+    --sf-success-strong: #1f7a42;
+    /* The light theme needs a DARKER amber: the dark theme's #c9993a lands
+       around 2:1 on the light surface. */
+    --sf-warning: #8a6a1a;
+    --sf-project: #b34141;
+    --sf-project-bg: rgba(196, 43, 43, 0.1);
+    --sf-focus-ring: rgba(51, 101, 204, 0.25);
+    --sf-dot: rgba(51, 101, 204, 0.08);
+    --sf-accent-tint: rgba(51, 101, 204, 0.08);
+    --sf-brand-facebook: #1467d8;
+    --sf-brand-discord: #4a56d8;
+    --sf-brand-github: #57606a;
+    --sf-brand-tracker: #178f83;
+    --sf-brand-coffee: #a97b0a;
+    --sf-font-mono: "IBM Plex Mono", monospace;
+}
+
+:host {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: var(--sf-bg);
+    position: relative;
+    color: var(--sf-text);
+}
+
+/* ── Skip-to-content ── */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 8px;
+    z-index: 100;
+    padding: 8px 16px;
+    background: var(--sf-accent);
+    color: var(--sf-on-accent);
+    border-radius: 0 0 6px 6px;
+    font-size: 0.95rem;
+    text-decoration: none;
+}
+.skip-link:focus {
+    top: 0;
+}
+
+/* ── Interactive dot grid ── */
+.bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.bg-dots {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+        circle,
+        var(--sf-dot) 1px,
+        transparent 1px
+    );
+    background-size: 16px 16px;
+}
+
+.bg-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        120px at var(--mx, 50%) var(--my, 50%),
+        color-mix(in srgb, var(--sf-accent) 45%, transparent) 0%,
+        transparent 70%
+    );
+    mask-image: radial-gradient(circle, black 1px, transparent 1px);
+    mask-size: 16px 16px;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    /* Top-aligned, NOT vertically centered. Centering
+       made the route root's cross-axis position depend on its own height:
+       a spinner or an empty state floated to the middle of the screen while
+       a full list started at the top, so page chrome (the admin and account
+       tab rows, the search form) jumped whenever the content below it
+       changed height — the reported flicker. Routes that own ONE short
+       block opt back in with .center-route, below. */
+    align-items: flex-start;
+    justify-content: center;
+    padding: clamp(24px, 5vw, 48px) clamp(12px, 3vw, 24px);
+    position: relative;
+    z-index: 1;
+}
+
+/* The centering opt-in: sign-in, register, forgot
+   password, reset, verify, and the 404 fallback are a single short card
+   with no page chrome above them. They cannot flicker (nothing above them
+   moves) and read better optically centered, so they keep the old look. */
+main > .center-route {
+    align-self: center;
+}
+
+/* Route roots are flex items here, so they shrink-wrap to their content
+   by default. Width-capping each root lets wide cards (sign-in, register)
+   fill the column up to their own max-width instead of collapsing.
+
+   min-width: 0 is what keeps that cap honest: a flex item's automatic
+   minimum size is its CONTENT's min-content width, so one unshrinkable row
+   would widen the route root's BOX past the screen and give the page a
+   horizontal scrollbar. The guard is box-scoped: a route
+   root now always fits the column, and whatever still overflows INSIDE it is
+   the owning component's job (the two rows above fix themselves: shrinkable
+   tracks, wrapping rows, a scrolling tab strip). The account page sets the
+   same guard on its card, where the tabs were the culprit. */
+main > * {
+    width: 100%;
+    max-width: 48rem;
+    min-width: 0;
+}
+
+/* Wide route roots (the blog list's card grid) lift the default cap; opt
+   in per route with the wide-route class in core/router.ts. */
+main > .wide-route {
+    max-width: 80rem;
+}
+
+/* Full-bleed route roots (admin, account, notifications): at FHD and below
+   there is NO cap — the content fills the
+   whole main column edge-to-edge. Only ULTRawide (>1920px) caps them.
+   The cap is in PIXELS (not rem): the root font is 112.5% (18px), so rem
+   values would silently mis-size the cap. 1872px = the exact FHD content
+   width (1920px − 2×24px main padding), so the 1920-boundary transition
+   is seamless (no width jump) and wider screens show side gaps beyond
+   it. */
+main > .full-route {
+    max-width: none;
+}
+
+@media (min-width: 1920.01px) {
+    main > .full-route {
+        max-width: 1872px;
+    }
+}
+
+/* ── Home / placeholder pages ── */
+
+.home-placeholder {
+    text-align: center;
+    max-width: 32rem;
+    margin: 2rem auto;
+}
+
+.home-placeholder h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--sf-text);
+}
+
+.home-placeholder p {
+    color: var(--sf-text-dim);
+    margin-bottom: 1rem;
+}
+
+.home-placeholder a {
+    color: var(--sf-accent);
+    text-decoration: none;
+}
+
+.home-placeholder a:hover {
+    text-decoration: underline;
+}

@@ -1,0 +1,262 @@
+name: deploy
+
+# Single deploy flow: every semantic-version tag — prerelease or not —
+# builds, pushes, and deploys to the current stack. Bare semver tags only
+# (2.0.0-beta.2 — the APP_VERSION convention; no "v" prefix). The cutover
+# (docs/ops/cutover.md) promotes the stack to production by swapping the
+# edge; this workflow does not change.
+on:
+  push:
+    tags:
+      # Version tags start with a digit. The pattern stays broad on purpose:
+      # GitHub's tag classes admit only alphanumerics and a-z/A-Z/0-9 ranges,
+      # and a literal dash or dot inside one makes GitHub reject the whole
+      # workflow file silently — no listing, no runs. The test job's first
+      # step enforces the exact <major>.<minor>.<patch>[-<prerelease>] shape
+      # and keeps shell metacharacters out of the deploy step's NEW_TAG='…'
+      # interpolation.
+      - "[0-9]*"
+
+# Base permission: read for checkout. Only the build job pushes images, so
+# it alone carries packages: write.
+permissions:
+  contents: read
+
+# One deploy at a time: two tags pushed back to back must not race on the
+# VPS's single-writer migrate window.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Hang-brake: a hung step otherwise holds the deploy concurrency group
+    # for up to the 6 h default. Ceilings sit above the real durations;
+    # they are hang-brakes, not cost policy.
+    timeout-minutes: 20
+    steps:
+      - name: Validate the release tag
+        env:
+          # A tag is untrusted input until the pattern below passes; passing
+          # it through the environment keeps it out of the script text.
+          TAG: ${{ github.ref_name }}
+        run: |
+          # <major>.<minor>.<patch>, optionally a non-empty prerelease suffix
+          # (alnum, dash, dot) — the only shape the deploy step may interpolate.
+          printf '%s\n' "$TAG" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$' || {
+            echo "refusing tag '$TAG': expected <major>.<minor>.<patch>[-<prerelease>]"
+            exit 1
+          }
+      - uses: actions/checkout@v7
+        with:
+          # CI never pushes, so no git token lands in the local git config
+          # where a compromised action could read it (contents: read already
+          # blocks writes — this removes the credential itself).
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.1"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Keep in step with the oven/bun tag in the Dockerfile.
+          bun-version: "1.4.2"
+      - name: Go build/vet/format
+        run: |
+          go build ./...
+          go vet ./...
+          test -z "$(gofmt -l cmd internal)" || (echo "gofmt found unformatted files" && exit 1)
+      - name: Docs guard (make docs-lint)
+        run: go run ./cmd/docslint
+      - name: Workflow lint (make workflow-lint)
+        run: go tool actionlint -shellcheck=
+      - name: Go tests
+        run: go test ./internal/... ./cmd/... -count=1
+      - name: Web install/typecheck/tests
+        working-directory: web
+        run: |
+          bun install --frozen-lockfile
+          bunx tsc --noEmit
+          bun test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    # Degraded-cache headroom: with the gha cache backend down (ignore-error
+    # turns misses into rebuilds), five cold builds (modernc x4 + xcaddy) can
+    # approach 40 min.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # CI never pushes, so no git token lands in the local git config
+          # where a compromised action could read it (contents: read already
+          # blocks writes — this removes the credential itself).
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build + push the app image (bare semver tag)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: prod
+          platforms: linux/amd64
+          build-args: APP_VERSION=${{ github.ref_name }}
+          push: true
+          # The gha cache backend + the Dockerfiles' cache mounts turn the
+          # four modernc.org/sqlite compiles from minutes to seconds on a
+          # hit. One SHARED scope across the five sequential builds: the
+          # cache keys are content-addressed, so sharing cannot cross-
+          # contaminate, and modernc compiles once instead of four times.
+          # ignore-error keeps the cache a pure optimization — a backend
+          # failure (quota, eviction) must never fail the build, and a miss
+          # just rebuilds.
+          cache-from: type=gha,scope=sick-buildcache,ignore-error=true
+          cache-to: type=gha,scope=sick-buildcache,mode=max,ignore-error=true
+          tags: ghcr.io/panosmagic32/sick-fansubs:${{ github.ref_name }}
+      - name: Build + push the migrate image (:latest + version-paired tag)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.migrate
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha,scope=sick-buildcache,ignore-error=true
+          cache-to: type=gha,scope=sick-buildcache,mode=max,ignore-error=true
+          tags: |
+            ghcr.io/panosmagic32/sick-fansubs-migrate:latest
+            ghcr.io/panosmagic32/sick-fansubs-migrate:${{ github.ref_name }}
+      - name: Build + push the backup image (the compose backup service)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.backup
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha,scope=sick-buildcache,ignore-error=true
+          cache-to: type=gha,scope=sick-buildcache,mode=max,ignore-error=true
+          tags: |
+            ghcr.io/panosmagic32/sick-fansubs-backup:latest
+            ghcr.io/panosmagic32/sick-fansubs-backup:${{ github.ref_name }}
+      - name: Build + push the restore image (the staged-restore one-off)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.restore
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha,scope=sick-buildcache,ignore-error=true
+          cache-to: type=gha,scope=sick-buildcache,mode=max,ignore-error=true
+          tags: |
+            ghcr.io/panosmagic32/sick-fansubs-restore:latest
+            ghcr.io/panosmagic32/sick-fansubs-restore:${{ github.ref_name }}
+      - name: Build + push the caddy image (Dockerfile.caddy — the Cloudflare DNS module; stock caddy lacks it)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.caddy
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha,scope=sick-buildcache,ignore-error=true
+          cache-to: type=gha,scope=sick-buildcache,mode=max,ignore-error=true
+          tags: |
+            ghcr.io/panosmagic32/sick-fansubs-caddy:latest
+            ghcr.io/panosmagic32/sick-fansubs-caddy:${{ github.ref_name }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # The owner-gated production deploy: this environment carries the owner
+    # as a required reviewer, so the run pauses here before touching the VPS.
+    environment: deploy-approval
+    # Hang-brake, not cost policy: the preflight backup + migrate window with
+    # headroom for a large media volume and a host-lock wait (deploy.sh
+    # prints per-phase elapsed times; revisit the ceiling against them).
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # CI never pushes, so no git token lands in the local git config
+          # where a compromised action could read it (contents: read already
+          # blocks writes — this removes the credential itself).
+          persist-credentials: false
+      - name: Deploy to the VPS (versioned script, pinned host key)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_HOST_KEY: ${{ vars.DEPLOY_HOST_KEY }}
+        run: |
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_HOST_KEY" > "$HOME/.ssh/known_hosts"
+          # $HOME (not ~) — tilde expansion does not apply to the contents
+          # of an expanded variable, so a ~ here would reach ssh literally.
+          # Both lines: ConnectTimeout bounds the connect/KEX phase; BatchMode
+          # fails on password prompts instead of blocking (key auth only —
+          # deploy_key is the contract); IdentitiesOnly keeps ssh from
+          # offering any key but deploy_key; ServerAlive kills a DEAD
+          # mid-session link in ~60 s. A slow-but-alive script is bounded by
+          # the job timeout, and deploy.sh traps HUP/INT/TERM for a
+          # best-effort rollback (SIGKILL cannot be trapped).
+          ssh_opts="-p $DEPLOY_PORT -i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o ConnectTimeout=15 -o BatchMode=yes -o IdentitiesOnly=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+          # scp spells its port flag -P; -p means "preserve times" and would
+          # swallow the port as a local filename.
+          scp_opts="-P $DEPLOY_PORT -i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o ConnectTimeout=15 -o BatchMode=yes -o IdentitiesOnly=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+          # Caddyfile rides every deploy as a STAGED file: deploy.sh
+          # swaps Caddyfile.new in at the deploy phase and restores the
+          # previous Caddyfile on rollback — a preflight failure never
+          # changes the running edge config. The backup and restore runbooks
+          # ship flat from docs/ops/ into ~/sick-fansubs; their cross-links to
+          # each other resolve there, while links into the repo doc tree
+          # (patterns, package docs, the bring-up runbook) do not — the
+          # shipped runbooks are operator prose, not the repo tree. The rm
+          # below clears the runbook copy an older deploy shipped.
+          scp $scp_opts compose.yaml deploy/deploy.sh deploy/lock.sh deploy/backup-now.sh deploy/down.sh deploy/daily-backup.sh deploy/mega-put.sh deploy/disk-check.sh deploy/disk-cleanup.sh deploy/logrotate.sick-fansubs docs/ops/backup.md docs/ops/restore.md "$DEPLOY_USER@$DEPLOY_HOST":~/sick-fansubs/
+          scp $scp_opts Caddyfile "$DEPLOY_USER@$DEPLOY_HOST":~/sick-fansubs/Caddyfile.new
+          ssh $ssh_opts "$DEPLOY_USER@$DEPLOY_HOST" "rm -f ~/sick-fansubs/backup-ops.md"
+          ssh $ssh_opts "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd ~/sick-fansubs && NEW_TAG='${{ github.ref_name }}' exec sh deploy.sh"
+      - name: Verify the public edge from the VPS (TLS + app)
+        env:
+          # The site's base URL as a repository variable; the probe path is
+          # appended. A missing variable fails closed — it is part of the
+          # deploy setup.
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          # The deploy script's health gate proves the app and the caddy
+          # container. This probe fetches the public path users take: DNS,
+          # Cloudflare, TLS, the origin, and the app — issued on the VPS, not
+          # the runner: Cloudflare's free Bot Fight Mode challenges the
+          # runner's shared egress IPs and cannot be skipped by WAF custom
+          # rules, so the zone keeps it on and the probe client is the deploy
+          # host. The Cloudflare SSL mode (Full strict) stays a recorded
+          # console prerequisite the probe cannot see.
+          [ -n "$PUBLIC_BASE_URL" ] || { echo "PUBLIC_BASE_URL repository variable is not set"; exit 1; }
+          url="${PUBLIC_BASE_URL%/}/health/ready"
+          ssh -p "$DEPLOY_PORT" -i "$HOME/.ssh/deploy_key" \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -o ConnectTimeout=15 -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+            "$DEPLOY_USER@$DEPLOY_HOST" "PROBE_URL='$url' sh -s" <<'PROBE'
+          for i in 1 2 3 4 5; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$PROBE_URL" || true)
+            if [ "$code" = "200" ]; then exit 0; fi
+            [ "$i" = "5" ] || sleep 5
+          done
+          echo "public HTTPS probe failed: $PROBE_URL (last status ${code:-none})"
+          exit 1
+          PROBE

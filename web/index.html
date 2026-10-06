@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="el">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            content="Sick-Fansubs — ελληνική κοινότητα fansubbing"
+        />
+        <meta name="color-scheme" content="dark light" />
+        <!-- PWA install: the manifest drives Android/iOS installability;
+             the theme-color pair matches the shell palette in app-shell.css. -->
+        <link rel="manifest" href="/manifest.json" />
+        <meta
+            name="theme-color"
+            media="(prefers-color-scheme: dark)"
+            content="#0d0d12"
+        />
+        <meta
+            name="theme-color"
+            media="(prefers-color-scheme: light)"
+            content="#f5f3f7"
+        />
+        <!-- iOS: installable from the share menu (16.4+). The touch icon is
+             composited on a solid background — iOS renders transparency black. -->
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Sick-Fansubs" />
+        <meta name="app-version" content="dev" />
+        <title>Sick-Fansubs</title>
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/logo/logo.png" />
+    </head>
+
+    <body>
+        <session-provider>
+            <app-shell></app-shell>
+        </session-provider>
+        <script src="./src/core/index.ts" type="module"></script>
+    </body>
+</html>

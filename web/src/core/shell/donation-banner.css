@@ -1,0 +1,60 @@
+/* Donation banner — slim height, same width as the main content column
+   (the 80rem wide-route cap). Design tokens inherit from the shell. */
+
+:host {
+    display: block;
+    width: calc(100% - 2 * clamp(12px, 3vw, 24px));
+    max-width: 80rem;
+    margin: 12px auto 0;
+}
+
+.banner {
+    display: flex;
+    align-items: center;
+    /* Centered while the install control renders nothing; the visible
+       control's auto left margin pushes it right and leaves the left
+       group at the start. */
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.45rem 1rem;
+    background: var(--sf-surface);
+    border: 1px solid var(--sf-border);
+    border-radius: 16px;
+    font-size: 0.85rem;
+    color: var(--sf-text);
+}
+
+.banner install-control {
+    margin-left: auto;
+}
+
+/* Left group: the donation sentence plus the donation link — the install
+   control (shared/pwa/install-control) sits on the right. */
+.banner-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.banner p {
+    margin: 0;
+}
+
+.banner a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    color: var(--sf-on-accent);
+    background: var(--sf-accent);
+    padding: 3px 12px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.banner a:hover {
+    filter: brightness(1.1);
+}

@@ -1,0 +1,219 @@
+/* Notifications feed page — a single-column list of account-event rows under
+   the full-route treatment (the view fills the screen at FHD). */
+
+.notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* The title and the verbs share one line while there is room; the
+       wrap lets them stack on a phone (a full-width command row INSIDE a
+       non-wrapping flex row overflows the view). */
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+/* The title stays LEFT in every state; the empty message centers inside its
+   own `.state-block` instead. */
+.notifications-header h1 {
+    margin: 0;
+}
+
+/* The header's action group: "clear read" (only while a read event row
+   exists), "mark all read", and the danger "delete all". */
+.notifications-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Clear-read destroys rows, so it wears the destructive pair — quiet until
+   hovered (the push section's off switch precedent). */
+.clear-read {
+    color: var(--sf-text-muted);
+}
+
+.clear-read:hover:not(:disabled) {
+    border-color: var(--sf-error);
+    color: var(--sf-error);
+}
+
+.notifications-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* One feed row: the clickable entry plus (for event rows) its delete
+   control. The delete control must NOT nest inside the entry button, so it
+   is absolutely positioned INSIDE the entry's card — as a flex sibling it
+   would squeeze the entry text, and under the card it would detach from the
+   row it deletes. */
+.notification-row {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.notification-row .notification-item {
+    flex: 1;
+    min-width: 0;
+}
+
+/* The entry reserves the delete button's corner so neither the text nor the
+   time can slide under the glyph. Every row carries the control, and the
+   reservation hangs off the row's explicit `has-delete` class — an explicit
+   class beats a `:has()` selector for something a test can pin. */
+.notification-row.has-delete .notification-item {
+    padding-right: 3.25rem;
+}
+
+/* The per-item delete is an ICON button: the glyph is the visual and the
+   accessible name rides `aria-label` + `title` (with the pending wording
+   while the request is out). Positioned in the card's top-right corner,
+   above the entry's hit area; the shared icon-button target floor (2rem)
+   applies. */
+.notification-delete {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+    border-radius: 50%;
+    font-size: 1rem;
+}
+
+.notification-delete:hover:not(:disabled) {
+    border-color: var(--sf-error);
+    color: var(--sf-error);
+}
+
+.notification-item {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--sf-surface);
+    border: 1px solid var(--sf-border);
+    border-radius: 12px;
+    color: var(--sf-text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 12px 16px;
+    text-align: left;
+    transition: border-color 0.15s;
+}
+
+.notification-item:hover:not(:disabled) {
+    border-color: var(--sf-accent-light);
+}
+
+/* Read state: an unread entry carries the accent bar and
+   a tinted surface; a read one dims. Colour is never the ONLY signal — the
+   bar is a shape, and the row's position plus the unread badge count carry
+   the same information. */
+.notification-item.is-unread {
+    border-left: 3px solid var(--sf-accent-light);
+    background: var(--sf-accent-tint);
+    color: var(--sf-text);
+}
+
+.notification-item.is-read {
+    opacity: 0.72;
+}
+
+.notification-item:disabled {
+    cursor: default;
+    opacity: 0.65;
+}
+
+.notification-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.notification-actor,
+.notification-target {
+    color: var(--sf-text);
+}
+
+.notification-role {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--sf-accent);
+    color: var(--sf-on-accent);
+    font-size: 0.78rem;
+}
+
+.notification-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.notification-result {
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 2px 10px;
+}
+
+.notification-result-success {
+    background: color-mix(in srgb, var(--sf-success) 15%, transparent);
+    color: var(--sf-success);
+}
+
+.notification-result-failure {
+    background: color-mix(in srgb, var(--sf-error) 15%, transparent);
+    color: var(--sf-error);
+}
+
+.notification-time {
+    font-size: 0.85rem;
+}
+
+.notifications-empty {
+    color: var(--sf-text-muted);
+    /* Centered inside the full-route root — the blog/search empty-state
+       convention (the left-aligned block reads as "slightly left" of the
+       page center). */
+    text-align: center;
+}
+
+/* The meta block stacks under the text on narrow screens so the row stays
+   readable without horizontal scrolling. */
+@media (max-width: 560px) {
+    .notification-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
+
+/* Phone band: the header's verbs stop competing with the title for
+   one line, and the row stays a single card — the delete control lives in
+   its corner, so nothing drops out of the row. */
+@media (max-width: 700px) {
+    .notifications-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .notifications-actions {
+        /* The verbs split the line and wrap, never overflow it. */
+        width: 100%;
+    }
+
+    .notifications-actions button {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+    }
+}

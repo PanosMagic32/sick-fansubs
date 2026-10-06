@@ -1,0 +1,436 @@
+/* Page-specific styles. The card/form chrome lives in ui/form.css; the
+   field block, the control boxes, and the button vocabulary come from the
+   shared sheets (forms.css, controls.css) imported alongside this sheet. */
+
+.account-page h1 {
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem;
+    color: var(--sf-text);
+}
+
+/* The account view is a full-route surface: the card
+   fills the whole main column — the shared .auth-card 48rem cap would
+   otherwise defeat the full-route treatment (sign-in/register keep the
+   default card shape). The card's surface, border, and padding stay; the
+   cap goes, and the 3rem vertical auto-margin goes too so the card sits
+   flush with the shell's main padding like the other full-route views. */
+.auth-card.account-page {
+    max-width: none;
+    margin: 0 auto;
+    /* The page is a flex item of the shell's `main`. Its automatic minimum
+       size would otherwise be its content's min-content width, so ONE
+       unshrinkable row — the section tabs — widened the whole page on a
+       phone. The row scrolls instead
+       (see .account-tabs) and the page is free to shrink. */
+    min-width: 0;
+}
+
+.account-page h2 {
+    font-size: 1.1rem;
+    margin: 2rem 0 1rem;
+    color: var(--sf-text);
+}
+
+/* ── Section tab chrome ────────────────────────
+   The admin-tabs look: a bordered row with the active tab underlined.
+   Buttons (not links) — the tabs are panels of ONE page, internal state. */
+.account-tabs {
+    display: flex;
+    gap: 0.5rem;
+    /* Five sections never fit a phone width; the row scrolls sideways
+       rather than pushing the page wide (the tabs stay reachable at every
+       width, no tab is dropped or clipped). */
+    overflow-x: auto;
+    max-width: 100%;
+    border-bottom: 1px solid var(--sf-border);
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.account-tab {
+    /* Inside the scroller the tabs keep their natural width (shrinking
+       them would squash the labels instead of scrolling). */
+    flex: 0 0 auto;
+    padding: 0.3rem 0.8rem;
+    border: none;
+    border-radius: 6px 6px 0 0;
+    background: none;
+    color: var(--sf-text-muted);
+    font: inherit;
+    cursor: pointer;
+}
+
+.account-tab[aria-selected="true"] {
+    color: var(--sf-text);
+    border-bottom: 2px solid var(--sf-accent-light);
+    border-radius: 6px 6px 0 0;
+    background: var(--sf-surface);
+}
+
+/* ── Profile section ────────────────────────────────────────────── */
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Initials circle — the avatar fallback while no avatar is set. A real
+   image renders instead once avatarUrl
+   exists; the circle is deliberately decorative aria-hidden text, not an
+   <img>. 9rem: the avatar is the profile's visual anchor. */
+.avatar {
+    flex: 0 0 auto;
+    width: 9rem;
+    height: 9rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--sf-surface);
+    background: var(--sf-accent-light);
+}
+
+/* Avatar upload: the image + the pick/upload controls
+   stack in one block next to the facts. */
+.avatar-block {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.profile-avatar {
+    width: 9rem;
+    height: 9rem;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--sf-surface);
+}
+
+.avatar-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.avatar-controls input[type="file"] {
+    max-width: 10rem;
+    font-size: 0.75rem;
+    color: var(--sf-text);
+}
+
+.avatar-success {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--sf-success);
+}
+
+.avatar-error {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--sf-error);
+}
+
+.profile-facts {
+    margin: 0;
+    min-width: 0;
+}
+
+/* Spacious facts: 0.55rem plus the wider dt column reads as a list, not
+   as a paragraph. */
+.fact {
+    display: flex;
+    gap: 0.75rem;
+    margin: 0.55rem 0;
+}
+
+.fact dt {
+    flex: 0 0 auto;
+    min-width: 7rem;
+    font-weight: 700;
+    color: var(--sf-text);
+}
+
+.fact dt::after {
+    content: ":";
+}
+
+.fact dd {
+    margin: 0;
+    color: var(--sf-text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* ── Favorites section ────────────────────────────────────────── */
+
+/* Segmented tab row — same pattern as the search type filter. */
+.fav-tabs {
+    display: inline-flex;
+    gap: 0.5rem;
+    border: none;
+    padding: 0;
+    margin: 0 0 1rem;
+}
+
+.fav-tab {
+    position: relative;
+}
+
+.fav-tab input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* The chip styles the DIRECT child span only — the projects tab's label
+   wraps its anglicism in an inner <span lang="en">, and a broad
+   `.fav-tab span` selector would style that inner span as a second chip. */
+.fav-tab > span {
+    display: inline-block;
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--sf-text-muted);
+    background: var(--sf-surface);
+    transition:
+        border-color 0.15s,
+        color 0.15s;
+}
+
+.fav-tab input:checked + span {
+    border-color: var(--sf-accent-light);
+    color: var(--sf-accent-light);
+}
+
+.fav-tab input:focus-visible + span {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+/* The favorites list: a column of dense row cards. Each card owns its row
+   geometry — thumbnail, text column, and the corner placement of the
+   remove control. */
+.fav-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* The remove control is an ICON button: the glyph is the visual, the
+   accessible name is `el.favorites.removeAria` (the label the favorite
+   toggle uses) and `title` carries the visible wording. The card's overlay
+   slot places the control in the row's corner; here only the button's own
+   look lives — the shared icon-button target floor (2rem) applies. */
+.fav-remove {
+    border-radius: 50%;
+}
+
+.fav-remove:hover:not(:disabled) {
+    border-color: var(--sf-error);
+    color: var(--sf-error);
+}
+
+.fav-empty {
+    color: var(--sf-text-muted);
+    margin: 0.5rem 0 1rem;
+}
+
+/* ── Success state (password changed) ─────────────────────────── */
+
+.success {
+    font-size: 1rem;
+    color: var(--sf-text);
+    margin: 1rem 0;
+}
+
+/* ── Active sessions ──────────────────────────────────────────── */
+
+.sessions-status,
+.sessions-empty {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: var(--sf-text-muted);
+}
+
+.sessions-list {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.session-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 10px;
+    background: var(--sf-surface);
+}
+
+.session-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.session-device {
+    font-weight: 700;
+    color: var(--sf-text);
+    overflow-wrap: anywhere;
+}
+
+.session-badge {
+    flex: 0 0 auto;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid var(--sf-accent-light);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: var(--sf-accent-light);
+    white-space: nowrap;
+}
+
+.session-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+.session-dates div {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.session-dates dt {
+    font-weight: 400;
+}
+
+.session-dates dd {
+    margin: 0;
+}
+
+.session-revoke {
+    margin-left: auto;
+}
+
+/* ── Sign-out actions ─────────────────────────────────────────── */
+
+.signout-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+/* Email verification + change: the unverified banner, the verified
+   status chip, and the email-change widget in the profile section. */
+
+.verify-banner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--sf-border);
+    border-left: 3px solid var(--sf-accent);
+    border-radius: 6px;
+    background: var(--sf-surface);
+}
+
+.verify-banner p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--sf-text-dim);
+}
+
+.verify-success {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: var(--sf-success);
+}
+
+.email-status {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--sf-text-dim);
+}
+
+.email-change {
+    margin-top: 1rem;
+}
+
+.email-change form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.email-change-actions {
+    display: flex;
+    gap: 0.6rem;
+    /* The pair wraps instead of squeezing: at 360px the two
+       buttons would share one line and the primary's label would break in
+       half («Αλλαγή email» over two lines). */
+    flex-wrap: wrap;
+}
+
+/* One vocabulary for the row: the shared accent submit and this secondary
+   control share height, radius, font size, and the no-wrap label, so the
+   pair reads as two buttons. */
+.email-change-actions button {
+    margin-top: 0;
+    white-space: nowrap;
+    flex: 1 1 auto;
+}
+
+/* ── Phone band ─────────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+    /* Profile: side by side, the 9rem avatar block (162px) plus the
+       1.75rem gap leaves the facts about 146px on a 360px phone, the
+       7rem `dt` column takes 126 of those, and `dd`'s overflow-wrap
+       would break words per character. Stacked, the facts own the
+       column. */
+    .profile {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    /* Favorites on a phone: the panel padding shrinks so the card keeps its
+       text room (the card's own sheet shrinks its thumbnail). */
+    .auth-card.account-page {
+        padding: 1.25rem;
+    }
+}
+
+/* Narrow phones: the fact rows stack label-over-value so a long email or
+   username gets the whole column instead of wrapping character-wise. */
+@media (max-width: 560px) {
+    .fact {
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .fact dt {
+        min-width: 0;
+    }
+}

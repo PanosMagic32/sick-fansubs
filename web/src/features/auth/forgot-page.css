@@ -1,0 +1,17 @@
+/* Page-specific styles. The shared card container (.auth-card) and all
+   form/field/error/button styles live in form.css (imported alongside
+   this sheet). */
+
+.forgot-page h1 {
+    font-size: 1.5rem;
+    margin: 0 0 1.5rem;
+    color: var(--sf-text);
+}
+
+/* The generic success copy (enumeration-safe — no account-specific truth). */
+.success-note {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--sf-text-dim);
+    margin: 0 0 1rem;
+}

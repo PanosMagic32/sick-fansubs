@@ -1,0 +1,439 @@
+/* Comments thread — the inline section at the end of
+   the blog/project detail pages. Design tokens (--sf-*) inherit from
+   the app-shell host, so both themes work automatically. */
+
+:host {
+    display: block;
+    /* Separation from the downloads card above — the thread reads as its
+       own section inside the detail column. */
+    margin-top: 2rem;
+}
+
+/* ── Header: title + sort tabs ───────────────────────────────────── */
+
+.ct-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.ct-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--sf-text);
+    margin: 0;
+}
+
+/* Segmented sort control: the radios are visually hidden (sr-only clip)
+   and the labels render as pills; the checked one is filled (the
+   search-page type-filter convention). CHILD combinator — the label's
+   direct span gets the pill geometry. */
+.ct-sort {
+    display: flex;
+    gap: 0.25rem;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ct-sort-option input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.ct-sort-option > span {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: var(--sf-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition:
+        color 0.15s,
+        background 0.15s,
+        border-color 0.15s;
+}
+
+.ct-sort-option input:checked + span {
+    color: var(--sf-text);
+    border-color: var(--sf-border);
+    background: var(--sf-surface);
+}
+
+.ct-sort-option input:focus-visible + span {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+/* ── Composer ────────────────────────────────────────────────────── */
+
+.ct-composer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    align-items: flex-start;
+}
+
+.ct-composer-box {
+    flex: 1;
+    min-width: 0;
+}
+
+.ct-textarea {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--sf-border);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    color: var(--sf-text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.ct-textarea::placeholder {
+    color: var(--sf-text-dim);
+}
+
+/* The foot carries the composer's one action, right-aligned under the draft;
+   the identity lives above the textarea in the comment byline shape
+   (`.ct-meta`), so no second string ever sits beside this button. */
+.ct-composer-foot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.6rem;
+}
+
+/* The anonymous sign-in prompt (composer + inline reply composer). */
+.ct-signin-prompt {
+    margin: 0;
+    padding: 0.75rem 0;
+    font-size: 0.9rem;
+    color: var(--sf-text-muted);
+}
+
+.ct-signin-prompt a {
+    color: var(--sf-accent-light);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.ct-signin-prompt a:hover {
+    text-decoration: underline;
+}
+
+/* ── Avatars ─────────────────────────────────────────────────────── */
+
+.ct-avatar {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.ct-avatar-initial {
+    display: grid;
+    place-items: center;
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--sf-accent-light);
+    background: var(--sf-dot);
+    border: 1px solid var(--sf-border);
+    box-sizing: border-box;
+}
+
+.ct-avatar-empty {
+    background: var(--sf-dot);
+    border: 1px solid var(--sf-border);
+    box-sizing: border-box;
+}
+
+/* ── Thread ──────────────────────────────────────────────────────── */
+
+.ct-thread {
+    display: block;
+}
+
+.ct-comment {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--sf-border);
+}
+
+.ct-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.ct-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 0.3rem;
+}
+
+.ct-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--sf-text);
+}
+
+/* The staff badge. The text stays readable in both themes
+   (`--sf-text`) and the BORDER carries the derived staff role; the role
+   also joins the badge text for assistive tech, so
+   color is never the only channel. The role rides on the border on purpose:
+   each border clears the 3:1 non-text threshold in both themes, while
+   `--sf-success` as small TEXT would sit at ~3.7:1 in the light theme. The
+   neutral base is the fallback for a staff author with no role (no such
+   payload exists today). */
+.ct-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    color: var(--sf-text);
+    border: 1px solid var(--sf-border);
+}
+
+.ct-badge--moderator {
+    border-color: var(--sf-accent-light);
+}
+
+.ct-badge--admin {
+    border-color: var(--sf-success);
+}
+
+.ct-badge--super-admin {
+    border-color: var(--sf-error);
+}
+
+/* The deep-link arrival chip. */
+.ct-target-chip {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    color: var(--sf-project);
+    background: var(--sf-project-bg);
+    border: 1px solid var(--sf-project);
+}
+
+.ct-time {
+    font-size: 0.75rem;
+    color: var(--sf-text-dim);
+}
+
+.ct-edited {
+    font-size: 0.75rem;
+    color: var(--sf-text-dim);
+}
+
+.ct-text {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--sf-text);
+    overflow-wrap: break-word;
+    margin: 0;
+    /* The API treats the body as plain text; Lit's text binding escapes
+       markup. Data line breaks are preserved. */
+    white-space: pre-line;
+}
+
+/* The rendered emoticon glyphs —
+   emoticons.ts emits the class and the svg carries its own 1.2em size; this
+   rule only sets the baseline alignment so a glyph sits on the text line. */
+.ct-emoticon {
+    display: inline-block;
+    vertical-align: -0.25em;
+}
+
+.ct-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+/* The row actions are ICON buttons: the glyph
+is the visual and the accessible name rides `aria-label` + `title`, so the
+row keeps its width on a phone. The heart keeps its count and is the same
+box (the shared icon modifier carries the 2rem target). */
+.ct-action {
+    gap: 0.3rem;
+    /* The count beside the heart keeps its 0.8rem; the GLYPHS are sized
+       explicitly below so every action icon in the row is the same box. */
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+.ct-action svg {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.ct-action:hover:not(:disabled) {
+    color: var(--sf-accent-light);
+}
+
+/* The heart button: the glyph is decorative (aria-hidden) with a
+   catalog aria-label — the favorite-toggle contract. */
+.ct-heart.is-hearted {
+    color: var(--sf-project);
+}
+
+/* The debounce window: the button stays
+ * ENABLED so clicks can update the target — the dimmed glyph is the
+ * pending feedback, the disabled state arrives with the request phase. */
+.ct-heart.is-pending:not(:disabled) {
+    opacity: 0.65;
+}
+
+/* The SVG heart box: inline-flex keeps the 1em icon
+ * centered against the count; both heart states share one box size. */
+.ct-heart-glyph {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* The anonymous heart: a plain count, no affordance. */
+.ct-hearts {
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+.ct-delete:hover:not(:disabled) {
+    color: var(--sf-error);
+}
+
+/* ── Replies ─────────────────────────────────────────────────────── */
+
+.ct-replies {
+    margin-top: 0.9rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--sf-border);
+}
+
+.ct-replies .ct-comment {
+    padding: 0.7rem 0;
+}
+
+.ct-replies .ct-comment:first-child {
+    padding-top: 0;
+    border-top: none;
+}
+
+.ct-replies .ct-avatar {
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.7rem;
+}
+
+/* The reply-window append sits INSIDE the
+   indented replies block, so it reads as part of that comment's thread. */
+.ct-replies .ct-more-replies {
+    margin-top: 0.7rem;
+}
+
+/* ── Edit / reply composers ──────────────────────────────────────── */
+
+.ct-editor,
+.ct-reply-composer {
+    margin-top: 0.6rem;
+}
+
+.ct-editor-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+/* ── Errors and notices ──────────────────────────────────────────── */
+
+.ct-form-error {
+    margin: 0.4rem 0 0;
+    font-size: 0.8rem;
+    color: var(--sf-error);
+}
+
+.ct-deleted-notice {
+    margin: 0 0 1rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+}
+
+/* ── Deep-link target highlight ──────────────────────────────────── */
+
+/* The one-shot arrival flash (prefers-reduced-motion disables it). The
+   chip above stays while the fragment matches. */
+.ct-comment.is-target {
+    animation: ct-flash 2.4s ease-out 1;
+    border-radius: 10px;
+}
+
+@keyframes ct-flash {
+    0% {
+        background: var(--sf-focus-ring);
+    }
+    100% {
+        background: transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ct-comment.is-target {
+        animation: none;
+    }
+}
+
+/* ── Load-more ───────────────────────────────────────────────────── */
+
+/* Renders only on hasNextPage (paginate only when needed). */
+.ct-more {
+    display: block;
+    width: 100%;
+    margin-top: 1.25rem;
+}
+
+/* ── States ──────────────────────────────────────────────────────── */
+
+.ct-centered {
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+.ct-empty {
+    margin: 0;
+    padding: 1.25rem 0;
+    color: var(--sf-text-muted);
+}
+
+.ct-retry {
+    margin-top: 0.75rem;
+}

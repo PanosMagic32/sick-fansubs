@@ -1,0 +1,123 @@
+/* Blog create/edit form. */
+
+.downloads-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+}
+
+.blog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-header {
+    display: flex;
+    align-items: center;
+    /* Three items — a wrapped title, the state chip (nowrap), and the back
+       link — whose min-contents together exceed a phone width; the row used
+       to overflow the page instead. Wrapping lets the
+       link drop to its own line, and `margin-left: auto` keeps it at the
+       right edge. */
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* The back link hugs the right edge; the title and the state chip lead. */
+.form-header > a {
+    margin-left: auto;
+}
+
+.form-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+/* The live state chip — what the row IS. */
+.state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.7rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: var(--sf-text-muted);
+    white-space: nowrap;
+}
+
+.state-chip-prefix {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sf-text-dim);
+}
+
+.state-chip[data-status="published"] {
+    border-color: var(--sf-success);
+    color: var(--sf-success-strong);
+}
+
+.state-chip[data-status="archived"] {
+    opacity: 0.75;
+}
+
+.blog-form form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.field textarea {
+    min-height: 8rem;
+    resize: vertical;
+}
+
+.current-thumbnail {
+    width: 100%;
+    max-width: 32rem;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--sf-border);
+}
+
+.form-actions {
+    display: flex;
+    /* Four actions on one line exceed a narrow phone; they wrap now instead
+       of overflowing the form column. */
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* The primary action is the state-preserving save; publishing is the
+   secondary emphasis and the two "off the public site" actions stay
+   quiet. Geometry comes from the shared control vocabulary. */
+.form-actions .action-save {
+    border-color: var(--sf-accent-light);
+    font-weight: 700;
+}
+
+.form-actions .action-publish {
+    border-color: var(--sf-success);
+    color: var(--sf-success-strong);
+}
+
+.form-actions .delete-button {
+    margin-left: auto;
+}
+
+.field-error,
+.form-error {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-error);
+}
+
+.form-success {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-success-strong);
+}

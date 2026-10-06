@@ -1,0 +1,100 @@
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ── Typography: IBM Plex (self-hosted) ──
+   System fonts vary in metrics and broke some layouts. The woff2 files
+   are vendored under
+   public/fonts/ (source: @ibm/plex, OFL license next to them) —
+   no CDN, the production build embeds them. Each "complete" file covers
+   Latin + Greek + Cyrillic, so the Greek UI needs no extra subset.
+   Weights 400/500/700 match the design's usage; Plex Sans tops out at
+   700, so nothing may request a heavier weight (synthetic bolding). The
+   single italic face serves the quote-description styling. */
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/fonts/IBMPlexSans-Medium.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url("/fonts/IBMPlexSans-Italic.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Sans";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("/fonts/IBMPlexSans-Bold.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/fonts/IBMPlexMono-Medium.woff2") format("woff2");
+}
+
+html {
+    font-size: 112.5%; /* ~18px base; all component sizes use rem */
+}
+
+body {
+    height: 100%;
+    font-family:
+        "IBM Plex Sans",
+        system-ui,
+        -apple-system,
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Focus visibility (project baseline) ── */
+:focus-visible {
+    outline: 2px solid var(--sf-accent-light, #8aaae0);
+    outline-offset: 2px;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ── Screen-reader-only utility ── */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

@@ -1,0 +1,67 @@
+/* ── Shared in-shadow baseline ──────────────────────────────────────
+   The global rules in core/index.css do NOT cross into shadow roots
+   (style encapsulation). Every component imports this sheet to
+   re-establish the parts of the global baseline it may depend on:
+
+   - box-sizing: border-box (width: 100% must include padding/border)
+   - the project's visible :focus-visible treatment
+   - the prefers-reduced-motion override
+   - the .sr-only screen-reader utility
+
+   Selectors are intentionally unscoped: shadow DOM isolates each
+   component's styles, so these rules can only match elements inside the
+   component that imports this sheet. */
+
+:host,
+:host *,
+:host *::before,
+:host *::after {
+    box-sizing: border-box;
+}
+
+/* Mirrors the global focus baseline in core/index.css. */
+:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+/* Screen-reader-only text. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Reserved-footprint state block. A loading, empty, or
+   error state keeps a stable height so the spinner → empty → content
+   transitions never resize the region under the page chrome, and the
+   message reads from the middle of that reserved box rather than hugging
+   the top edge of an otherwise empty page. Applied by the list surfaces
+   (blog, projects, search, notifications, the staff lists) and the account
+   page's favorites/devices blocks; the value is one constant, tuned as a
+   whole. */
+.state-block {
+    min-height: 14rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* Mirrors the global reduced-motion override in core/index.css. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

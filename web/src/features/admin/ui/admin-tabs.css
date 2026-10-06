@@ -1,0 +1,33 @@
+/* Admin dashboard tab chrome — one sheet for the shared tab row. */
+
+.admin-tabs {
+    display: flex;
+    gap: 0.5rem;
+    /* Four tabs — five for a super-admin (the logs tab) — never fit a phone
+       width, and an unshrinkable row widened the whole admin page with it
+       (the owner's "tabs overflow"). The row scrolls
+       sideways instead, exactly like the account page's section tabs, so the
+       tabs stay reachable at every width and no tab is clipped or dropped. */
+    overflow-x: auto;
+    max-width: 100%;
+    border-bottom: 1px solid var(--sf-border);
+    padding-bottom: 0.25rem;
+}
+
+.admin-tab {
+    /* Inside the scroller the tabs keep their natural width (shrinking them
+       would squash the labels instead of scrolling). */
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px 6px 0 0;
+    color: var(--sf-text-muted);
+    text-decoration: none;
+}
+
+.admin-tab[aria-current="page"] {
+    color: var(--sf-text);
+    border-bottom: 2px solid var(--sf-accent-light);
+    border-radius: 6px 6px 0 0;
+    background: var(--sf-surface);
+}

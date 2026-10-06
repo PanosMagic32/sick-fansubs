@@ -1,0 +1,49 @@
+/* Content indicators — the stats row every content surface carries (blog
+ * hero + cards, project cards, detail pages, search results, favorites
+ * cards). `<content-card>` renders the row for all of them and imports this
+ * sheet.
+ *
+ * The row is ONE chip: a bordered pill holding the two indicators,
+ * separated by a vertical divider (the `.stat + .stat` border-left — no
+ * separator markup). Icons are 1em inline SVGs from the shared set
+ * (icons.messageSquare / icons.heartFilled), so the bubble and both heart
+ * states occupy ONE size box — a heart never changes size. */
+
+.content-stats {
+    display: inline-flex;
+    align-items: center;
+    /* The chip hugs its content, never stretches: as a flex child of a
+     * COLUMN container (the account favorites card body) the default
+     * cross-axis stretch would inflate it to the parent's full width —
+     * an explicit fit-content width keeps it pill-sized everywhere. */
+    width: fit-content;
+    font-size: 0.8rem;
+    color: var(--sf-text-muted);
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    background: var(--sf-surface);
+    overflow: hidden; /* keeps the divider inside the pill's rounded ends */
+}
+
+.stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.6rem;
+}
+
+/* The vertical slice between the two indicators. */
+.stat + .stat {
+    border-left: 1px solid var(--sf-border);
+}
+
+/* The icon box is the same for both indicators and both heart states —
+ * the size-equality contract lives in this one rule. */
+.stat-icon {
+    display: inline-flex;
+    font-size: 1rem;
+}
+
+.stat-num {
+    font-variant-numeric: tabular-nums;
+}

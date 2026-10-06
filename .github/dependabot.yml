@@ -1,0 +1,35 @@
+version: 2
+# Dependency currency is a documented process: docs/ops/currency.md.
+# The web tree updates through the npm ecosystem only as a watched trial:
+# the first update PR must leave bun.lock as the sole artifact — anything
+# else it produces (package-lock.json, npm state) reverts the entry. Until
+# the trial, web drift is reported by the weekly currency workflow
+# (bun outdated) and bumped by review.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      go-modules-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      base-images-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

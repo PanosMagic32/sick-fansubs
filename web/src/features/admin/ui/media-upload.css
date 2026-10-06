@@ -1,0 +1,42 @@
+/* Media upload widget. */
+
+.media-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* The large preview: the same 16:9 block the public detail page
+   shows, so the editor sees the actual crop instead of a thumbnail-sized
+   hint. Capped so a huge form column cannot blow it up further. */
+.media-preview {
+    width: 100%;
+    max-width: 32rem;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--sf-border);
+}
+
+/* The upload-state line — always on screen, mute until the
+   upload lands, then green like the success copy. */
+.media-status {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-text-dim);
+}
+
+.media-status.is-uploaded {
+    color: var(--sf-success-strong);
+}
+
+.media-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.media-error {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--sf-error);
+}

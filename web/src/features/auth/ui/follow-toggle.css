@@ -1,0 +1,35 @@
+/* Follow toggle — the detail-page bell. The
+   box is the shared ghost icon control; the 1.5rem glyph and its states are
+   this component's own. */
+
+.follow-toggle {
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--sf-text-muted);
+    transition:
+        color 0.15s,
+        transform 0.1s;
+}
+
+/* The followed bell reads as the accent; the outline bell as muted. */
+.follow-toggle[data-following="true"] {
+    color: var(--sf-accent);
+}
+
+/* The SVG bell box: inline-flex keeps the 1em icon centered inside the
+ * button — the same wrapper rule the favorite heart carries. */
+.follow-toggle .bell-glyph {
+    display: inline-flex;
+    align-items: center;
+}
+
+.follow-toggle:hover:not(:disabled) {
+    color: var(--sf-accent);
+    transform: scale(1.08);
+}
+
+.follow-error {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    color: var(--sf-error);
+}

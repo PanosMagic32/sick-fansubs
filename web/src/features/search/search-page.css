@@ -1,0 +1,238 @@
+/* Search page — single-column merged results under the shell's
+   default 48rem route cap. The result rows are the shared content-card's ROW
+   shape; this sheet owns only the form, the list spacing, and the states. */
+
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.search-row {
+    display: flex;
+    gap: 8px;
+}
+
+.search-input-wrap {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-input-wrap input {
+    flex: 1;
+    min-width: 0;
+    /* Right padding reserves the clear control's corner: the shared icon
+       button is 2rem wide at right: 8px, so the text stops before it. */
+    padding: 10px 2.75rem 10px 16px;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    background: var(--sf-surface);
+    color: var(--sf-text);
+    font: inherit;
+}
+
+.search-input-wrap input:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+/* The input is type="search": suppress the native WebKit cancel button —
+   we render our own accessible clear (×) button, and a native one would
+   clear the field WITHOUT syncing the URL/state (two × buttons would
+   overlap). */
+.search-input-wrap input::-webkit-search-cancel-button {
+    display: none;
+}
+
+/* Clear (×) button inside the input — catalog aria-label, glyph exempt
+   (shared AGENTS: structural glyphs stay out of the catalog). */
+.clear-btn {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.clear-btn:hover {
+    background: var(--sf-border);
+}
+
+.submit {
+    white-space: nowrap;
+}
+
+/* Type filter + sort control share one wrapping row. */
+.filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Segmented type filter: the radios are visually hidden (sr-only clip)
+   and the labels render as pills; the checked one is filled. */
+.type-filter {
+    display: flex;
+    gap: 8px;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.type-option input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* CHILD combinator, not a descendant selector: the Projects label nests
+   a lang="en" span (anglicism policy), and a descendant rule would give
+   that inner span its own pill — the chip-in-chip shape. Only the label's
+   direct span gets the pill geometry. */
+.type-option > span {
+    display: inline-block;
+    padding: 6px 16px;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    color: var(--sf-text-muted);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition:
+        color 0.15s,
+        background 0.15s,
+        border-color 0.15s;
+}
+
+.type-option input:checked + span {
+    background: var(--sf-accent);
+    border-color: var(--sf-accent);
+    color: var(--sf-on-accent);
+}
+
+.type-option input:focus-visible + span {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+/* Sort control: a labelled native select, chip-styled to
+   sit beside the type filter pills. */
+.sort-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sf-text-muted);
+    font-size: 0.95rem;
+}
+
+.sort-label {
+    white-space: nowrap;
+}
+
+.sort-control select {
+    padding: 6px 12px;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    background: var(--sf-surface);
+    color: var(--sf-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.sort-control select:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+/* Date-window controls: two labelled native date inputs,
+   chip-styled to match the sort control. */
+.date-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.date-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sf-text-muted);
+    font-size: 0.95rem;
+}
+
+.date-control > span {
+    white-space: nowrap;
+}
+
+.date-control input {
+    padding: 5px 10px;
+    border: 1px solid var(--sf-border);
+    border-radius: 999px;
+    background: var(--sf-surface);
+    color: var(--sf-text);
+    font: inherit;
+}
+
+.date-control input:focus-visible {
+    outline: 2px solid var(--sf-accent-light);
+    outline-offset: 2px;
+}
+
+/* Results — vertical list of card rows; the stacked narrow band lives in
+   the card's own sheet. */
+.results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* The pager chips are the shared <pager-nav> element's own sheet — this
+   sheet never styles them. */
+
+.centered-state {
+    text-align: center;
+    padding: 48px 0;
+}
+
+.empty {
+    color: var(--sf-text-muted);
+}
+
+.retry {
+    margin-top: 16px;
+}
+
+/* Phone band: the submit drops out of the input's line and becomes the
+   full-width action under the query — the action a thumb reaches for right
+   after typing, while the filters below refine the same submission. Desktop
+   keeps it inline. */
+@media (max-width: 700px) {
+    .search-row {
+        flex-wrap: wrap;
+    }
+
+    .submit {
+        flex: 1 0 100%;
+        padding: 12px 20px;
+    }
+}

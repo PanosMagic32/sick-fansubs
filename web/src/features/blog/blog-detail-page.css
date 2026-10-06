@@ -1,0 +1,94 @@
+/* Blog detail page — single-column article. The lead block is the
+   shared <content-card shape="detail"> (shared/ui/content-card.css); this
+   sheet owns the page's measure, the downloads section, and the states.
+   Design tokens (--sf-*) inherit from the app-shell host. */
+
+:host {
+    display: block;
+    /* The route already carries the shell's vertical rhythm. */
+    padding: 0.25rem 0 3rem;
+}
+
+/* The detail column caps at 60rem (1080px at the 112.5% root) instead of
+   filling the 80rem wide route — the full-bleed image read oversized on
+   1080p displays. */
+.detail {
+    max-width: min(90%, 60rem);
+    margin: 0 auto;
+}
+
+/* ── Downloads ── */
+
+/* Plain rows only: the layout-exploration toggle is
+   deleted; the layout matches the project detail page's downloads. */
+.downloads {
+    background: var(--sf-surface);
+    border: 1px solid var(--sf-border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+}
+
+.downloads-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--sf-text);
+    margin: 0 0 0.75rem;
+}
+
+.downloads-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.download-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.download-resolution {
+    font-weight: 700;
+    color: var(--sf-accent-light);
+    min-width: 4rem;
+}
+
+/* ── The lead block's avatar chips come with <content-card>, whose own
+   sheet sizes them for the detail byline ── */
+
+/* ── States (mirror the list page's centered pattern) ── */
+
+.centered-state {
+    text-align: center;
+    max-width: 32rem;
+    margin: 2rem auto 0;
+}
+
+.not-found-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--sf-text);
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--sf-accent-light);
+}
+
+.retry {
+    margin-top: 1rem;
+}
+
+/* The staff edit affordance: next to the heart, only for
+   authenticated moderator+ (the server enforces). ICON-only: the pencil is
+   the visual and the accessible name + hover title carry the wording. */
+.admin-edit-link {
+    align-self: center;
+    color: var(--sf-accent-light);
+    font-size: 1.05rem;
+}

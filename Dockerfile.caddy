@@ -1,0 +1,32 @@
+# Caddy with the Cloudflare DNS module.
+#
+# The stock caddy image does NOT include dns.providers.cloudflare — it is a
+# non-standard module, excluded from the default Docker build. Attempting the
+# DNS challenge on the stock image fails at config load with
+# "module not registered: dns.providers.cloudflare" (beta bring-up incident
+# 2026-08-30). The official fix is this two-stage build: xcaddy compiles a
+# Caddy binary with the module, the runtime stage keeps the stock image.
+#
+# Base images are PINNED (2.11.4-builder + 2.11.4-alpine, not the
+# floating 2-builder/2-alpine): a floating tag moves on every upstream
+# release, which invalidates the xcaddy build layer and forces a full Caddy
+# recompile (~130 s) plus a full gha cache re-export (~100 s) on the next
+# deploy. Pin and bump deliberately on Caddy upgrades.
+#
+# Built + pushed to ghcr.io by the deploy workflow (the
+# manual docker save/scp channel is closed).
+FROM caddy:2.11.4-builder AS builder
+
+# Cache mounts (BuildKit): the Go module + build caches persist via the
+# workflow's gha cache backend, so a rebuild after layer invalidation
+# (Caddy upgrade, cache eviction) reuses downloads and compiled packages
+# instead of starting cold. A cache miss just rebuilds — the mounts are
+# never a correctness dependency.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    xcaddy build \
+    --with github.com/caddy-dns/cloudflare
+
+FROM caddy:2.11.4-alpine
+
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
