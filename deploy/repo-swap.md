@@ -55,9 +55,9 @@ git push git@github.com:PanosMagic32/sick-fansubs.git --delete <ref> ...
 
 ## Settings in the new repository
 
-- Secrets: `DEPLOY_HOST`, `DEPLOY_KEY` (copy the values from the old repository).
-- Variables: `DEPLOY_PORT`, `DEPLOY_USER`, `DEPLOY_HOST_KEY`, and
-  `PUBLIC_BASE_URL=https://sickfansubs.com`.
+- Secrets: `DEPLOY_HOST`, `DEPLOY_KEY`, and `DEPLOY_HOST_KEY`.The host-key pin lives in secrets so the origin address stays out of the
+  world-readable variables.
+- Variables: `DEPLOY_PORT`, `DEPLOY_USER`, and `PUBLIC_BASE_URL=https://sickfansubs.com`.
 - Environments: `deploy-approval` with the owner as required reviewer.
 - Package access, one grant per package — repository `PanosMagic32/sick-fansubs`, role Write, for
   `sick-fansubs`, `sick-fansubs-migrate`, `sick-fansubs-backup`, `sick-fansubs-restore`, and
