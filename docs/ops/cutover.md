@@ -14,14 +14,16 @@ restore mechanics live in their own docs.
    the tag push below is the deploy. What changes is the edge: Caddy becomes the sole ingress for
    `sickfansubs.com` on 443 and the legacy
    nginx retires. The flip's file-by-file change list is part of this rule:
-   - Sequence, inside the maintenance window — stop the legacy nginx first (it holds 80/443);
-     reinstall the `DOCKER-USER` blocks for 443 from the edited
-     [bring-up.md](../../deploy/bring-up.md) §4 (below), so direct origin 443 is gated the moment
-     the flipped stack binds it; point the Cloudflare apex at the origin (proxied, Full strict) and
-     remove the `v2` Origin Rule and the `v2` DNS record; set the repository variable
-     `PUBLIC_BASE_URL` to the apex (the deploy job's probe reads it and would otherwise fail after
-     a healthy deploy); then push the flip tag. That order gives the probe a working public URL
-     the moment the flipped stack is up.
+   - Sequence, inside the maintenance window — push the flip tag first: the deploy job runs its
+     test and build and then parks at the `deploy-approval` gate, so a build failure leaves
+     production untouched. While it waits, do the no-downtime prep: reinstall the `DOCKER-USER`
+     blocks for 443 from [bring-up.md](../../deploy/bring-up.md) §4, so direct origin 443 is
+     gated the moment the flipped stack binds it; point the Cloudflare apex at the origin
+     (proxied, Full strict); and remove the `v2` Origin Rule and the `v2` DNS record. Confirm
+     the repository variable `PUBLIC_BASE_URL` already holds the apex (the deploy job's probe
+     reads it and would otherwise fail after a healthy deploy). Then stop the legacy nginx and
+     approve: downtime is the deploy alone, and the probe runs with the public URL already
+     working.
    - `Caddyfile` — the site address becomes `sickfansubs.com` (plus the `www` redirect once the DNS
      facts are collected), and the site block gains
      `header Strict-Transport-Security "max-age=31536000"` (no preload; `includeSubDomains` only

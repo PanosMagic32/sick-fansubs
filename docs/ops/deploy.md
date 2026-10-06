@@ -175,6 +175,10 @@ tag push ─▶ test job (Go + web) ─▶ build job (5 images → ghcr) ─▶ 
   are its transport): the zone's Bot Fight Mode
   challenges the runner's shared egress IPs and no WAF rule can skip it, so Bot Fight Mode
   stays on and the probe client is the deploy host's address.
+- **Repository variables are read when the job is created, not when it runs.** A deploy job
+  parked at the `deploy-approval` gate keeps the `vars.*` values from its creation: after a
+  variable edit, re-run the job for the new value to apply — the live failure is an SSH
+  `Permission denied (publickey)` against the previous `DEPLOY_USER`.
 - **The workflow ships the scripts with every deploy.** Never hand-edit a script on the VPS — the
   next deploy overwrites it, and the versioned copy in `deploy/` is the contract.
 - **CI and `make check` are deliberately asymmetric.** The workflow test jobs run `go build ./...`

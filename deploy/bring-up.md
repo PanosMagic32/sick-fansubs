@@ -20,7 +20,11 @@
 - **Cloudflare:** apex `sickfansubs.com` proxied with Full (strict); **"Always
   Use HTTPS" enabled** (Edge Certificates — plaintext HTTP is redirected at the
   edge and never reaches origin port 443); Zone:DNS:Edit API token created. No
-  Origin Rule — Cloudflare proxies straight to Caddy on 443. Bot Fight Mode
+  Origin Rule — Cloudflare proxies straight to Caddy on 443. `www.sickfansubs.com`
+  is redirected to the apex by a Cloudflare Redirect Rule; its proxied
+  placeholder record (`AAAA 100::`) never reaches the origin, and the Caddyfile's
+  `www` site block stands as the origin-side fallback if that rule is removed.
+  Bot Fight Mode
   stays on: it challenges the workflow runner's shared egress IPs, so the deploy
   probe runs from the VPS ([deploy.md](../docs/ops/deploy.md)). The app's strict
   CSP (`script-src 'self'`) blocks Cloudflare's JavaScript Detections injection,
@@ -169,6 +173,11 @@ port to the world) and re-adds RETURN last, making reloads idempotent.
 `--ctorigdstport` matches a conntrack entry's ORIGINAL tuple in BOTH directions,
 so without the state restriction the DROP rule also kills the container's
 SYN-ACK replies and every Cloudflare connection times out (522).
+**Every rule also carries `-i <wan-iface>`**, the host's public interface
+(`ip route show default` names it — `eth0` on the reference host). The same
+original-tuple match would otherwise eat container-originated connections to a
+remote 443 — ACME orders and web-push sends fail — so the gate must see only
+traffic arriving from outside. Replace `<wan-iface>` in both blocks below.
 
 Ranges are from <https://www.cloudflare.com/ips/> — re-check them before
 reinstalling the blocks. **Run each block once** — check with
@@ -187,22 +196,22 @@ sudo tee -a /etc/ufw/after.rules > /dev/null <<'EOF'
 *filter
 :DOCKER-USER - [0:0]
 -F DOCKER-USER
--A DOCKER-USER -s 103.21.244.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 103.22.200.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 103.31.4.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 104.16.0.0/13 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 104.24.0.0/14 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 108.162.192.0/18 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 131.0.72.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 141.101.64.0/18 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 162.158.0.0/15 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 172.64.0.0/13 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 173.245.48.0/20 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 188.114.96.0/20 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 190.93.240.0/20 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 197.234.240.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 198.41.128.0/17 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j DROP
+-A DOCKER-USER -i <wan-iface> -s 103.21.244.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 103.22.200.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 103.31.4.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 104.16.0.0/13 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 104.24.0.0/14 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 108.162.192.0/18 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 131.0.72.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 141.101.64.0/18 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 162.158.0.0/15 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 172.64.0.0/13 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 173.245.48.0/20 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 188.114.96.0/20 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 190.93.240.0/20 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 197.234.240.0/22 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 198.41.128.0/17 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j DROP
 -A DOCKER-USER -j RETURN
 COMMIT
 EOF
@@ -218,14 +227,14 @@ sudo tee -a /etc/ufw/after6.rules > /dev/null <<'EOF'
 *filter
 :DOCKER-USER - [0:0]
 -F DOCKER-USER
--A DOCKER-USER -s 2400:cb00::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 2606:4700::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 2803:f800::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 2405:b500::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 2405:8100::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 2a06:98c0::/29 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -s 2c0f:f248::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
--A DOCKER-USER -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j DROP
+-A DOCKER-USER -i <wan-iface> -s 2400:cb00::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 2606:4700::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 2803:f800::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 2405:b500::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 2405:8100::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 2a06:98c0::/29 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -s 2c0f:f248::/32 -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j ACCEPT
+-A DOCKER-USER -i <wan-iface> -p tcp -m conntrack --ctstate NEW --ctorigdstport 443 -j DROP
 -A DOCKER-USER -j RETURN
 COMMIT
 EOF
