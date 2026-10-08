@@ -45,8 +45,8 @@ restore mechanics live in their own docs.
    - Verification — readiness, a password-reset link's host, a real sign-in, the HSTS header, the
      probe URL, and non-Cloudflare 443 refused.
 2. **Announce the maintenance window and the one-time logout.** Sessions do not survive the
-   cutover, so the announcement names the logout; the cutover GitHub Release carries the
-   hand-written notes (what changed from legacy). Per-beta releases are skipped.
+   cutover, so the announcement names the logout and carries the hand-written notes on what
+   changed from legacy.
 3. **Freeze legacy writes for the import window, and snapshot the source first.** Take the final
    legacy export and record its identity; from then on Atlas is read-only and the target SQLite
    database is the only writer.
