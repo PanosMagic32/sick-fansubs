@@ -40,9 +40,13 @@ type NotificationEvent struct {
 }
 
 // PushSubscription is the settings-list projection of one subscription row.
+// Label is the row's device name — the classifier label captured at
+// subscribe time, replaced by the user's rename — or empty for NULL (the
+// client renders "unknown device").
 type PushSubscription struct {
 	ID          string
 	Endpoint    string
+	Label       string
 	CreatedAtMS int64
 }
 
@@ -62,7 +66,12 @@ type PushSubscriptionKeys struct {
 // the minted id is only consumed by a fresh insert); an endpoint owned by
 // ANOTHER user is reassigned (deleted there, inserted here — the device's
 // newest login owns the endpoint).
-func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth string, createdAtMS int64) (string, error) {
+//
+// label is the classifier-derived device name (empty stores SQL NULL). The
+// upsert PRESERVES an existing label and only fills a NULL one: a rename is
+// the user's own data, and the browser's rotation healing must not overwrite
+// it.
+func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64) (string, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return "", fmt.Errorf("store: begin push subscription upsert: %w", err)
@@ -78,13 +87,14 @@ func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoin
 	}
 
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at_ms, updated_at_ms)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, label, created_at_ms, updated_at_ms)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(endpoint) DO UPDATE SET
 			p256dh = excluded.p256dh,
 			auth = excluded.auth,
+			label = COALESCE(push_subscriptions.label, excluded.label),
 			updated_at_ms = excluded.updated_at_ms`,
-		id, userID, endpoint, p256dh, auth, createdAtMS, createdAtMS); err != nil {
+		id, userID, endpoint, p256dh, auth, nullableString(label), createdAtMS, createdAtMS); err != nil {
 		if isForeignKeyViolation(err) {
 			// A user deleted between the session lookup and this insert —
 			// the client's dead session heals through its own 401 paths.
@@ -109,7 +119,7 @@ func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoin
 // count, not a paged feed).
 func ListPushSubscriptions(ctx context.Context, db *sql.DB, userID string) ([]PushSubscription, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, endpoint, created_at_ms
+		SELECT id, endpoint, label, created_at_ms
 		FROM push_subscriptions
 		WHERE user_id = ?
 		ORDER BY created_at_ms ASC, id ASC`, userID)
@@ -120,16 +130,43 @@ func ListPushSubscriptions(ctx context.Context, db *sql.DB, userID string) ([]Pu
 
 	var subs []PushSubscription
 	for rows.Next() {
-		var s PushSubscription
-		if err := rows.Scan(&s.ID, &s.Endpoint, &s.CreatedAtMS); err != nil {
+		var (
+			s     PushSubscription
+			label sql.NullString
+		)
+		if err := rows.Scan(&s.ID, &s.Endpoint, &label, &s.CreatedAtMS); err != nil {
 			return nil, fmt.Errorf("store: scan push subscription: %w", err)
 		}
+		s.Label = nullStringValue(label)
 		subs = append(subs, s)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("store: iterate push subscriptions: %w", err)
 	}
 	return subs, nil
+}
+
+// RenamePushSubscription replaces one of the user's rows' label — the
+// user-supplied device name (validation happened at the handler; the store
+// writes what it is given, and an empty label stores SQL NULL, restoring the
+// "unknown device" rendering). updated_at_ms is deliberately untouched: it
+// tracks the subscription's last refresh, not the row's edits. An unknown or
+// foreign id affects no row and answers ErrNotFound (the masked 404).
+func RenamePushSubscription(ctx context.Context, db *sql.DB, userID, id, label string) error {
+	res, err := db.ExecContext(ctx,
+		`UPDATE push_subscriptions SET label = ? WHERE id = ? AND user_id = ?`,
+		nullableString(label), id, userID)
+	if err != nil {
+		return fmt.Errorf("store: rename push subscription: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("store: rename push subscription rows: %w", err)
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // DeletePushSubscription removes one of the user's subscription rows.

@@ -244,6 +244,29 @@ func TestPush_RoutesRegistered(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("POST create: status = %d, want 201 (body %q)", rec.Code, rec.Body.String())
 	}
+	var created struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil || created.ID == "" {
+		t.Fatalf("decode create: %v %q", err, rec.Body.String())
+	}
+
+	// The rename write rides the same chain: CSRF required, then 204.
+	rec = httptest.NewRecorder()
+	noCSRFPatch := httptest.NewRequest(http.MethodPatch, "/api/v1/push-subscriptions/"+created.ID, strings.NewReader(`{"label":"Το κινητό"}`))
+	noCSRFPatch.Header.Set("Content-Type", "application/json")
+	noCSRFPatch.Header.Set("Origin", "http://localhost:5173")
+	noCSRFPatch.AddCookie(&http.Cookie{Name: "sf_session", Value: cookie})
+	mux.ServeHTTP(rec, noCSRFPatch)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("PATCH without CSRF: status = %d, want 403", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, pushAuthedReq(http.MethodPatch, "/api/v1/push-subscriptions/"+created.ID, cookie, `{"label":"Το κινητό"}`))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("PATCH rename: status = %d, want 204 (body %q)", rec.Code, rec.Body.String())
+	}
+
 	rec = httptest.NewRecorder()
 	mux.ServeHTTP(rec, pushAuthedReq(http.MethodGet, "/api/v1/push-subscriptions", cookie, ""))
 	if rec.Code != http.StatusOK {

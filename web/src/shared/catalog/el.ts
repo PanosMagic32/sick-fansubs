@@ -879,6 +879,25 @@ const notifications = {
     "Η συσκευή αυτή δεν είναι πλέον εγγεγραμμένη στην υπηρεσία push. Χρειάζεται νέα ενεργοποίηση των ειδοποιήσεων.",
   pushTestNotification:
     "Οι ειδοποιήσεις λειτουργούν! Αυτή είναι μια δοκιμαστική ειδοποίηση.",
+
+  // The device list: every push-registered device, each row with its name
+  // (the classifier capture or the user's rename), the current-device badge,
+  // and the rename/delete actions. The current row carries no delete — its
+  // own off switch owns that row.
+  pushDevicesTitle: "Συσκευές με ειδοποιήσεις",
+  pushDeviceCurrent: "Αυτή η συσκευή",
+  pushDeviceUnknown: "Άγνωστη συσκευή",
+  pushDeviceAddedAt: "Καταχώρηση",
+  pushDeviceRename: "Μετονομασία",
+  pushDeviceDelete: "Διαγραφή",
+  pushDeviceDeletePending: "Διαγραφή…",
+  pushDeviceRenameTitle: "Μετονομασία συσκευής",
+  pushDeviceRenameLabel: "Όνομα συσκευής",
+  pushDeviceRenamePlaceholder: "π.χ. Το κινητό μου",
+  pushDeviceRenameRequired: "Γράψε ένα όνομα για τη συσκευή.",
+  pushDeviceRenameSave: "Αποθήκευση",
+  pushDeviceRenameSaving: "Αποθήκευση…",
+  pushDeviceRenameCancel: "Άκυρο",
 } as const;
 
 /**

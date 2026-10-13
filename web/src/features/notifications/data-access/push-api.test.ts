@@ -14,6 +14,7 @@ import {
   deletePushSubscription,
   getNotificationPreferences,
   listPushSubscriptions,
+  renamePushSubscription,
   sendTestPush,
   setNotificationPreference,
 } from "./push-api.js";
@@ -38,6 +39,7 @@ describe("push API", () => {
           {
             id: "s1",
             endpoint: "https://push.example.com/e",
+            label: "Chrome · Android",
             createdAt: "2026-09-13T12:00:00.000Z",
           },
         ],
@@ -51,6 +53,7 @@ describe("push API", () => {
     expect(req.headers["x-csrf-token"]).toBeUndefined();
     expect(result.subscriptions).toHaveLength(1);
     expect(result.subscriptions[0]?.id).toBe("s1");
+    expect(result.subscriptions[0]?.label).toBe("Chrome · Android");
   });
 
   test("createPushSubscription POSTs the browser body with CSRF and returns the id", async () => {
@@ -79,6 +82,18 @@ describe("push API", () => {
     expect(req.method).toBe("DELETE");
     expect(req.url).toBe("/api/v1/push-subscriptions/s1");
     expect(req.headers["x-csrf-token"]).toBe("token-abc");
+  });
+
+  test("renamePushSubscription PATCHes the label with CSRF", async () => {
+    setCSRFToken("token-abc");
+    const { req } = mockFetchOnce({ ok: true, status: 204, jsonBody: null });
+
+    await renamePushSubscription("s1", "Το κινητό");
+
+    expect(req.method).toBe("PATCH");
+    expect(req.url).toBe("/api/v1/push-subscriptions/s1");
+    expect(req.headers["x-csrf-token"]).toBe("token-abc");
+    expect(JSON.parse(req.body ?? "null")).toEqual({ label: "Το κινητό" });
   });
 
   test("getNotificationPreferences sends GET and returns the toggles", async () => {

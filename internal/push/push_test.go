@@ -911,7 +911,7 @@ func TestSendTestReportOrder(t *testing.T) {
 	} {
 		p256dh, auth := newKeyMaterial()
 		if _, err := store.UpsertPushSubscription(t.Context(), db,
-			row.id, "u1", srv.URL+"/"+row.id, p256dh, auth, row.createdAt); err != nil {
+			row.id, "u1", srv.URL+"/"+row.id, p256dh, auth, "", row.createdAt); err != nil {
 			t.Fatalf("seed %s: %v", row.id, err)
 		}
 	}

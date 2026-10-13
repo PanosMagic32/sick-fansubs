@@ -19,6 +19,7 @@ import (
 //	POST   /api/v1/push-subscriptions          — store/resubscribe one device
 //	POST   /api/v1/push-subscriptions/test     — send one self-test push (200)
 //	DELETE /api/v1/push-subscriptions/{id}     — remove one subscription (204)
+//	PATCH  /api/v1/push-subscriptions/{id}     — rename one subscription (204)
 //	GET    /api/v1/notification-preferences    — effective per-kind toggles
 //	PUT    /api/v1/notification-preferences/{kind} — write one explicit toggle
 //
@@ -53,6 +54,8 @@ func Push(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin string, tes
 		authenticatedChain(handler.PushTestSend(tester, testLimiter), db, secure, trustedOrigin))
 	mux.Handle("DELETE /api/v1/push-subscriptions/{id}",
 		authenticatedChain(handler.PushSubscriptionDelete(db), db, secure, trustedOrigin))
+	mux.Handle("PATCH /api/v1/push-subscriptions/{id}",
+		authenticatedChain(handler.PushSubscriptionRename(db), db, secure, trustedOrigin))
 	mux.Handle("PUT /api/v1/notification-preferences/{kind}",
 		authenticatedChain(handler.NotificationPreferenceSet(db, nil), db, secure, trustedOrigin))
 

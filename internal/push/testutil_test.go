@@ -168,7 +168,7 @@ func subscribeTo(t *testing.T, db *sql.DB, userID, endpoint string) {
 	sum := sha256.Sum256([]byte(endpoint))
 	id := "sub-" + hex.EncodeToString(sum[:8])
 	if _, err := store.UpsertPushSubscription(t.Context(), db,
-		id, userID, endpoint, p256dh, auth, 1000); err != nil {
+		id, userID, endpoint, p256dh, auth, "", 1000); err != nil {
 		t.Fatalf("seed subscription: %v", err)
 	}
 }

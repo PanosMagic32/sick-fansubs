@@ -1,0 +1,22 @@
+-- 0022_push_subscription_label.sql — device labels for the push settings list.
+--
+-- The migration runner owns the transaction; do not add BEGIN/COMMIT/ROLLBACK
+-- statements here.
+--
+-- push_subscriptions.label: an OPTIONAL device name shown in the account
+-- page's device list. A NEW row is inserted with the closed-vocabulary label
+-- the User-Agent classifier derives at subscribe time (the sessions
+-- client_label precedent — raw header never stored); the user may RENAME the
+-- row to free text afterward. The upsert PRESERVES an existing label across a
+-- same-endpoint resubscribe and only fills a NULL, so a rename survives the
+-- browser's silent rotation healing.
+--
+-- No CHECK: the label bounds live in Go (internal/handler/push_subscriptions.go),
+-- and a SQL CHECK would be a second, drifting copy of them. No index: the list reads
+-- filter on user_id (already indexed) and per-user row counts are tiny.
+--
+-- No backfill and none is possible: a derived label exists only when the
+-- subscribe request observed a User-Agent, so every existing row keeps NULL
+-- ("Άγνωστη συσκευή" on the list).
+
+ALTER TABLE push_subscriptions ADD COLUMN label TEXT;

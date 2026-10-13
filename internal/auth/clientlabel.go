@@ -2,12 +2,12 @@ package auth
 
 import "strings"
 
-// sessionClientLabelMaxLen bounds the stored device label. It is a guard
+// clientLabelMaxLen bounds the stored device label. It is a guard
 // rail, not a truncation point: the closed vocabulary below is far shorter,
 // so a value longer than this can only mean the vocabulary grew past its
 // contract — in which case the label is withheld rather than stored
 // unbounded.
-const sessionClientLabelMaxLen = 32
+const clientLabelMaxLen = 32
 
 // clientLabelSeparator joins the browser and platform halves of a label.
 const clientLabelSeparator = " · "
@@ -49,8 +49,8 @@ var platformTokens = []struct{ token, label string }{
 	{"Linux", "Linux"},
 }
 
-// sessionClientLabel classifies a User-Agent request header into the bounded
-// device label stored with a new session.
+// ClientLabel classifies a User-Agent request header into the bounded device
+// label stored with a new session and with a new push subscription.
 //
 // The privacy contract IS the function: the raw user-agent string is never
 // stored, never logged, and never returned. The result is either the empty
@@ -61,7 +61,7 @@ var platformTokens = []struct{ token, label string }{
 // The label carries a browser family and/or a platform family joined by
 // " · ", for example "Chrome · Android". Only the halves that were
 // recognized appear; a UA that matches neither yields "".
-func sessionClientLabel(userAgent string) string {
+func ClientLabel(userAgent string) string {
 	if userAgent == "" {
 		return ""
 	}
@@ -75,7 +75,7 @@ func sessionClientLabel(userAgent string) string {
 	}
 
 	label := strings.Join(parts, clientLabelSeparator)
-	if len(label) > sessionClientLabelMaxLen {
+	if len(label) > clientLabelMaxLen {
 		// Unreachable with the current vocabulary (pinned by test). Withhold
 		// rather than store an unbounded value.
 		return ""

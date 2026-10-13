@@ -156,6 +156,10 @@ export interface NotificationList {
 export interface PushSubscriptionItem {
   id: string;
   endpoint: string;
+  /** The device name — the classifier label captured at subscribe time or
+   * the user's rename; null when the subscribe request's User-Agent was not
+   * recognized (rendered as "unknown device"). */
+  label: string | null;
   createdAt: string;
 }
 

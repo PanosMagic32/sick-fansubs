@@ -38,6 +38,7 @@ import type {
   PushSubscriptionItem,
   PushTestResult,
 } from "../data-access/types.js";
+import type { PushDevicesSurface } from "./push-devices-section.js";
 
 /** The worker's relay message type (web/public/sw.js — pinned by
  * push-artifacts.test.ts; keep in sync). */
@@ -74,7 +75,7 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 /**
  * Host contract for the subscriptions section: the consumed session's state,
  * the element's shadow root (the confirm dialog is queried there), and the
- * preferences half.
+ * two sibling halves the flows drive.
  */
 export interface PushSubscriptionsHost extends ReactiveControllerHost {
   /** The consumed session's state — the one-shot latch waits for the
@@ -85,11 +86,14 @@ export interface PushSubscriptionsHost extends ReactiveControllerHost {
   /** The preferences half: its save flag joins the shared busy predicate,
    * and the load hands it the fetched preferences. */
   readonly preferences: PushPreferencesSurface;
+  /** The devices half: the mount load hands over the list halves' shared
+   * fetch, and the flows that change server rows ask it to re-read. */
+  readonly devices: PushDevicesSurface;
 }
 
 /** The narrow surface the preferences half reads from this section. */
 export interface PushSubscriptionsSurface {
-  /** The shared error banner (both halves write it). */
+  /** The shared error banner (every half writes it). */
   get error(): string;
   set error(value: string);
   /** The in-flight action, for the checkbox gating. */
@@ -119,6 +123,12 @@ export class PushSubscriptionsSection implements ReactiveController {
   /** The in-flight action, read by the preferences half's gating. */
   get pending(): "none" | "subscribe" | "unsubscribe" {
     return this._pending;
+  }
+
+  /** The CURRENT device's row id (the endpoint match), or null when this
+   * device is not subscribed — the devices half's badge key. */
+  get currentSubscriptionId(): string | null {
+    return this._subscription?.id ?? null;
   }
 
   /** The shared error banner (the preferences save flow writes it too). */
@@ -158,6 +168,10 @@ export class PushSubscriptionsSection implements ReactiveController {
   private _started = false;
   private _abort: AbortController | null = null;
 
+  /** The self-test re-read's controller — load() and the re-read never
+   * cancel each other. */
+  private _refreshAbort: AbortController | null = null;
+
   constructor(host: PushSubscriptionsHost) {
     this._host = host;
     host.addController(this);
@@ -170,6 +184,7 @@ export class PushSubscriptionsSection implements ReactiveController {
   hostDisconnected() {
     window.removeEventListener("message", this._onMessage);
     this._abort?.abort();
+    this._refreshAbort?.abort();
   }
 
   /** The one-shot latch: the first authenticated host update sets the iOS
@@ -191,7 +206,8 @@ export class PushSubscriptionsSection implements ReactiveController {
       this._pending !== "none" ||
       this._testPending !== "none" ||
       this._relayPending ||
-      this._host.preferences.savePending
+      this._host.preferences.savePending ||
+      this._host.devices.pending
     );
   }
 
@@ -238,18 +254,38 @@ export class PushSubscriptionsSection implements ReactiveController {
 
   async load() {
     this._abort?.abort();
+    // A re-read armed after a test press is stale once a fresh load starts.
+    this._refreshAbort?.abort();
     const controller = new AbortController();
     this._abort = controller;
     this.status = "loading";
     this._error = "";
     this.refresh();
     try {
-      const [list, prefs] = await Promise.all([
-        listPushSubscriptions({ signal: requestSignal(controller) }),
-        getNotificationPreferences({ signal: requestSignal(controller) }),
+      const [list] = await Promise.all([
+        listPushSubscriptions({ signal: requestSignal(controller) }).then(
+          (loaded) => {
+            // The mount's single list fetch feeds BOTH halves: the device
+            // list renders these rows and this half matches them against
+            // the local registration. The rows land even when the
+            // preferences GET fails beside them — the error branch keeps
+            // the device list manageable.
+            if (!controller.signal.aborted) {
+              this._host.devices.applyLoaded(loaded.subscriptions);
+            }
+            return loaded;
+          },
+        ),
+        getNotificationPreferences({ signal: requestSignal(controller) }).then(
+          (loaded) => {
+            if (!controller.signal.aborted) {
+              this._host.preferences.applyLoaded(loaded.preferences);
+            }
+            return loaded;
+          },
+        ),
       ]);
       if (controller.signal.aborted) return;
-      this._host.preferences.applyLoaded(prefs.preferences);
       // Capability refinement: no SW registration → the unavailable line.
       // This also covers Vite dev, where the SW never registers and
       // `serviceWorker.ready` would hang a subscribe flow.
@@ -304,8 +340,18 @@ export class PushSubscriptionsSection implements ReactiveController {
 
   /* ── Subscribe / unsubscribe ────────────────────────────────────── */
 
+  /** The subscribe confirm dialog — a class-scoped query so the devices
+   * half's rename dialog in the same shadow root can never be picked. */
+  private _subscribeDialog(): HTMLDialogElement | null {
+    return (
+      (this._host.shadowRoot?.querySelector(
+        "dialog.push-subscribe-dialog",
+      ) as HTMLDialogElement | null) ?? null
+    );
+  }
+
   _onEnableClick = () => {
-    const dialog = this._host.shadowRoot?.querySelector("dialog");
+    const dialog = this._subscribeDialog();
     // showModal gives the focus trap + restore + Escape handling; the
     // attribute fallback covers a DOM without the method.
     if (typeof dialog?.showModal === "function") {
@@ -317,12 +363,12 @@ export class PushSubscriptionsSection implements ReactiveController {
 
   _onDialogConfirm = () => {
     if (this.busy) return; // a press in flight must not race the flow
-    this._host.shadowRoot?.querySelector("dialog")?.close();
+    this._subscribeDialog()?.close();
     void this._requestPermissionAndSubscribe();
   };
 
   _onDialogCancel = () => {
-    this._host.shadowRoot?.querySelector("dialog")?.close();
+    this._subscribeDialog()?.close();
   };
 
   /** The gesture-triggered flow: browser permission FIRST (the double-
@@ -376,6 +422,8 @@ export class PushSubscriptionsSection implements ReactiveController {
     const { id } = await createPushSubscription({ endpoint, keys });
     this._subscription = { id, endpoint };
     this.refresh();
+    // A new row exists — the device list must show it.
+    this._host.devices.refresh();
   }
 
   _onDisableClick = async () => {
@@ -392,6 +440,8 @@ export class PushSubscriptionsSection implements ReactiveController {
       await current?.unsubscribe();
       this._subscription = null;
       this._testResult = null;
+      // The row is gone server-side — the device list must drop it too.
+      this._host.devices.refresh();
     } catch (err) {
       this._error = mapError(err);
     } finally {
@@ -419,7 +469,7 @@ export class PushSubscriptionsSection implements ReactiveController {
       // Build the line BEFORE the refresh: a removed row clears the subscribed
       // state, and the line about that removal must survive it.
       const line = this._testResultLine(res);
-      await this._refreshSubscription();
+      await this._refreshRowsAfterTest();
       this._testResult = line;
     } catch (err) {
       this._error = mapError(err);
@@ -449,18 +499,28 @@ export class PushSubscriptionsSection implements ReactiveController {
   }
 
   /**
-   * Re-read the server's row for THIS device after a test press: the send
-   * removes endpoints the push service no longer knows, so the row may have
-   * just disappeared — and a subscribed state that survived its own row would
-   * offer a dead switch. Deliberately quiet — no loading state, no error
-   * banner (the press's own result line already speaks); the row simply
-   * disappears when it is gone.
+   * Re-read the server's rows after a test press: the send removes
+   * endpoints the push service no longer knows, so this device's row (and
+   * others') may have just disappeared — and a subscribed state that
+   * survived its own row would offer a dead switch. The fresh rows also
+   * feed the device list. Deliberately quiet — no loading state, no error
+   * banner (the press's own result line already speaks); rows simply
+   * disappear when they are gone.
    */
-  private async _refreshSubscription() {
-    if (!this._subscription) return;
+  private async _refreshRowsAfterTest() {
+    const controller = new AbortController();
+    this._refreshAbort?.abort();
+    this._refreshAbort = controller;
     try {
-      const { subscriptions } = await listPushSubscriptions();
-      if (!subscriptions.some((s) => s.id === this._subscription?.id)) {
+      const { subscriptions } = await listPushSubscriptions({
+        signal: requestSignal(controller),
+      });
+      if (controller.signal.aborted) return;
+      this._host.devices.applyLoaded(subscriptions);
+      if (
+        this._subscription &&
+        !subscriptions.some((s) => s.id === this._subscription?.id)
+      ) {
         this._subscription = null;
         this._testResult = null;
         this.refresh();

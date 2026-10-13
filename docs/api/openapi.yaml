@@ -2907,9 +2907,13 @@ paths:
       operationId: listPushSubscriptions
       summary: List own push subscriptions (authenticated)
       description: >-
-        The user's subscription rows (id, endpoint, createdAt) — the
-        settings list. Own rows only; oldest first. Floor: authenticated
-        (401 unauthenticated). No query parameters are accepted.
+        The user's subscription rows (id, endpoint, label, createdAt) — the
+        settings list. Own rows only; oldest first. label is the device name:
+        the classifier label captured at subscribe time, or the user's
+        rename, or null for a row whose subscribe request carried no
+        recognizable User-Agent (rendered as "unknown device"). Floor:
+        authenticated (401 unauthenticated). No query parameters are
+        accepted.
       responses:
         "200":
           description: The user's subscription rows (may be empty).
@@ -2936,7 +2940,12 @@ paths:
         keys). 201 + the stored row id — the id is the existing row's id
         when the same endpoint resubscribes (the key material and
         updatedAt refresh in place). An endpoint owned by ANOTHER user is
-        reassigned (the device's newest login owns it). The endpoint must
+        reassigned (the device's newest login owns it). The row's device
+        label is captured from THIS request's User-Agent through the session
+        list's closed-vocabulary classifier — the raw header is never
+        stored; a resubscribe keeps an existing label and only fills a
+        missing one, so a user's rename survives the browser's rotation
+        healing. The endpoint must
         be an absolute https URL; p256dh/auth must be URL-safe base64
         decoding to exactly 65 and 16 bytes (the RFC 8291 shapes) —
         violations are 422 {field, code}. Unknown body fields are 400;
@@ -2987,6 +2996,50 @@ paths:
           minLength: 1
           maxLength: 64
           pattern: "^[A-Za-z0-9._~-]{1,64}$"
+    patch:
+      operationId: renamePushSubscription
+      summary: Rename one subscription row (authenticated)
+      description: >-
+        Replaces the row's device label (the account page's device list
+        rename). The label is trimmed, must be 1-32 runes, and must be free
+        of control and format (invisible Cf) characters — violations are 422
+        {field, code}. An unknown or FOREIGN id answers the same masked 404
+        (existence is never disclosed) — deliberately NOT the DELETE's
+        idempotent 204: a delete's goal is the row's absence, already met
+        when the row is gone, while a rename cannot succeed without its row.
+        Unknown body fields are 400; body hard-limit 4 KiB (413 beyond).
+        Requires the trusted origin and a valid X-CSRF-Token (the
+        authenticated chain). No rate limit (the favorites precedent).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushSubscriptionRename"
+      responses:
+        "204":
+          description: The row's label is replaced.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+            Cache-Control:
+              $ref: "#/components/headers/NoStoreCacheControl"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/Validation"
+        "500":
+          $ref: "#/components/responses/InternalError"
     delete:
       operationId: deletePushSubscription
       summary: Remove one subscription row (authenticated)
@@ -6827,6 +6880,21 @@ components:
           description: >-
             Opaque subscription row id (the existing row's id on a
             same-endpoint resubscribe).
+    PushSubscriptionRename:
+      type: object
+      description: The rename body — the row's new device name.
+      additionalProperties: false
+      required:
+        - label
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: >-
+            The device name, trimmed. 1-32 RUNES (a Greek name counts
+            characters, not bytes) and free of control and format
+            (invisible Cf) characters; violations are 422 {field, code}.
     PushSubscriptionList:
       type: object
       description: The settings-list envelope — own subscription rows only.
@@ -6845,6 +6913,7 @@ components:
       required:
         - id
         - endpoint
+        - label
         - createdAt
       properties:
         id:
@@ -6854,6 +6923,14 @@ components:
           description: >-
             The push-service endpoint. The list carries it so the client
             can match rows against the browser's local registration.
+        label:
+          type:
+            - string
+            - "null"
+          description: >-
+            The device name — the classifier label captured at subscribe
+            time or the user's rename. Null when the subscribe request's
+            User-Agent was not recognized (rendered as "unknown device").
         createdAt:
           type: string
           format: date-time

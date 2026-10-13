@@ -81,7 +81,7 @@ func New(db *sql.DB, sender mail.Sender, base string) *Service {
 //
 // userAgent is the raw User-Agent header. It is classified into the bounded
 // device label stored with the session and is never persisted or logged
-// itself (sessionClientLabel owns the privacy rule).
+// itself (ClientLabel owns the privacy rule).
 func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent string) (sessionToken, csrfToken string, user identity.PublicUser, mustChangePassword bool, err error) {
 	u, err := s.lookupUserByIdentifier(ctx, identifier)
 	if errors.Is(err, store.ErrNotFound) {
@@ -142,7 +142,7 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 	// Create session — atomically with the rehash when one is pending, in one
 	// transaction under the new auth_version; splitting the rehash from the
 	// session write would stamp the session with the stale version.
-	sessionTok, csrfTok, err := s.createSessionAfterSignIn(ctx, u, rehashNeeded, newHash, sessionClientLabel(userAgent))
+	sessionTok, csrfTok, err := s.createSessionAfterSignIn(ctx, u, rehashNeeded, newHash, ClientLabel(userAgent))
 	if err != nil {
 		if errors.Is(err, store.ErrAuthVersionMismatch) || errors.Is(err, store.ErrNotFound) {
 			return "", "", identity.PublicUser{}, false, ErrInvalidCredentials
@@ -256,7 +256,7 @@ func (s *Service) Register(ctx context.Context, username, email, password, userA
 		SessionID:     m.id,
 		TokenDigest:   m.digest,
 		CSRF:          m.rawCSRF,
-		ClientLabel:   sessionClientLabel(userAgent),
+		ClientLabel:   ClientLabel(userAgent),
 		ExpiresAtMS:   m.nowMS + SessionLifetime.Milliseconds(),
 	})
 	if errors.Is(err, store.ErrDuplicate) {

@@ -1,15 +1,17 @@
 /**
- * Push settings section — the account-page surface that owns this device's
- * web push: the subscribe button (double permission), the per-kind toggles,
- * the visible off switch, and the self-test press that proves the channel
- * works.
+ * Push settings section — the account-page surface that owns web push: the
+ * subscribe button (double permission), the per-kind toggles, the visible
+ * off switch, the self-test press that proves the channel works, and the
+ * device list (every subscription row, with rename and delete).
  *
- * The two halves are companion section controllers rendering through this
- * element's template into the same shadow root: `ui/push-subscriptions-section.ts`
- * owns the device-capability state and the subscribe/disable/test flows, and
- * `ui/push-preferences-section.ts` owns the per-kind form and its save
- * fan-out. This element keeps the session guard, the stylesheet, and the
- * markup every branch renders.
+ * Three companion section controllers render through this element's
+ * template into the same shadow root:
+ * `ui/push-subscriptions-section.ts` owns the device-capability state and
+ * the subscribe/disable/test flows, `ui/push-preferences-section.ts` owns
+ * the per-kind form and its save fan-out, and `ui/push-devices-section.ts`
+ * owns the all-devices list and its rename/delete actions. This element
+ * keeps the session guard, the stylesheet, and the markup every branch
+ * renders.
  *
  * Visibility: nothing for anonymous visitors (the account page is
  * authenticated anyway) and nothing while the session initializes; an
@@ -33,6 +35,7 @@ import { customElement } from "lit/decorators.js";
 
 import sharedStyles from "@core/styles/baseline.css?inline";
 import controlStyles from "@shared/ui/controls.css?inline";
+import formStyles from "@shared/ui/forms.css?inline";
 import {
   sessionContext,
   type SessionContext,
@@ -42,6 +45,7 @@ import { el } from "@shared/catalog/el.js";
 import "@shared/ui/loading-spinner.js";
 
 import styles from "./push-settings.css?inline";
+import { PushDevicesSection } from "./push-devices-section.js";
 import { PushPreferencesSection } from "./push-preferences-section.js";
 import { PushSubscriptionsSection } from "./push-subscriptions-section.js";
 
@@ -50,6 +54,7 @@ export class PushSettings extends LitElement {
   static styles = [
     unsafeCSS(sharedStyles),
     unsafeCSS(controlStyles),
+    unsafeCSS(formStyles),
     unsafeCSS(styles),
   ];
 
@@ -64,10 +69,14 @@ export class PushSettings extends LitElement {
 
   /** The device-capability half: capability refinement, the double-permission
    * flow, subscribe/disable, the self-test, and the worker relay. Explicit
-   * field types: the two sections reference each other through the host
+   * field types: the sections reference each other through the host
    * interface, and an inferred field type would be circular. */
   readonly subscriptions: PushSubscriptionsSection =
     new PushSubscriptionsSection(this);
+
+  /** The all-devices half: every subscription row with its name, the
+   * current-device badge, and rename/delete. */
+  readonly devices: PushDevicesSection = new PushDevicesSection(this);
 
   /** The per-kind form half: the loaded preferences, the unsaved draft, and
    * the save fan-out. */
@@ -83,7 +92,9 @@ export class PushSettings extends LitElement {
 
     // Unavailable environments get a LINE, not silence — this section lives
     // on its own tab, and an empty tab reads as a broken page rather than as
-    // an absent capability.
+    // an absent capability. The device list still renders: managing the
+    // server's rows needs no local subscription, only the subscribe flows
+    // need the capability.
     if (!this.subscriptions.supported || this.subscriptions._hidden) {
       return html`
         <section class="push-settings">
@@ -91,6 +102,14 @@ export class PushSettings extends LitElement {
           <p class="push-note push-unavailable">
             ${el.notifications.pushUnavailable}
           </p>
+          ${
+            this.subscriptions.error
+              ? html`<p class="push-error" role="alert">
+                  ${this.subscriptions.error}
+                </p>`
+              : ""
+          }
+          ${this.devices.template()}
         </section>
       `;
     }
@@ -115,6 +134,7 @@ export class PushSettings extends LitElement {
           >
             ${el.ui.retry}
           </button>
+          ${this.devices.template()}
         </section>
       `;
     }
@@ -225,8 +245,10 @@ export class PushSettings extends LitElement {
           ${this.subscriptions._testResult ?? nothing}
         </p>
 
+        ${this.devices.template()}
+
         <dialog
-          class="push-dialog"
+          class="push-dialog push-subscribe-dialog"
           aria-labelledby="push-dialog-title"
           @cancel=${this.subscriptions._onDialogCancel}
         >

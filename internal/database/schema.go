@@ -62,7 +62,7 @@ type tableSpec struct {
 	indexes []indexSpec
 }
 
-// schemaSpec mirrors the embedded migrations (0001–0021). Adding a table,
+// schemaSpec mirrors the embedded migrations (0001–0022). Adding a table,
 // column, or index to a migration file WITHOUT updating this spec makes every
 // migrated database fail verification — exactly the fail-closed behavior
 // docs/patterns/go/sqlite.md requires.
@@ -379,11 +379,14 @@ var schemaSpec = map[string]tableSpec{
 	// toggles (absence = the role default, a row = an explicit override).
 	"push_subscriptions": {
 		columns: map[string]columnSpec{
-			"id":            {"TEXT", true, true},
-			"user_id":       {"TEXT", true, false},
-			"endpoint":      {"TEXT", true, false},
-			"p256dh":        {"TEXT", true, false},
-			"auth":          {"TEXT", true, false},
+			"id":       {"TEXT", true, true},
+			"user_id":  {"TEXT", true, false},
+			"endpoint": {"TEXT", true, false},
+			"p256dh":   {"TEXT", true, false},
+			"auth":     {"TEXT", true, false},
+			// Nullable device label (migration 0022) — the classifier's
+			// closed-vocabulary capture or the user's rename.
+			"label":         {"TEXT", false, false},
 			"created_at_ms": {"INTEGER", true, false},
 			"updated_at_ms": {"INTEGER", true, false},
 		},

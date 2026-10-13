@@ -645,6 +645,7 @@ const LIST_STYLE_CLASSES = new Set([
   "fav-results",
   "members-list",
   "notifications-list",
+  "push-devices",
   "results",
   "sessions-list",
 ]);

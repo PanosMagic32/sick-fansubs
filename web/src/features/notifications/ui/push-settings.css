@@ -119,3 +119,93 @@ test, retry, cancel). Leaving this device's push stays QUIET until hovered
         flex: 1 0 100%;
     }
 }
+
+/* The device list: one row per registered device — the name, the
+   current-device badge, the registration instant, and the icon actions
+   (rename on every row, delete on the others: the off switch above owns the
+   current row). */
+.push-devices-title {
+    margin: 1rem 0 0.5rem;
+    font-size: 1rem;
+}
+
+.push-devices {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.push-device-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 10px;
+    background: var(--sf-surface);
+}
+
+.push-device-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.push-device-name {
+    overflow-wrap: anywhere;
+}
+
+/* The current-device chip — the account page's session badge vocabulary. */
+.push-device-badge {
+    flex: 0 0 auto;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid var(--sf-accent-light);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: var(--sf-accent-light);
+    white-space: nowrap;
+}
+
+.push-device-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+}
+
+.push-device-added {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.push-device-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* The row actions carry the button vocabulary and its >=2rem icon box;
+   only the delete's hover warms to the error colour. */
+.push-device-delete:hover:not(:disabled) {
+    color: var(--sf-error);
+}
+
+.push-device-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Dense dialog field: tighter padding on the panel surface; the shared
+   forms.css base owns the border, radius, colour, and font. */
+.push-device-field input {
+    padding: 0.45rem 0.6rem;
+    background: var(--sf-surface);
+}

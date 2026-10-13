@@ -50,6 +50,7 @@ func setupPushHandlers(t *testing.T) (*sql.DB, http.Handler) {
 	mux.HandleFunc("POST /api/v1/push-subscriptions", handler.PushSubscriptionCreate(db, now))
 	mux.HandleFunc("GET /api/v1/push-subscriptions", handler.PushSubscriptionsList(db))
 	mux.HandleFunc("DELETE /api/v1/push-subscriptions/{id}", handler.PushSubscriptionDelete(db))
+	mux.HandleFunc("PATCH /api/v1/push-subscriptions/{id}", handler.PushSubscriptionRename(db))
 	mux.HandleFunc("GET /api/v1/notification-preferences", handler.NotificationPreferencesGet(db))
 	mux.HandleFunc("PUT /api/v1/notification-preferences/{kind}", handler.NotificationPreferenceSet(db, now))
 	return db, logContext(nil, mux)
@@ -93,6 +94,10 @@ func servePush(mux http.Handler, req *http.Request) *httptest.ResponseRecorder {
 	return rec
 }
 
+// uaChromeAndroid is a real-shaped User-Agent the classifier reads as
+// "Chrome · Android" (the clientlabel tests' fixture UA).
+const uaChromeAndroid = "Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+
 func TestPushSubscriptionCreateAndList(t *testing.T) {
 	_, mux := setupPushHandlers(t)
 
@@ -101,7 +106,10 @@ func TestPushSubscriptionCreateAndList(t *testing.T) {
 		t.Fatalf("anonymous create: status = %d, want 401", rec.Code)
 	}
 
-	rec := servePush(mux, pushAuthedReq("POST", "/api/v1/push-subscriptions", "viewer", realSubscriptionBody()))
+	// The create request's User-Agent IS the row's label source.
+	createReq := pushAuthedReq("POST", "/api/v1/push-subscriptions", "viewer", realSubscriptionBody())
+	createReq.Header.Set("User-Agent", uaChromeAndroid)
+	rec := servePush(mux, createReq)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create: status = %d, want 201 (body %s)", rec.Code, rec.Body.String())
 	}
@@ -112,15 +120,17 @@ func TestPushSubscriptionCreateAndList(t *testing.T) {
 		t.Fatalf("create body: %v %q", err, rec.Body.String())
 	}
 
-	// The list shows the row (own rows only — seeded by the create above).
+	// The list shows the row (own rows only — seeded by the create above)
+	// with the classifier's label.
 	rec = servePush(mux, pushAuthedReq("GET", "/api/v1/push-subscriptions", "viewer", ""))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("list: status = %d, want 200", rec.Code)
 	}
 	var list struct {
 		Subscriptions []struct {
-			ID       string `json:"id"`
-			Endpoint string `json:"endpoint"`
+			ID       string  `json:"id"`
+			Endpoint string  `json:"endpoint"`
+			Label    *string `json:"label"`
 		} `json:"subscriptions"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
@@ -128,6 +138,35 @@ func TestPushSubscriptionCreateAndList(t *testing.T) {
 	}
 	if len(list.Subscriptions) != 1 || list.Subscriptions[0].ID != created.ID {
 		t.Errorf("list: got %+v, want one row with id %s", list.Subscriptions, created.ID)
+	}
+	if got := list.Subscriptions[0].Label; got == nil || *got != "Chrome · Android" {
+		t.Errorf("list label: got %v, want %q", got, "Chrome · Android")
+	}
+
+	// A request with no User-Agent stores SQL NULL — an explicit JSON null on
+	// the list, never an empty string.
+	noUA := pushAuthedReq("POST", "/api/v1/push-subscriptions", "viewer",
+		strings.Replace(realSubscriptionBody(), "push.example.com/e", "push.example.com/e2", 1))
+	rec = servePush(mux, noUA)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create without UA: status = %d, want 201", rec.Code)
+	}
+	rec = servePush(mux, pushAuthedReq("GET", "/api/v1/push-subscriptions", "viewer", ""))
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("decode list: %v", err)
+	}
+	found := false
+	for _, row := range list.Subscriptions {
+		if row.Endpoint != "https://push.example.com/e2" {
+			continue
+		}
+		found = true
+		if row.Label != nil {
+			t.Errorf("no-UA row label: got %q, want null", *row.Label)
+		}
+	}
+	if !found {
+		t.Error("no-UA row missing from the list")
 	}
 
 	// Another user's list stays empty (rows are user-scoped).
@@ -177,7 +216,7 @@ func TestPushSubscriptionDelete(t *testing.T) {
 	db, mux := setupPushHandlers(t)
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s1", "viewer",
 		"https://push.example.com/e", base64.RawURLEncoding.EncodeToString(make([]byte, 65)),
-		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), 1000); err != nil {
+		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 
@@ -202,6 +241,108 @@ func TestPushSubscriptionDelete(t *testing.T) {
 	// A malformed id is a 400 (the public-id pattern).
 	if rec := servePush(mux, pushAuthedReq("DELETE", "/api/v1/push-subscriptions/!!!", "viewer", "")); rec.Code != http.StatusBadRequest {
 		t.Errorf("delete malformed id: status = %d, want 400", rec.Code)
+	}
+}
+
+func TestPushSubscriptionRename(t *testing.T) {
+	db, mux := setupPushHandlers(t)
+	if _, err := store.UpsertPushSubscription(t.Context(), db, "s1", "viewer",
+		"https://push.example.com/e", base64.RawURLEncoding.EncodeToString(make([]byte, 65)),
+		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
+		t.Fatalf("seed own: %v", err)
+	}
+	if _, err := store.UpsertPushSubscription(t.Context(), db, "s2", "plain",
+		"https://push.example.com/e2", base64.RawURLEncoding.EncodeToString(make([]byte, 65)),
+		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
+		t.Fatalf("seed foreign: %v", err)
+	}
+
+	// Own rename → 204 and the trimmed label lands in the row.
+	rec := servePush(mux, pushAuthedReq("PATCH", "/api/v1/push-subscriptions/s1", "viewer", `{"label":"  Το κινητό  "}`))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("rename: status = %d, want 204 (body %s)", rec.Code, rec.Body.String())
+	}
+	var label string
+	if err := db.QueryRow(`SELECT COALESCE(label, '') FROM push_subscriptions WHERE id = 's1'`).Scan(&label); err != nil {
+		t.Fatalf("read label: %v", err)
+	}
+	if label != "Το κινητό" {
+		t.Errorf("stored label: got %q, want the trimmed %q", label, "Το κινητό")
+	}
+
+	// Unknown and foreign ids answer the masked 404 — the SAME answer — and a
+	// foreign row is never touched.
+	for _, id := range []string{"ghost", "s2"} {
+		if rec := servePush(mux, pushAuthedReq("PATCH", "/api/v1/push-subscriptions/"+id, "viewer", `{"label":"x"}`)); rec.Code != http.StatusNotFound {
+			t.Errorf("rename %s: status = %d, want 404", id, rec.Code)
+		}
+	}
+	var foreignLabel int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM push_subscriptions WHERE id = 's2' AND label IS NOT NULL`).Scan(&foreignLabel); err != nil {
+		t.Fatalf("count foreign label: %v", err)
+	}
+	if foreignLabel != 0 {
+		t.Error("a foreign rename must not touch the row")
+	}
+
+	// A malformed id and an unknown body field are 400s; every label
+	// violation is a 422 carrying exactly its {field, code}.
+	cases := []struct {
+		name string
+		path string
+		body string
+		code int
+		// field and rule are the expected single violation on a 422.
+		field string
+		rule  string
+	}{
+		{name: "malformed id", path: "/api/v1/push-subscriptions/!!!", body: `{"label":"x"}`, code: http.StatusBadRequest},
+		{name: "unknown field", path: "/api/v1/push-subscriptions/s1", body: `{"label":"x","extra":1}`, code: http.StatusBadRequest},
+		{name: "absent label", path: "/api/v1/push-subscriptions/s1", body: `{}`, code: http.StatusUnprocessableEntity, field: "label", rule: "required"},
+		{name: "empty label", path: "/api/v1/push-subscriptions/s1", body: `{"label":"   "}`, code: http.StatusUnprocessableEntity, field: "label", rule: "required"},
+		{name: "over-long label", path: "/api/v1/push-subscriptions/s1", body: `{"label":"` + strings.Repeat("α", 33) + `"}`, code: http.StatusUnprocessableEntity, field: "label", rule: "maxLength"},
+		{name: "control character", path: "/api/v1/push-subscriptions/s1", body: `{"label":"a\u0000b"}`, code: http.StatusUnprocessableEntity, field: "label", rule: "invalidFormat"},
+		{name: "zero-width space label", path: "/api/v1/push-subscriptions/s1", body: `{"label":"\u200b"}`, code: http.StatusUnprocessableEntity, field: "label", rule: "invalidFormat"},
+		{name: "bidi override label", path: "/api/v1/push-subscriptions/s1", body: `{"label":"a\u202eb"}`, code: http.StatusUnprocessableEntity, field: "label", rule: "invalidFormat"},
+		{name: "NBSP-only label", path: "/api/v1/push-subscriptions/s1", body: `{"label":"\u00a0"}`, code: http.StatusUnprocessableEntity, field: "label", rule: "required"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := servePush(mux, pushAuthedReq("PATCH", tc.path, "viewer", tc.body))
+			if rec.Code != tc.code {
+				t.Errorf("%s: status = %d, want %d (body %s)", tc.name, rec.Code, tc.code, rec.Body.String())
+				return
+			}
+			if tc.code != http.StatusUnprocessableEntity {
+				return
+			}
+			var body struct {
+				Violations []struct {
+					Field string `json:"field"`
+					Code  string `json:"code"`
+				} `json:"violations"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+				t.Fatalf("%s: decode violations: %v (body %s)", tc.name, err, rec.Body.String())
+			}
+			if len(body.Violations) != 1 || body.Violations[0].Field != tc.field || body.Violations[0].Code != tc.rule {
+				t.Errorf("%s: violations = %+v, want one {%s %s}", tc.name, body.Violations, tc.field, tc.rule)
+			}
+		})
+	}
+
+	// A 32-rune Greek label is accepted — the bound counts RUNES, not bytes.
+	exact := strings.Repeat("α", 32)
+	rec = servePush(mux, pushAuthedReq("PATCH", "/api/v1/push-subscriptions/s1", "viewer", `{"label":"`+exact+`"}`))
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("32-rune label: status = %d, want 204 (body %s)", rec.Code, rec.Body.String())
+	}
+
+	// A non-breaking space is a space (Zs), not a format character: an
+	// interior one rides along (a lone one trims away — the empty case above).
+	rec = servePush(mux, pushAuthedReq("PATCH", "/api/v1/push-subscriptions/s1", "viewer", `{"label":"a\u00a0b"}`))
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("NBSP label: status = %d, want 204 (body %s)", rec.Code, rec.Body.String())
 	}
 }
 

@@ -10,8 +10,12 @@
  *    X-CSRF-Token automatically via needsCSRF.
  *  - POST /push-subscriptions returns 201 + { id } — the stored row's id
  *    (the existing row on a same-endpoint resubscribe); keep it for the
- *    DELETE.
+ *    DELETE and the rename.
+ *  - GET /push-subscriptions rows carry id, endpoint, label, and createdAt;
+ *    label is null for an unrecognized subscribe-time User-Agent.
  *  - DELETE is 204 ALWAYS (idempotent, masked) — no 404 handling exists.
+ *  - PATCH /push-subscriptions/{id} renames a row, 204; an unknown or
+ *    foreign id is the masked 404.
  *  - POST /push-subscriptions/test is the self-test send: no request body,
  *    200 + { delivered, endpoints } — `delivered` counts the endpoints that
  *    ACCEPTED the message (0 = nothing subscribed, delivery disabled, or
@@ -67,6 +71,21 @@ export function deletePushSubscription(
     "DELETE",
     `/push-subscriptions/${encodeURIComponent(id)}`,
     undefined,
+    { needsCSRF: true, signal: opts?.signal },
+  );
+}
+
+/** PATCH /api/v1/push-subscriptions/{id} — replace the row's device name,
+ * 204. An unknown or foreign id answers the masked 404. */
+export function renamePushSubscription(
+  id: string,
+  label: string,
+  opts?: RequestOptions,
+): Promise<void> {
+  return request<void>(
+    "PATCH",
+    `/push-subscriptions/${encodeURIComponent(id)}`,
+    { label },
     { needsCSRF: true, signal: opts?.signal },
   );
 }

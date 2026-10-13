@@ -10,7 +10,7 @@ import (
 // privacy boundary for the session list: whatever a client sends, the stored
 // value is one of the vocabulary strings or the empty string.
 
-func TestSessionClientLabel_Matrix(t *testing.T) {
+func TestClientLabel_Matrix(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct{ name, ua, want string }{
@@ -109,26 +109,26 @@ func TestSessionClientLabel_Matrix(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if got := sessionClientLabel(tc.ua); got != tc.want {
-				t.Errorf("sessionClientLabel(%q) = %q, want %q", tc.ua, got, tc.want)
+			if got := ClientLabel(tc.ua); got != tc.want {
+				t.Errorf("ClientLabel(%q) = %q, want %q", tc.ua, got, tc.want)
 			}
 		})
 	}
 }
 
-// TestSessionClientLabel_VocabularyIsBounded pins the closed-vocabulary
+// TestClientLabel_VocabularyIsBounded pins the closed-vocabulary
 // properties: every browser×platform combination fits the documented bound,
 // and no combination can produce a value longer than it — the guard rail in
-// sessionClientLabel is unreachable with today's tables, and this test is
-// what keeps that true.
-func TestSessionClientLabel_VocabularyIsBounded(t *testing.T) {
+// ClientLabel is unreachable with today's tables, and this test is what
+// keeps that true.
+func TestClientLabel_VocabularyIsBounded(t *testing.T) {
 	t.Parallel()
 
 	for _, b := range browserTokens {
 		for _, p := range platformTokens {
 			label := b.label + clientLabelSeparator + p.label
-			if len(label) > sessionClientLabelMaxLen {
-				t.Errorf("label %q is %d bytes, over the %d-byte bound", label, len(label), sessionClientLabelMaxLen)
+			if len(label) > clientLabelMaxLen {
+				t.Errorf("label %q is %d bytes, over the %d-byte bound", label, len(label), clientLabelMaxLen)
 			}
 		}
 	}

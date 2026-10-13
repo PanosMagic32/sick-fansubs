@@ -54,8 +54,13 @@ interface StubOptions {
   permission?: "default" | "granted" | "denied";
   /** The local subscription's endpoint ("" = none registered locally). */
   localEndpoint?: string;
-  /** Rows the server list returns (each {id, endpoint, createdAt}). */
-  serverRows?: { id: string; endpoint: string; createdAt: string }[];
+  /** Rows the server list returns (each {id, endpoint, label?, createdAt}). */
+  serverRows?: {
+    id: string;
+    endpoint: string;
+    label?: string | null;
+    createdAt: string;
+  }[];
   /** The preferences payload. */
   prefs?: { kind: string; pushEnabled: boolean }[];
   /** Set true to make the load GETs fail (the error/retry path). */
@@ -72,9 +77,20 @@ interface StubOptions {
   }[];
   /** Rows the subscription list serves AFTER a test press — models the
    * dead-endpoint cleanup that removes the row during the send. */
-  serverRowsAfterTest?: { id: string; endpoint: string; createdAt: string }[];
+  serverRowsAfterTest?: {
+    id: string;
+    endpoint: string;
+    label?: string | null;
+    createdAt: string;
+  }[];
   /** Set true to make the self-test POST fail (the mapped-error path). */
   failTest?: boolean;
+  /** Set true to make the rename PATCH fail (the mapped-error path). */
+  failPatch?: boolean;
+  /** Set true to make the delete DELETE fail (the mapped-error path). */
+  failDelete?: boolean;
+  /** Set true to make only the preferences GET fail (the partial-load path). */
+  failPrefs?: boolean;
   /** Preference kinds whose PUT must fail (the save-fan-out failure path). */
   failPrefPutFor?: string[];
   /** Set true to make the capability probe find no service-worker
@@ -145,6 +161,14 @@ function stubPushEnvironment(o: StubOptions) {
       });
     }
     if (method === "GET" && url.includes("/notification-preferences")) {
+      if (o.failPrefs) {
+        return mockResponse({
+          ok: false,
+          status: 500,
+          headers: { "Content-Type": "application/problem+json" },
+          jsonBody: { type: "/problems/internal-error", title: "boom" },
+        });
+      }
       return mockResponse({
         ok: true,
         status: 200,
@@ -190,6 +214,25 @@ function stubPushEnvironment(o: StubOptions) {
       });
     }
     if (method === "DELETE") {
+      if (o.failDelete) {
+        return mockResponse({
+          ok: false,
+          status: 500,
+          headers: { "Content-Type": "application/problem+json" },
+          jsonBody: { type: "/problems/internal-error", title: "boom" },
+        });
+      }
+      return mockResponse({ ok: true, status: 204, jsonBody: null });
+    }
+    if (method === "PATCH") {
+      if (o.failPatch) {
+        return mockResponse({
+          ok: false,
+          status: 500,
+          headers: { "Content-Type": "application/problem+json" },
+          jsonBody: { type: "/problems/internal-error", title: "boom" },
+        });
+      }
       return mockResponse({ ok: true, status: 204, jsonBody: null });
     }
     if (method === "PUT") {
@@ -396,14 +439,16 @@ describe("push-settings", () => {
     // browser prompt must NOT fire yet.
     enable.click();
     await settle(el);
-    expect(root(el).querySelector("dialog")).not.toBeNull();
+    expect(root(el).querySelector(".push-subscribe-dialog")).not.toBeNull();
     expect(Notification.requestPermission).not.toHaveBeenCalled();
 
     // Confirm → browser prompt → subscribe → store (the browser's
     // expirationTime field must NOT reach the strict create endpoint —
     // the destructure pin).
     (
-      root(el).querySelector(".push-dialog-actions button") as HTMLButtonElement
+      root(el).querySelector(
+        ".push-subscribe-dialog .push-dialog-actions button",
+      ) as HTMLButtonElement
     ).click();
     await settle(el);
     expect(Notification.requestPermission).toHaveBeenCalledTimes(1);
@@ -613,11 +658,491 @@ describe("push-settings", () => {
     (root(el).querySelector(".push-on") as HTMLButtonElement).click();
     await settle(el);
     (
-      root(el).querySelector(".push-dialog-actions button") as HTMLButtonElement
+      root(el).querySelector(
+        ".push-subscribe-dialog .push-dialog-actions button",
+      ) as HTMLButtonElement
     ).click();
     await settle(el);
     expect(root(el).querySelector(".push-test")).not.toBeNull();
     expect(text(el, ".push-test-result")).toBe("");
+  });
+
+  test("the device list renders every row: name, current badge, and delete only off the current row", async () => {
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: "Chrome · Android",
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    expect(root(el).querySelectorAll(".push-device-row")).toHaveLength(2);
+    const own = root(el).querySelector<HTMLElement>('[data-device-id="s1"]')!;
+    const other = root(el).querySelector<HTMLElement>('[data-device-id="s2"]')!;
+    expect(own.querySelector(".push-device-name")?.textContent?.trim()).toBe(
+      "Chrome · Android",
+    );
+    expect(own.querySelector(".push-device-badge")?.textContent?.trim()).toBe(
+      catalog.notifications.pushDeviceCurrent,
+    );
+    // The current row carries no delete — the off switch above owns it.
+    expect(own.querySelector(".push-device-delete")).toBeNull();
+    // A null label renders the unknown-device line; the badge is the
+    // current-device key only.
+    expect(other.querySelector(".push-device-name")?.textContent?.trim()).toBe(
+      catalog.notifications.pushDeviceUnknown,
+    );
+    expect(other.querySelector(".push-device-badge")).toBeNull();
+    expect(other.querySelector(".push-device-delete")).not.toBeNull();
+    // Rename is offered on every row.
+    expect(root(el).querySelectorAll(".push-device-rename")).toHaveLength(2);
+  });
+
+  test("rename sends the PATCH and updates the row in place", async () => {
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-rename',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+    const dialog = root(el).querySelector<HTMLDialogElement>(
+      ".push-device-dialog",
+    )!;
+    expect(dialog.open).toBe(true);
+
+    const input = dialog.querySelector<HTMLInputElement>("input")!;
+    input.value = "  Το παλιό κινητό  ";
+    input.dispatchEvent(new Event("input"));
+    dialog
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true }));
+    await settle(el);
+
+    const patches = requests("PATCH");
+    expect(patches).toHaveLength(1);
+    expect(patches[0]?.[0] as string).toContain("/push-subscriptions/s2");
+    // The trimmed value is what leaves the client.
+    expect(JSON.parse((patches[0]?.[1]?.body as string) ?? "null")).toEqual({
+      label: "Το παλιό κινητό",
+    });
+    expect(
+      root(el)
+        .querySelector('[data-device-id="s2"] .push-device-name')
+        ?.textContent?.trim(),
+    ).toBe("Το παλιό κινητό");
+    expect(dialog.open).toBe(false);
+  });
+
+  test("an empty rename is refused client-side and sends no PATCH", async () => {
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: "Παλιό",
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-rename',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+    const dialog = root(el).querySelector<HTMLDialogElement>(
+      ".push-device-dialog",
+    )!;
+    const input = dialog.querySelector<HTMLInputElement>("input")!;
+    input.value = "   ";
+    input.dispatchEvent(new Event("input"));
+    dialog
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true }));
+    await settle(el);
+
+    expect(requests("PATCH")).toHaveLength(0);
+    expect(dialog.querySelector(".push-error")?.textContent?.trim()).toBe(
+      catalog.notifications.pushDeviceRenameRequired,
+    );
+    // The dialog stays open with the draft intact for a correction.
+    expect(dialog.open).toBe(true);
+  });
+
+  test("the rename field counts runes, not UTF-16 units", async () => {
+    // 17 astral characters are 34 UTF-16 units but 17 runes — inside the
+    // server's 32-rune bound, so the whole name must leave the client (a
+    // maxlength attribute would have refused it).
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-rename',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+    const dialog = root(el).querySelector<HTMLDialogElement>(
+      ".push-device-dialog",
+    )!;
+    const input = dialog.querySelector<HTMLInputElement>("input")!;
+    const emojiName = "🔔".repeat(17);
+    input.value = emojiName;
+    input.dispatchEvent(new Event("input"));
+    dialog
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true }));
+    await settle(el);
+
+    const patches = requests("PATCH");
+    expect(patches).toHaveLength(1);
+    expect(JSON.parse((patches[0]?.[1]?.body as string) ?? "null")).toEqual({
+      label: emojiName,
+    });
+  });
+
+  test("an over-long rename clamps to the server's rune bound", async () => {
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-rename',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+    const dialog = root(el).querySelector<HTMLDialogElement>(
+      ".push-device-dialog",
+    )!;
+    const input = dialog.querySelector<HTMLInputElement>("input")!;
+    input.value = "α".repeat(33);
+    input.dispatchEvent(new Event("input"));
+    await settle(el);
+    // The field repaints with the clamped name — the visible draft and the
+    // submitted value agree.
+    expect(input.value).toBe("α".repeat(32));
+
+    dialog
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true }));
+    await settle(el);
+
+    const patches = requests("PATCH");
+    expect(patches).toHaveLength(1);
+    expect(JSON.parse((patches[0]?.[1]?.body as string) ?? "null")).toEqual({
+      label: "α".repeat(32),
+    });
+  });
+
+  test("leading whitespace does not spend the rune budget", async () => {
+    // The server trims before counting, so a draft of 3 spaces + 30 runes is
+    // a valid 30-rune name — the clamp must count the TRIMMED draft.
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-rename',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+    const dialog = root(el).querySelector<HTMLDialogElement>(
+      ".push-device-dialog",
+    )!;
+    const input = dialog.querySelector<HTMLInputElement>("input")!;
+    input.value = "   " + "α".repeat(30);
+    input.dispatchEvent(new Event("input"));
+    dialog
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true }));
+    await settle(el);
+
+    const patches = requests("PATCH");
+    expect(patches).toHaveLength(1);
+    expect(JSON.parse((patches[0]?.[1]?.body as string) ?? "null")).toEqual({
+      label: "α".repeat(30),
+    });
+  });
+
+  test("a failed rename keeps the dialog open with the mapped error", async () => {
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      failPatch: true,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-rename',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+    const dialog = root(el).querySelector<HTMLDialogElement>(
+      ".push-device-dialog",
+    )!;
+    const input = dialog.querySelector<HTMLInputElement>("input")!;
+    input.value = "Το κινητό";
+    input.dispatchEvent(new Event("input"));
+    dialog
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { cancelable: true }));
+    await settle(el);
+
+    expect(requests("PATCH")).toHaveLength(1);
+    // The dialog stays open with the mapped error; the row keeps its old
+    // name — nothing was accepted.
+    expect(dialog.open).toBe(true);
+    expect(dialog.querySelector(".push-error")?.textContent?.trim()).not.toBe(
+      "",
+    );
+    expect(
+      root(el)
+        .querySelector('[data-device-id="s2"] .push-device-name')
+        ?.textContent?.trim(),
+    ).toBe(catalog.notifications.pushDeviceUnknown);
+  });
+
+  test("the current row's delete handler refuses even when called directly", async () => {
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    // The markup carries no delete on the current row; the handler is the
+    // second line of defence (a stale re-render must not fire it against
+    // the live local subscription).
+    await el.devices._onDeleteClick("s1");
+    await settle(el);
+
+    expect(requests("DELETE")).toHaveLength(0);
+    expect(root(el).querySelector('[data-device-id="s1"]')).not.toBeNull();
+  });
+
+  test("the unavailable line keeps the device list manageable", async () => {
+    // No local registration (the dev-server shape): the subscribe flows are
+    // unavailable, but the server's rows stay manageable — rename and
+    // delete need no local subscription.
+    stubPushEnvironment({
+      permission: "granted",
+      noRegistration: true,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint: "https://push.example.com/a",
+          label: "Κινητό",
+          createdAt: "2026-09-01T10:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/b",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    expect(text(el, ".push-unavailable")).toBe(
+      catalog.notifications.pushUnavailable,
+    );
+    expect(root(el).querySelectorAll(".push-device-row")).toHaveLength(2);
+    expect(root(el).querySelectorAll(".push-device-delete")).toHaveLength(2);
+  });
+
+  test("a failed delete in an unavailable environment still shows the banner", async () => {
+    stubPushEnvironment({
+      permission: "granted",
+      noRegistration: true,
+      failDelete: true,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint: "https://push.example.com/a",
+          label: "Κινητό",
+          createdAt: "2026-09-01T10:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(".push-device-delete") as HTMLButtonElement
+    ).click();
+    await settle(el);
+
+    // The row survives the failure, and the banner states it — the
+    // unavailable branch renders the shared error beside the device list.
+    expect(root(el).querySelector('[data-device-id="s1"]')).not.toBeNull();
+    expect(root(el).querySelector(".push-error")?.textContent?.trim()).not.toBe(
+      "",
+    );
+  });
+
+  test("deleting another device removes its row and never touches the current one", async () => {
+    const endpoint = "https://push.example.com/current";
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-delete',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+
+    const deletes = requests("DELETE");
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0]?.[0] as string).toContain("/push-subscriptions/s2");
+    expect(root(el).querySelector('[data-device-id="s2"]')).toBeNull();
+    expect(root(el).querySelector('[data-device-id="s1"]')).not.toBeNull();
   });
 
   test("the kind form is a draft until save — only the changed kinds are PUT", async () => {
@@ -784,6 +1309,23 @@ describe("push-settings", () => {
     const phone =
       pushStyles.match(/@media \(max-width: 700px\) \{(.*?)\n\}/s)?.[1] ?? "";
     expect(phone).toContain("flex: 1 0 100%");
+
+    // The device row actions carry the same vocabulary (never a hand-rolled
+    // box), and the delete warms to the error colour on hover.
+    const deviceSource = stripSourceComments(
+      await Bun.file(
+        new URL("./push-devices-section.ts", import.meta.url),
+      ).text(),
+    );
+    expect(deviceSource).toContain(
+      'class="button button--icon button--ghost push-device-rename"',
+    );
+    expect(deviceSource).toContain(
+      'class="button button--icon button--ghost push-device-delete"',
+    );
+    expect(pushStyles).toMatch(
+      /\.push-device-delete:hover:not\(:disabled\) \{[^}]*--sf-error/s,
+    );
   });
 
   test("the kind toggles are sized for comfortable tapping", () => {
@@ -913,7 +1455,9 @@ describe("push-settings", () => {
     (root(el).querySelector(".push-on") as HTMLButtonElement).click();
     await settle(el);
     (
-      root(el).querySelector(".push-dialog-actions button") as HTMLButtonElement
+      root(el).querySelector(
+        ".push-subscribe-dialog .push-dialog-actions button",
+      ) as HTMLButtonElement
     ).click();
     await settle(el);
 
@@ -942,6 +1486,28 @@ describe("push-settings", () => {
     expect(root(el).querySelector(".push-on")).not.toBeNull();
     expect(subscriptionGets()).toHaveLength(1);
     expect(preferenceGets()).toHaveLength(1);
+  });
+
+  test("a preferences failure keeps the fetched device rows", async () => {
+    // The two GETs are independent: a preferences failure must not discard
+    // the subscriptions answer — the error branch keeps the device list.
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: "https://push.example.com/current",
+      failPrefs: true,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint: "https://push.example.com/current",
+          label: "Κινητό",
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    expect(root(el).querySelector(".push-retry")).not.toBeNull();
+    expect(root(el).querySelectorAll(".push-device-row")).toHaveLength(1);
   });
 
   test("resubscribes when the worker relays pushsubscriptionchange", async () => {
