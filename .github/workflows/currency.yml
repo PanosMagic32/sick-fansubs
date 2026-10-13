@@ -24,11 +24,11 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@v7
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.2"
       - uses: oven-sh/setup-bun@v2
         with:
           # Keep in step with the oven/bun tag in the Dockerfile.
-          bun-version: "1.4.2"
+          bun-version: "1.4.3"
       - name: Go module drift (go list -m -u all)
         run: go list -m -u all
       - name: Go vulnerability scan (govulncheck)

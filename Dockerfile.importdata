@@ -2,7 +2,7 @@
 # cmd/importdata -kind blog-posts|projects|users).
 # This image is NOT a service — use it with a one-off docker run against the
 # stopped app's volume (mirrors Dockerfile.migrate).
-FROM golang:1.27.1-alpine3.24 AS build
+FROM golang:1.27.2-alpine3.24 AS build
 
 WORKDIR /app
 COPY go.mod go.sum ./

@@ -25,7 +25,7 @@ COPY web/ ./
 RUN bun run build
 
 # ── Stage 2: Build Go backend (embed frontend) ──────
-FROM golang:1.27.1-alpine3.24 AS backend
+FROM golang:1.27.2-alpine3.24 AS backend
 # APP_VERSION must be the BARE semantic version (e.g. 2.0.0-alpha.1, NO "v"
 # prefix): the footer renders "v" + this value, so a v-prefixed value
 # displays doubled ("vv2.0.0-alpha.1"). The default "dev" is bare too.

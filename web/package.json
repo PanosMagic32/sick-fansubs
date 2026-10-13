@@ -14,11 +14,11 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@happy-dom/global-registrator": "^20.14.5",
-    "@types/bun": "^1.4.2",
-    "happy-dom": "^20.14.5",
+    "@happy-dom/global-registrator": "^20.14.6",
+    "@types/bun": "^1.4.3",
+    "happy-dom": "^20.14.6",
     "typescript": "^7.0.2",
-    "vite": "^8.3.3"
+    "vite": "^8.3.4"
   },
   "dependencies": {
     "@lit-labs/router": "^0.1.4",
