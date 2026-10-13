@@ -13,7 +13,7 @@
 # docker build --target prod --build-arg APP_VERSION=<bare-semver> -t sick-fansubs:<tag> .
 
 # ── Stage 1: Build Lit frontend ──────────────────────
-FROM oven/bun:1.4.2 AS frontend
+FROM oven/bun:1.4.3 AS frontend
 WORKDIR /src
 COPY web/package.json web/bun.lock ./
 # Cache mounts (BuildKit): the bun store and the Go module/build caches
