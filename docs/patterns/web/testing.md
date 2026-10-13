@@ -15,8 +15,10 @@ written, and where the machine-checked guards live.
    management), `<option selected>` is not honored after a detach, and there is no layout. Every
    behavior that depends on one of those is pinned against the source (the CSS regex pins, the
    `showModal` guard) instead of asserted through the DOM.
-3. **Read files with `Bun.file`.** A fixture or a stylesheet is read as
-   `await Bun.file(new URL("./x.css", import.meta.url)).text()`; `node:fs` is not used in web
+3. **Read files with `Bun.file`.** A fixture is read as
+   `await Bun.file(new URL("./x.json", import.meta.url)).text()`; a suite's stylesheet or source pin
+   goes through `readSheet`/`readSource` (rule 10), which pair the read with the comment strip, and
+   the architecture guard's own tree scan keeps its local reader; `node:fs` is not used in web
    tests.
 4. **`?inline` CSS is readable through the component.** `bunfig.toml` maps `.css` to Bun's text
    loader, so an imported `?inline` sheet is the real CSS string under test — a test may assert on
@@ -26,7 +28,8 @@ written, and where the machine-checked guards live.
    value at runtime; this is recorded in [toolchain.md](toolchain.md).
 5. **Two ways to read a sheet, two purposes.** Asserting what a component _renders_ goes through
    the `?inline` import (the resolved `static styles` above); asserting the _source_ — a geometry
-   rule a browser would evaluate but happy-dom cannot — reads the file text with `Bun.file`. Prefer
+   rule a browser would evaluate but happy-dom cannot — reads the file text through
+   `readSheet`/`readSource` (rule 3). Prefer
    the resolved styles when the question is "did this rule reach the component", and the file text
    when the question is "does this exact rule still exist".
 6. **A materialized component is asserted through its shadow root** after `await el.updateComplete`;
@@ -66,7 +69,8 @@ written, and where the machine-checked guards live.
     live in `shared/api/test-utils.ts` (the fetch doubles `mockFetchOnce`/`mockFetchImpl` +
     `restoreMockFetch`, the history-location shims, `waitFor`, `stubDebounceTimers`,
     `stubAbortSignalTimeout`, `stubProperty`, `setHappyDOMURL`/`resetHappyDOMURL`,
-    `stripCssComments`, `stripSourceComments`); a third copy of
+    `stripCssComments`, `stripSourceComments`, `readSheet`/`readSource` (the comment-stripped file
+    reads)); a third copy of
     a stub is the point to graduate it.
 11. **Go-side tests are not the place for frontend behavior, and vice versa.** The only shared
     languages are the pins that read a frontend artifact from Go (the VAPID key copies, the audit

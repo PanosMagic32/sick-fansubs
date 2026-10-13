@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   mockFetchImpl,
   mockResponse,
+  readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripCssComments,
 } from "@shared/api/test-utils.js";
 import { NAVIGATE_EVENT } from "@core/router.js";
 import { el } from "@shared/catalog/el.js";
@@ -20,10 +20,9 @@ import type { SearchPage } from "./search-page.js";
 import type { ContentCard } from "@shared/ui/content-card.js";
 
 // The stylesheet is read from disk rather than through the `?inline`
-// import: contract pins assert the served source, with comments stripped
-// first so prose can never satisfy a pin (testing rule 7).
-const searchStyles = stripCssComments(
-  await Bun.file(new URL("./search-page.css", import.meta.url)).text(),
+// import: contract pins assert the served source.
+const searchStyles = await readSheet(
+  new URL("./search-page.css", import.meta.url),
 );
 
 function stubFetch(

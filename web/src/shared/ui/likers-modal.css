@@ -1,7 +1,8 @@
 /* The likers modal — the shared who-liked dialog (a post's/project's
  * favoriters, a comment's hearters). The head is fixed; the body scrolls —
  * the dialog is a flex column capped by the viewport, so a long liker list
- * never pushes the close control out of reach. */
+ * never pushes the close control out of reach. The panel fill follows the
+ * dialog fill rule (components.md rule 10). */
 
 .likers-dialog {
     display: flex;
@@ -11,8 +12,16 @@
     padding: 0;
     border: 1px solid var(--sf-border);
     border-radius: 0.75rem;
-    background: var(--sf-surface);
+    background: var(--sf-bg);
     color: var(--sf-text);
+}
+
+/* A CLOSED dialog must stay hidden. The UA sheet hides it with
+   `dialog:not([open]) { display: none }`, but this sheet's unconditional
+   `display: flex` beats the UA rule — without the guard a closed modal
+   parks in the page flow, visible and undismissable. */
+.likers-dialog:not([open]) {
+    display: none;
 }
 
 .likers-dialog::backdrop {

@@ -11,8 +11,8 @@ import {
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
+  readSheet,
   restoreMockFetch,
-  stripCssComments,
   stubProperty,
 } from "@shared/api/test-utils.js";
 
@@ -746,8 +746,8 @@ describe("blog-form-page", () => {
     // nowrap state chip, and the back link whose min-contents exceed a phone
     // width, and the four action buttons were one unshrinkable line. Both rows
     // wrap now. happy-dom resolves no CSS, so this is a source pin.
-    const styles = stripCssComments(
-      await Bun.file(new URL("./blog-form-page.css", import.meta.url)).text(),
+    const styles = await readSheet(
+      new URL("./blog-form-page.css", import.meta.url),
     );
     const header = styles.match(/\.form-header \{([^}]*)\}/s)?.[1] ?? "";
     expect(header).toContain("flex-wrap: wrap");

@@ -1,17 +1,14 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 
-import {
-  stripCssComments,
-  stubAbortSignalTimeout,
-} from "@shared/api/test-utils.js";
+import { readSheet, stubAbortSignalTimeout } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
 import { BUY_ME_A_COFFEE_URL } from "@shared/config/links.js";
 
 import "./app-footer.js";
 import type { AppFooter } from "./app-footer.js";
 
-const footerStyles = stripCssComments(
-  await Bun.file(new URL("./app-footer.css", import.meta.url)).text(),
+const footerStyles = await readSheet(
+  new URL("./app-footer.css", import.meta.url),
 );
 
 function renderFooter(): AppFooter {

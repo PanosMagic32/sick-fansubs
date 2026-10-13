@@ -341,10 +341,11 @@
 
 /* Email verification + change: the unverified banner, the verified
    status chip, and the email-change widget in the profile section. */
-
 .verify-banner {
     display: flex;
     flex-direction: column;
+    max-width: 40rem;
+    align-items: flex-start;
     gap: 0.6rem;
     margin: 0 0 1rem;
     padding: 0.9rem 1rem;

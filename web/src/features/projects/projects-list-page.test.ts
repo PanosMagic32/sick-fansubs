@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
   mockFetchImpl,
   mockResponse,
+  readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripCssComments,
 } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
 
@@ -19,8 +19,8 @@ import "./projects-list-page.js";
 import type { ProjectsListPage } from "./projects-list-page.js";
 import type { ContentCard } from "@shared/ui/content-card.js";
 
-const listStyles = stripCssComments(
-  await Bun.file(new URL("./projects-list-page.css", import.meta.url)).text(),
+const listStyles = await readSheet(
+  new URL("./projects-list-page.css", import.meta.url),
 );
 
 /**

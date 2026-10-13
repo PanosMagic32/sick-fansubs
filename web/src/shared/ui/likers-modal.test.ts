@@ -6,11 +6,22 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 
+import { readSheet } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
 
 // Side-effect import registers the custom element.
 import "./likers-modal.js";
-import type { LikerPage, LikersModal } from "./likers-modal.js";
+import type {
+  LikerPage,
+  LikerPageLoader,
+  LikersModal,
+} from "./likers-modal.js";
+
+// The stylesheet is read from disk rather than through the `?inline`
+// import (the shared CSS-pin mechanism).
+const modalStyles = await readSheet(
+  new URL("./likers-modal.css", import.meta.url),
+);
 
 function root(modal: LikersModal): HTMLElement {
   return modal.shadowRoot! as unknown as HTMLElement;
@@ -50,21 +61,74 @@ function names(modal: LikersModal): string[] {
   );
 }
 
+/** The nearest common inclusive ancestor — where a real click lands after a
+ * mousedown and mouseup at the two ends. */
+function commonAncestor(a: Element, b: Element): Element {
+  let node: Element | null = a;
+  while (node && !node.contains(b)) node = node.parentElement;
+  return node ?? document.documentElement;
+}
+
+/** One pointer press: mousedown and mouseup at the given elements, then the
+ * click at its real target (the two ends' common ancestor). */
+async function press(
+  modal: LikersModal,
+  down: Element,
+  up: Element = down,
+): Promise<void> {
+  down.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+  up.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  commonAncestor(down, up).dispatchEvent(
+    new MouseEvent("click", { bubbles: true }),
+  );
+  await settle(modal);
+}
+
+/** Render the modal, wire the loader and a dismissal collector, and open it
+ * — the shared arrange for the open-driven tests. */
+async function openModal(loader?: LikerPageLoader): Promise<{
+  modal: LikersModal;
+  closes: string[];
+}> {
+  const modal = await render();
+  modal.loader = loader;
+  const closes: string[] = [];
+  modal.addEventListener("sf-likers-close", () => closes.push("close"));
+  modal.open = true;
+  await settle(modal);
+  return { modal, closes };
+}
+
 afterEach(() => {
   document.body.innerHTML = "";
 });
 
 describe("likers-modal", () => {
+  test("the dialog panel is opaque", () => {
+    // happy-dom resolves no custom properties and does no layout, so the
+    // fill is pinned against the CSS source.
+    const panel = modalStyles.match(/\.likers-dialog \{([^}]*)\}/s)?.[1] ?? "";
+    expect(panel).toContain("background: var(--sf-bg)");
+    expect(panel).not.toContain("var(--sf-surface)");
+    expect(panel).not.toContain("backdrop-filter");
+  });
+
+  test("a closed dialog stays hidden", () => {
+    // The panel's `display: flex` beats the UA sheet's closed-dialog
+    // hiding, so the sheet must restore it; happy-dom applies no UA sheet
+    // and does no layout, so this is a CSS-source pin.
+    const closed = modalStyles.match(
+      /\.likers-dialog:not\(\[open\]\) \{([^}]*)\}/s,
+    )?.[1];
+    expect(closed).toContain("display: none");
+  });
+
   test("loads page 1 on open and renders the users", async () => {
     const calls: Array<string | null> = [];
-    const modal = await render();
-    modal.loader = async (after) => {
+    const { modal } = await openModal(async (after) => {
       calls.push(after);
       return page([{ id: "u2", username: "Perospero", avatarUrl: null }]);
-    };
-
-    modal.open = true;
-    await settle(modal);
+    });
 
     expect(calls).toEqual([null]);
     expect(dialog(modal).hasAttribute("open")).toBe(true);
@@ -76,8 +140,7 @@ describe("likers-modal", () => {
 
   test("load more appends the next page through the end cursor", async () => {
     const calls: Array<string | null> = [];
-    const modal = await render();
-    modal.loader = async (after) => {
+    const { modal } = await openModal(async (after) => {
       calls.push(after);
       if (after === null) {
         return page(
@@ -87,10 +150,7 @@ describe("likers-modal", () => {
         );
       }
       return page([{ id: "u3", username: "B", avatarUrl: null }]);
-    };
-
-    modal.open = true;
-    await settle(modal);
+    });
 
     const more = root(modal).querySelector(".likers-more") as HTMLButtonElement;
     expect(more).not.toBeNull();
@@ -103,11 +163,7 @@ describe("likers-modal", () => {
   });
 
   test("an empty list renders the empty state and no more button", async () => {
-    const modal = await render();
-    modal.loader = async () => page([]);
-
-    modal.open = true;
-    await settle(modal);
+    const { modal } = await openModal(async () => page([]));
 
     expect(
       root(modal).querySelector(".likers-empty")?.textContent?.trim(),
@@ -117,14 +173,11 @@ describe("likers-modal", () => {
 
   test("a failed load renders the error banner and retry reloads", async () => {
     let fail = true;
-    const modal = await render();
-    modal.loader = async () => {
+    const { modal } = await openModal(async () => {
       if (fail) throw new Error("boom");
       return page([{ id: "u2", username: "Perospero", avatarUrl: null }]);
-    };
+    });
 
-    modal.open = true;
-    await settle(modal);
     expect(root(modal).querySelector(".likers-retry")).not.toBeNull();
 
     fail = false;
@@ -134,17 +187,14 @@ describe("likers-modal", () => {
   });
 
   test("closing informs the host, and open=false closes the dialog", async () => {
-    const modal = await render();
-    modal.loader = async () =>
-      page([{ id: "u2", username: "Perospero", avatarUrl: null }]);
-    const closes: string[] = [];
+    const { modal, closes } = await openModal(async () =>
+      page([{ id: "u2", username: "Perospero", avatarUrl: null }]),
+    );
+    // The host flips `open` down on the dismissal, as a real host does.
     modal.addEventListener("sf-likers-close", () => {
-      closes.push("close");
       modal.open = false;
     });
 
-    modal.open = true;
-    await settle(modal);
     expect(dialog(modal).hasAttribute("open")).toBe(true);
 
     (root(modal).querySelector(".likers-close") as HTMLButtonElement).click();
@@ -156,14 +206,11 @@ describe("likers-modal", () => {
 
   test("a re-open refetches page 1 (likes are live data)", async () => {
     const calls: Array<string | null> = [];
-    const modal = await render();
-    modal.loader = async (after) => {
+    const { modal } = await openModal(async (after) => {
       calls.push(after);
       return page([{ id: "u2", username: "Perospero", avatarUrl: null }]);
-    };
+    });
 
-    modal.open = true;
-    await settle(modal);
     modal.open = false;
     await settle(modal);
     modal.open = true;
@@ -192,8 +239,7 @@ describe("likers-modal", () => {
   });
 
   test("a failed load-more keeps the list and shows the inline error", async () => {
-    const modal = await render();
-    modal.loader = async (after) => {
+    const { modal } = await openModal(async (after) => {
       if (after === null) {
         return page(
           [{ id: "u2", username: "A", avatarUrl: null }],
@@ -202,10 +248,8 @@ describe("likers-modal", () => {
         );
       }
       throw new Error("boom");
-    };
+    });
 
-    modal.open = true;
-    await settle(modal);
     (root(modal).querySelector(".likers-more") as HTMLButtonElement).click();
     await settle(modal);
 
@@ -215,22 +259,133 @@ describe("likers-modal", () => {
   });
 
   test("the native close informs the host (the Escape path)", async () => {
-    const modal = await render();
-    modal.loader = async () => page([]);
-    const closes: string[] = [];
-    modal.addEventListener("sf-likers-close", () => closes.push("close"));
+    const { modal, closes } = await openModal(async () => page([]));
 
-    modal.open = true;
-    await settle(modal);
     dialog(modal).dispatchEvent(new Event("close"));
 
     expect(closes).toEqual(["close"]);
   });
 
-  test("a missing loader surfaces as the error state, not an eternal spinner", async () => {
-    const modal = await render();
+  test("a backdrop click closes the dialog", async () => {
+    const { modal, closes } = await openModal(async () => page([]));
+    // The host flips `open` down on the dismissal, as a real host does.
+    modal.addEventListener("sf-likers-close", () => {
+      modal.open = false;
+    });
+
+    // The dialog element itself is the backdrop: a full press on it closes.
+    await press(modal, dialog(modal));
+
+    expect(closes).toEqual(["close"]);
+    expect(dialog(modal).hasAttribute("open")).toBe(false);
+  });
+
+  test("a click inside the panel does not close", async () => {
+    const { modal, closes } = await openModal(async () =>
+      page([{ id: "u2", username: "Perospero", avatarUrl: null }]),
+    );
+
+    await press(
+      modal,
+      root(modal).querySelector(".likers-head") as HTMLElement,
+    );
+
+    expect(closes).toEqual([]);
+    expect(dialog(modal).hasAttribute("open")).toBe(true);
+  });
+
+  test("a drag from the panel onto the backdrop does not close", async () => {
+    const { modal, closes } = await openModal(async () =>
+      page([{ id: "u2", username: "Perospero", avatarUrl: null }]),
+    );
+
+    // Selection drag that ends outside the panel: the click targets the
+    // dialog (the two ends' common ancestor) but the press began inside.
+    await press(
+      modal,
+      root(modal).querySelector(".likers-name") as HTMLElement,
+      dialog(modal),
+    );
+
+    expect(closes).toEqual([]);
+    expect(dialog(modal).hasAttribute("open")).toBe(true);
+  });
+
+  test("a drag from the backdrop onto the panel does not close", async () => {
+    const { modal, closes } = await openModal(async () =>
+      page([{ id: "u2", username: "Perospero", avatarUrl: null }]),
+    );
+
+    // The mirror drag: press on the backdrop, release on the text.
+    await press(
+      modal,
+      dialog(modal),
+      root(modal).querySelector(".likers-name") as HTMLElement,
+    );
+
+    expect(closes).toEqual([]);
+    expect(dialog(modal).hasAttribute("open")).toBe(true);
+  });
+
+  test("a non-primary backdrop press does not close", async () => {
+    const { modal, closes } = await openModal(async () => page([]));
+
+    // A context-menu press: only a mousedown on the PRIMARY button arms the
+    // dismissal, so the button-2 sequence never counts.
+    const dlg = dialog(modal);
+    dlg.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 2 }),
+    );
+    dlg.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 2 }));
+    dlg.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await settle(modal);
+
+    expect(closes).toEqual([]);
+    expect(dialog(modal).hasAttribute("open")).toBe(true);
+  });
+
+  test("a synthetic click on panel content never counts as the backdrop", async () => {
+    const { modal, closes } = await openModal(async () => page([]));
+
+    // Synthetic-only shape: no real pointer sequence targets a child after
+    // both press ends landed on the backdrop. The guard covers dispatchers
+    // and assistive-tech clicks that retarget.
+    const dlg = dialog(modal);
+    dlg.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    dlg.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    (root(modal).querySelector(".likers-head") as HTMLElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true }),
+    );
+    await settle(modal);
+
+    expect(closes).toEqual([]);
+    expect(dialog(modal).hasAttribute("open")).toBe(true);
+  });
+
+  test("a press that never completes does not linger into the next open", async () => {
+    const { modal, closes } = await openModal(async () => page([]));
+
+    // A backdrop press whose release never arrived (the pointer left the
+    // window), then the host closes and reopens the modal.
+    dialog(modal).dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    modal.open = false;
+    await settle(modal);
     modal.open = true;
     await settle(modal);
+
+    // A COMPLETE backdrop gesture on the fresh modal must not inherit the
+    // stale press: the transient state drops on close/open.
+    const dlg = dialog(modal);
+    dlg.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    dlg.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await settle(modal);
+
+    expect(closes).toEqual([]);
+    expect(dialog(modal).hasAttribute("open")).toBe(true);
+  });
+
+  test("a missing loader surfaces as the error state, not an eternal spinner", async () => {
+    const { modal } = await openModal();
 
     expect(root(modal).querySelector(".likers-retry")).not.toBeNull();
     expect(root(modal).querySelector("loading-spinner")).toBeNull();

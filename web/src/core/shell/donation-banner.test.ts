@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
-import { stripCssComments } from "@shared/api/test-utils.js";
+import { readSheet } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
 import { BUY_ME_A_COFFEE_URL } from "@shared/config/links.js";
 import {
@@ -65,8 +65,8 @@ describe("donation-banner", () => {
   });
 
   test("pins the slim, main-column-width CSS contract", async () => {
-    const styles = stripCssComments(
-      await Bun.file(new URL("./donation-banner.css", import.meta.url)).text(),
+    const styles = await readSheet(
+      new URL("./donation-banner.css", import.meta.url),
     );
     // Same width as the main content column (the 80rem wide-route cap).
     // Anchored on the :host rule — a bare `.banner` alternate would pass on

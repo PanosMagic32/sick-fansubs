@@ -11,10 +11,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 
-import {
-  stripCssComments,
-  stripSourceComments,
-} from "@shared/api/test-utils.js";
+import { readSheet, readSource } from "@shared/api/test-utils.js";
 import {
   installPromptAvailable,
   resetInstallPrompt,
@@ -53,9 +50,7 @@ describe("core/index registrations", () => {
     // and the `wired` guard plus the shared window make the later call a
     // no-op. Only the reading of this entry point proves the REAL app wires
     // the capture. Comments are stripped so prose can never satisfy the pin.
-    const source = stripSourceComments(
-      await Bun.file(new URL("./index.ts", import.meta.url)).text(),
-    );
+    const source = await readSource(new URL("./index.ts", import.meta.url));
     expect(source).toMatch(/watchInstallPrompt\(window\)/);
   });
 
@@ -64,9 +59,7 @@ describe("core/index registrations", () => {
     // faces, each with font-display: swap so a slow webfont never blocks
     // the Greek UI's first paint. happy-dom fetches no fonts, so the
     // contract is pinned against the source.
-    const css = stripCssComments(
-      await Bun.file(new URL("./index.css", import.meta.url)).text(),
-    );
+    const css = await readSheet(new URL("./index.css", import.meta.url));
     const faces = css.match(/@font-face \{[^}]*\}/g) ?? [];
     expect(faces).toHaveLength(5);
     for (const face of faces) {

@@ -9,17 +9,16 @@ import type { ProjectDetailPage } from "@features/projects/project-detail-page.j
 import { navigate, NAVIGATE_EVENT, routes } from "@core/router.js";
 import { el } from "@shared/catalog/el.js";
 import {
+  readSheet,
   resetHappyDOMURL,
   setHappyDOMURL,
-  stripCssComments,
 } from "@shared/api/test-utils.js";
 import { LitElement } from "lit";
 
 // The stylesheet is read from disk rather than through the `?inline`
-// import (contract pins must not ride the bundler's CSS loader mapping),
-// with comments stripped so prose can never decide a pin.
-const shellStyles = stripCssComments(
-  await Bun.file(new URL("./app-shell.css", import.meta.url)).text(),
+// import (contract pins must not ride the bundler's CSS loader mapping).
+const shellStyles = await readSheet(
+  new URL("./app-shell.css", import.meta.url),
 );
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -212,10 +211,8 @@ describe("app-shell", () => {
     // a consumer that drops the class loses the hover, which the control
     // vocabulary's own test cannot see; the account-page suite pins the
     // page-side token rule.
-    const controlStyles = stripCssComments(
-      await Bun.file(
-        new URL("../../shared/ui/controls.css", import.meta.url),
-      ).text(),
+    const controlStyles = await readSheet(
+      new URL("../../shared/ui/controls.css", import.meta.url),
     );
     const primaryHover =
       controlStyles.match(
@@ -257,6 +254,27 @@ describe("app-shell", () => {
     const light = shellStyles.match(/:host\(\.light\) \{([^}]*)\}/s)?.[1] ?? "";
     expect(dark).toContain('--sf-font-mono: "IBM Plex Mono", monospace;');
     expect(light).toContain('--sf-font-mono: "IBM Plex Mono", monospace;');
+  });
+
+  test("--sf-bg stays an opaque hex in both themes", () => {
+    // Floating panels (dialogs, the header dropdown) fill with --sf-bg: a
+    // translucent value would show the page through them. happy-dom
+    // resolves no tokens, so the exact pair is pinned.
+    const dark = shellStyles.match(/:host \{([^}]*)\}/s)?.[1] ?? "";
+    const light = shellStyles.match(/:host\(\.light\) \{([^}]*)\}/s)?.[1] ?? "";
+    expect(dark).toContain("--sf-bg: #0d0d12;");
+    expect(light).toContain("--sf-bg: #f5f3f7;");
+
+    // The pair above reads the first theme blocks only; EVERY declaration in
+    // the sheet must still be an opaque hex, so a later :host or media block
+    // cannot reintroduce a translucent value (the later rule wins).
+    const values = [...shellStyles.matchAll(/--sf-bg:\s*([^;}]+);/g)].map((m) =>
+      (m[1] ?? "").trim(),
+    );
+    expect(values.length).toBeGreaterThanOrEqual(2);
+    for (const value of values) {
+      expect(value).toMatch(/^#[0-9a-fA-F]{6}$/);
+    }
   });
 
   test("routes are top-aligned and only the single-card auth routes center", () => {

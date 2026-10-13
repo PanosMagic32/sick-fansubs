@@ -442,3 +442,20 @@ export function stripSourceComments(source: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/(^|[^:\w])\/\/.*$/gm, "$1");
 }
+
+/**
+ * Read a stylesheet as comment-stripped text — the shared read for a suite's
+ * sheet pins (web testing rule 3). The strip lives here so no caller can
+ * forget it: a pin must never pass or fail on prose.
+ */
+export async function readSheet(url: URL): Promise<string> {
+  return stripCssComments(await Bun.file(url).text());
+}
+
+/**
+ * Read a source file as comment-stripped text — the source-pin counterpart
+ * of readSheet.
+ */
+export async function readSource(url: URL): Promise<string> {
+  return stripSourceComments(await Bun.file(url).text());
+}

@@ -16,12 +16,12 @@ import {
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
+  readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripCssComments,
   stubDebounceTimers,
   stubProperty,
 } from "@shared/api/test-utils.js";
@@ -33,11 +33,11 @@ import type { CommentItem } from "../data-access/types.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-/** The raw composer sheet — happy-dom resolves no CSS, so the composer's
- * layout rules are pinned against the stylesheet text. */
-const threadStyles = await Bun.file(
+/** The composer sheet, comment-stripped for the layout pins — happy-dom
+ * resolves no CSS. */
+const threadStyles = await readSheet(
   new URL("./comments-thread.css", import.meta.url),
-).text();
+);
 
 let timers: ReturnType<typeof stubDebounceTimers>;
 
@@ -635,11 +635,10 @@ describe("comments-thread", () => {
     // sheet text: the submit must stay right-aligned under the draft, and
     // the retired hint class must stay out of the sheet. Comment-blind —
     // prose naming `.ct-hint` must not satisfy or fail these pins.
-    const css = stripCssComments(threadStyles);
-    expect(css).toMatch(
+    expect(threadStyles).toMatch(
       /\.ct-composer-foot\s*\{[^}]*justify-content:\s*flex-end/,
     );
-    expect(css).not.toMatch(/\.ct-hint/);
+    expect(threadStyles).not.toMatch(/\.ct-hint/);
   });
 
   // ── Reply ────────────────────────────────────────────────────────

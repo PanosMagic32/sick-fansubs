@@ -17,12 +17,12 @@ import {
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
+  readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripCssComments,
   stubProperty,
   waitFor,
 } from "@shared/api/test-utils.js";
@@ -34,10 +34,9 @@ import type { NotificationsPage } from "./notifications-page.js";
 import type { PagerNav } from "@shared/ui/pager-nav.js";
 
 // The stylesheet is read from disk rather than through `?inline`: the
-// geometry pins assert the served source, with comments stripped first so
-// prose can never satisfy a pin (testing rule 7).
-const pageStyles = stripCssComments(
-  await Bun.file(new URL("./notifications-page.css", import.meta.url)).text(),
+// geometry pins assert the served source.
+const pageStyles = await readSheet(
+  new URL("./notifications-page.css", import.meta.url),
 );
 
 /** Run-scoped window listeners — every `sf-navigate` and badge-event

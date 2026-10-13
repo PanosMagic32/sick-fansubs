@@ -17,12 +17,12 @@ import {
   setCSRFToken,
 } from "@shared/api/client.js";
 import {
+  listenForNavigation,
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
-  listenForNavigation,
+  readSheet,
   restoreMockFetch,
-  stripCssComments,
   stubProperty,
   waitFor,
 } from "@shared/api/test-utils.js";
@@ -35,10 +35,9 @@ import type { ContentCard } from "@shared/ui/content-card.js";
 import type { SessionProvider } from "@features/auth/data-access/session.js";
 
 // The stylesheet is read from disk rather than through `?inline`, so the
-// geometry pins assert the source (comment-stripped, so prose can never
-// satisfy a rule pin — same pattern as app-shell.test.ts).
-const accountStyles = stripCssComments(
-  await Bun.file(new URL("./account-page.css", import.meta.url)).text(),
+// geometry pins assert the source (same pattern as app-shell.test.ts).
+const accountStyles = await readSheet(
+  new URL("./account-page.css", import.meta.url),
 );
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -2065,6 +2064,14 @@ describe("account-page email verification", () => {
     expect(page.shadowRoot?.querySelector(".email-change form")).toBeNull();
   });
 
+  test("the verify banner is capped to a text measure, not the full card", () => {
+    // A full-card-width strip with a stretched button reads as a form, not
+    // a notice; happy-dom does no layout, so this is a CSS-source pin.
+    const rule = accountStyles.match(/\.verify-banner \{([^}]*)\}/s)?.[1] ?? "";
+    expect(rule).toContain("max-width: 40rem");
+    expect(rule).toContain("align-items: flex-start");
+  });
+
   test("a verified profile renders the verified chip and no banner", async () => {
     const page = render();
     await page.updateComplete;
@@ -2846,19 +2853,15 @@ describe("account-page phone band", () => {
     // vocabulary with the shared primary control. Comment-blind: the
     // assertions run against the declarations only, because prose may name
     // retired tokens (the rule-blind-pin lesson).
-    const controlStyles = stripCssComments(
-      await Bun.file(
-        new URL("../../shared/ui/controls.css", import.meta.url),
-      ).text(),
+    const controlStyles = await readSheet(
+      new URL("../../shared/ui/controls.css", import.meta.url),
     );
     const primary = controlStyles.match(/\.button--primary \{([^}]*)\}/)?.[1];
     expect(primary).toContain("color: var(--sf-on-accent)");
     expect(primary).not.toContain("var(--sf-surface");
 
-    const pushStyles = stripCssComments(
-      await Bun.file(
-        new URL("../notifications/ui/push-settings.css", import.meta.url),
-      ).text(),
+    const pushStyles = await readSheet(
+      new URL("../notifications/ui/push-settings.css", import.meta.url),
     );
     expect(pushStyles).not.toContain("color: var(--sf-surface");
 

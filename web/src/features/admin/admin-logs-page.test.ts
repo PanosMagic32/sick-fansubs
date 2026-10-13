@@ -13,12 +13,12 @@ import {
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
+  readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripCssComments,
 } from "@shared/api/test-utils.js";
 
 import "@features/auth/data-access/session.js";
@@ -26,10 +26,10 @@ import "./admin-logs-page.js";
 import type { AdminLogsPage } from "./admin-logs-page.js";
 
 // The stylesheet is read from disk (the search-page precedent): the status
-// chips' token palette is pinned against the source with its comments
-// stripped, because happy-dom resolves no custom properties.
-const logsStyles = stripCssComments(
-  await Bun.file(new URL("./admin-logs-page.css", import.meta.url)).text(),
+// chips' token palette is pinned against the source, because happy-dom
+// resolves no custom properties.
+const logsStyles = await readSheet(
+  new URL("./admin-logs-page.css", import.meta.url),
 );
 
 /** sf-navigate listeners registered by a test — removed in afterEach (a

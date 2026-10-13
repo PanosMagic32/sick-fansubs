@@ -1,17 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  stripCssComments,
-  stripSourceComments,
-} from "@shared/api/test-utils.js";
+import { readSheet, readSource } from "@shared/api/test-utils.js";
 import { el, pagerPageOf } from "@shared/catalog/el.js";
 
 // Side-effect import registers the custom element.
 import "./pager-nav.js";
 import type { PagerNav } from "./pager-nav.js";
 
-const pagerStyles = stripCssComments(
-  await Bun.file(new URL("./pager-nav.css", import.meta.url)).text(),
+const pagerStyles = await readSheet(
+  new URL("./pager-nav.css", import.meta.url),
 );
 
 function root(el: HTMLElement): HTMLElement {
@@ -150,9 +147,7 @@ describe("pager-nav", () => {
     expect(pagerStyles).toMatch(/\.chip-arrow \{[^}]*justify-content: center;/);
     expect(pagerStyles).toMatch(/\.size-chip \{[^}]*display: inline-flex;/);
     expect(pagerStyles).toMatch(/\.size-chip \{[^}]*border-style: dashed;/);
-    const source = stripSourceComments(
-      await Bun.file(new URL("./pager-nav.ts", import.meta.url)).text(),
-    );
+    const source = await readSource(new URL("./pager-nav.ts", import.meta.url));
     expect(source).toContain(
       'class="button button--secondary button--icon chip-arrow"',
     );

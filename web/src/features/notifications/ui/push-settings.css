@@ -92,11 +92,14 @@ test, retry, cancel). Leaving this device's push stays QUIET until hovered
     accent-color: var(--sf-accent);
 }
 
-/* The native confirm dialog (showModal: focus trap + restore + Escape). */
+/* The native confirm dialog (showModal: focus trap + restore + Escape).
+   Fill and text follow the dialog fill rule (components.md rule 10). */
 .push-dialog {
     padding: 1rem;
     border: 1px solid var(--sf-accent);
     border-radius: 8px;
+    background: var(--sf-bg);
+    color: var(--sf-text);
     max-width: 32rem;
 }
 

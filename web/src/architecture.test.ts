@@ -13,6 +13,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  readSheet,
   stripCssComments,
   stripSourceComments,
 } from "@shared/api/test-utils.js";
@@ -703,7 +704,7 @@ function listRoleFindings(
 
 const declaredTokens = new Set(
   [
-    ...stripCssComments(await read(TOKEN_HOME)).matchAll(
+    ...(await readSheet(new URL(TOKEN_HOME, ROOT))).matchAll(
       /--sf-[a-z-]+(?=\s*:)/g,
     ),
   ].map((m) => m[0]),

@@ -84,7 +84,16 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
     only sets the `open` attribute — no modality, no focus management — so a component guards the
     call (`typeof dialog?.showModal === "function"`) with the `open`-attribute fallback for a DOM
     without the method, and the test suite asserts the dialog's markup and state transitions
-    instead of modal behavior.
+    instead of modal behavior. Fill a dialog panel OPAQUE (`--sf-bg`), never with a translucent
+    `--sf-surface`: a floating panel without a backdrop blur shows the page through. A sheet that
+    gives the panel a `display` value restores the closed state (`:not([open]) { display: none }`)
+    — the author rule otherwise beats the UA sheet's hiding and parks the closed modal in the page
+    flow. Wire backdrop dismissal only where a stray click is an acceptable cancel (the likers
+    list); both the press and the release must land on the backdrop, so a drag that starts or ends
+    on the panel does not dismiss. Leave it unwired where a dismissal would discard content or a
+    pending answer (the reset result's one-time password, the push confirm and rename dialogs).
+    Dialogs set their own `background` and `color`: the UA sheet's canvas pair follows the OS
+    colour scheme, not the app's theme toggle.
 11. **Accessibility is a construction rule, not a review afterthought.** Native semantics first:
     a control is a `<button>`, a navigation is an `<a href>`, never a repurposed `div` with a role.
     Icon-only controls carry a catalog accessible name (`aria-label`), and a control whose action is

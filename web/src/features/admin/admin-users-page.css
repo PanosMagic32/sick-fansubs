@@ -248,14 +248,15 @@
 /* The one-time temp-password dialog — a native modal <dialog> (opened by
    the page's post-render pass). The UA centers a modal dialog with
    `margin: auto`; this rule re-asserts it, because an author margin would
-   win over the UA sheet and un-center the dialog. The ::backdrop dim is a
-   token mix so both themes veil the page behind it. */
+   win over the UA sheet and un-center the dialog. Fill and text follow the
+   dialog fill rule (components.md rule 10). */
 .reset-dialog {
     margin: auto;
     padding: 1rem;
     border: 1px solid var(--sf-border);
     border-radius: 8px;
-    background: var(--sf-surface);
+    background: var(--sf-bg);
+    color: var(--sf-text);
     max-width: min(32rem, calc(100% - 2rem));
 }
 

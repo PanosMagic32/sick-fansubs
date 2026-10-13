@@ -3,8 +3,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { el } from "@shared/catalog/el.js";
 import {
   mockFetchImpl,
+  readSheet,
   restoreMockFetch,
-  stripCssComments,
 } from "@shared/api/test-utils.js";
 import {
   BUY_ME_A_COFFEE_URL,
@@ -20,15 +20,12 @@ import {
 import "./about-page.js";
 import type { AboutPage } from "./about-page.js";
 
-// Both sheets are read from disk with comments stripped, so prose can never
-// satisfy a pin (testing rule 7).
-const pageStyles = stripCssComments(
-  await Bun.file(new URL("./about-page.css", import.meta.url)).text(),
+// Both sheets are read from disk for the source pins.
+const pageStyles = await readSheet(
+  new URL("./about-page.css", import.meta.url),
 );
-const shellStyles = stripCssComments(
-  await Bun.file(
-    new URL("../../core/shell/app-shell.css", import.meta.url),
-  ).text(),
+const shellStyles = await readSheet(
+  new URL("../../core/shell/app-shell.css", import.meta.url),
 );
 const darkTokens = shellStyles.match(/:host \{([^}]*)\}/s)?.[1] ?? "";
 const lightTokens =

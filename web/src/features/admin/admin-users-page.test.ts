@@ -14,18 +14,24 @@ import {
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
+  readSheet,
+  readSource,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripSourceComments,
   stubProperty,
 } from "@shared/api/test-utils.js";
 
 import "@features/auth/data-access/session.js";
 import "./admin-users-page.js";
 import type { AdminUsersPage } from "./admin-users-page.js";
+
+// The stylesheet is read from disk for the dialog-chrome pins.
+const usersStyles = await readSheet(
+  new URL("./admin-users-page.css", import.meta.url),
+);
 
 const CREATED = "2023-11-14T22:13:20.000Z";
 
@@ -1207,15 +1213,23 @@ describe("admin-users-page", () => {
       await settle(page);
       expect(root(page).querySelector(".reset-dialog")).toBeNull();
 
-      const source = stripSourceComments(
-        await Bun.file(
-          new URL("./admin-users-page.ts", import.meta.url),
-        ).text(),
+      const source = await readSource(
+        new URL("./admin-users-page.ts", import.meta.url),
       );
       expect(source).toMatch(/typeof\s+\w+\.showModal\s*===\s*"function"/);
     } finally {
       restoreConfirm();
     }
+  });
+
+  test("the reset dialog panel carries explicit themed colours", () => {
+    // The dialog fill rule (components.md rule 10) wants an explicit opaque
+    // fill and themed text; happy-dom does no layout, so this is a
+    // CSS-source pin.
+    const rule = usersStyles.match(/\.reset-dialog \{([^}]*)\}/s)?.[1] ?? "";
+    expect(rule).toContain("background: var(--sf-bg)");
+    expect(rule).toContain("color: var(--sf-text)");
+    expect(rule).not.toContain("var(--sf-surface)");
   });
 
   test("the reset dialog falls back to the open attribute without showModal", async () => {

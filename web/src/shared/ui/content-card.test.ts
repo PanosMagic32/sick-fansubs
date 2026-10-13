@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { html } from "lit";
 
-import { stripCssComments } from "@shared/api/test-utils.js";
+import { readSheet } from "@shared/api/test-utils.js";
 import { el, favoritersAriaLabel } from "@shared/catalog/el.js";
 import { FAVORITE_COUNT_CLICK_EVENT } from "@shared/events.js";
 import type { AvatarUserRef } from "./avatar.js";
@@ -10,8 +10,8 @@ import type { AvatarUserRef } from "./avatar.js";
 import "./content-card.js";
 import type { ContentCard } from "./content-card.js";
 
-const cardStyles = stripCssComments(
-  await Bun.file(new URL("./content-card.css", import.meta.url)).text(),
+const cardStyles = await readSheet(
+  new URL("./content-card.css", import.meta.url),
 );
 
 function root(card: ContentCard): HTMLElement {

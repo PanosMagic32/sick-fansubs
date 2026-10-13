@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-import {
-  stripCssComments,
-  stripSourceComments,
-  stubProperty,
-} from "@shared/api/test-utils.js";
+import { readSheet, readSource, stubProperty } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
 
 import "./offline-banner.js";
@@ -101,15 +97,15 @@ describe("offline-banner", () => {
     // production-only and its page cache is partial, so the strip must
     // never read worker/cache state to decide what to say. Comments are
     // stripped first so prose can never decide this pin.
-    const source = stripSourceComments(
-      await Bun.file(new URL("./offline-banner.ts", import.meta.url)).text(),
+    const source = await readSource(
+      new URL("./offline-banner.ts", import.meta.url),
     );
     expect(source).not.toMatch(/serviceWorker|caches|registration/);
   });
 
   test("pins the slim, main-column-width CSS contract", async () => {
-    const styles = stripCssComments(
-      await Bun.file(new URL("./offline-banner.css", import.meta.url)).text(),
+    const styles = await readSheet(
+      new URL("./offline-banner.css", import.meta.url),
     );
     // Same width as the main content column (the 80rem wide-route cap).
     const host = styles.match(/:host \{([^}]*)\}/)?.[1] ?? "";

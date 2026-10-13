@@ -16,7 +16,7 @@ an embedded Lit + Vite frontend. The cutover procedure is [docs/ops/cutover.md](
 
 ## Current Status
 
-Version 2.1.0 is the production release. The deployment contract, the backup and restore procedures,
+Version 2.1.1 is the production release. The deployment contract, the backup and restore procedures,
 and the cutover record live under [docs/ops/](docs/ops/). AI agents start at [`AGENTS.md`](AGENTS.md).
 
 ## Quick Start

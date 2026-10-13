@@ -1,12 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import { stripCssComments } from "@shared/api/test-utils.js";
+import { readSheet } from "@shared/api/test-utils.js";
 
 import { BUTTON_VARIANTS, buttonClass } from "./controls.js";
 
-const controlsCss = stripCssComments(
-  await Bun.file(new URL("./controls.css", import.meta.url)).text(),
-);
+const controlsCss = await readSheet(new URL("./controls.css", import.meta.url));
 
 describe("controls", () => {
   test("buttonClass renders the base class alone by default", () => {

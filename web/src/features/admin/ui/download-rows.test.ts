@@ -7,15 +7,14 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
 import { el } from "@shared/catalog/el.js";
-import { stripCssComments } from "@shared/api/test-utils.js";
+import { readSheet } from "@shared/api/test-utils.js";
 
 import "./download-rows.js";
 import type { DownloadRows } from "./download-rows.js";
 
-// The stylesheet is read from disk rather than through `?inline`; the pins
-// strip comments first (testing rule 7 — prose may name a retired value).
-const rowsStyles = stripCssComments(
-  await Bun.file(new URL("./download-rows.css", import.meta.url)).text(),
+// The stylesheet is read from disk rather than through `?inline`.
+const rowsStyles = await readSheet(
+  new URL("./download-rows.css", import.meta.url),
 );
 
 async function render(): Promise<DownloadRows> {

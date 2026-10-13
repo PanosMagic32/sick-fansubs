@@ -53,9 +53,10 @@ export const FAVORITE_COUNT_CLICK_EVENT = "sf-favorite-count-click";
 
 /**
  * Dispatched by <likers-modal> when the user dismisses the dialog (its close
- * control or Escape) — the host flips `open` back down. Lit event bindings
- * spell this as a static template attribute (`@sf-likers-close`), so hosts
- * keep the literal there; the element's dispatches use this constant.
+ * control, Escape, or a backdrop press) — the host flips `open` back down.
+ * Lit event bindings spell this as a static template attribute
+ * (`@sf-likers-close`), so hosts keep the literal there; the element's
+ * dispatches use this constant.
  */
 export const LIKERS_CLOSE_EVENT = "sf-likers-close";
 

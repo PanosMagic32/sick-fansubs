@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
 import { el } from "@shared/catalog/el.js";
-import { stripCssComments } from "@shared/api/test-utils.js";
+import { readSheet } from "@shared/api/test-utils.js";
 
 import "./admin-tabs.js";
 import type { AdminTab, AdminTabs } from "./admin-tabs.js";
@@ -106,8 +106,8 @@ describe("admin-tabs", () => {
     // min-content width propagated up to the route root — the owner's "tabs
     // overflow". The row scrolls (the account page's shape) and the tabs keep
     // their natural width; happy-dom resolves no CSS, so this is a source pin.
-    const tabsStyles = stripCssComments(
-      await Bun.file(new URL("./admin-tabs.css", import.meta.url)).text(),
+    const tabsStyles = await readSheet(
+      new URL("./admin-tabs.css", import.meta.url),
     );
     const row = tabsStyles.match(/\.admin-tabs \{([^}]*)\}/s)?.[1] ?? "";
     expect(row).toContain("overflow-x: auto");

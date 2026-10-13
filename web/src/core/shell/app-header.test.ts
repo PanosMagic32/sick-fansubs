@@ -6,8 +6,8 @@ import "@features/auth/data-access/session.js";
 import { ApiError, NetworkError } from "@shared/api/client.js";
 import { API_REQUEST_TIMEOUT_MS } from "@shared/api/request-signal.js";
 import {
-  stripCssComments,
-  stripSourceComments,
+  readSheet,
+  readSource,
   stubAbortSignalTimeout,
 } from "@shared/api/test-utils.js";
 import { el as catalog } from "@shared/catalog/el.js";
@@ -19,10 +19,9 @@ import type { AppShell } from "./app-shell.js";
 import type { SessionProvider } from "@features/auth/data-access/session.js";
 
 // The stylesheet is read from disk rather than through the `?inline`
-// import (it must not ride the bundler's CSS loader mapping); comments are
-// stripped before matching, so prose can never decide a pin.
-const headerStyles = stripCssComments(
-  await Bun.file(new URL("./app-header.css", import.meta.url)).text(),
+// import (it must not ride the bundler's CSS loader mapping).
+const headerStyles = await readSheet(
+  new URL("./app-header.css", import.meta.url),
 );
 
 function renderHeader(): AppHeader {
@@ -544,8 +543,8 @@ describe("app-header", () => {
     // happy-dom cannot compute styles; the button look is pinned at its
     // source — the shared vocabulary classes on the panel's entries — plus
     // the layout-only local rule and the scoped aria-current selector.
-    const source = stripSourceComments(
-      await Bun.file(new URL("./app-header.ts", import.meta.url)).text(),
+    const source = await readSource(
+      new URL("./app-header.ts", import.meta.url),
     );
     expect(source).toContain(
       'class="button button--secondary account-menu-item"',

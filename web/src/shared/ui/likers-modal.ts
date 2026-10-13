@@ -4,7 +4,8 @@
  *
  * The element owns the cursor state machine and NOTHING about the wire: the
  * host hands it a `loader` (its feature's endpoint call), sets the heading
- * copy, flips `open`, and receives `sf-likers-close`. That keeps shared/
+ * copy, flips `open`, and receives `sf-likers-close` (the close control,
+ * Escape, or a backdrop click). That keeps shared/
  * free of feature APIs (components.md rule 2) while the paging logic exists
  * once.
  *
@@ -134,6 +135,7 @@ export class LikersModal extends LitElement {
   }
 
   private _openDialog() {
+    this._clearBackdropPress();
     const dialog = this._dialog;
     if (!dialog || dialog.open) return;
     if (typeof dialog.showModal === "function") {
@@ -144,6 +146,7 @@ export class LikersModal extends LitElement {
   }
 
   private _closeDialog() {
+    this._clearBackdropPress();
     const dialog = this._dialog;
     if (!dialog?.open) return;
     if (typeof dialog.close === "function") {
@@ -166,6 +169,38 @@ export class LikersModal extends LitElement {
     this.dispatchEvent(
       new CustomEvent(LIKERS_CLOSE_EVENT, { bubbles: true, composed: true }),
     );
+  };
+
+  /** A press counts as a backdrop press only when BOTH its mousedown and
+   * its mouseup land on the backdrop (the dialog element itself — the panel
+   * has no padding): a drag that starts or ends on the panel must not
+   * dismiss the modal. */
+  private _backdropPress = false;
+  private _backdropRelease = false;
+
+  private _onDialogMouseDown = (event: MouseEvent) => {
+    this._backdropPress =
+      event.button === 0 && event.target === event.currentTarget;
+  };
+
+  private _onDialogMouseUp = (event: MouseEvent) => {
+    this._backdropRelease = event.target === event.currentTarget;
+  };
+
+  /** A backdrop click dismisses (the native <dialog> does not close on one);
+   * content clicks target the panel's children, and a drag whose press or
+   * release landed on the panel never counts. */
+  private _onDialogClick = (event: MouseEvent) => {
+    const fromBackdrop = this._backdropPress && this._backdropRelease;
+    this._clearBackdropPress();
+    if (!fromBackdrop || event.target !== event.currentTarget) return;
+    this._onCloseClick();
+  };
+
+  /** Drop the transient press state — a close or reopen starts clean. */
+  private _clearBackdropPress = () => {
+    this._backdropPress = false;
+    this._backdropRelease = false;
   };
 
   private async _loadFirst() {
@@ -234,6 +269,9 @@ export class LikersModal extends LitElement {
         class="likers-dialog"
         aria-labelledby="likers-title"
         @close=${this._onDialogClose}
+        @mousedown=${this._onDialogMouseDown}
+        @mouseup=${this._onDialogMouseUp}
+        @click=${this._onDialogClick}
       >
         <div class="likers-head">
           <h2 id="likers-title" class="likers-title">${this.heading}</h2>

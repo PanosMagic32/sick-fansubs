@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { stripCssComments } from "@shared/api/test-utils.js";
+import { readSheet } from "@shared/api/test-utils.js";
 import type { CSSResult, LitElement } from "lit";
 
 import "../shell/app-shell.js";
@@ -77,9 +77,7 @@ describe("in-shadow baseline coverage", () => {
 
 describe("reserved state block", () => {
   test("the shared baseline reserves a footprint for loading/empty/error states", async () => {
-    const css = stripCssComments(
-      await Bun.file(new URL("./baseline.css", import.meta.url)).text(),
-    );
+    const css = await readSheet(new URL("./baseline.css", import.meta.url));
     const rule = css.match(/(?:^|\n)\.state-block \{([^}]*)\}/s)?.[1] ?? "";
     expect(rule).toContain("min-height: 14rem");
     // The message centers inside the reserved box: a reserved block with

@@ -12,12 +12,12 @@ import {
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
+  readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripCssComments,
   waitFor,
 } from "@shared/api/test-utils.js";
 
@@ -26,10 +26,10 @@ import "./admin-metrics-page.js";
 import type { AdminMetricsPage } from "./admin-metrics-page.js";
 
 // The stylesheet is read from disk (the search-page precedent): the bar
-// geometry is pinned against the source with its comments stripped, because
-// happy-dom resolves no CSS at all.
-const metricsStyles = stripCssComments(
-  await Bun.file(new URL("./admin-metrics-page.css", import.meta.url)).text(),
+// geometry is pinned against the source, because happy-dom resolves no CSS
+// at all.
+const metricsStyles = await readSheet(
+  new URL("./admin-metrics-page.css", import.meta.url),
 );
 
 /** sf-navigate listeners registered by a test — removed in afterEach (a

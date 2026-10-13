@@ -17,9 +17,9 @@ import {
   mockFetchImpl,
   mockResponse,
   mockSessionContext,
+  readSheet,
+  readSource,
   restoreMockFetch,
-  stripCssComments,
-  stripSourceComments,
   stubProperty,
   waitFor,
 } from "@shared/api/test-utils.js";
@@ -301,10 +301,9 @@ function preferencePuts(): Array<[RequestInfo | URL, RequestInit | undefined]> {
   );
 }
 
-/** The stylesheet is read from disk and comment-stripped: contract pins must
- * never pass or fail on prose (testing rule 7). */
-const pushStyles = stripCssComments(
-  await Bun.file(new URL("./push-settings.css", import.meta.url)).text(),
+/** The stylesheet is read from disk for the contract pins. */
+const pushStyles = await readSheet(
+  new URL("./push-settings.css", import.meta.url),
 );
 
 function text(el: PushSettings, selector: string): string | null {
@@ -1293,8 +1292,8 @@ describe("push-settings", () => {
     // happy-dom cannot compute styles: the vocabulary is pinned at its
     // source — the markup classes — plus the one local rule (the off switch
     // warms to the error colour under the pointer).
-    const source = stripSourceComments(
-      await Bun.file(new URL("./push-settings.ts", import.meta.url)).text(),
+    const source = await readSource(
+      new URL("./push-settings.ts", import.meta.url),
     );
     expect(source).toContain('class="button button--primary push-on"');
     expect(source).toContain('class="button button--primary push-save"');
@@ -1312,10 +1311,8 @@ describe("push-settings", () => {
 
     // The device row actions carry the same vocabulary (never a hand-rolled
     // box), and the delete warms to the error colour on hover.
-    const deviceSource = stripSourceComments(
-      await Bun.file(
-        new URL("./push-devices-section.ts", import.meta.url),
-      ).text(),
+    const deviceSource = await readSource(
+      new URL("./push-devices-section.ts", import.meta.url),
     );
     expect(deviceSource).toContain(
       'class="button button--icon button--ghost push-device-rename"',
@@ -1326,6 +1323,16 @@ describe("push-settings", () => {
     expect(pushStyles).toMatch(
       /\.push-device-delete:hover:not\(:disabled\) \{[^}]*--sf-error/s,
     );
+  });
+
+  test("the dialogs carry an explicit opaque fill and themed text", () => {
+    // components.md rule 10: a dialog panel sets its own fill and colour;
+    // happy-dom resolves no tokens and does no layout, so this pins the
+    // source.
+    const dialog = pushStyles.match(/\.push-dialog \{([^}]*)\}/s)?.[1] ?? "";
+    expect(dialog).toContain("background: var(--sf-bg)");
+    expect(dialog).toContain("color: var(--sf-text)");
+    expect(dialog).not.toContain("var(--sf-surface)");
   });
 
   test("the kind toggles are sized for comfortable tapping", () => {

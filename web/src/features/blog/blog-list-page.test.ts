@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
   mockFetchImpl,
   mockResponse,
+  readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
-  stripCssComments,
 } from "@shared/api/test-utils.js";
 import { NAVIGATE_EVENT } from "@core/router.js";
 import { el, pagerPageOf } from "@shared/catalog/el.js";
@@ -20,13 +20,11 @@ import "./blog-list-page.js";
 import type { BlogListPage } from "./blog-list-page.js";
 import type { ContentCard } from "@shared/ui/content-card.js";
 
-const listStyles = stripCssComments(
-  await Bun.file(new URL("./blog-list-page.css", import.meta.url)).text(),
+const listStyles = await readSheet(
+  new URL("./blog-list-page.css", import.meta.url),
 );
-const statsStyles = stripCssComments(
-  await Bun.file(
-    new URL("../../shared/ui/content-stats.css", import.meta.url),
-  ).text(),
+const statsStyles = await readSheet(
+  new URL("../../shared/ui/content-stats.css", import.meta.url),
 );
 
 /**
