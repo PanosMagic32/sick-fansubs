@@ -100,7 +100,7 @@ Replaced forms a reader may still meet in old code or in older writing:
   each other through the host interface; a compiler generation that detects the cycle eagerly
   reports an implicit `any` (TS7022) where a later one resolves it lazily. Annotate the field
   (`readonly subs: Subs = new Subs(this)`) — the pinned compiler and the editor's language server
-  then agree, and the contract is visible at the field. The two section fields in
+  then agree, and the contract is visible at the field. The section fields in
   `web/src/features/notifications/ui/push-settings.ts` are the recorded shape.
 
 ## Pointers

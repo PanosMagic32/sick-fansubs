@@ -551,7 +551,7 @@ export class CommentsThread extends LitElement {
       </section>
       <likers-modal
         .open=${this._likersCommentId !== null}
-        heading=${el.likers.heading}
+        heading=${el.likers.title}
         .loader=${this._loadHearters}
         @sf-likers-close=${this._closeLikers}
       ></likers-modal>

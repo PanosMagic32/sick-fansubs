@@ -20,9 +20,9 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
    session wiring (a page reads the URL and the session context, loads through `data-access`, and
    hands values down). Features reach each other only through the recorded capability edges: the
    session context (`@features/auth/data-access/session.js`, open to every feature), the detail
-   pages' `favorite-toggle`/`follow-toggle` and favorites `listFavoriters` data-access (auth) and
-   `comments-section` (comments), and the
-   account page's `push-settings` (notifications). `web/src/architecture.test.ts` guards the list; a
+   pages' `favorite-toggle`/`follow-toggle` and favorites `listFavoriters` data-access (auth),
+   `comments-section` (comments), and the account page's `push-settings` (notifications).
+   `web/src/architecture.test.ts` guards the list; a
    new edge gets an entry there and a sentence here. `core/` imports features only under its own
    recorded exceptions (element registration in `index.ts`, the session-aware shell and header;
    test files may import the elements they exercise, e.g. `baseline.test.ts`'s style enumeration).
@@ -133,8 +133,9 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
     fills typed inputs
     (`href`, `title`, `heading-level`,
     `subtitle`, `description`, `thumbnail-url`, `badge`/`badge-tone`, `secondary`, `meta-label`/
-    `meta-instant`, `creator`/`published-at`/`sr-username`, `updater`/`updated-at`, and the two
-    counts that drive the stats chip) and fills the slots; it never restyles a shape. The element's
+    `meta-instant`, `creator`/`published-at`/`sr-username`, `updater`/`updated-at`, the two counts
+    that drive the stats chip, and `favorite-count-action` — the flag that makes the favorite count
+    a likers-dialog opener) and fills the slots; it never restyles a shape. The element's
     doc comment is the input-by-shape contract. Per-item controls ride the `actions` slot (in-flow:
     a row's trailing control, the detail title row's toggles and staff edit link) or the `overlay`
     slot (a linked row's corner control — the element places it and reserves the room). A linked

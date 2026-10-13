@@ -11,7 +11,8 @@
  * Loading: page 1 on every open (likes are live data), "Περισσότεροι"
  * appends through the previous page's endCursor. Reads abort on close,
  * teardown, and supersede, so a slow page can never paint over a newer
- * state.
+ * state; every read also carries the shared 15 s deadline (requestSignal),
+ * so a hung fetch surfaces as the error state, never an endless spinner.
  *
  * The dialog is the native <dialog> (components.md rule 10): opening is a
  * post-render step guarded by `dialog.open`, and the element falls back to
@@ -23,6 +24,7 @@ import { customElement, property, state } from "lit/decorators.js";
 
 import sharedStyles from "@core/styles/baseline.css?inline";
 import controlStyles from "@shared/ui/controls.css?inline";
+import { requestSignal } from "@shared/api/request-signal.js";
 import { el } from "@shared/catalog/el.js";
 import { LIKERS_CLOSE_EVENT } from "@shared/events.js";
 import { mapError } from "@shared/utils/format.js";
@@ -188,7 +190,7 @@ export class LikersModal extends LitElement {
     this._moreError = "";
 
     try {
-      const page = await loader(null, controller.signal);
+      const page = await loader(null, requestSignal(controller));
       if (controller.signal.aborted || this._abort !== controller) return;
       this._items = page.items;
       this._hasNext = page.pageInfo.hasNextPage;
@@ -212,7 +214,7 @@ export class LikersModal extends LitElement {
     this._moreError = "";
 
     try {
-      const page = await loader(cursor, controller.signal);
+      const page = await loader(cursor, requestSignal(controller));
       if (controller.signal.aborted || this._moreAbort !== controller) return;
       this._items = [...this._items, ...page.items];
       this._hasNext = page.pageInfo.hasNextPage;
@@ -273,9 +275,9 @@ export class LikersModal extends LitElement {
       <ul class="likers-list" role="list">
         ${this._items.map(
           (item) => html`
-            <li class="liker-row">
+            <li class="likers-row">
               ${avatarTemplate(item)}
-              <span class="liker-name">${item.username}</span>
+              <span class="likers-name">${item.username}</span>
             </li>
           `,
         )}

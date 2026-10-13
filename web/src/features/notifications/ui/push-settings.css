@@ -1,8 +1,8 @@
 /* Push settings section — the account-page
  * surface: subscribe/off buttons, the self-test press, per-kind toggles,
- * the double-permission confirm <dialog>,
- * and the state hints (denied/iOS/error). The controls are the shared
- * vocabulary (primary for the section's own action, secondary for
+ * the all-devices list and its rename dialog, the double-permission confirm
+ * <dialog>, and the state hints (denied/iOS/error). The controls are the
+ * shared vocabulary (primary for the section's own action, secondary for
  * diagnostics, a quiet off switch that warms to the error colour). */
 
 .push-settings h2 {

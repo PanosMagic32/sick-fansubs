@@ -9,8 +9,9 @@
  *  - Writes (create/delete/toggle) require CSRF — the client attaches
  *    X-CSRF-Token automatically via needsCSRF.
  *  - POST /push-subscriptions returns 201 + { id } — the stored row's id
- *    (the existing row on a same-endpoint resubscribe); keep it for the
- *    DELETE and the rename.
+ *    (the existing row on a same-endpoint resubscribe); it is this
+ *    device's local row identity: the DELETE target, the current-device
+ *    badge, and the self-test's removed-row check.
  *  - GET /push-subscriptions rows carry id, endpoint, label, and createdAt;
  *    label is null for an unrecognized subscribe-time User-Agent.
  *  - DELETE is 204 ALWAYS (idempotent, masked) — no 404 handling exists.

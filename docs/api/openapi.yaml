@@ -2708,6 +2708,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
         "422":
           $ref: "#/components/responses/Validation"
         "500":
@@ -2742,6 +2744,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
         "500":
           $ref: "#/components/responses/InternalError"
   /api/v1/notifications/read-all:
@@ -2930,6 +2934,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
         "500":
           $ref: "#/components/responses/InternalError"
     post:
@@ -3141,6 +3147,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
         "500":
           $ref: "#/components/responses/InternalError"
   /api/v1/notification-preferences/{kind}:

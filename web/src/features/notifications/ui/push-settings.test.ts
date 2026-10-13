@@ -1634,6 +1634,44 @@ describe("push-settings", () => {
     expect(Notification.requestPermission).not.toHaveBeenCalled();
   });
 
+  test("the rename dialog falls back to the open attribute without showModal", async () => {
+    const endpoint = "https://push.example.com/current";
+    restoreStubs.push(
+      stubProperty(HTMLDialogElement.prototype, "showModal", undefined),
+    );
+    stubPushEnvironment({
+      permission: "granted",
+      localEndpoint: endpoint,
+      serverRows: [
+        {
+          id: "s1",
+          endpoint,
+          label: null,
+          createdAt: "2026-09-13T12:00:00.000Z",
+        },
+        {
+          id: "s2",
+          endpoint: "https://push.example.com/old",
+          label: null,
+          createdAt: "2026-08-01T09:00:00.000Z",
+        },
+      ],
+    });
+    const el = await mountAuthenticated();
+
+    (
+      root(el).querySelector(
+        '[data-device-id="s2"] .push-device-rename',
+      ) as HTMLButtonElement
+    ).click();
+    await settle(el);
+
+    const dialog = root(el).querySelector<HTMLDialogElement>(
+      ".push-device-dialog",
+    )!;
+    expect(dialog.hasAttribute("open")).toBe(true);
+  });
+
   test("cancelling the confirm dialog closes it without prompting", async () => {
     stubPushEnvironment({ permission: "default" });
     const el = mount();

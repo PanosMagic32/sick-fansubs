@@ -30,8 +30,8 @@ import type {
 import type { PushSubscriptionsSurface } from "./push-subscriptions-section.js";
 
 /**
- * Host contract for the preferences section: the subscriptions half owns the
- * shared error banner and the reload the retry control runs through.
+ * Host contract for the preferences section: the subscriptions section owns
+ * the shared error banner and the reload the retry control runs through.
  */
 export interface PushPreferencesHost extends ReactiveControllerHost {
   readonly subscriptions: PushSubscriptionsSurface;
@@ -44,7 +44,7 @@ export class PushPreferencesSection implements ReactiveController {
   /** A save fan-out in flight (every control is gated while set). */
   private _savePending = false;
 
-  /** A save fan-out in flight — read by the subscriptions half's busy
+  /** A save fan-out in flight — read by the subscriptions section's busy
    * predicate and the element's controls. */
   get savePending(): boolean {
     return this._savePending;
@@ -67,8 +67,8 @@ export class PushPreferencesSection implements ReactiveController {
    * interface. */
   hostConnected() {}
 
-  /** Replace the loaded preferences (the subscriptions half fetches them
-   * beside the device list) and re-render. */
+  /** Replace the loaded preferences (the subscriptions section fetches
+   * them beside the device list) and re-render. */
   applyLoaded(preferences: NotificationPreference[]) {
     this._prefs = preferences;
     this.refresh();

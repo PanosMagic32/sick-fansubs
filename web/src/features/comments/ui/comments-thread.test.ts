@@ -847,7 +847,7 @@ describe("comments-thread", () => {
     await modal.updateComplete;
     const modalRoot = modal.shadowRoot!;
     expect(
-      (modalRoot.querySelector(".liker-name")?.textContent ?? "").trim(),
+      (modalRoot.querySelector(".likers-name")?.textContent ?? "").trim(),
     ).toBe("Perospero");
 
     // The close control informs the thread, which drops the open comment.

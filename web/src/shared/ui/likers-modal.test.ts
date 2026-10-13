@@ -26,7 +26,7 @@ function page(
 
 async function render(): Promise<LikersModal> {
   const modal = document.createElement("likers-modal") as LikersModal;
-  modal.heading = el.likers.heading;
+  modal.heading = el.likers.title;
   document.body.appendChild(modal);
   await modal.updateComplete;
   return modal;
@@ -45,7 +45,7 @@ function dialog(modal: LikersModal): HTMLDialogElement {
 }
 
 function names(modal: LikersModal): string[] {
-  return [...root(modal).querySelectorAll(".liker-name")].map(
+  return [...root(modal).querySelectorAll(".likers-name")].map(
     (n) => n.textContent?.trim() ?? "",
   );
 }
@@ -71,7 +71,7 @@ describe("likers-modal", () => {
     expect(names(modal)).toEqual(["Perospero"]);
     expect(
       root(modal).querySelector(".likers-title")?.textContent?.trim(),
-    ).toBe(el.likers.heading);
+    ).toBe(el.likers.title);
   });
 
   test("load more appends the next page through the end cursor", async () => {

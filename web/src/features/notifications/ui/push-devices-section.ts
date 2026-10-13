@@ -1,15 +1,15 @@
 /**
- * Push devices section of <push-settings> — the all-devices half: every
+ * Push devices section of <push-settings> — the all-devices section: every
  * subscription row the caller owns, with its device name, the
  * current-device badge, and the rename/delete actions.
  *
  * A reactive section controller: the element owns the shadow-root markup and
  * reads this section's state; the section owns the rows, the action
- * handlers, and the rename dialog's lifecycle. The subscriptions half loads
- * the rows at mount and hands them over (applyLoaded); this section patches
- * its rows locally after its own mutations; the subscriptions half asks it
- * to refresh after a subscribe or disable, and its self-test re-read arrives
- * through applyLoaded too.
+ * handlers, and the rename dialog's lifecycle. The subscriptions section
+ * loads the rows at mount and hands them over (applyLoaded); this section
+ * patches its rows locally after its own mutations; the subscriptions
+ * section asks it to reload after a subscribe or disable, and its self-test
+ * re-read arrives through applyLoaded too.
  *
  * Delete follows the sessions precedent — no confirm, a pending swap on the
  * row's own control — and the CURRENT device's row carries no delete: the
@@ -44,12 +44,12 @@ import type { PushSubscriptionItem } from "../data-access/types.js";
  * server accepts. */
 const MAX_DEVICE_NAME_RUNES = 32;
 
-/** The narrow subscriptions-half surface the devices section reads. */
+/** The narrow subscriptions-section surface the devices section reads. */
 export interface PushDevicesSubscriptionsSurface {
   /** The current device's row id (the endpoint match), or null when this
    * device is not subscribed. */
   get currentSubscriptionId(): string | null;
-  /** The shared error banner (all three halves write it). */
+  /** The shared error banner (all three sections write it). */
   get error(): string;
   set error(value: string);
   /** The shared busy predicate — any action in flight in the section. */
@@ -60,18 +60,18 @@ export interface PushDevicesSubscriptionsSurface {
 export interface PushDevicesHost extends ReactiveControllerHost {
   /** The element's shadow root — the rename dialog is queried there. */
   readonly shadowRoot: ShadowRoot | null;
-  /** The subscriptions half: the current-device id and the shared banner. */
+  /** The subscriptions section: the current-device id and the shared banner. */
   readonly subscriptions: PushDevicesSubscriptionsSurface;
 }
 
-/** The narrow devices-half surface the subscriptions half drives. */
+/** The narrow devices-section surface the subscriptions section drives. */
 export interface PushDevicesSurface {
-  /** Hand fresh rows over: the mount load, the subscriptions half's
+  /** Hand fresh rows over: the mount load, the subscriptions section's
    * subscribe/disable re-read, or its self-test re-read. */
   applyLoaded(rows: PushSubscriptionItem[]): void;
   /** Best-effort re-read after a subscribe or disable changed the rows;
    * failures are silent (the mount load owns the error banner). */
-  refresh(): void;
+  reload(): void;
   /** A device action in flight — joins the shared busy predicate. */
   get pending(): boolean;
 }
@@ -114,7 +114,7 @@ export class PushDevicesSection implements ReactiveController {
   }
 
   /** One busy predicate for every control in the settings section: a press
-   * in flight must not race another action, whichever half owns it. */
+   * in flight must not race another action, whichever section owns it. */
   get busy(): boolean {
     return this._host.subscriptions.busy;
   }
@@ -129,7 +129,7 @@ export class PushDevicesSection implements ReactiveController {
     this._refresh();
   }
 
-  refresh(): void {
+  reload(): void {
     const controller = new AbortController();
     this._readAbort?.abort();
     this._readAbort = controller;
@@ -202,12 +202,13 @@ export class PushDevicesSection implements ReactiveController {
     this._renameError = "";
     this._refresh();
     const dialog = this._renameDialog();
+    if (!dialog || dialog.open) return;
     // showModal gives the focus trap + restore + Escape handling; the
     // attribute fallback covers a DOM without the method.
-    if (typeof dialog?.showModal === "function") {
+    if (typeof dialog.showModal === "function") {
       dialog.showModal();
     } else {
-      dialog?.setAttribute("open", "");
+      dialog.setAttribute("open", "");
     }
   };
 

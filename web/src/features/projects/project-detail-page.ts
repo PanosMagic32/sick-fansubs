@@ -371,7 +371,7 @@ export class ProjectDetailPage extends LitElement {
 
         <likers-modal
           .open=${this._likersOpen}
-          heading=${el.likers.heading}
+          heading=${el.likers.title}
           .loader=${this._loadFavoriters}
           @sf-likers-close=${this._closeLikers}
         ></likers-modal>

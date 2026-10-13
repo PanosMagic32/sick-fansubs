@@ -1,6 +1,6 @@
 /**
  * Push subscriptions section of <push-settings> — this device's capability
- * half: the subscribe button and its double-permission flow (our own confirm
+ * section: the subscribe button and its double-permission flow (our own confirm
  * dialog first, then the browser prompt), the off switch that deletes the
  * server row and unsubscribes locally, the self-test press, and the worker
  * relay that silently resubscribes after a push-service rotation.
@@ -75,7 +75,7 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 /**
  * Host contract for the subscriptions section: the consumed session's state,
  * the element's shadow root (the confirm dialog is queried there), and the
- * two sibling halves the flows drive.
+ * two sibling sections the flows drive.
  */
 export interface PushSubscriptionsHost extends ReactiveControllerHost {
   /** The consumed session's state — the one-shot latch waits for the
@@ -83,30 +83,30 @@ export interface PushSubscriptionsHost extends ReactiveControllerHost {
   readonly sessionState: SessionState | undefined;
   /** The element's shadow root — the confirm dialog is queried there. */
   readonly shadowRoot: ShadowRoot | null;
-  /** The preferences half: its save flag joins the shared busy predicate,
+  /** The preferences section: its save flag joins the shared busy predicate,
    * and the load hands it the fetched preferences. */
   readonly preferences: PushPreferencesSurface;
-  /** The devices half: the mount load hands over the list halves' shared
-   * fetch, and the flows that change server rows ask it to re-read. */
+  /** The devices section: the mount load hands over the fetched rows, and
+   * the flows that change server rows ask it to re-read. */
   readonly devices: PushDevicesSurface;
 }
 
-/** The narrow surface the preferences half reads from this section. */
+/** The narrow surface the preferences section reads from this section. */
 export interface PushSubscriptionsSurface {
-  /** The shared error banner (every half writes it). */
+  /** The shared error banner (every section writes it). */
   get error(): string;
   set error(value: string);
   /** The in-flight action, for the checkbox gating. */
   get pending(): "none" | "subscribe" | "unsubscribe";
-  /** Reload both halves (the error banner's retry control). */
+  /** Reload every section (the error banner's retry control). */
   retry(): void;
 }
 
-/** The narrow surface this section reads from the preferences half. */
+/** The narrow surface this section reads from the preferences section. */
 export interface PushPreferencesSurface {
   /** A save fan-out in flight — joins the shared busy predicate. */
   get savePending(): boolean;
-  /** Hand the fetched preferences to the half that renders them. */
+  /** Hand the fetched preferences to the section that renders them. */
   applyLoaded(preferences: NotificationPreference[]): void;
 }
 
@@ -120,21 +120,21 @@ export class PushSubscriptionsSection implements ReactiveController {
   /** "none" | the in-flight action ("subscribe" | "unsubscribe"). */
   private _pending: "none" | "subscribe" | "unsubscribe" = "none";
 
-  /** The in-flight action, read by the preferences half's gating. */
+  /** The in-flight action, read by the preferences section's gating. */
   get pending(): "none" | "subscribe" | "unsubscribe" {
     return this._pending;
   }
 
   /** The CURRENT device's row id (the endpoint match), or null when this
-   * device is not subscribed — the devices half's badge key. */
+   * device is not subscribed — the devices section's badge key. */
   get currentSubscriptionId(): string | null {
     return this._subscription?.id ?? null;
   }
 
-  /** The shared error banner (the preferences save flow writes it too). */
+  /** The shared error banner (every section writes it). */
   private _error = "";
 
-  /** The shared error banner; a write repaints both halves. */
+  /** The shared error banner; a write repaints every section. */
   get error(): string {
     return this._error;
   }
@@ -265,8 +265,8 @@ export class PushSubscriptionsSection implements ReactiveController {
       const [list] = await Promise.all([
         listPushSubscriptions({ signal: requestSignal(controller) }).then(
           (loaded) => {
-            // The mount's single list fetch feeds BOTH halves: the device
-            // list renders these rows and this half matches them against
+            // The mount's single list fetch feeds BOTH sections: the device
+            // list renders these rows and this section matches them against
             // the local registration. The rows land even when the
             // preferences GET fails beside them — the error branch keeps
             // the device list manageable.
@@ -341,7 +341,7 @@ export class PushSubscriptionsSection implements ReactiveController {
   /* ── Subscribe / unsubscribe ────────────────────────────────────── */
 
   /** The subscribe confirm dialog — a class-scoped query so the devices
-   * half's rename dialog in the same shadow root can never be picked. */
+   * section's rename dialog in the same shadow root can never be picked. */
   private _subscribeDialog(): HTMLDialogElement | null {
     return (
       (this._host.shadowRoot?.querySelector(
@@ -352,12 +352,13 @@ export class PushSubscriptionsSection implements ReactiveController {
 
   _onEnableClick = () => {
     const dialog = this._subscribeDialog();
+    if (!dialog || dialog.open) return;
     // showModal gives the focus trap + restore + Escape handling; the
     // attribute fallback covers a DOM without the method.
-    if (typeof dialog?.showModal === "function") {
+    if (typeof dialog.showModal === "function") {
       dialog.showModal();
     } else {
-      dialog?.setAttribute("open", "");
+      dialog.setAttribute("open", "");
     }
   };
 
@@ -423,7 +424,7 @@ export class PushSubscriptionsSection implements ReactiveController {
     this._subscription = { id, endpoint };
     this.refresh();
     // A new row exists — the device list must show it.
-    this._host.devices.refresh();
+    this._host.devices.reload();
   }
 
   _onDisableClick = async () => {
@@ -441,7 +442,7 @@ export class PushSubscriptionsSection implements ReactiveController {
       this._subscription = null;
       this._testResult = null;
       // The row is gone server-side — the device list must drop it too.
-      this._host.devices.refresh();
+      this._host.devices.reload();
     } catch (err) {
       this._error = mapError(err);
     } finally {

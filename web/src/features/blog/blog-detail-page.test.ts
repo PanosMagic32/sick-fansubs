@@ -210,7 +210,7 @@ describe("blog-detail-page", () => {
     await modal.updateComplete;
     expect(
       (
-        modal.shadowRoot!.querySelector(".liker-name")?.textContent ?? ""
+        modal.shadowRoot!.querySelector(".likers-name")?.textContent ?? ""
       ).trim(),
     ).toBe("Perospero");
 

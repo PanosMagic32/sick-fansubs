@@ -50,14 +50,14 @@
     flex-direction: column;
 }
 
-.liker-row {
+.likers-row {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     padding: 0.35rem 0.25rem;
 }
 
-.liker-name {
+.likers-name {
     font-size: 0.9rem;
     overflow-wrap: anywhere;
 }
@@ -67,6 +67,13 @@
     padding: 1rem;
     text-align: center;
     color: var(--sf-text-muted);
+}
+
+.likers-more-error {
+    margin: 0;
+    color: var(--sf-error);
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 .likers-retry,

@@ -59,7 +59,8 @@ type pushSubscriptionRenameRequest struct {
 }
 
 // pushSubscriptionDTO is the create response body — the stored row id the
-// client keeps for DELETE.
+// client keeps as this device's local row identity: the DELETE target, the
+// current-device badge, and the self-test's removed-row check.
 type pushSubscriptionDTO struct {
 	ID string `json:"id"`
 }

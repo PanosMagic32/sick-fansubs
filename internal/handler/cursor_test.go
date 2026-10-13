@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-// Shared cursor-codec tests: the blog, project, and search namespaces share
-// one implementation, so the contract is pinned once per prefix here. The
-// HTTP-level tests (blog_test.go,
-// project_test.go, search_test.go) still pin each endpoint's wire behavior
-// end to end.
+// Shared cursor-codec tests: every namespace that uses the plain
+// timestamp+id codec is pinned once per prefix here — the sort-bound comment
+// codecs and the title-sort codec have their own payload shapes and their
+// own tests. The HTTP-level tests (blog_test.go, project_test.go,
+// search_test.go) still pin each endpoint's wire behavior end to end.
 
 var cursorNamespaces = []struct {
 	name   string
@@ -19,6 +19,34 @@ var cursorNamespaces = []struct {
 	{"project", projectCursorPrefix},
 	{"search", searchCursorPrefix},
 	{"search-oldest", searchOldestCursorPrefix},
+	{"blog-favorites", blogFavCursorPrefix},
+	{"project-favorites", projectFavCursorPrefix},
+	{"blog-favoriters", blogFavoritersCursorPrefix},
+	{"project-favoriters", projectFavoritersCursorPrefix},
+	{"blog-hearters", blogHeartersCursorPrefix},
+	{"project-hearters", projectHeartersCursorPrefix},
+	{"blog-admin", blogAdminCursorPrefix},
+	{"project-admin", projectAdminCursorPrefix},
+	{"staff-users", staffUserCursorPrefix},
+	{"notifications", notificationCursorPrefix},
+	{"blog-replies", blogReplyCursorPrefix},
+	{"project-replies", projectReplyCursorPrefix},
+	{"sessions", sessionCursorPrefix},
+}
+
+// TestCursorPrefixesUnique pins the table's foundation: every prefix is
+// distinct, so the crossing test below can never be satisfied by a
+// duplicated entry (it skips equal prefixes).
+func TestCursorPrefixesUnique(t *testing.T) {
+	t.Parallel()
+
+	seen := make(map[string]string, len(cursorNamespaces))
+	for _, ns := range cursorNamespaces {
+		if other, ok := seen[ns.prefix]; ok {
+			t.Errorf("prefix %q is used by both %s and %s", ns.prefix, other, ns.name)
+		}
+		seen[ns.prefix] = ns.name
+	}
 }
 
 // TestDecodeCursor_FixedWireFormat pins the accepted cursor encoding per

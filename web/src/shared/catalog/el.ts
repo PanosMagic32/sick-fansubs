@@ -948,7 +948,7 @@ export function heartersAriaLabel(count: number): string {
  * indicators (favorites on posts/projects, hearts on comments).
  */
 const likers = {
-  heading: "Άρεσε σε",
+  title: "Άρεσε σε",
   close: "Κλείσιμο",
   loadMore: "Περισσότεροι",
   loadingMore: "Φόρτωση…",

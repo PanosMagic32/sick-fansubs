@@ -21,7 +21,8 @@ shared query contract. Rules marked _house rule_ are this repository's own conve
    The read reports whether another page exists; the worker mints the cursor from the last returned
    row exactly when it does. A count must state the same filters and scope as its read: the bigger
    predicates are built once and shared by both closures (`publishedFromWhere`, `favoritesFromWhere`,
-   `searchBranches` + `searchWindowConditions`, `notificationsFrom`, `staffListWhere`,
+   `favoritersFromWhere` + `heartersFromWhere`, `searchBranches` + `searchWindowConditions`,
+   `notificationsFrom`, `staffListWhere`,
    `staffUsersFromWhere`), and a one-line predicate is written literally beside its read (the
    comment counts, the session window). The counts run after a successful read, so they do not
    re-apply the read's existence gates (the comments' published/parent checks) — a count that drops

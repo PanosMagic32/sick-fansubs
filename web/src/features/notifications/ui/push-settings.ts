@@ -67,19 +67,19 @@ export class PushSettings extends LitElement {
     return this.session?.state;
   }
 
-  /** The device-capability half: capability refinement, the double-permission
-   * flow, subscribe/disable, the self-test, and the worker relay. Explicit
-   * field types: the sections reference each other through the host
+  /** The device-capability section: capability refinement, the
+   * double-permission flow, subscribe/disable, the self-test, and the worker
+   * relay. Explicit field types: the sections reference each other through the host
    * interface, and an inferred field type would be circular. */
   readonly subscriptions: PushSubscriptionsSection =
     new PushSubscriptionsSection(this);
 
-  /** The all-devices half: every subscription row with its name, the
+  /** The all-devices section: every subscription row with its name, the
    * current-device badge, and rename/delete. */
   readonly devices: PushDevicesSection = new PushDevicesSection(this);
 
-  /** The per-kind form half: the loaded preferences, the unsaved draft, and
-   * the save fan-out. */
+  /** The per-kind form section: the loaded preferences, the unsaved draft,
+   * and the save fan-out. */
   readonly preferences: PushPreferencesSection = new PushPreferencesSection(
     this,
   );
