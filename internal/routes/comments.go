@@ -18,6 +18,7 @@ import (
 //	GET    /api/v1/{segment}/{id}/comments                     — public keyset thread list (sort/limit/after/focus)
 //	GET    /api/v1/{segment}/{id}/comments/count               — public total count
 //	GET    /api/v1/{segment}/{id}/comments/{commentId}/replies — public keyset page of a comment's replies (limit/after)
+//	GET    /api/v1/{segment}/{id}/comments/{commentId}/hearts  — auth-only hearters list (likers modal)
 //	POST   /api/v1/{segment}/{id}/comments                     — create top-level (auth + CSRF)
 //	POST   /api/v1/{segment}/{id}/comments/{commentId}/replies — reply (auth + CSRF; + notification in-tx)
 //	PATCH  /api/v1/{segment}/{id}/comments/{commentId}         — author-only edit (auth + CSRF)
@@ -30,7 +31,9 @@ import (
 // WITHOUT CSRF (a GET) and WITHOUT the forced-change gate (the read is
 // public; a flagged user must still read comments). The count is
 // session-independent (publicChain), and the replies page reads on the same
-// chain as the list. The six write paths use authenticatedChain; the
+// chain as the list. The hearters list is auth-only on
+// authenticatedReadsChain — the who-liked lists are never a public surface.
+// The six write paths use authenticatedChain; the
 // forced-change gate applies to all comment writes.
 //
 // Method-less exact and subtree fallbacks answer every other method/path
@@ -49,12 +52,13 @@ func Comments(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, public
 	heartLimiter := middleware.NewRateLimiter(15, 5*time.Minute, time.Minute)
 	deleteLimiter := middleware.NewRateLimiter(20, 15*time.Minute, time.Minute)
 
-	register := func(segment string, list, count, replies, create, reply, update, del, heartOn, heartOff http.Handler) {
+	register := func(segment string, list, count, replies, hearters, create, reply, update, del, heartOn, heartOff http.Handler) {
 		base := "/api/v1/" + segment + "/{id}/comments"
 
 		mux.Handle("GET "+base, list)
 		mux.Handle("GET "+base+"/count", count)
 		mux.Handle("GET "+base+"/{commentId}/replies", replies)
+		mux.Handle("GET "+base+"/{commentId}/hearts", hearters)
 
 		mux.Handle("POST "+base, create)
 		mux.Handle("POST "+base+"/{commentId}/replies", reply)
@@ -75,6 +79,7 @@ func Comments(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, public
 		optionalSessionChain(handler.CommentsList(handler.BlogCommentsKind, db, publicBaseURL), db, secure, trustedOrigin),
 		publicChain(handler.CommentsCount(handler.BlogCommentsKind, db)),
 		optionalSessionChain(handler.CommentsReplies(handler.BlogCommentsKind, db, publicBaseURL), db, secure, trustedOrigin),
+		authenticatedReadsChain(handler.CommentHearters(handler.BlogHeartersKind, db, publicBaseURL), db, secure, trustedOrigin),
 		authenticatedChain(handler.CommentsCreate(handler.BlogCommentsKind, db, notify, nil, createLimiter), db, secure, trustedOrigin),
 		authenticatedChain(handler.CommentsReply(handler.BlogCommentsKind, db, notify, nil, createLimiter), db, secure, trustedOrigin),
 		authenticatedChain(handler.CommentsUpdate(handler.BlogCommentsKind, db, publicBaseURL, nil, editLimiter), db, secure, trustedOrigin),
@@ -86,6 +91,7 @@ func Comments(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, public
 		optionalSessionChain(handler.CommentsList(handler.ProjectCommentsKind, db, publicBaseURL), db, secure, trustedOrigin),
 		publicChain(handler.CommentsCount(handler.ProjectCommentsKind, db)),
 		optionalSessionChain(handler.CommentsReplies(handler.ProjectCommentsKind, db, publicBaseURL), db, secure, trustedOrigin),
+		authenticatedReadsChain(handler.CommentHearters(handler.ProjectHeartersKind, db, publicBaseURL), db, secure, trustedOrigin),
 		authenticatedChain(handler.CommentsCreate(handler.ProjectCommentsKind, db, notify, nil, createLimiter), db, secure, trustedOrigin),
 		authenticatedChain(handler.CommentsReply(handler.ProjectCommentsKind, db, notify, nil, createLimiter), db, secure, trustedOrigin),
 		authenticatedChain(handler.CommentsUpdate(handler.ProjectCommentsKind, db, publicBaseURL, nil, editLimiter), db, secure, trustedOrigin),

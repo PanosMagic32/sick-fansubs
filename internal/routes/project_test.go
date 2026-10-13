@@ -113,6 +113,30 @@ func TestProjects_RegisteredDetailPath(t *testing.T) {
 	}
 }
 
+// TestProjects_FavoritersAuthOnly pins the auth-only likers reader: anonymous
+// requests answer the session 401 through the full chain, and a live session
+// reads the page.
+func TestProjects_FavoritersAuthOnly(t *testing.T) {
+	t.Parallel()
+
+	mux, db := setupProjectMux(t)
+	cookie, _ := setupUploadSession(t, db, "user")
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/projects/p1/favorites", nil))
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous favoriters: status = %d, want 401 (body %q)", rec.Code, rec.Body.String())
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/projects/p1/favorites", nil)
+	req.AddCookie(&http.Cookie{Name: "sf_session", Value: cookie})
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("authed favoriters: status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+	}
+}
+
 // TestProjects_UnregisteredSubpathsReturnAPIProblem proves the JSON 404
 // boundary holds everywhere: paths the project endpoints do not own (the
 // collection root with a trailing slash, a deeper subpath) fall through to

@@ -49,6 +49,11 @@ import "@shared/ui/error-banner.js";
 
 import { getBlogPost } from "./data-access/blog-api.js";
 import type { BlogPostDetail } from "./data-access/types.js";
+// The favoriters loader for the likers modal — the recorded auth
+// data-access capability edge.
+import { listFavoriters } from "@features/auth/data-access/favorites-api.js";
+import "@shared/ui/likers-modal.js";
+import { LIKER_PAGE_SIZE } from "@shared/ui/likers-modal.js";
 // The favorites heart — cross-feature import under the authenticated
 // capabilities exception (authenticated capabilities live in the auth
 // feature; content features consume them). The detail page also listens
@@ -101,6 +106,9 @@ export class BlogDetailPage extends LitElement {
   @state() private post: BlogPostDetail | null = null;
   @state() private errorMessage = "";
 
+  /** The likers modal's visibility — the favorite indicator's click. */
+  @state() private _likersOpen = false;
+
   // The staff edit button's session (moderator+). Client-side
   // visibility only; the server enforces the real authorization.
   @consume({ context: sessionContext, subscribe: true })
@@ -110,6 +118,35 @@ export class BlogDetailPage extends LitElement {
     if (this.session?.state.status !== "authenticated") return false;
     return isStaffRole(this.session.state.user.role);
   }
+
+  private get _isAuthed(): boolean {
+    return this.session?.state.status === "authenticated";
+  }
+
+  /** The likers modal's page loader: this post's favoriters. */
+  private _loadFavoriters = (after: string | null, signal: AbortSignal) => {
+    const post = this.post;
+    if (!post) {
+      return Promise.resolve({
+        items: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      });
+    }
+    return listFavoriters(
+      "blog-posts",
+      post.id,
+      { limit: LIKER_PAGE_SIZE, ...(after ? { after } : {}) },
+      { signal },
+    );
+  };
+
+  private _openLikers = () => {
+    if (this.post) this._likersOpen = true;
+  };
+
+  private _closeLikers = () => {
+    this._likersOpen = false;
+  };
 
   /** In-flight request controller — aborted on teardown or newer loads. */
   private _abort: AbortController | null = null;
@@ -174,6 +211,9 @@ export class BlogDetailPage extends LitElement {
     this._abort = controller;
     this.status = "loading";
     this.errorMessage = "";
+    // A reload (postId change) drops any open likers modal — it lists the
+    // PREVIOUS post's favoriters.
+    this._likersOpen = false;
 
     try {
       // The page-owned controller aborts on teardown/postId change; the
@@ -253,6 +293,8 @@ export class BlogDetailPage extends LitElement {
           updated-at=${post.updatedAt}
           .commentCount=${post.commentCount}
           .favoriteCount=${post.favoriteCount}
+          ?favorite-count-action=${this._isAuthed}
+          @sf-favorite-count-click=${this._openLikers}
         >
           <favorite-toggle
             slot="actions"
@@ -324,6 +366,13 @@ export class BlogDetailPage extends LitElement {
           content-id=${post.id}
           .count=${post.commentCount}
         ></comments-section>
+
+        <likers-modal
+          .open=${this._likersOpen}
+          heading=${el.likers.heading}
+          .loader=${this._loadFavoriters}
+          @sf-likers-close=${this._closeLikers}
+        ></likers-modal>
       </article>
     `;
   }

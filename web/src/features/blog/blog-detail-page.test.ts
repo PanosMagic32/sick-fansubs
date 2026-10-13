@@ -3,6 +3,7 @@ import { afterEach, describe, expect, mock, test } from "bun:test";
 import {
   mockFetchImpl,
   mockResponse,
+  mockSessionContext,
   restoreMockFetch,
 } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
@@ -164,6 +165,61 @@ describe("blog-detail-page", () => {
     expect(
       cardRoot(page).querySelector('.detail-stats [aria-label="3 αγαπημένα"]'),
     ).not.toBeNull();
+  });
+
+  test("the authenticated favorite count opens the likers modal and pages the favoriters", async () => {
+    const calls: string[] = [];
+    stubFetch(async (url) => {
+      calls.push(url);
+      if (url.startsWith("/api/v1/blog-posts/p1/favorites")) {
+        return {
+          status: 200,
+          body: {
+            items: [{ id: "u2", username: "Perospero", avatarUrl: null }],
+            pageInfo: { hasNextPage: false, endCursor: null, total: 1 },
+          },
+        };
+      }
+      return { status: 200, body: samplePost() };
+    });
+
+    const page = document.createElement("blog-detail-page") as BlogDetailPage;
+    page.postId = "p1";
+    (page as unknown as { session: unknown }).session = mockSessionContext();
+    document.body.appendChild(page);
+    await flush(page);
+
+    const stat = cardRoot(page).querySelector(
+      ".detail-stats .stat-action",
+    ) as HTMLButtonElement;
+    expect(stat).not.toBeNull();
+    expect(stat.getAttribute("aria-haspopup")).toBe("dialog");
+    stat.click();
+    await new Promise((r) => setTimeout(r, 0));
+    await page.updateComplete;
+
+    expect(calls).toContain("/api/v1/blog-posts/p1/favorites?limit=20");
+
+    const modal = root(page).querySelector("likers-modal") as HTMLElement & {
+      open: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    expect(modal.open).toBe(true);
+    await modal.updateComplete;
+    await new Promise((r) => setTimeout(r, 0));
+    await modal.updateComplete;
+    expect(
+      (
+        modal.shadowRoot!.querySelector(".liker-name")?.textContent ?? ""
+      ).trim(),
+    ).toBe("Perospero");
+
+    (
+      modal.shadowRoot!.querySelector(".likers-close") as HTMLButtonElement
+    ).click();
+    await page.updateComplete;
+    await modal.updateComplete;
+    expect(modal.open).toBe(false);
   });
 
   test("shows the loading spinner while the request is in flight", async () => {

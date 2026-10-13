@@ -278,8 +278,9 @@
 
 /* The row actions are ICON buttons: the glyph
 is the visual and the accessible name rides `aria-label` + `title`, so the
-row keeps its width on a phone. The heart keeps its count and is the same
-box (the shared icon modifier carries the 2rem target). */
+row keeps its width on a phone. The heart is a SPLIT pill — the toggle and
+its count are separate buttons — and the shared icon modifier carries the
+2rem target on both. */
 .ct-action {
     gap: 0.3rem;
     /* The count beside the heart keeps its 0.8rem; the GLYPHS are sized
@@ -315,6 +316,19 @@ box (the shared icon modifier carries the 2rem target). */
 .ct-heart-glyph {
     display: inline-flex;
     align-items: center;
+}
+
+/* The split heart pill: [toggle] [count]. Two adjacent controls rendered
+   as one tight group; the count half opens the likers modal. */
+.ct-heart-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.ct-heart-count {
+    min-width: 2rem;
+    justify-content: center;
 }
 
 /* The anonymous heart: a plain count, no affordance. */

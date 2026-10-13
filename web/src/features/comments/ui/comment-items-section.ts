@@ -25,7 +25,7 @@ import {
 } from "lit";
 
 import { requestSignal } from "@shared/api/request-signal.js";
-import { el } from "@shared/catalog/el.js";
+import { el, heartersAriaLabel } from "@shared/catalog/el.js";
 import {
   formatRelativeTime,
   initialOf,
@@ -71,6 +71,8 @@ export interface CommentItemsHost extends ReactiveControllerHost {
   _patchComment(id: string, patch: (c: CommentItem) => CommentItem): void;
   _removeComment(id: string): void;
   _loadCount(): void;
+  /** Opens the likers modal on one comment's hearters (the count button). */
+  openLikers(commentId: string): void;
 }
 
 /**
@@ -313,29 +315,46 @@ export class CommentItemsSection implements ReactiveController {
       <div class="ct-actions">
         ${
           this._isAuthed()
-            ? this._isOwnComment(c)
-              ? // No heart element at all on own comments — self-hearts are
-                // forbidden, the server rejects them and the UI never offers
-                // the affordance.
-                ""
-              : html`<button
+            ? // The split heart pill: the toggle and the count are two
+              // controls. The count button opens the likers modal; the
+              // toggle owns the heart state. Own comments render NO toggle
+              // (self-hearts are forbidden) — the count button stays, and
+              // anonymous readers get the plain count below.
+              html`<span class="ct-heart-group">
+                ${
+                  this._isOwnComment(c)
+                    ? ""
+                    : html`<button
+                        type="button"
+                        class="button button--icon button--ghost ct-action ct-heart${c.hearted ? " is-hearted" : ""}${windowOpen || pending ? " is-pending" : ""}"
+                        aria-pressed=${c.hearted ? "true" : "false"}
+                        aria-busy=${windowOpen || pending ? "true" : "false"}
+                        aria-label=${
+                          c.hearted
+                            ? el.comments.heartRemoveAria
+                            : el.comments.heartAddAria
+                        }
+                        ?disabled=${pending}
+                        @click=${() => this._onHeart(c)}
+                      >
+                        <span class="ct-heart-glyph" aria-hidden="true"
+                          >${c.hearted ? icons.heartFilled : icons.heart}</span
+                        >
+                      </button>`
+                }
+                <button
                   type="button"
-                  class="button button--icon button--ghost ct-action ct-heart${c.hearted ? " is-hearted" : ""}${windowOpen || pending ? " is-pending" : ""}"
-                  aria-pressed=${c.hearted ? "true" : "false"}
-                  aria-busy=${windowOpen || pending ? "true" : "false"}
-                  aria-label=${
-                    c.hearted
-                      ? el.comments.heartRemoveAria
-                      : el.comments.heartAddAria
-                  }
-                  ?disabled=${pending}
-                  @click=${() => this._onHeart(c)}
+                  class="button button--icon button--ghost ct-action ct-heart-count"
+                  aria-label=${heartersAriaLabel(c.heartsCount)}
+                  title=${heartersAriaLabel(c.heartsCount)}
+                  aria-haspopup="dialog"
+                  @click=${() => this._host.openLikers(c.id)}
                 >
-                  <span class="ct-heart-glyph" aria-hidden="true"
-                    >${c.hearted ? icons.heartFilled : icons.heart}</span
+                  <span class="ct-heart-count-num" aria-hidden="true"
+                    >${c.heartsCount}</span
                   >
-                  ${c.heartsCount}
-                </button>`
+                </button>
+              </span>`
             : html`<span class="ct-hearts">
                 <span class="ct-heart-glyph" aria-hidden="true"
                   >${icons.heartFilled}</span

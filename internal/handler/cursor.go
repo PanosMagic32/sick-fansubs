@@ -43,6 +43,14 @@ const (
 	// carries the favorite's created_at_ms in these namespaces.
 	blogFavCursorPrefix    = "fv1."
 	projectFavCursorPrefix = "fpv1."
+	// Likers namespaces (the auth-only who-liked lists): the timestamp slot
+	// carries the like row's created_at_ms and the id slot the liker's user
+	// id — the ordering is created_at_ms DESC, user_id ASC. bf/pf = blog/
+	// project favoriters; bh/ph = blog/project comment hearters.
+	blogFavoritersCursorPrefix    = "bf1."
+	projectFavoritersCursorPrefix = "pf1."
+	blogHeartersCursorPrefix      = "bh1."
+	projectHeartersCursorPrefix   = "ph1."
 	// Staff blog list namespace: the timestamp slot
 	// carries updated_at_ms here — the staff list sorts by last edit, not
 	// by publish time.

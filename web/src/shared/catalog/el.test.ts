@@ -52,6 +52,7 @@ describe("el catalog", () => {
     expectAllNonEmpty(el.titles, "el.titles");
     expectAllNonEmpty(el.notifications, "el.notifications");
     expectAllNonEmpty(el.comments, "el.comments");
+    expectAllNonEmpty(el.likers, "el.likers");
     expectAllNonEmpty(el.meta, "el.meta");
   });
 

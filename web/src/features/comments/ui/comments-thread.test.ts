@@ -11,7 +11,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import { clearCSRFToken, setCSRFToken } from "@shared/api/client.js";
-import { el } from "@shared/catalog/el.js";
+import { el, heartersAriaLabel } from "@shared/catalog/el.js";
 import {
   mockFetchImpl,
   mockResponse,
@@ -706,7 +706,8 @@ describe("comments-thread", () => {
       ".ct-comment .ct-heart",
     ) as HTMLButtonElement;
     expect(heart.getAttribute("aria-pressed")).toBe("false");
-    expect(heart.textContent).toContain("3");
+    // The count rides its own split-pill half.
+    expect(text(root(thread), ".ct-comment .ct-heart-count")).toBe("3");
     heart.click();
     timers.fireAll(); // expire the debounce window (the shared debouncer)
     await settle();
@@ -714,7 +715,8 @@ describe("comments-thread", () => {
 
     expect(calls).toContain("PUT");
     expect(heart.getAttribute("aria-pressed")).toBe("true");
-    expect(heart.textContent).toContain("4");
+    await thread.updateComplete;
+    expect(text(root(thread), ".ct-comment .ct-heart-count")).toBe("4");
   });
 
   test("a failed heart keeps the state and shows the inline error", async () => {
@@ -751,7 +753,7 @@ describe("comments-thread", () => {
     );
   });
 
-  test("an own comment renders NO heart element at all (self-hearts forbidden)", async () => {
+  test("an own comment renders NO heart toggle — the count button stays", async () => {
     stubFetch(async (url) => {
       if (url.endsWith("/comments/count"))
         return { status: 200, body: { count: 3 } };
@@ -759,8 +761,10 @@ describe("comments-thread", () => {
     });
 
     // The default session user (u1) authored c1 — its action row carries
-    // no heart button AND no anonymous plain count; the nested reply by u2
-    // keeps its own heart affordance.
+    // no heart TOGGLE (self-hearts are forbidden, the server rejects them
+    // and the UI never offers the affordance) but keeps the count half
+    // that opens the likers modal; the nested reply by u2 keeps its own
+    // toggle.
     // (Replies render INSIDE the parent's comment container, so the
     // parent's own row is scoped with :scope > .ct-body — the reply's own
     // .ct-body would match a plain descendant selector.)
@@ -772,19 +776,30 @@ describe("comments-thread", () => {
     expect(
       first?.querySelector(":scope > .ct-body > .ct-actions .ct-hearts"),
     ).toBeNull();
+    const count = first?.querySelector(
+      ":scope > .ct-body > .ct-actions .ct-heart-count",
+    ) as HTMLButtonElement;
+    expect(count.getAttribute("aria-label")).toBe(heartersAriaLabel(3));
+    expect(count.getAttribute("aria-haspopup")).toBe("dialog");
+    expect(count.textContent?.trim()).toBe("3");
     expect(root(thread).querySelector(".ct-reply .ct-heart")).not.toBeNull();
 
-    // The row carries exactly the three actions, each naming itself through
-    // `aria-label` and rendering NO text: a stray literal (a doubled closing
-    // brace once leaked into the template as a `}` before «Απάντηση») would
-    // now show up as text content here.
+    // The toggle half is gone; every remaining action names itself through
+    // `aria-label` and the icon actions render NO text (a stray literal —
+    // a doubled closing brace once leaked into the template as a `}` before
+    // «Απάντηση» — would now show up as text content here).
     const actions = first?.querySelector(":scope > .ct-body > .ct-actions");
     expect(actionLabels(actions as Element)).toEqual([
+      heartersAriaLabel(3),
       el.comments.reply,
       el.comments.edit,
       el.comments.delete,
     ]);
-    expect((actions?.textContent ?? "").trim()).toBe("");
+    for (const button of actions!.querySelectorAll(
+      ".ct-action:not(.ct-heart-count)",
+    )) {
+      expect((button.textContent ?? "").trim()).toBe("");
+    }
     // The icon cannot show a tooltip of its own: the accessible name and the
     // hover title are the SAME catalog wording, so they cannot drift.
     for (const button of actions!.querySelectorAll(".ct-action")) {
@@ -792,6 +807,92 @@ describe("comments-thread", () => {
         button.getAttribute("aria-label"),
       );
     }
+  });
+
+  test("the count half opens the likers modal on the comment's hearters", async () => {
+    const urls: string[] = [];
+    stubFetch(async (url) => {
+      urls.push(url);
+      if (url.endsWith("/comments/count"))
+        return { status: 200, body: { count: 3 } };
+      if (url.includes("/comments/c1/hearts")) {
+        return {
+          status: 200,
+          body: {
+            items: [{ id: "u2", username: "Perospero", avatarUrl: null }],
+            pageInfo: { hasNextPage: false, endCursor: null, total: 1 },
+          },
+        };
+      }
+      return { status: 200, body: LIST_BODY };
+    });
+
+    const thread = await renderThread({ session: { id: "u9" } });
+    const count = root(thread).querySelector(
+      ".ct-comment .ct-heart-count",
+    ) as HTMLButtonElement;
+    count.click();
+    await settle();
+    await thread.updateComplete;
+
+    expect(urls.some((u) => u.includes("/comments/c1/hearts?limit=20"))).toBe(
+      true,
+    );
+
+    const modal = root(thread).querySelector("likers-modal") as HTMLElement & {
+      open: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    expect(modal.open).toBe(true);
+    await modal.updateComplete;
+    const modalRoot = modal.shadowRoot!;
+    expect(
+      (modalRoot.querySelector(".liker-name")?.textContent ?? "").trim(),
+    ).toBe("Perospero");
+
+    // The close control informs the thread, which drops the open comment.
+    (modalRoot.querySelector(".likers-close") as HTMLButtonElement).click();
+    await thread.updateComplete;
+    await modal.updateComplete;
+    expect(modal.open).toBe(false);
+  });
+
+  test("a content pair change closes an open likers modal", async () => {
+    stubFetch(async (url) => {
+      if (url.endsWith("/comments/count"))
+        return { status: 200, body: { count: 3 } };
+      if (url.includes("/hearts")) {
+        return {
+          status: 200,
+          body: {
+            items: [],
+            pageInfo: { hasNextPage: false, endCursor: null, total: 0 },
+          },
+        };
+      }
+      return { status: 200, body: LIST_BODY };
+    });
+
+    const thread = await renderThread({ session: { id: "u9" } });
+    (
+      root(thread).querySelector(
+        ".ct-comment .ct-heart-count",
+      ) as HTMLButtonElement
+    ).click();
+    await settle();
+    await thread.updateComplete;
+    const modal = root(thread).querySelector("likers-modal") as HTMLElement & {
+      open: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    expect(modal.open).toBe(true);
+
+    // An attribute-only pair change (no remount) must not leave the OLD
+    // content's hearters on screen.
+    thread.contentId = "b2";
+    await thread.updateComplete;
+    await modal.updateComplete;
+    expect(modal.open).toBe(false);
   });
 
   test("a rapid double-click is a net zero — no heart request", async () => {

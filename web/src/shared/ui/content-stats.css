@@ -44,6 +44,28 @@
     font-size: 1rem;
 }
 
+/* The interactive favorite indicator (the likers modal's trigger): the
+   shared button vocabulary supplies the reset (components.md rule 7);
+   this class keeps the chip geometry — the ghost tone (--sf-text-dim)
+   and the button icon box (1.1em) must not leak into the pill, or the
+   interactive half stops matching the decorative one. */
+.stat-action {
+    border: 0;
+    font-weight: inherit;
+    line-height: inherit;
+    font-size: inherit;
+    color: inherit;
+}
+
+.stat-action svg {
+    width: 1em;
+    height: 1em;
+}
+
+.stat-action:hover:not(:disabled) {
+    background: var(--sf-border);
+}
+
 .stat-num {
     font-variant-numeric: tabular-nums;
 }

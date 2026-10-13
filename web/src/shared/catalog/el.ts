@@ -926,6 +926,36 @@ export function favoriteCountLabel(count: number): string {
 }
 
 /**
+ * The interactive favorite indicator's accessible name: the chip lightens
+ * to a button that opens the likers modal, so the label names the action
+ * (the count rides the visible number).
+ */
+export function favoritersAriaLabel(count: number): string {
+  return count === 1
+    ? "1 αγαπημένο — δείτε ποιος"
+    : `${count} αγαπημένα — δείτε ποιοι`;
+}
+
+/** The interactive comment-heart count's accessible name (the same action). */
+export function heartersAriaLabel(count: number): string {
+  return count === 1
+    ? "1 καρδιά — δείτε ποιος"
+    : `${count} καρδιές — δείτε ποιοι`;
+}
+
+/**
+ * The likers modal — the shared who-liked list behind the content
+ * indicators (favorites on posts/projects, hearts on comments).
+ */
+const likers = {
+  heading: "Άρεσε σε",
+  close: "Κλείσιμο",
+  loadMore: "Περισσότεροι",
+  loadingMore: "Φόρτωση…",
+  empty: "Κανείς ακόμα.",
+} as const;
+
+/**
  * Comments thread — the inline section on the
  * blog/project detail pages. Heart states render as the shared SVG pair
  * (icons.heart / icons.heartFilled) with catalog-owned aria-labels.
@@ -1023,6 +1053,7 @@ export const el = {
   admin,
   notifications,
   comments,
+  likers,
   meta,
 } as const;
 

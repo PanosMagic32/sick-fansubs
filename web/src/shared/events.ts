@@ -44,6 +44,22 @@ export interface CommentCountChangedDetail {
 }
 
 /**
+ * Dispatched by <content-card>'s interactive favorite indicator (the chip
+ * lightened to a button) when it is clicked — the likers modal's trigger on
+ * the blog/project detail pages. No detail: the surface that enabled the
+ * action knows its own content.
+ */
+export const FAVORITE_COUNT_CLICK_EVENT = "sf-favorite-count-click";
+
+/**
+ * Dispatched by <likers-modal> when the user dismisses the dialog (its close
+ * control or Escape) — the host flips `open` back down. Lit event bindings
+ * spell this as a static template attribute (`@sf-likers-close`), so hosts
+ * keep the literal there; the element's dispatches use this constant.
+ */
+export const LIKERS_CLOSE_EVENT = "sf-likers-close";
+
+/**
  * Dispatched on the window after a CONFIRMED avatar upload success only
  * (avatar slice). The header's icon-only account link listens and
  * refetches the profile so the avatar chip refreshes without a session

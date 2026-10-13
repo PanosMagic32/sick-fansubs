@@ -3206,6 +3206,168 @@ paths:
           $ref: "#/components/responses/Validation"
         "500":
           $ref: "#/components/responses/InternalError"
+  # ── Likers: who favorited content, who hearted a comment ──
+  # The likers modal's auth-only readers. Active users only: suspended
+  # accounts keep their like in the counts but never appear in these lists.
+  /api/v1/blog-posts/{id}/favorites:
+    parameters:
+      - $ref: "#/components/parameters/BlogPostID"
+    get:
+      operationId: listBlogPostFavoriters
+      summary: Users who favorited a blog post
+      description: >-
+        Authenticated keyset list of the ACTIVE users who favorited a
+        published post, newest favorite first (createdAt DESC, userId ASC).
+        Unknown ids, drafts, archived posts, and unstamped posts answer the
+        masked 404. limit defaults to 20 and is capped at 100; after is the
+        versioned cursor from pageInfo.endCursor (namespace bf1.).
+      parameters:
+        - $ref: "#/components/parameters/CommentLimit"
+        - $ref: "#/components/parameters/LikerAfter"
+      responses:
+        "200":
+          description: One page of a published post's favoriters.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+            Cache-Control:
+              $ref: "#/components/headers/NoStoreCacheControl"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikerList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/projects/{id}/favorites:
+    parameters:
+      - $ref: "#/components/parameters/ProjectID"
+    get:
+      operationId: listProjectFavoriters
+      summary: Users who favorited a project
+      description: >-
+        Authenticated keyset list of the ACTIVE users who favorited a
+        published project, newest favorite first (createdAt DESC, userId
+        ASC). Unknown ids, drafts, archived projects, and unstamped projects
+        answer the masked 404. limit defaults to 20 and is capped at 100;
+        after is the versioned cursor from pageInfo.endCursor (namespace
+        pf1.).
+      parameters:
+        - $ref: "#/components/parameters/CommentLimit"
+        - $ref: "#/components/parameters/LikerAfter"
+      responses:
+        "200":
+          description: One page of a published project's favoriters.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+            Cache-Control:
+              $ref: "#/components/headers/NoStoreCacheControl"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikerList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/blog-posts/{id}/comments/{commentId}/hearts:
+    parameters:
+      - $ref: "#/components/parameters/BlogPostID"
+      - $ref: "#/components/parameters/CommentID"
+    get:
+      operationId: listBlogPostCommentHearters
+      summary: Users who hearted a blog post comment
+      description: >-
+        Authenticated keyset list of the ACTIVE users who hearted a published
+        comment, newest heart first (createdAt DESC, userId ASC). Unknown or
+        unpublished content and an unknown or foreign comment all answer the
+        masked 404. limit defaults to 20 and is capped at 100; after is the
+        versioned cursor from pageInfo.endCursor (namespace bh1.).
+      parameters:
+        - $ref: "#/components/parameters/CommentLimit"
+        - $ref: "#/components/parameters/LikerAfter"
+      responses:
+        "200":
+          description: One page of a comment's hearters.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+            Cache-Control:
+              $ref: "#/components/headers/NoStoreCacheControl"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikerList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/projects/{id}/comments/{commentId}/hearts:
+    parameters:
+      - $ref: "#/components/parameters/ProjectID"
+      - $ref: "#/components/parameters/CommentID"
+    get:
+      operationId: listProjectCommentHearters
+      summary: Users who hearted a project comment
+      description: >-
+        Authenticated keyset list of the ACTIVE users who hearted a published
+        comment, newest heart first (createdAt DESC, userId ASC). Unknown or
+        unpublished content and an unknown or foreign comment all answer the
+        masked 404. limit defaults to 20 and is capped at 100; after is the
+        versioned cursor from pageInfo.endCursor (namespace ph1.).
+      parameters:
+        - $ref: "#/components/parameters/CommentLimit"
+        - $ref: "#/components/parameters/LikerAfter"
+      responses:
+        "200":
+          description: One page of a comment's hearters.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+            Cache-Control:
+              $ref: "#/components/headers/NoStoreCacheControl"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikerList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+        "500":
+          $ref: "#/components/responses/InternalError"
   # ── Comments ──
   /api/v1/blog-posts/{id}/comments:
     parameters:
@@ -4365,6 +4527,19 @@ components:
       schema:
         type: string
         maxLength: 256
+    LikerAfter:
+      name: after
+      in: query
+      required: false
+      description: >-
+        Opaque cursor from pageInfo.endCursor (at most 256 chars): namespace
+        bf1./pf1. for the favoriters lists, bh1./ph1. for the hearters
+        lists. The order is fixed newest like first (createdAt DESC, userId
+        ASC), so the cursor is not sort-bound; a cursor from another
+        namespace is a 400.
+      schema:
+        type: string
+        maxLength: 256
   schemas:
     PublicUser:
       type: object
@@ -4981,6 +5156,39 @@ components:
       properties:
         favorited:
           type: boolean
+    LikerItem:
+      type: object
+      description: One active user who liked content (favorite or heart).
+      additionalProperties: false
+      required:
+        - id
+        - username
+        - avatarUrl
+      properties:
+        id:
+          type: string
+          description: Opaque public user identifier.
+        username:
+          type: string
+        avatarUrl:
+          type:
+            - string
+            - "null"
+          description: Absolute avatar URL, or null when the account has none.
+    LikerList:
+      type: object
+      description: Keyset collection envelope for the who-liked readers.
+      additionalProperties: false
+      required:
+        - items
+        - pageInfo
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LikerItem"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
     FollowStatus:
       type: object
       description: >-

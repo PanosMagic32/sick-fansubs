@@ -52,10 +52,13 @@ import {
 } from "@shared/events.js";
 import "@shared/ui/loading-spinner.js";
 import "@shared/ui/error-banner.js";
+import "@shared/ui/likers-modal.js";
+import { LIKER_PAGE_SIZE } from "@shared/ui/likers-modal.js";
 
 import {
   COMMENT_PAGE_SIZE,
   commentCount,
+  listCommentHearters,
   listComments,
   type CommentListParams,
 } from "../data-access/comments-api.js";
@@ -108,9 +111,40 @@ export class CommentsThread extends LitElement {
     return this._composers;
   }
 
+  /** Opens the likers modal on one comment's hearters (the items section's
+   * count-button capability). */
+  openLikers(commentId: string) {
+    this._likersCommentId = commentId;
+  }
+
+  private _closeLikers = () => {
+    this._likersCommentId = null;
+  };
+
+  /** The likers modal's page loader: the open comment's hearters. */
+  private _loadHearters = (after: string | null, signal: AbortSignal) => {
+    const commentId = this._likersCommentId;
+    if (!commentId) {
+      return Promise.resolve({
+        items: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      });
+    }
+    return listCommentHearters(
+      this.kind,
+      this.contentId,
+      commentId,
+      { limit: LIKER_PAGE_SIZE, ...(after ? { after } : {}) },
+      { signal },
+    );
+  };
+
   @state() private _status: ThreadStatus = "loading";
   @state() private _errorMessage = "";
   @state() private _items: CommentItem[] = [];
+
+  /** The likers modal's comment: non-null while the hearters modal is open. */
+  @state() private _likersCommentId: string | null = null;
   @state() private _hasNext = false;
   @state() private _count: number | null = null;
 
@@ -172,6 +206,9 @@ export class CommentsThread extends LitElement {
     // comments.
     if ((changed.has("kind") || changed.has("contentId")) && this.hasUpdated) {
       this._syncURL();
+      // The likers modal lists the OLD pair's comment — drop it with the
+      // rest of the previous content's state.
+      this._likersCommentId = null;
       void this._loadFirst({ focus: this._focusId || undefined, scroll: true });
       void this._loadCount();
     }
@@ -512,6 +549,12 @@ export class CommentsThread extends LitElement {
         }
         ${this._composers.composerTemplate()} ${this._stateTemplate()}
       </section>
+      <likers-modal
+        .open=${this._likersCommentId !== null}
+        heading=${el.likers.heading}
+        .loader=${this._loadHearters}
+        @sf-likers-close=${this._closeLikers}
+      ></likers-modal>
     `;
   }
 }

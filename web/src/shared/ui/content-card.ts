@@ -45,6 +45,11 @@
  * in-flow action — an interactive control inside the card's own anchor is
  * invalid — so a linked row uses `overlay`.
  *
+ * `favoriteCountAction` turns the favorite indicator into a button that
+ * dispatches `sf-favorite-count-click` (the likers modal's trigger); the
+ * decorative chip stays the default, so a surface with no modal to open
+ * never carries a dead control.
+ *
  * An internal anchor is safe: the shell's link interceptor reads
  * `e.composedPath()`, so a click on the card's anchor routes like any other
  * link (docs/patterns/web/components.md).
@@ -59,7 +64,9 @@ import {
   commentCountLabel,
   el,
   favoriteCountLabel,
+  favoritersAriaLabel,
 } from "@shared/catalog/el.js";
+import { FAVORITE_COUNT_CLICK_EVENT } from "@shared/events.js";
 import { formatDateTimeNumeric } from "@shared/utils/format.js";
 
 import { avatarTemplate, type AvatarUserRef } from "./avatar.js";
@@ -159,6 +166,22 @@ export class ContentCard extends LitElement {
   /** The stats chip's favorite count. */
   @property({ type: Number, attribute: "favorite-count" }) favoriteCount:
     number | null = null;
+
+  /** Turns the favorite indicator into a button that dispatches
+   * `sf-favorite-count-click` (default: the decorative chip). */
+  @property({ type: Boolean, attribute: "favorite-count-action" })
+  favoriteCountAction = false;
+
+  /** The interactive favorite indicator was clicked — the host opens the
+   * likers modal. */
+  private _onFavoriteCountClick = () => {
+    this.dispatchEvent(
+      new CustomEvent(FAVORITE_COUNT_CLICK_EVENT, {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  };
 
   /** Marks the host when the corner slot carries a control, so the row
    * reserves the control's room instead of running text under it. */
@@ -423,7 +446,10 @@ export class ContentCard extends LitElement {
   }
 
   /** The indicator chip: both counts render together — including zeros —
-   * and is omitted unless both counts are set (a page with no indicator). */
+   * and is omitted unless both counts are set (a page with no indicator).
+   * The favorite indicator is a BUTTON when the host enabled the action
+   * (the likers modal's trigger); otherwise both indicators stay the
+   * decorative role="img" chips. */
   private _statsTemplate(): TemplateResult | string {
     if (this.commentCount === null || this.favoriteCount === null) return "";
     return html`
@@ -438,14 +464,36 @@ export class ContentCard extends LitElement {
           >
           <span class="stat-num" aria-hidden="true">${this.commentCount}</span>
         </span>
-        <span
-          class="stat"
-          role="img"
-          aria-label=${favoriteCountLabel(this.favoriteCount)}
-        >
-          <span class="stat-icon" aria-hidden="true">${icons.heartFilled}</span>
-          <span class="stat-num" aria-hidden="true">${this.favoriteCount}</span>
-        </span>
+        ${
+          this.favoriteCountAction
+            ? html`<button
+                type="button"
+                class="button button--ghost stat stat-action"
+                aria-label=${favoritersAriaLabel(this.favoriteCount)}
+                title=${favoritersAriaLabel(this.favoriteCount)}
+                aria-haspopup="dialog"
+                @click=${this._onFavoriteCountClick}
+              >
+                <span class="stat-icon" aria-hidden="true"
+                  >${icons.heartFilled}</span
+                >
+                <span class="stat-num" aria-hidden="true"
+                  >${this.favoriteCount}</span
+                >
+              </button>`
+            : html`<span
+                class="stat"
+                role="img"
+                aria-label=${favoriteCountLabel(this.favoriteCount)}
+              >
+                <span class="stat-icon" aria-hidden="true"
+                  >${icons.heartFilled}</span
+                >
+                <span class="stat-num" aria-hidden="true"
+                  >${this.favoriteCount}</span
+                >
+              </span>`
+        }
       </span>
     `;
   }

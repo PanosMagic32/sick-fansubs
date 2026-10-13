@@ -15,6 +15,7 @@ import (
 //
 //	GET    /api/v1/blog-posts          — public keyset-paginated list of published posts
 //	GET    /api/v1/blog-posts/{id}     — public detail of one published post
+//	GET    /api/v1/blog-posts/{id}/favorites — auth-only favoriters list (likers modal)
 //	POST   /api/v1/blog-posts          — create (admin+, CSRF)
 //	PUT    /api/v1/blog-posts/{id}     — update (moderator+, If-Match, CSRF)
 //	DELETE /api/v1/blog-posts/{id}     — hard-delete (admin+, If-Match, CSRF)
@@ -24,10 +25,11 @@ import (
 // publicBaseURL is the configured public origin used to emit absolute
 // thumbnail URLs.
 //
-// Middleware: the public GETs keep the public chain (RequestID only). The
-// mutations carry authenticatedChain (RequestID → TrustedOrigin → Session →
-// ForcePasswordChange → CSRF; the method-aware mux picks the chain per method
-// on the same path). The admin subtree shares the same chain — CSRF only
+// Middleware: the public GETs keep the public chain (RequestID only), and
+// the favoriters list keeps CSRF off its GET through authenticatedReadsChain.
+// The mutations carry authenticatedChain (RequestID → TrustedOrigin →
+// Session → ForcePasswordChange → CSRF; the method-aware mux picks the chain
+// per method on the same path). The admin subtree shares the same chain — CSRF only
 // validates unsafe methods, so the staff GETs pass through it untouched (the
 // favorites pattern). No rate limit on any of these: authenticated per-user
 // operations protected by origin + CSRF.
@@ -45,6 +47,10 @@ func Blog(mux *http.ServeMux, db *sql.DB, dataDir string, secure bool, trustedOr
 
 	mux.Handle("GET /api/v1/blog-posts", publicChain(handler.BlogList(db, publicBaseURL)))
 	mux.Handle("GET /api/v1/blog-posts/{id}", publicChain(handler.BlogDetail(db, publicBaseURL)))
+
+	// The likers modal's favoriters list — auth-only (the decided surface).
+	mux.Handle("GET /api/v1/blog-posts/{id}/favorites",
+		authenticatedReadsChain(handler.FavoriteLikers(handler.BlogFavoritersKind, db, publicBaseURL), db, secure, trustedOrigin))
 
 	// Content mutations. The write handlers
 	// pre-read through the staff read, so the authorization gate

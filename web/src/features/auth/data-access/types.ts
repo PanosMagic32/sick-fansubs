@@ -186,6 +186,28 @@ export interface FavoriteStatusResponse {
   favorited: boolean;
 }
 
+// ── Likers (who favorited the content) ───────────────────────────────
+
+/** One user behind a content's favorites — mirrors the Go wire DTO
+ * internal/handler/likers.go (the LikerItem schema). */
+export interface LikerItem {
+  id: string;
+  username: string;
+  /** Absolute avatar URL, or null when the account has none. */
+  avatarUrl: string | null;
+}
+
+/** One keyset page of likers; the favoriters list walks this envelope. */
+export interface LikerListResponse {
+  items: LikerItem[];
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor: string | null;
+    /** Filtered ACTIVE liker count at read time. */
+    total: number;
+  };
+}
+
 /** The two favoritable content kinds (the URL segment names). */
 export type FavoriteKind = "blog-posts" | "projects";
 

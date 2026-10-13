@@ -2,7 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { html } from "lit";
 
 import { stripCssComments } from "@shared/api/test-utils.js";
-import { el } from "@shared/catalog/el.js";
+import { el, favoritersAriaLabel } from "@shared/catalog/el.js";
+import { FAVORITE_COUNT_CLICK_EVENT } from "@shared/events.js";
 import type { AvatarUserRef } from "./avatar.js";
 
 // Side-effect import registers the custom element.
@@ -78,6 +79,36 @@ describe("content-card", () => {
     expect(root(card).querySelector(".more")?.getAttribute("aria-label")).toBe(
       el.ui.details,
     );
+    // The default favorite indicator stays the decorative chip — no dead
+    // button on a surface with no likers modal to open.
+    expect(root(card).querySelector(".stat-action")).toBeNull();
+
+    card.remove();
+  });
+
+  test("the interactive favorite indicator is a button dispatching the click event", async () => {
+    const card = await render({
+      shape: "detail",
+      title: "Τίτλος",
+      commentCount: 3,
+      favoriteCount: 2,
+      favoriteCountAction: true,
+    });
+
+    const stat = root(card).querySelector(
+      ".detail-stats .stat-action",
+    ) as HTMLButtonElement;
+    expect(stat).not.toBeNull();
+    expect(stat.tagName).toBe("BUTTON");
+    expect(stat.getAttribute("aria-label")).toBe(favoritersAriaLabel(2));
+    expect(stat.getAttribute("aria-haspopup")).toBe("dialog");
+
+    let clicks = 0;
+    card.addEventListener(FAVORITE_COUNT_CLICK_EVENT, () => {
+      clicks += 1;
+    });
+    stat.click();
+    expect(clicks).toBe(1);
 
     card.remove();
   });

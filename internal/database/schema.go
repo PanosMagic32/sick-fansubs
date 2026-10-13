@@ -62,7 +62,7 @@ type tableSpec struct {
 	indexes []indexSpec
 }
 
-// schemaSpec mirrors the embedded migrations (0001–0022). Adding a table,
+// schemaSpec mirrors the embedded migrations (0001–0023). Adding a table,
 // column, or index to a migration file WITHOUT updating this spec makes every
 // migrated database fail verification — exactly the fail-closed behavior
 // docs/patterns/go/sqlite.md requires.
@@ -236,7 +236,7 @@ var schemaSpec = map[string]tableSpec{
 		},
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"user_id", "blog_post_id"}},
-			{name: "idx_blog_post_favorites_post", origin: "c", columns: []string{"blog_post_id"}},
+			{name: "idx_blog_post_favorites_likers", origin: "c", columns: []string{"blog_post_id", "created_at_ms DESC", "user_id"}},
 		},
 	},
 	"project_favorites": {
@@ -247,7 +247,7 @@ var schemaSpec = map[string]tableSpec{
 		},
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"user_id", "project_id"}},
-			{name: "idx_project_favorites_project", origin: "c", columns: []string{"project_id"}},
+			{name: "idx_project_favorites_likers", origin: "c", columns: []string{"project_id", "created_at_ms DESC", "user_id"}},
 		},
 	},
 	// Durable audit events (migration 0007): no foreign
@@ -314,7 +314,7 @@ var schemaSpec = map[string]tableSpec{
 		},
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"user_id", "comment_id"}},
-			{name: "idx_blog_post_comment_hearts_comment", origin: "c", columns: []string{"comment_id"}},
+			{name: "idx_blog_post_comment_hearts_likers", origin: "c", columns: []string{"comment_id", "created_at_ms DESC", "user_id"}},
 		},
 	},
 	"project_comments": {
@@ -343,7 +343,7 @@ var schemaSpec = map[string]tableSpec{
 		},
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"user_id", "comment_id"}},
-			{name: "idx_project_comment_hearts_comment", origin: "c", columns: []string{"comment_id"}},
+			{name: "idx_project_comment_hearts_likers", origin: "c", columns: []string{"comment_id", "created_at_ms DESC", "user_id"}},
 		},
 	},
 	// Per-recipient product notifications (migration 0010):

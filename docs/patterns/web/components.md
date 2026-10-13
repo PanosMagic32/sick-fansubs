@@ -20,7 +20,8 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
    session wiring (a page reads the URL and the session context, loads through `data-access`, and
    hands values down). Features reach each other only through the recorded capability edges: the
    session context (`@features/auth/data-access/session.js`, open to every feature), the detail
-   pages' `favorite-toggle`/`follow-toggle` (auth) and `comments-section` (comments), and the
+   pages' `favorite-toggle`/`follow-toggle` and favorites `listFavoriters` data-access (auth) and
+   `comments-section` (comments), and the
    account page's `push-settings` (notifications). `web/src/architecture.test.ts` guards the list; a
    new edge gets an entry there and a sentence here. `core/` imports features only under its own
    recorded exceptions (element registration in `index.ts`, the session-aware shell and header;

@@ -180,6 +180,10 @@ const CROSS_FEATURE_EDGES: Array<{ from: string; specifier: string }> = [
     specifier: "@features/comments/ui/comments-section.js",
   },
   {
+    from: "features/blog/blog-detail-page.ts",
+    specifier: "@features/auth/data-access/favorites-api.js",
+  },
+  {
     from: "features/projects/project-detail-page.ts",
     specifier: "@features/auth/ui/favorite-toggle.js",
   },
@@ -190,6 +194,10 @@ const CROSS_FEATURE_EDGES: Array<{ from: string; specifier: string }> = [
   {
     from: "features/projects/project-detail-page.ts",
     specifier: "@features/comments/ui/comments-section.js",
+  },
+  {
+    from: "features/projects/project-detail-page.ts",
+    specifier: "@features/auth/data-access/favorites-api.js",
   },
   {
     from: "features/auth/account-page.ts",
@@ -643,6 +651,7 @@ const LIST_STYLE_CLASSES = new Set([
   "card-grid",
   "downloads-list",
   "fav-results",
+  "likers-list",
   "members-list",
   "notifications-list",
   "push-devices",

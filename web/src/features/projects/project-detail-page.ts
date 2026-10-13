@@ -47,6 +47,11 @@ import { icons } from "@shared/ui/icons.js";
 
 import { getProject } from "./data-access/projects-api.js";
 import type { ProjectDetail } from "./data-access/types.js";
+// The favoriters loader for the likers modal — the recorded auth
+// data-access capability edge.
+import { listFavoriters } from "@features/auth/data-access/favorites-api.js";
+import "@shared/ui/likers-modal.js";
+import { LIKER_PAGE_SIZE } from "@shared/ui/likers-modal.js";
 // The favorites heart — cross-feature import under the authenticated
 // capabilities exception (authenticated capabilities live in the auth
 // feature; content features consume them). The detail page also listens
@@ -93,6 +98,9 @@ export class ProjectDetailPage extends LitElement {
   @state() private project: ProjectDetail | null = null;
   @state() private errorMessage = "";
 
+  /** The likers modal's visibility — the favorite indicator's click. */
+  @state() private _likersOpen = false;
+
   // The staff edit button's session (moderator+). Client-side
   // visibility only; the server enforces the real authorization.
   @consume({ context: sessionContext, subscribe: true })
@@ -102,6 +110,35 @@ export class ProjectDetailPage extends LitElement {
     if (this.session?.state.status !== "authenticated") return false;
     return isStaffRole(this.session.state.user.role);
   }
+
+  private get _isAuthed(): boolean {
+    return this.session?.state.status === "authenticated";
+  }
+
+  /** The likers modal's page loader: this project's favoriters. */
+  private _loadFavoriters = (after: string | null, signal: AbortSignal) => {
+    const project = this.project;
+    if (!project) {
+      return Promise.resolve({
+        items: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      });
+    }
+    return listFavoriters(
+      "projects",
+      project.id,
+      { limit: LIKER_PAGE_SIZE, ...(after ? { after } : {}) },
+      { signal },
+    );
+  };
+
+  private _openLikers = () => {
+    if (this.project) this._likersOpen = true;
+  };
+
+  private _closeLikers = () => {
+    this._likersOpen = false;
+  };
 
   /** In-flight request controller — aborted on teardown or newer loads. */
   private _abort: AbortController | null = null;
@@ -173,6 +210,9 @@ export class ProjectDetailPage extends LitElement {
     this._abort = controller;
     this.status = "loading";
     this.errorMessage = "";
+    // A reload (projectId change) drops any open likers modal — it lists
+    // the PREVIOUS project's favoriters.
+    this._likersOpen = false;
 
     try {
       // The page-owned controller aborts on teardown/projectId change; the
@@ -255,6 +295,8 @@ export class ProjectDetailPage extends LitElement {
           updated-at=${project.updatedAt}
           .commentCount=${project.commentCount}
           .favoriteCount=${project.favoriteCount}
+          ?favorite-count-action=${this._isAuthed}
+          @sf-favorite-count-click=${this._openLikers}
         >
           <favorite-toggle
             slot="actions"
@@ -326,6 +368,13 @@ export class ProjectDetailPage extends LitElement {
           content-id=${project.id}
           .count=${project.commentCount}
         ></comments-section>
+
+        <likers-modal
+          .open=${this._likersOpen}
+          heading=${el.likers.heading}
+          .loader=${this._loadFavoriters}
+          @sf-likers-close=${this._closeLikers}
+        ></likers-modal>
       </article>
     `;
   }

@@ -22,6 +22,7 @@ import type {
   FavoriteKind,
   FavoriteListResponse,
   FavoriteStatusResponse,
+  LikerListResponse,
 } from "./types.js";
 
 /** GET /api/v1/users/me/favorites/{kind} — keyset page of favorites. */
@@ -35,6 +36,24 @@ export function listFavorites(
   return request<FavoriteListResponse>(
     "GET",
     `/users/me/favorites/${kind}?${query.toString()}`,
+    undefined,
+    { signal: opts?.signal },
+  );
+}
+
+/** GET /api/v1/{kind}/{id}/favorites — one keyset page of the ACTIVE users
+ * who favorited the content (auth-only; newest favorite first). */
+export function listFavoriters(
+  kind: FavoriteKind,
+  contentId: string,
+  params: { limit: number; after?: string },
+  opts?: RequestOptions,
+): Promise<LikerListResponse> {
+  const query = new URLSearchParams({ limit: String(params.limit) });
+  if (params.after) query.set("after", params.after);
+  return request<LikerListResponse>(
+    "GET",
+    `/${kind}/${encodeURIComponent(contentId)}/favorites?${query.toString()}`,
     undefined,
     { signal: opts?.signal },
   );

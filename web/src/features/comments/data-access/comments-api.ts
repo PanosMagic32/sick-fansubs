@@ -26,6 +26,7 @@ import type {
   CommentKind,
   CommentList,
   CommentSort,
+  LikerList,
 } from "./types.js";
 
 /** The thread's keyset page size — 20 top-level comments. */
@@ -218,6 +219,25 @@ export function deleteComment(
     `${threadBase(kind, contentId)}/${encodeURIComponent(commentId)}`,
     undefined,
     { needsCSRF: true, signal: opts?.signal },
+  );
+}
+
+/** GET /{kind}/{id}/comments/{commentId}/hearts — one keyset page of the
+ * ACTIVE users who hearted the comment (auth-only; newest heart first). */
+export function listCommentHearters(
+  kind: CommentKind,
+  contentId: string,
+  commentId: string,
+  params: { limit: number; after?: string },
+  opts?: RequestOptions,
+): Promise<LikerList> {
+  const query = new URLSearchParams({ limit: String(params.limit) });
+  if (params.after) query.set("after", params.after);
+  return request<LikerList>(
+    "GET",
+    `${threadBase(kind, contentId)}/${encodeURIComponent(commentId)}/hearts?${query.toString()}`,
+    undefined,
+    { signal: opts?.signal },
   );
 }
 

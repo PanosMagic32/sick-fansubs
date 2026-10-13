@@ -75,3 +75,25 @@ export interface CommentList {
 export interface CommentCount {
   count: number;
 }
+
+// ── Likers (who hearted a comment) ───────────────────────────────────
+
+/** One user behind a comment's hearts — mirrors the Go wire DTO
+ * internal/handler/likers.go (the LikerItem schema). */
+export interface LikerItem {
+  id: string;
+  username: string;
+  /** Absolute avatar URL, or null when the account has none. */
+  avatarUrl: string | null;
+}
+
+/** One keyset page of likers; the hearters list walks this envelope. */
+export interface LikerList {
+  items: LikerItem[];
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor: string | null;
+    /** Filtered ACTIVE liker count at read time. */
+    total: number;
+  };
+}

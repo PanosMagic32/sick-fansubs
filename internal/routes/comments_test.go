@@ -15,9 +15,9 @@ import (
 	"sick-fansubs/internal/store/storetest"
 )
 
-// Comments registration tests: the eighteen paths, the
-// optional-session reads chain, the CSRF'd writes, and the JSON 404
-// fallbacks.
+// Comments registration tests: the twenty paths, the
+// optional-session reads chain, the CSRF'd writes, the auth-only hearters
+// read, and the JSON 404 fallbacks.
 
 // setupCommentsMux builds a ServeMux with the comments routes and the API
 // fallback over a migrated database: one published post with one comment,
@@ -111,8 +111,21 @@ func TestComments_RoutesRegistered(t *testing.T) {
 		}
 	}
 
-	// The writes answer through the full chain.
+	// The hearters list is AUTH-ONLY (the likers surface): anonymous
+	// answers the session 401, a live session reads the page.
 	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/blog-posts/b1/comments/c1/hearts", nil))
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous hearters: status = %d, want 401 (body %q)", rec.Code, rec.Body.String())
+	}
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, commentsAuthedReq(t, http.MethodGet, "/api/v1/blog-posts/b1/comments/c1/hearts", cookie, ""))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("authed hearters: status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+	}
+
+	// The writes answer through the full chain.
+	rec = httptest.NewRecorder()
 	mux.ServeHTTP(rec, commentsAuthedReq(t, http.MethodPost, "/api/v1/blog-posts/b1/comments", cookie, `{"body":"hello"}`))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("POST create: status = %d, want 201 (body %q)", rec.Code, rec.Body.String())
@@ -284,5 +297,23 @@ func TestComments_ProjectRoutesRegistered(t *testing.T) {
 	}
 	if list.Items == nil || len(list.Items) != 0 {
 		t.Errorf("project comment list = %s, want an empty items array", rec.Body.String())
+	}
+
+	// The project segment's hearters read shares the closure with the blog
+	// segment: anonymous answers the session 401, a live session reads the
+	// page.
+	if _, err := db.Exec(`INSERT INTO project_comments (id, user_id, project_id, parent_id, body, hearts_count, created_at_ms, updated_at_ms)
+		VALUES ('pc1', 'u1', 'p1', NULL, 'first', 0, 1000, 1000)`); err != nil {
+		t.Fatalf("seed project comment: %v", err)
+	}
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/projects/p1/comments/pc1/hearts", nil))
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous project hearters: status = %d, want 401 (body %q)", rec.Code, rec.Body.String())
+	}
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, commentsAuthedReq(t, http.MethodGet, "/api/v1/projects/p1/comments/pc1/hearts", cookie, ""))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("authed project hearters: status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
 	}
 }
