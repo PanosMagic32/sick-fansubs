@@ -15,6 +15,7 @@ package push
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -119,6 +120,11 @@ const (
 	maxPayloadBytes = maxBridgedRecordSize - recordOverhead
 )
 
+// errPayloadOverBudget reports a body that cannot fit even after the title is
+// trimmed away — a bound drifted without the ceiling, so the send fails closed
+// rather than letting a push service answer 413.
+var errPayloadOverBudget = fmt.Errorf("push: payload exceeds the %d-byte budget with an empty title", maxPayloadBytes)
+
 // recordSizeFor returns the ECE record size for one marshalled payload: the
 // body webpush-go will actually POST. Keeping it just above the payload costs
 // nothing on the wire and is what makes bridged (FCM/APNs) delivery possible.
@@ -142,8 +148,14 @@ func recordSizeFor(payloadLen int) uint32 {
 // over-budget escape below is unreachable in practice.
 func payloadFor(ev Event) (body []byte, titleBytesDropped int, err error) {
 	body, err = marshalPayload(ev)
-	if err != nil || len(body) <= maxPayloadBytes || ev.ContentTitle == "" {
-		return body, 0, err
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(body) <= maxPayloadBytes {
+		return body, 0, nil
+	}
+	if ev.ContentTitle == "" {
+		return nil, 0, errPayloadOverBudget
 	}
 
 	full := ev.ContentTitle
@@ -163,6 +175,17 @@ func payloadFor(ev Event) (body []byte, titleBytesDropped int, err error) {
 		}
 	}
 	ev.ContentTitle = string(runes[:lo])
+	body, err = marshalPayload(ev)
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(body) > maxPayloadBytes {
+		// Every other field is bounded, so an empty title over the budget
+		// means a bound changed without this ceiling. Refuse to send a body
+		// the push services reject with 413 (the silent-loss class) instead
+		// of returning one that no longer matches the trimmed title.
+		return nil, 0, errPayloadOverBudget
+	}
 	return body, len(full) - len(ev.ContentTitle), nil
 }
 

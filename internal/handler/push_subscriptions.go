@@ -3,6 +3,8 @@ package handler
 import (
 	"database/sql"
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -109,18 +111,22 @@ func PushSubscriptionCreate(db *sql.DB, now func() time.Time) http.HandlerFunc {
 			return
 		}
 
-		subscriptionID, err := id.New()
-		if err != nil {
-			writeInternalError(w, r, logger, "push subscription id generation failed", "error", err)
-			return
-		}
-
 		// The trimmed endpoint is what gets STORED — validation and
 		// persistence must agree on the value (the send path uses the
 		// stored copy verbatim).
 		endpoint := strings.TrimSpace(req.Endpoint)
-		storedID, err := store.UpsertPushSubscription(r.Context(), db, subscriptionID, su.UserID,
-			endpoint, req.Keys.P256dh, req.Keys.Auth, auth.ClientLabel(r.UserAgent()), now().UnixMilli())
+		storedID, err := mintRetry(func() (string, error) {
+			newID, err := id.New()
+			if err != nil {
+				return "", fmt.Errorf("%w: %v", errIDMint, err)
+			}
+			return store.UpsertPushSubscription(r.Context(), db, newID, su.UserID,
+				endpoint, req.Keys.P256dh, req.Keys.Auth, auth.ClientLabel(r.UserAgent()), now().UnixMilli())
+		})
+		if errors.Is(err, errIDMint) {
+			writeInternalError(w, r, logger, "push subscription id generation failed", "error", err)
+			return
+		}
 		if err != nil {
 			writeStoreAccountError(w, r, err, "push subscription upsert", "error", err)
 			return

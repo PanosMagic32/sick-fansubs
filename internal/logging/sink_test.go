@@ -291,6 +291,46 @@ func TestNewRotatingWriter_CreatesTheDirectory(t *testing.T) {
 	}
 }
 
+// TestNewRotatingWriter_TightensAdoptedModes pins the owner-only contract on
+// pre-existing state: directory and file creation modes apply only when the
+// sink creates them, so an adopted wider mode is tightened explicitly.
+func TestNewRotatingWriter_TightensAdoptedModes(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0o755); err != nil {
+		t.Fatalf("widen dir: %v", err)
+	}
+	logPath := filepath.Join(dir, FileName)
+	if err := os.WriteFile(logPath, []byte("old\n"), 0o644); err != nil {
+		t.Fatalf("seed log: %v", err)
+	}
+	if err := os.Chmod(logPath, 0o644); err != nil {
+		t.Fatalf("widen log: %v", err)
+	}
+
+	w, err := NewRotatingWriter(dir, 1024, 2, nil)
+	if err != nil {
+		t.Fatalf("new writer: %v", err)
+	}
+	defer w.Close()
+
+	dirInfo, err := os.Stat(dir)
+	if err != nil {
+		t.Fatalf("stat dir: %v", err)
+	}
+	if perm := dirInfo.Mode().Perm(); perm != dirMode {
+		t.Errorf("adopted dir mode = %o, want %o", perm, dirMode)
+	}
+	fileInfo, err := os.Stat(logPath)
+	if err != nil {
+		t.Fatalf("stat log: %v", err)
+	}
+	if perm := fileInfo.Mode().Perm(); perm != fileMode {
+		t.Errorf("adopted file mode = %o, want %o", perm, fileMode)
+	}
+}
+
 func TestRotatingWriter_AdoptsExistingSize(t *testing.T) {
 	t.Parallel()
 

@@ -82,7 +82,17 @@ func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced 
 
 		name := d.Name()
 		if strings.HasPrefix(name, tempPrefix) {
-			if staleFile(path, now, grace) {
+			stale, err := staleFile(path, now, grace)
+			if err != nil {
+				attrs := []any{"file", filepath.Base(path)}
+				if cause := errors.Unwrap(err); cause != nil {
+					attrs = append(attrs, "error", cause)
+				}
+				logger.Warn("media temp stat failed", attrs...)
+				stats.Failed++
+				return nil
+			}
+			if stale {
 				if removeLogged(logger, path, filepath.Base(path), "media temp removed", "media temp removal failed") {
 					stats.TempDeleted++
 				} else {
@@ -103,7 +113,20 @@ func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced 
 		if _, keep := referenced[stored]; keep {
 			return nil
 		}
-		if !staleFile(path, now, grace) {
+		stale, err := staleFile(path, now, grace)
+		if err != nil {
+			// Count the candidate as failed, like a failed removal: the sweep
+			// must not silently keep a file it could not inspect. The log
+			// carries the asset id, never the storage path.
+			attrs := []any{"file", id}
+			if cause := errors.Unwrap(err); cause != nil {
+				attrs = append(attrs, "error", cause)
+			}
+			logger.Warn("media orphan stat failed", attrs...)
+			stats.Failed++
+			return nil
+		}
+		if !stale {
 			return nil
 		}
 		if removeLogged(logger, path, id, "media orphan removed", "media orphan removal failed") {
@@ -127,13 +150,18 @@ func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced 
 }
 
 // staleFile reports whether the file's mtime is older than grace relative
-// to now — exactly at the boundary counts as stale.
-func staleFile(path string, now time.Time, grace time.Duration) bool {
+// to now — exactly at the boundary counts as stale. A file that vanished
+// between the walk and this stat is not stale and not an error; any other
+// stat failure is returned so the caller can count it.
+func staleFile(path string, now time.Time, grace time.Duration) (bool, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
-		return false
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
 	}
-	return !fi.ModTime().Add(grace).After(now)
+	return !fi.ModTime().Add(grace).After(now), nil
 }
 
 // removeLogged removes one file, logging the outcome at Info on success and

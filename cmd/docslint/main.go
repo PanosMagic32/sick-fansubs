@@ -7,6 +7,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -75,29 +76,45 @@ func run(root string) ([]string, error) {
 }
 
 // checkScopeDocs requires an AGENTS.md in every code scope: each Go package
-// directory holding production source, and each web scope directory.
+// directory holding production source — at ANY depth under cmd/ and internal/ —
+// and each web scope directory.
 func checkScopeDocs(root string) ([]string, error) {
 	var problems []string
 	for _, base := range []string{"cmd", "internal"} {
-		entries, err := os.ReadDir(filepath.Join(root, base))
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return nil, fmt.Errorf("read %s: %w", base, err)
+		basePath := filepath.Join(root, base)
+		_, statErr := os.Stat(basePath)
+		if errors.Is(statErr, fs.ErrNotExist) {
+			continue
 		}
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				continue
+		if statErr != nil {
+			return nil, fmt.Errorf("stat %s: %w", base, statErr)
+		}
+		err := filepath.WalkDir(basePath, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
 			}
-			dir := filepath.ToSlash(filepath.Join(base, entry.Name()))
+			if !d.IsDir() {
+				return nil
+			}
+			if nestedSkipNames[d.Name()] {
+				return filepath.SkipDir
+			}
+			rel, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			dir := filepath.ToSlash(rel)
 			hasGo, err := hasProductionGo(root, dir)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if hasGo && !exists(filepath.Join(root, dir, "AGENTS.md")) {
 				problems = append(problems, dir+": holds Go source but has no AGENTS.md")
 			}
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("walk %s: %w", base, err)
 		}
 	}
 

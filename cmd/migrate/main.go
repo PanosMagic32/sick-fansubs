@@ -38,6 +38,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -122,7 +123,7 @@ func runWith(logger *slog.Logger, status statusFn, open openFn, backup backupFn,
 	// or os.Exit themselves.
 	db, err := open(database.Config{DataDir: cfg.DataDir})
 	if err != nil {
-		return rollbackIfBackedUp(logger, cfg.DataDir, backupPath, restore,
+		return rollbackIfBackedUp(cfg.DataDir, backupPath, restore,
 			fmt.Errorf("open maintenance: %w", err))
 	}
 
@@ -131,14 +132,22 @@ func runWith(logger *slog.Logger, status statusFn, open openFn, backup backupFn,
 	// part of readiness (readiness does not run integrity scans). A failure
 	// here invalidates the migration outcome, so the safety net applies too.
 	if err := database.VerifyForeignKeys(db); err != nil {
-		db.Close()
-		return rollbackIfBackedUp(logger, cfg.DataDir, backupPath, restore,
-			fmt.Errorf("foreign key verification: %w", err))
+		cause := fmt.Errorf("foreign key verification: %w", err)
+		// Close before rolling back: a file swap under an open handle would
+		// race the pool's own close. A close failure therefore skips the
+		// rollback and reports both errors — the operator must inspect the
+		// handle state by hand.
+		if cerr := database.CloseDatabase(db); cerr != nil {
+			return errors.Join(cause, fmt.Errorf("close after failed foreign-key verification: %w", cerr))
+		}
+		return rollbackIfBackedUp(cfg.DataDir, backupPath, restore, cause)
 	}
 
 	if err := database.CloseDatabase(db); err != nil {
-		return rollbackIfBackedUp(logger, cfg.DataDir, backupPath, restore,
-			fmt.Errorf("close after migration: %w", err))
+		// No rollback here: the migration itself succeeded, and a file swap
+		// under a handle that failed to close is unsafe. The error is the
+		// operator's signal.
+		return fmt.Errorf("close after migration: %w", err)
 	}
 
 	logger.Info("migrations complete", "dataDir", cfg.DataDir, "backup", backupPath)
@@ -148,14 +157,14 @@ func runWith(logger *slog.Logger, status statusFn, open openFn, backup backupFn,
 // rollbackIfBackedUp restores the pre-migration backup when the migration
 // failed after a backup was taken. The application is offline for the whole
 // window, so the restore is a plain file swap (docs/patterns/go/sqlite.md).
-func rollbackIfBackedUp(logger *slog.Logger, dataDir, backupPath string, restore restoreFn, cause error) error {
+// It does not log: the caller's single boundary record carries the returned
+// error, so a failure cannot produce two records for one run.
+func rollbackIfBackedUp(dataDir, backupPath string, restore restoreFn, cause error) error {
 	if backupPath == "" {
 		return cause
 	}
 	if err := restore(dataDir, backupPath); err != nil {
 		return fmt.Errorf("%v; and rollback failed: %w", cause, err)
 	}
-	logger.Error("migration failed; database rolled back to the pre-migration backup",
-		"error", cause, "backup", backupPath, "dataDir", dataDir)
 	return fmt.Errorf("migration failed; database rolled back to the pre-migration backup %s (%v)", backupPath, cause)
 }

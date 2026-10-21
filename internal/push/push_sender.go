@@ -27,6 +27,12 @@ type Sender struct {
 	// The default is the production 1 s/2 s ladder; tests inject a zero
 	// backoff so the retry pins do not sleep real time.
 	backoff func(attempt int) time.Duration
+
+	// mu guards closed and the WaitGroup add, so Close cannot race a
+	// fan-out that starts after shutdown began (sqlite.md rule 13).
+	mu     sync.Mutex
+	closed bool
+	wg     sync.WaitGroup
 }
 
 // NewSender builds a Sender. subscriber is the VAPID `sub` contact URI;
@@ -55,7 +61,23 @@ func (s *Sender) NotifyPush(ctx context.Context, ev Event) {
 		return
 	}
 	logging.From(ctx).DebugContext(ctx, "push fan-out queued", "kind", ev.Kind)
-	go s.deliver(ctx, ev)
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return
+	}
+	s.wg.Go(func() { s.deliver(ctx, ev) })
+	s.mu.Unlock()
+}
+
+// Close stops accepting fan-out work and waits for in-flight deliveries. The
+// caller runs it before closing the database, so no fan-out can query a
+// closed pool (docs/patterns/go/sqlite.md rule 13).
+func (s *Sender) Close() {
+	s.mu.Lock()
+	s.closed = true
+	s.mu.Unlock()
+	s.wg.Wait()
 }
 
 // deliver runs the full fan-out for one event: load the recipient's

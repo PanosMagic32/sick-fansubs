@@ -1,15 +1,15 @@
 package main
 
 import (
-	"cmp"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
-	"strings"
 	"time"
 	_ "time/tzdata" // Europe/Athens inside alpine containers (the cron timezone)
 
@@ -143,11 +143,19 @@ func runBackup(logger *slog.Logger, out io.Writer, cfg config, replaceToday, pre
 	// removed only after the new one is complete, so a failed replace never
 	// destroys the rollback point it exists to protect.
 	exists := false
-	if entries, err := os.ReadDir(folder); err == nil && len(entries) > 0 {
-		exists = true
-		if !replaceToday {
-			return fmt.Errorf("backup folder %s already exists and is not empty — today's unit is already published", folder)
+	todayEntries, err := os.ReadDir(folder)
+	switch {
+	case err == nil:
+		if len(todayEntries) > 0 {
+			exists = true
+			if !replaceToday {
+				return fmt.Errorf("backup folder %s already exists and is not empty — today's unit is already published", folder)
+			}
 		}
+	case errors.Is(err, fs.ErrNotExist):
+		// First unit of the day.
+	default:
+		return fmt.Errorf("read today's backup folder: %w", err)
 	}
 
 	// Build the unit in a STAGING folder. Every `<date>.staging` under
@@ -263,8 +271,12 @@ func runBackup(logger *slog.Logger, out io.Writer, cfg config, replaceToday, pre
 			return fmt.Errorf("move today's backup unit aside: %w", err)
 		}
 		if err := os.Rename(stage, folder); err != nil {
-			_ = os.Rename(old, folder) // restore the previous unit
-			return fmt.Errorf("publish replacement backup unit: %w", err)
+			publishErr := fmt.Errorf("publish replacement backup unit: %w", err)
+			if rerr := os.Rename(old, folder); rerr != nil {
+				return errors.Join(publishErr,
+					fmt.Errorf("restore the previous backup unit from %q: %w", old, rerr))
+			}
+			return publishErr
 		}
 		_ = os.RemoveAll(old)
 		logger.Info("replacing today's existing backup unit (deploy trigger)", "folder", folder)
@@ -285,8 +297,14 @@ func runBackup(logger *slog.Logger, out io.Writer, cfg config, replaceToday, pre
 		// The new unit is complete and published; a retention failure is
 		// reported (with the current folder count) without failing the backup
 		// the trigger just produced.
-		retained, _ := backupFolders(cfg.BackupDir)
-		logger.Warn("retention prune failed — remove the old backup folders by hand", "error", err, "retained", len(retained))
+		retained, listErr := backupFolders(cfg.BackupDir)
+		if listErr != nil {
+			logger.Warn("retention prune failed — remove the old backup folders by hand",
+				"error", err, "listingError", listErr)
+		} else {
+			logger.Warn("retention prune failed — remove the old backup folders by hand",
+				"error", err, "retained", len(retained))
+		}
 	}
 
 	// Best-effort summary: the unit is published and durable, so a failed
@@ -371,77 +389,6 @@ func syncPath(path string) error {
 	}
 	defer f.Close()
 	return f.Sync()
-}
-
-// backupFolders lists date-stamped folders under backupDir, newest first
-// (YYYY-MM-DD strings sort chronologically). Foreign entries are never
-// returned and never touched.
-func backupFolders(backupDir string) ([]string, error) {
-	entries, err := os.ReadDir(backupDir)
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("read backup directory: %w", err)
-	}
-	var folders []string
-	for _, e := range entries {
-		if !e.IsDir() || !folderDatePattern.MatchString(e.Name()) {
-			continue
-		}
-		folders = append(folders, filepath.Join(backupDir, e.Name()))
-	}
-	slices.SortFunc(folders, func(a, b string) int { return cmp.Compare(b, a) })
-	return folders, nil
-}
-
-// pruneOld removes date-stamped folders beyond keep, oldest first. Pruning
-// runs only after a successful publish (the caller's ordering) and only over
-// YYYY-MM-DD folders.
-func pruneOld(logger *slog.Logger, backupDir string, keep int) (int, error) {
-	folders, err := backupFolders(backupDir)
-	if err != nil {
-		return 0, err
-	}
-	if len(folders) <= keep {
-		return 0, nil
-	}
-	pruned := 0
-	for _, f := range folders[keep:] {
-		if err := os.RemoveAll(f); err != nil {
-			return pruned, fmt.Errorf("prune %q: %w", f, err)
-		}
-		pruned++
-		logger.Info("pruned old backup", "folder", f)
-	}
-	return pruned, nil
-}
-
-// clearStaleStages removes every date-shaped staging folder under backupDir —
-// each one is provably a crashed run's leftover on the production host.
-func clearStaleStages(logger *slog.Logger, backupDir string) error {
-	entries, err := os.ReadDir(backupDir)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("read backup directory: %w", err)
-	}
-	for _, e := range entries {
-		name := e.Name()
-		if !e.IsDir() || !strings.HasSuffix(name, stagingSuffix) {
-			continue
-		}
-		if !folderDatePattern.MatchString(strings.TrimSuffix(name, stagingSuffix)) {
-			continue
-		}
-		p := filepath.Join(backupDir, name)
-		logger.Warn("removing stale staging folder left by a previous crashed run", "stage", p)
-		if err := os.RemoveAll(p); err != nil {
-			return fmt.Errorf("remove stale backup staging folder: %w", err)
-		}
-	}
-	return nil
 }
 
 // runStatus prints the newest published folder and its age — the lightweight

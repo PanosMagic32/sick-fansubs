@@ -14,11 +14,6 @@ import (
 	"sick-fansubs/internal/store"
 )
 
-// maxMintAttempts bounds a content create's identifier-collision retry. The
-// database is the uniqueness authority, and a 128-bit collision is
-// practically impossible; three attempts separate a freak repeat from a bug.
-const maxMintAttempts = 3
-
 // BlogCreate returns the handler for POST /api/v1/blog-posts.
 //
 // Outcomes: 201 + Location + staff-shaped body; 400 malformed body;

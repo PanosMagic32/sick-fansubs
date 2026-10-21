@@ -17,6 +17,7 @@ record. It runs as
   problem, printing one line per problem. Exit codes: 0 clean, 1 problems found, 2 the check could not
   run (unreadable file, unexpected argument).
 - `-root <dir>` checks another tree; the tests call the check functions directly and through `run`.
+- The scope check walks EVERY directory under `cmd/` and `internal/`, not just the first level, so a nested Go package without an `AGENTS.md` fails (`TestCheckScopeDocs_NestedScopeIsChecked`). A test-only package is not a scope; `node_modules` and `.git` are skipped at any depth.
 - **The citation pattern covers all four forms** (`decision NNNN`, `decision/NNNN`, `decision-NNNN`,
   and a `decisions/NNNN-…` file path) in prose or a comment, across Go, web, docs, Makefiles, and
   Dockerfiles. Any match outside the exemption fails the run. The counted universe is the

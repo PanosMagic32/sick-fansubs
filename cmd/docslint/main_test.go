@@ -44,6 +44,25 @@ func TestCheckScopeDocs_TestOnlyPackageIsNotAScope(t *testing.T) {
 	}
 }
 
+func TestCheckScopeDocs_NestedScopeIsChecked(t *testing.T) {
+	root := writeTree(t, map[string]string{
+		"internal/foo/foo.go":            "package foo\n",
+		"internal/foo/AGENTS.md":         "# foo\n",
+		"internal/foo/bar/bar.go":        "package bar\n",
+		"internal/foo/bar/baz/baz.go":    "package baz\n",
+		"internal/foo/bar/baz/AGENTS.md": "# baz\n",
+	})
+
+	problems, err := checkScopeDocs(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"internal/foo/bar: holds Go source but has no AGENTS.md"}
+	if len(problems) != len(want) || problems[0] != want[0] {
+		t.Fatalf("checkScopeDocs() = %v, want %v", problems, want)
+	}
+}
+
 func TestCheckIndexReachability_ProseMentionIsNotALink(t *testing.T) {
 	root := writeTree(t, map[string]string{
 		docsIndex:                   "# Index\n\n[ok](patterns/ok.md)\nA prose mention of patterns/go/prose.md.\n",

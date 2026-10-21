@@ -151,23 +151,24 @@ func TestFilterTokens(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
+		name string
 		in   string
 		want []string
 	}{
-		{"dr stone", []string{"dr", "stone"}},
-		{"Dr. Stone", []string{"dr", "stone"}},
-		{"one-piece", []string{"one", "piece"}},
-		{"1080p", []string{"1080p"}},
-		{"Άμλετ", []string{"αμλετ"}},
-		{"Τέλος Οδυσσεύς", []string{"τελοσ", "οδυσσευσ"}},
-		{"  spaced  out  ", []string{"spaced", "out"}},
+		{"space separated", "dr stone", []string{"dr", "stone"}},
+		{"dotted abbreviation", "Dr. Stone", []string{"dr", "stone"}},
+		{"hyphenated", "one-piece", []string{"one", "piece"}},
+		{"alphanumeric", "1080p", []string{"1080p"}},
+		{"Greek accents folded", "Άμλετ", []string{"αμλετ"}},
+		{"Greek phrase", "Τέλος Οδυσσεύς", []string{"τελοσ", "οδυσσευσ"}},
+		{"collapsed whitespace", "  spaced  out  ", []string{"spaced", "out"}},
 		// Punctuation-only, blank, and a lone combining mark: no needles.
-		{"", nil},
-		{"   ", nil},
-		{"...", nil},
-		{"\u0301", nil},
+		{"empty", "", nil},
+		{"whitespace only", "   ", nil},
+		{"punctuation only", "...", nil},
+		{"lone combining mark", "\u0301", nil},
 	} {
-		t.Run(tc.in, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			got := FilterTokens(tc.in)
 			if len(got) != len(tc.want) {
 				t.Fatalf("FilterTokens(%q) = %q, want %q", tc.in, got, tc.want)

@@ -95,6 +95,12 @@ func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoin
 			label = COALESCE(push_subscriptions.label, excluded.label),
 			updated_at_ms = excluded.updated_at_ms`,
 		id, userID, endpoint, p256dh, auth, nullableString(label), createdAtMS, createdAtMS); err != nil {
+		if IsUniqueViolation(err) {
+			// A primary-key collision on the handler-minted id; the caller
+			// re-mints and retries. The endpoint's own UNIQUE conflict is
+			// absorbed by ON CONFLICT above.
+			return "", fmt.Errorf("%w: %v", ErrDuplicate, err)
+		}
 		if isForeignKeyViolation(err) {
 			// A user deleted between the session lookup and this insert —
 			// the client's dead session heals through its own 401 paths.

@@ -25,6 +25,11 @@ func CreateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, us
 			WHERE id = ? AND status = 'published' AND published_at_ms IS NOT NULL
 		)`, id, userID, contentID, body, createdAtMS, createdAtMS, contentID)
 	if err != nil {
+		if IsUniqueViolation(err) {
+			// A primary-key collision on the handler-minted id; the caller
+			// re-mints and retries.
+			return nil, fmt.Errorf("%w: %v", ErrDuplicate, err)
+		}
 		if isForeignKeyViolation(err) {
 			// The user was deleted between the session lookup and this
 			// insert — the public outcome is the masked 404 (the favorites
@@ -110,6 +115,9 @@ func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentI
 		replyID, userID, contentID, parentID, body, createdAtMS, createdAtMS,
 		parentID, contentID, contentID)
 	if err != nil {
+		if IsUniqueViolation(err) {
+			return NotificationEvent{}, false, fmt.Errorf("%w: %v", ErrDuplicate, err)
+		}
 		if isForeignKeyViolation(err) {
 			return NotificationEvent{}, false, ErrNotFound
 		}
@@ -131,6 +139,9 @@ func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentI
 			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
 			VALUES (?, ?, 'comment_reply', ?, ?, ?, ?, ?)`,
 			notificationID, parentUserID, userID, k.kind, contentID, replyID, createdAtMS); err != nil {
+			if IsUniqueViolation(err) {
+				return NotificationEvent{}, false, fmt.Errorf("%w: %v", ErrDuplicate, err)
+			}
 			if isForeignKeyViolation(err) {
 				return NotificationEvent{}, false, ErrNotFound
 			}
@@ -278,6 +289,9 @@ func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, ac
 			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
 			VALUES (?, ?, 'comment_removed', NULL, ?, ?, ?, ?)`,
 			notificationID, authorID, k.kind, contentID, commentID, createdAtMS); err != nil {
+			if IsUniqueViolation(err) {
+				return NotificationEvent{}, false, fmt.Errorf("%w: %v", ErrDuplicate, err)
+			}
 			if isForeignKeyViolation(err) {
 				// The recipient vanished between the read and the insert — their
 				// comments cascade away with them, so the masked 404 is the

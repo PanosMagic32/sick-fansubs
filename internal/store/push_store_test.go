@@ -102,6 +102,24 @@ func TestUpsertPushSubscription(t *testing.T) {
 	}
 }
 
+// TestUpsertPushSubscription_DuplicateIDMapsToErrDuplicate pins the id
+// contract: an endpoint conflict is absorbed by the upsert, while a
+// primary-key collision surfaces as the sentinel the handler retries.
+func TestUpsertPushSubscription_DuplicateIDMapsToErrDuplicate(t *testing.T) {
+	t.Parallel()
+	db := openStoreDB(t)
+	ctx := t.Context()
+	mustCreateUser(t, db, "u1", "alice", "alice", "alice@example.com")
+
+	if _, err := UpsertPushSubscription(ctx, db, "s1", "u1", fakeEndpointA, fakeP256dh, fakeAuth, "", 1000); err != nil {
+		t.Fatalf("first upsert: %v", err)
+	}
+	_, err := UpsertPushSubscription(ctx, db, "s1", "u1", fakeEndpointB, fakeP256dh, fakeAuth, "", 2000)
+	if !errors.Is(err, ErrDuplicate) {
+		t.Fatalf("duplicate id: got %v, want ErrDuplicate", err)
+	}
+}
+
 func TestRenamePushSubscription(t *testing.T) {
 	t.Parallel()
 	db := openStoreDB(t)

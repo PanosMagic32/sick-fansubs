@@ -64,6 +64,9 @@ func SetCommentHeart(ctx context.Context, db *sql.DB, k ContentKind, userID, con
 					INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
 					VALUES (?, ?, 'heart', ?, ?, ?, ?, ?)`,
 					heartNotificationID, authorID, userID, k.kind, contentID, commentID, createdAtMS); err != nil {
+					if IsUniqueViolation(err) {
+						return NotificationEvent{}, false, fmt.Errorf("%w: %v", ErrDuplicate, err)
+					}
 					if isForeignKeyViolation(err) {
 						return NotificationEvent{}, false, ErrNotFound
 					}

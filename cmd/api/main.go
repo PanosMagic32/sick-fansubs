@@ -200,6 +200,7 @@ func main() {
 	// (the self-test then reports zero delivered).
 	var notify push.Notifier
 	var tester push.TestSender
+	var pushSender *push.Sender
 	vapidPrivate, err := cfg.LoadSecret("vapid_private_key")
 	if err != nil {
 		slog.Error("VAPID private key load failed", "error", err)
@@ -221,7 +222,7 @@ func main() {
 			slog.Error("VAPID keypair validation failed", "error", err)
 			os.Exit(1)
 		}
-		pushSender := push.NewSender(db, cfg.VAPIDPublicKey, vapidPrivate, pushSubscriber)
+		pushSender = push.NewSender(db, cfg.VAPIDPublicKey, vapidPrivate, pushSubscriber)
 		notify = pushSender
 		tester = pushSender
 	}
@@ -356,6 +357,13 @@ func main() {
 	// after its current bounded batch. Wait so the database is not closed
 	// under an in-flight DELETE (busy timeout bounds this to ~5s worst case).
 	cleanupWG.Wait()
+
+	// The push fan-out outlives the request that queued it. Stop accepting
+	// new work and join the deliveries before the pool closes, so no goroutine
+	// can query a closed database (sqlite.md rule 13).
+	if pushSender != nil {
+		pushSender.Close()
+	}
 
 	// Explicit close so a close error is reported. CloseDatabase is
 	// idempotent; the deferred call is a return-path no-op — the os.Exit

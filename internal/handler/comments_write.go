@@ -2,6 +2,8 @@ package handler
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -53,13 +55,19 @@ func CommentsCreate(kind commentKind, db *sql.DB, notify push.Notifier, now func
 			return
 		}
 
-		commentID, err := id.New()
-		if err != nil {
+		var commentID string
+		events, err := mintRetry(func() ([]store.NotificationEvent, error) {
+			newID, err := id.New()
+			if err != nil {
+				return nil, fmt.Errorf("%w: %v", errIDMint, err)
+			}
+			commentID = newID
+			return store.CreateComment(r.Context(), db, kind.content, contentID, su.UserID, body, commentID, now().UnixMilli())
+		})
+		if errors.Is(err, errIDMint) {
 			writeInternalError(w, r, logger, "comment id generation failed", "error", err)
 			return
 		}
-
-		events, err := store.CreateComment(r.Context(), db, kind.content, contentID, su.UserID, body, commentID, now().UnixMilli())
 		if err != nil {
 			writeStoreError(w, r, err, kind.label+" comment create", "error", err)
 			return
@@ -124,22 +132,32 @@ func CommentsReply(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 			return
 		}
 
-		replyID, err := id.New()
-		if err != nil {
+		var (
+			replyID        string
+			notificationID string
+		)
+		res, err := mintRetry(func() (notified, error) {
+			newReplyID, err := id.New()
+			if err != nil {
+				return notified{}, fmt.Errorf("%w: %v", errIDMint, err)
+			}
+			newNotificationID, err := id.New()
+			if err != nil {
+				return notified{}, fmt.Errorf("%w: %v", errIDMint, err)
+			}
+			replyID, notificationID = newReplyID, newNotificationID
+			event, emitted, err := store.CreateCommentReply(r.Context(), db, kind.content, contentID, parentID, su.UserID, body, replyID, notificationID, now().UnixMilli())
+			return notified{event: event, emitted: emitted}, err
+		})
+		if errors.Is(err, errIDMint) {
 			writeInternalError(w, r, logger, "reply id generation failed", "error", err)
 			return
 		}
-		notificationID, err := id.New()
-		if err != nil {
-			writeInternalError(w, r, logger, "notification id generation failed", "error", err)
-			return
-		}
-
-		event, emitted, err := store.CreateCommentReply(r.Context(), db, kind.content, contentID, parentID, su.UserID, body, replyID, notificationID, now().UnixMilli())
 		if err != nil {
 			writeStoreError(w, r, err, kind.label+" comment reply", "error", err)
 			return
 		}
+		event, emitted := res.event, res.emitted
 		// The notification row committed in the same transaction — hand the
 		// event to the push channel AFTER the commit.
 		if emitted && notify != nil {
@@ -267,21 +285,29 @@ func CommentsDelete(kind commentKind, db *sql.DB, notify push.Notifier, now func
 		// Only a non-author delete can notify anyone — mint the id on that
 		// path (the reply/heart precedent).
 		var notificationID string
-		if !isSelf {
-			notificationID, err = id.New()
-			if err != nil {
-				writeInternalError(w, r, logger, "comment_removed notification id generation failed", "error", err)
-				return
+		res, err := mintRetry(func() (notified, error) {
+			notificationID = ""
+			if !isSelf {
+				newID, err := id.New()
+				if err != nil {
+					return notified{}, fmt.Errorf("%w: %v", errIDMint, err)
+				}
+				notificationID = newID
 			}
+			event, emitted, err := store.DeleteComment(r.Context(), db, kind.content, commentID, su.UserID, notificationID, now().UnixMilli())
+			return notified{event: event, emitted: emitted}, err
+		})
+		if errors.Is(err, errIDMint) {
+			writeInternalError(w, r, logger, "comment_removed notification id generation failed", "error", err)
+			return
 		}
-
-		event, emitted, err := store.DeleteComment(r.Context(), db, kind.content, commentID, su.UserID, notificationID, now().UnixMilli())
 		if err != nil {
 			// A row deleted between the author lookup and the delete is the
 			// documented benign TOCTOU — the same masked outcome.
 			writeStoreError(w, r, err, kind.label+" comment delete", "error", err)
 			return
 		}
+		event, emitted := res.event, res.emitted
 
 		if !isSelf {
 			logAuditTargetEvent(r, audit.EventCommentDeleted, audit.ResultSuccess, su.UserID, authorID, "")
@@ -338,19 +364,28 @@ func CommentsHeart(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 		// The notification id is only ever consumed by the fresh-heart
 		// insert — mint it on the PUT path (the reply precedent).
 		var heartNotificationID string
-		if on {
-			var err error
-			heartNotificationID, err = id.New()
-			if err != nil {
-				writeInternalError(w, r, logger, "heart notification id generation failed", "error", err)
-				return
+		res, err := mintRetry(func() (notified, error) {
+			heartNotificationID = ""
+			if on {
+				newID, err := id.New()
+				if err != nil {
+					return notified{}, fmt.Errorf("%w: %v", errIDMint, err)
+				}
+				heartNotificationID = newID
 			}
+			event, emitted, err := store.SetCommentHeart(r.Context(), db, kind.content, su.UserID, contentID, commentID, on, heartNotificationID, now().UnixMilli())
+			return notified{event: event, emitted: emitted}, err
+		})
+		if errors.Is(err, errIDMint) {
+			writeInternalError(w, r, logger, "heart notification id generation failed", "error", err)
+			return
 		}
-
-		if event, emitted, err := store.SetCommentHeart(r.Context(), db, kind.content, su.UserID, contentID, commentID, on, heartNotificationID, now().UnixMilli()); err != nil {
+		if err != nil {
 			writeStoreError(w, r, err, kind.label+" comment heart", "error", err)
 			return
-		} else if emitted && notify != nil {
+		}
+		event, emitted := res.event, res.emitted
+		if emitted && notify != nil {
 			// The notification row committed in the same transaction — hand
 			// the event to the push channel AFTER the commit. A repeat heart
 			// emits nothing (the row existed), so

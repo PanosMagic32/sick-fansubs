@@ -20,6 +20,7 @@ package logging
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -84,6 +85,12 @@ func NewRotatingWriter(dir string, maxBytes int64, maxFiles int, report func(err
 	}
 	if err := os.MkdirAll(dir, dirMode); err != nil {
 		return nil, err
+	}
+	// MkdirAll leaves an adopted directory's mode alone, so a sink directory
+	// created with a wider umask is tightened explicitly (AGENTS.md owns the
+	// owner-only contract).
+	if err := os.Chmod(dir, dirMode); err != nil {
+		return nil, fmt.Errorf("logging: set log directory mode: %w", err)
 	}
 
 	w := &RotatingWriter{
@@ -180,6 +187,12 @@ func (w *RotatingWriter) open() error {
 	f, err := os.OpenFile(w.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, fileMode)
 	if err != nil {
 		return err
+	}
+	// The creation mode applies only to a new file; an adopted log file must
+	// be tightened explicitly.
+	if err := f.Chmod(fileMode); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("logging: set log file mode: %w", err)
 	}
 	info, err := f.Stat()
 	if err != nil {

@@ -535,6 +535,12 @@ func TestCreateComment(t *testing.T) {
 	if _, err := CreateComment(ctx, db, BlogContent, "p1", "ghost", "nope", "new-4", 5000); !errors.Is(err, ErrNotFound) {
 		t.Errorf("create by deleted user: got %v, want ErrNotFound (FK mapped)", err)
 	}
+
+	// A primary-key collision on the handler-minted id is the sentinel the
+	// handler retries, not a raw constraint error.
+	if _, err := CreateComment(ctx, db, BlogContent, "p1", "u1", "again", "new-1", 6000); !errors.Is(err, ErrDuplicate) {
+		t.Errorf("duplicate comment id: got %v, want ErrDuplicate", err)
+	}
 }
 
 func TestCreateCommentReply(t *testing.T) {

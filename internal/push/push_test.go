@@ -138,6 +138,25 @@ func TestRecordSizeFor(t *testing.T) {
 	}
 }
 
+// TestPayloadFor_RejectsUnfittableBody pins the fail-closed escape: an
+// oversized BOUNDED field cannot be trimmed away with the title, so the send
+// is refused instead of handing a push service a 413-class body.
+func TestPayloadFor_RejectsUnfittableBody(t *testing.T) {
+	t.Parallel()
+
+	_, _, err := payloadFor(Event{
+		Kind:          "heart",
+		ActorUsername: strings.Repeat("a", maxPayloadBytes),
+		ContentID:     "b1",
+	})
+	if err == nil {
+		t.Fatal("an over-budget body with no title must be rejected")
+	}
+	if !strings.Contains(err.Error(), "empty title") {
+		t.Errorf("err = %v, want the over-budget diagnostic", err)
+	}
+}
+
 // TestPushServiceFamily pins the closed vocabulary the report and the logs
 // use. The endpoint PATH and the key material never leave the sender; the
 // family is what tells a human which push service refused a device.
@@ -354,6 +373,55 @@ func TestDeliverSkipsSuspendedRecipient(t *testing.T) {
 	if n := fake.count(); n != 1 {
 		t.Errorf("reactivated recipient received %d total pushes, want 1", n)
 	}
+}
+
+// TestSenderClose_JoinsInFlightDelivery pins the shutdown contract: Close
+// stops accepting work and waits for a delivery that is already running, so
+// cmd/api can close the database afterwards (sqlite.md rule 13).
+func TestSenderClose_JoinsInFlightDelivery(t *testing.T) {
+	t.Parallel()
+	db := pushFixture(t)
+	seedUser(t, db, "u1", "moderator")
+
+	release := make(chan struct{})
+	entered := make(chan struct{}, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		entered <- struct{}{}
+		<-release
+		w.WriteHeader(http.StatusCreated)
+	}))
+	t.Cleanup(srv.Close)
+	subscribeTo(t, db, "u1", srv.URL)
+
+	sender := newTestSender(t, db)
+	sender.NotifyPush(t.Context(), heartEvent("u1"))
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the fan-out never reached the push service")
+	}
+
+	closed := make(chan struct{})
+	go func() {
+		sender.Close()
+		close(closed)
+	}()
+	select {
+	case <-closed:
+		t.Fatal("Close returned while a delivery was still in flight")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case <-closed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Close did not join the in-flight delivery")
+	}
+
+	// Idempotent, and work queued after it is a no-op.
+	sender.Close()
+	sender.NotifyPush(t.Context(), heartEvent("u1"))
 }
 
 func TestDeliverDeletesDeadEndpoint(t *testing.T) {
