@@ -579,6 +579,45 @@ describe("blog-form-page", () => {
     expect(page.shadowRoot?.querySelectorAll("h1").length).toBe(1);
   });
 
+  test("edit→edit navigation reloads the row the new id names", async () => {
+    const calls: string[] = [];
+    mockFetchImpl(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      calls.push(url);
+      const id = url.split("/").pop() ?? "";
+      return mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: {
+          ...POST_RESPONSE,
+          id,
+          title: id === "p2" ? "Second Post" : "New Post",
+        },
+      });
+    });
+
+    const page = await render("p1");
+    await settle();
+    await page.updateComplete;
+    const title = () =>
+      (page.shadowRoot?.querySelector("#content-title") as HTMLInputElement)
+        .value;
+    expect(title()).toBe("New Post");
+
+    // The router reuses the same element tag when the route id changes, so
+    // the row latch must be keyed to the id, not the element's lifetime.
+    page.postId = "p2";
+    page.requestUpdate();
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    expect(title()).toBe("Second Post");
+    expect(calls.length).toBe(2);
+    expect(calls[1]).toEndWith("/p2");
+    page.remove();
+  });
+
   test("delete confirms, sends If-Match, and navigates to /admin", async () => {
     const nav = listenForNavigation(navCleanups);
     restoreConfirm = stubProperty(
@@ -608,6 +647,49 @@ describe("blog-form-page", () => {
 
     expect(calls).toContain("DELETE");
     expect(nav.path).toBe("/admin");
+  });
+
+  test("a 403 on delete revalidates the session", async () => {
+    restoreConfirm = stubProperty(
+      window,
+      "confirm",
+      mock(() => true),
+    );
+    const session = mockSession("admin");
+    mockFetchImpl(async (_input, init) => {
+      if (init?.method === "DELETE") {
+        return mockResponse({
+          ok: false,
+          status: 403,
+          headers: { "Content-Type": "application/problem+json" },
+          jsonBody: {
+            type: "/problems/forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+        });
+      }
+      return mockResponse({ ok: true, status: 200, jsonBody: POST_RESPONSE });
+    });
+
+    const page = document.createElement("blog-form-page") as BlogFormPage;
+    page.postId = "p1";
+    (page as any).session = session;
+    document.body.appendChild(page);
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    (
+      page.shadowRoot?.querySelector(".delete-button") as HTMLButtonElement
+    ).click();
+    await settle();
+    await page.updateComplete;
+
+    // Same stale-CSRF heal as the action path: revalidate instead of
+    // surfacing a dead form.
+    expect(session.revalidate).toHaveBeenCalled();
+    page.remove();
   });
 
   test("a moderator on the create route sees the forbidden state and no row load starts", async () => {

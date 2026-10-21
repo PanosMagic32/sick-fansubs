@@ -9,8 +9,6 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import { el } from "@shared/catalog/el.js";
 import {
-  mockFetchImpl,
-  mockResponse,
   mockSessionContext,
   readSheet,
   resetHappyDOMURL,
@@ -18,6 +16,7 @@ import {
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
+  stubJsonFetch as stubFetch,
   waitFor,
 } from "@shared/api/test-utils.js";
 
@@ -41,26 +40,6 @@ function mockSession(
   role = "moderator",
 ) {
   return mockSessionContext({ status, user: { username: "Mod", role } });
-}
-
-/** Stubs fetch and records every requested URL. */
-function stubFetch(
-  handler: (url: string) => Promise<{ status: number; body: unknown }>,
-) {
-  const urls: string[] = [];
-  mockFetchImpl(async (input: RequestInfo | URL) => {
-    const url = typeof input === "string" ? input : input.toString();
-    urls.push(url);
-    const res = await handler(url);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-  return urls;
 }
 
 const METRICS_BODY = {

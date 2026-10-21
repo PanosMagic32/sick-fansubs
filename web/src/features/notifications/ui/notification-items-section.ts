@@ -30,6 +30,7 @@ import {
   nothing,
   type ReactiveController,
   type ReactiveControllerHost,
+  type TemplateResult,
 } from "lit";
 
 import { navigate } from "@core/router.js";
@@ -40,6 +41,7 @@ import { icons } from "@shared/ui/icons.js";
 
 import {
   deleteNotification,
+  isAccountEvent,
   isComment,
   isCommentRemoved,
   isContentUpdated,
@@ -65,6 +67,9 @@ import type {
  * flows read or write, and the list operations they mutate through.
  */
 export interface NotificationItemsHost extends ReactiveControllerHost {
+  /** The host element's connection state — an awaited item flow must not
+   * mutate or navigate a list that has been torn down. */
+  readonly isConnected: boolean;
   /** The page's shared action error (a failed mark-read, delete, read-all or
    * clear-read) — it renders as the banner above the list. */
   _readError: string;
@@ -77,6 +82,10 @@ export interface NotificationItemsHost extends ReactiveControllerHost {
   _removeItem(id: string): void;
   /** Announce the read change so the header bell refetches its badge. */
   _dispatchChanged(): void;
+  /** The list generation the page is showing — bumped whenever a load or a
+   * bulk delete replaces the rows. An item flow that awaits a request must
+   * not navigate or mutate a list that has since been replaced. */
+  readonly _listGeneration: number;
 }
 
 /**
@@ -162,11 +171,16 @@ export class NotificationItemsSection implements ReactiveController {
    */
   private async _onItemClick(item: NotificationItem) {
     if (this._markingIds.has(item.id)) return;
+    const generation = this._host._listGeneration;
     this._markingIds.add(item.id);
     this._host._readError = "";
     this.refresh();
     try {
       await markNotificationRead(item.id);
+      // The list may have been replaced (a page turn, a bulk delete) or the
+      // page torn down while the POST was out: its result must not mutate
+      // or navigate a list that is no longer on screen.
+      if (!this._ownsList(generation)) return;
       this._host._markLocalRead(item.id);
       this._host._dispatchChanged();
       // Skip the jump when the 401 kicked off the guard's /sign-in
@@ -190,6 +204,11 @@ export class NotificationItemsSection implements ReactiveController {
       this._markingIds.delete(item.id);
       this.refresh();
     }
+  }
+
+  /** True while the awaited flow still belongs to the mounted list. */
+  private _ownsList(generation: number): boolean {
+    return this._host.isConnected && generation === this._host._listGeneration;
   }
 
   /** Remove ONE feed entry. The row leaves the list on the server's 204 —
@@ -258,6 +277,30 @@ export class NotificationItemsSection implements ReactiveController {
     `;
   }
 
+  /** The line + time skeleton every user_notifications kind shares. The
+   * per-kind body (actor/verb/title order, the heart sentence, the
+   * actorless removal sentence) is the only part that varies. */
+  private _lineTemplate(item: NotificationItem, body: TemplateResult | string) {
+    return html`
+      <span class="notification-text">${body}</span>
+      <span class="notification-meta">
+        <time class="notification-time" datetime=${item.createdAt}
+          >${formatRelativeTime(item.createdAt)}</time
+        >
+      </span>
+    `;
+  }
+
+  /** The actor + verb + content-title sentence shared by the comment,
+   * content, and draft kinds. */
+  private _actorVerbTitleTemplate(actor: string, verb: string, title: string) {
+    return html`
+      <strong class="notification-actor">${actor}</strong>
+      ${verb}
+      <strong class="notification-content-title">${title}</strong>
+    `;
+  }
+
   /** The comment items: actor + the kind's verb + the content title (generic
    * label when the content is gone) — the click navigates to the comment's
    * deep link. */
@@ -268,18 +311,10 @@ export class NotificationItemsSection implements ReactiveController {
       item.kind === "comment_reply"
         ? el.notifications.verbCommentReply
         : el.notifications.verbComment;
-    return html`
-      <span class="notification-text">
-        <strong class="notification-actor">${actor}</strong>
-        ${verb}
-        <strong class="notification-content-title">${title}</strong>
-      </span>
-      <span class="notification-meta">
-        <time class="notification-time" datetime=${item.createdAt}
-          >${formatRelativeTime(item.createdAt)}</time
-        >
-      </span>
-    `;
+    return this._lineTemplate(
+      item,
+      this._actorVerbTitleTemplate(actor, verb, title),
+    );
   }
 
   /** The content-level items: actor + the kind's verb + the content title
@@ -294,18 +329,10 @@ export class NotificationItemsSection implements ReactiveController {
       item.kind === "content_updated"
         ? el.notifications.verbContentUpdated
         : el.notifications.verbNewContent;
-    return html`
-      <span class="notification-text">
-        <strong class="notification-actor">${actor}</strong>
-        ${verb}
-        <strong class="notification-content-title">${title}</strong>
-      </span>
-      <span class="notification-meta">
-        <time class="notification-time" datetime=${item.createdAt}
-          >${formatRelativeTime(item.createdAt)}</time
-        >
-      </span>
-    `;
+    return this._lineTemplate(
+      item,
+      this._actorVerbTitleTemplate(actor, verb, title),
+    );
   }
 
   /** The heart item: the heart sentence form — "Το σχόλιό σου στο {title}
@@ -314,19 +341,15 @@ export class NotificationItemsSection implements ReactiveController {
   private _heartItemTemplate(item: HeartNotificationItem) {
     const actor = item.actorUsername ?? el.notifications.systemActor;
     const title = item.contentTitle ?? el.notifications.genericContent;
-    return html`
-      <span class="notification-text">
+    return this._lineTemplate(
+      item,
+      html`
         ${el.notifications.verbHeartOpen}
         <strong class="notification-content-title">${title}</strong>
         ${el.notifications.verbHeartClose}
         <strong class="notification-actor">${actor}</strong>
-      </span>
-      <span class="notification-meta">
-        <time class="notification-time" datetime=${item.createdAt}
-          >${formatRelativeTime(item.createdAt)}</time
-        >
-      </span>
-    `;
+      `,
+    );
   }
 
   /** The comment_removed item: the actorless sentence — "Το σχόλιό σου στο
@@ -335,18 +358,14 @@ export class NotificationItemsSection implements ReactiveController {
    * gone). */
   private _commentRemovedItemTemplate(item: CommentRemovedNotificationItem) {
     const title = item.contentTitle ?? el.notifications.genericContent;
-    return html`
-      <span class="notification-text">
+    return this._lineTemplate(
+      item,
+      html`
         ${el.notifications.verbCommentRemovedOpen}
         <strong class="notification-content-title">${title}</strong>
         ${el.notifications.verbCommentRemovedClose}
-      </span>
-      <span class="notification-meta">
-        <time class="notification-time" datetime=${item.createdAt}
-          >${formatRelativeTime(item.createdAt)}</time
-        >
-      </span>
-    `;
+      `,
+    );
   }
 
   /** The draft_activity item: actor + the verb its `draftAction` picks + the
@@ -367,18 +386,10 @@ export class NotificationItemsSection implements ReactiveController {
       console.warn("notifications: unknown draft action", item.draftAction);
       return null;
     }
-    return html`
-      <span class="notification-text">
-        <strong class="notification-actor">${actor}</strong>
-        ${verb}
-        <strong class="notification-content-title">${title}</strong>
-      </span>
-      <span class="notification-meta">
-        <time class="notification-time" datetime=${item.createdAt}
-          >${formatRelativeTime(item.createdAt)}</time
-        >
-      </span>
-    `;
+    return this._lineTemplate(
+      item,
+      this._actorVerbTitleTemplate(actor, verb, title),
+    );
   }
 
   /** The draft action → catalog verb. An action this client does not know
@@ -409,6 +420,21 @@ export class NotificationItemsSection implements ReactiveController {
     const deleteLabel = deleting
       ? el.notifications.deleteOnePending
       : el.notifications.deleteOne;
+    // A kind this client cannot word is dropped as a WHOLE row — an empty
+    // clickable row is no better than a wrong sentence, and the service
+    // worker raises no notification for it either.
+    const known =
+      isComment(item) ||
+      isHeart(item) ||
+      isCommentRemoved(item) ||
+      isContentUpdated(item) ||
+      isNewContent(item) ||
+      isDraftActivity(item) ||
+      isAccountEvent(item);
+    if (!known) {
+      this._unknownItemTemplate(item);
+      return nothing;
+    }
     // The draft_activity body is built before the literal so its refusal of
     // an unknown action can drop the whole item, wrapper included — an empty
     // clickable row is no better than a broken line.
@@ -444,7 +470,9 @@ export class NotificationItemsSection implements ReactiveController {
                     ? this._contentItemTemplate(item)
                     : isDraftActivity(item)
                       ? draftBody
-                      : this._accountItemTemplate(item)
+                      : isAccountEvent(item)
+                        ? this._accountItemTemplate(item)
+                        : this._unknownItemTemplate(item)
           }
         </button>
         <button
@@ -459,6 +487,17 @@ export class NotificationItemsSection implements ReactiveController {
         </button>
       </li>
     `;
+  }
+
+  /** An item line the client does not know. Dropping it is the same refusal
+   * the draft template makes, and the same one the service worker makes: an
+   * unknown kind never renders a wrong sentence. */
+  private _unknownItemTemplate(item: NotificationItem) {
+    console.warn(
+      "notifications: unknown item kind",
+      (item as { kind?: unknown }).kind,
+    );
+    return nothing;
   }
 
   /** The item-scoped state is plain now — every mutation asks for a render. */

@@ -37,6 +37,9 @@ import type { CommentItem, CommentKind } from "../data-access/types.js";
  * read and the list operations they call back into.
  */
 export interface CommentComposersHost extends ReactiveControllerHost {
+  /** The host element's connection state — an awaited write must not mutate
+   * a thread that has been torn down. */
+  readonly isConnected: boolean;
   kind: CommentKind;
   contentId: string;
   session?: SessionContext;
@@ -155,6 +158,10 @@ export class CommentComposersSection implements ReactiveController {
         this._host.contentId,
         body,
       );
+      // The thread may have been torn down (or moved to another content
+      // pair) while the create was in flight; its response must not rewrite
+      // the URL or fire reads for a page that is gone.
+      if (!this._host.isConnected) return;
       this._body = "";
       this._replyTargetId = "";
       this.refresh();
@@ -197,6 +204,7 @@ export class CommentComposersSection implements ReactiveController {
         parentId,
         body,
       );
+      if (!this._host.isConnected) return;
       this._replyTargetId = "";
       this.refresh();
       this._host._jumpTo(res.focusId);
@@ -243,6 +251,7 @@ export class CommentComposersSection implements ReactiveController {
         this._editId,
         body,
       );
+      if (!this._host.isConnected) return;
       // The server returns the refreshed item; only the edited fields are
       // consumed here (the local item keeps its own window/cursor state).
       this._host._patchComment(this._editId, (c) => ({

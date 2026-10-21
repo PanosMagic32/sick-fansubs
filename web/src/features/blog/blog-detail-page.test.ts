@@ -5,6 +5,7 @@ import {
   mockResponse,
   mockSessionContext,
   restoreMockFetch,
+  stubJsonFetch as stubFetch,
 } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
 import { FAVORITE_CHANGED_EVENT } from "@shared/events.js";
@@ -17,25 +18,6 @@ import "./blog-detail-page.js";
 import type { BlogDetailPage } from "./blog-detail-page.js";
 import type { ContentCard } from "@shared/ui/content-card.js";
 import type { BlogPostDetail } from "./data-access/types.js";
-
-/** Fetch-level router: component → real blog-api → real transport → stub.
- * The comments section fetches nothing until
- * its CTA is clicked, so these stubs only ever see the detail request. */
-function stubFetch(
-  handler: (url: string) => Promise<{ status: number; body: unknown }>,
-) {
-  mockFetchImpl(async (input) => {
-    const url = typeof input === "string" ? input : input.toString();
-    const res = await handler(url);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-}
 
 function samplePost(overrides: Partial<BlogPostDetail> = {}): BlogPostDetail {
   return {

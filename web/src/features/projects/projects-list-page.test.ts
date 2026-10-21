@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import {
-  mockFetchImpl,
-  mockResponse,
   readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
+  stubJsonFetch as stubFetch,
 } from "@shared/api/test-utils.js";
 import { el } from "@shared/catalog/el.js";
 
@@ -28,21 +27,6 @@ const listStyles = await readSheet(
  * real projects-api module; only fetch is stubbed, so the test covers the
  * whole client stack (component → endpoint → transport → fetch).
  */
-function stubFetch(
-  handler: (url: string) => Promise<{ status: number; body: unknown }>,
-) {
-  mockFetchImpl(async (input) => {
-    const url = typeof input === "string" ? input : input.toString();
-    const res = await handler(url);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-}
 
 interface Project {
   id: string;

@@ -333,24 +333,25 @@ export class SessionProvider extends LitElement {
   // submit-error mapper. Bootstrap is the deliberate exception: it passes
   // its own disconnect-abort signal, no client timeout.
 
-  private async _signIn(identifier: string, password: string) {
+  /**
+   * The one action skeleton: bump the generation, run the call, apply the
+   * result only when no newer action superseded it, and heal a failed
+   * action that raced an initializing bootstrap. The error is re-thrown so
+   * the caller keeps its own field/banner mapping.
+   */
+  private async _runAction<T>(
+    action: () => Promise<T>,
+    apply: (result: T) => void,
+  ): Promise<void> {
     const gen = ++this._generation;
-
     try {
-      const result = await authApi.signIn({ identifier, password });
-
+      const result = await action();
       if (gen !== this._generation) return;
-
-      api.setCSRFToken(result.csrfToken);
-      this._setState({
-        status: "authenticated",
-        user: result.user,
-        mustChangePassword: result.mustChangePassword,
-      });
+      apply(result);
     } catch (err) {
-      // If we're still initializing after a failure (e.g., sign-in
-      // raced with bootstrap and both failed), retry bootstrap so we
-      // don't get stuck. Otherwise, re-throw — the previous state stands.
+      // If we're still initializing after a failure (e.g., sign-in raced
+      // with bootstrap and both failed), retry bootstrap so we don't get
+      // stuck. Otherwise, re-throw — the previous state stands.
       if (
         gen === this._generation &&
         this._ctx.state.status === "initializing"
@@ -361,97 +362,67 @@ export class SessionProvider extends LitElement {
     }
   }
 
-  private async _register(username: string, email: string, password: string) {
-    const gen = ++this._generation;
-
-    try {
-      const result = await authApi.register({
-        username,
-        email,
-        password,
-      });
-
-      if (gen !== this._generation) return;
-
-      // Registration never carries the forced-change flag (a new account
-      // is created under the user's own password).
-      api.setCSRFToken(result.csrfToken);
-      this._setState({
-        status: "authenticated",
-        user: result.user,
-        mustChangePassword: false,
-      });
-    } catch (err) {
-      if (
-        gen === this._generation &&
-        this._ctx.state.status === "initializing"
-      ) {
-        this._bootstrap();
-      }
-      throw err;
-    }
+  private _signIn(identifier: string, password: string) {
+    return this._runAction(
+      () => authApi.signIn({ identifier, password }),
+      (result) => {
+        api.setCSRFToken(result.csrfToken);
+        this._setState({
+          status: "authenticated",
+          user: result.user,
+          mustChangePassword: result.mustChangePassword,
+        });
+      },
+    );
   }
 
-  private async _signOut() {
-    const gen = ++this._generation;
-
-    try {
-      await authApi.signOut();
-      if (gen !== this._generation) return;
-      api.clearCSRFToken();
-      this._setState(ANONYMOUS);
-    } catch (err) {
-      if (
-        gen === this._generation &&
-        this._ctx.state.status === "initializing"
-      ) {
-        this._bootstrap();
-      }
-      throw err;
-    }
+  private _register(username: string, email: string, password: string) {
+    return this._runAction(
+      () => authApi.register({ username, email, password }),
+      (result) => {
+        // Registration never carries the forced-change flag (a new account
+        // is created under the user's own password).
+        api.setCSRFToken(result.csrfToken);
+        this._setState({
+          status: "authenticated",
+          user: result.user,
+          mustChangePassword: false,
+        });
+      },
+    );
   }
 
-  private async _signOutAll() {
-    const gen = ++this._generation;
-
-    try {
-      await authApi.signOutAll();
-      if (gen !== this._generation) return;
-      api.clearCSRFToken();
-      this._setState(ANONYMOUS);
-    } catch (err) {
-      if (
-        gen === this._generation &&
-        this._ctx.state.status === "initializing"
-      ) {
-        this._bootstrap();
-      }
-      throw err;
-    }
+  private _signOut() {
+    return this._runAction(
+      () => authApi.signOut(),
+      () => {
+        api.clearCSRFToken();
+        this._setState(ANONYMOUS);
+      },
+    );
   }
 
-  private async _changePassword(currentPassword: string, newPassword: string) {
-    const gen = ++this._generation;
+  private _signOutAll() {
+    return this._runAction(
+      () => authApi.signOutAll(),
+      () => {
+        api.clearCSRFToken();
+        this._setState(ANONYMOUS);
+      },
+    );
+  }
 
-    try {
-      // suppress401Callback: true — password change returns 401 on wrong
-      // current password, not on session expiry.
-      // We suppress the global 401→anonymous transition so the user can retry.
-      await authApi.changePassword({ currentPassword, newPassword });
-
-      if (gen !== this._generation) return;
-
-      api.clearCSRFToken();
-      this._setState(ANONYMOUS);
-    } catch (err) {
-      if (
-        gen === this._generation &&
-        this._ctx.state.status === "initializing"
-      ) {
-        this._bootstrap();
-      }
-      throw err;
-    }
+  private _changePassword(currentPassword: string, newPassword: string) {
+    // suppress401Callback: true — password change returns 401 on wrong
+    // current password, not on session expiry. We suppress the global
+    // 401→anonymous transition so the user can retry.
+    return this._runAction(
+      () => authApi.changePassword({ currentPassword, newPassword }),
+      () => {
+        api.clearCSRFToken();
+        this._setState(ANONYMOUS);
+      },
+    );
   }
 }
 

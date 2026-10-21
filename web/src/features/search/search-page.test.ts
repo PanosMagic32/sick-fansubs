@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import {
-  mockFetchImpl,
-  mockResponse,
   readSheet,
   resetHappyDOMURL,
   restoreHistoryLocationSync,
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
+  stubJsonFetch as stubFetch,
 } from "@shared/api/test-utils.js";
 import { NAVIGATE_EVENT } from "@core/router.js";
 import { el } from "@shared/catalog/el.js";
@@ -24,25 +23,6 @@ import type { ContentCard } from "@shared/ui/content-card.js";
 const searchStyles = await readSheet(
   new URL("./search-page.css", import.meta.url),
 );
-
-function stubFetch(
-  handler: (
-    url: string,
-    init?: RequestInit,
-  ) => Promise<{ status: number; body: unknown }>,
-) {
-  mockFetchImpl(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === "string" ? input : input.toString();
-    const res = await handler(url, init);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-}
 
 interface Hit {
   type: "post" | "project";
@@ -126,9 +106,6 @@ function cards(page: SearchPage): ContentCard[] {
 }
 
 /** A card's own shadow root — the card renders its content there. */
-function cardRoot(card: ContentCard): HTMLElement {
-  return card.shadowRoot! as unknown as HTMLElement;
-}
 
 /** The shared pager-nav's shadow root (rendered by the success state). */
 function pagerRoot(page: SearchPage): HTMLElement {
@@ -205,18 +182,7 @@ describe("search-page", () => {
     expect(project?.commentCount).toBe(1);
     expect(project?.favoriteCount).toBe(2);
 
-    // ...and both indicators ALWAYS render — zeros included: the card's
-    // chip omits itself only when the page sets no counts at all.
-    const postStats = cardRoot(post!).querySelectorAll(".content-stats .stat");
-    expect(postStats.length).toBe(2);
-    expect(postStats[0]?.getAttribute("aria-label")).toBe("5 σχόλια");
-    expect(postStats[1]?.getAttribute("aria-label")).toBe("0 αγαπημένα");
-    // Project hit: both indicators with the singular comment label.
-    const projectStats = cardRoot(project!).querySelectorAll(
-      ".content-stats .stat",
-    );
-    expect(projectStats.length).toBe(2);
-    expect(projectStats[1]?.getAttribute("aria-label")).toBe("2 αγαπημένα");
+    // ...and the card's own suite pins the chip rendering from these inputs.
     page.remove();
   });
 
@@ -306,34 +272,20 @@ describe("search-page", () => {
     // The page wires the subtitle input; the card renders it inline beside
     // the title (the card's own suite pins that rendering).
     expect(results[1]?.subtitle).toBe("Επεισόδιο 1.026");
-    // A project hit has no subtitle, so its card renders the plain title.
-    expect(cardRoot(results[0]!).querySelector(".title-line")).toBeNull();
+    // A project hit has no subtitle.
+    expect(results[0]?.subtitle).toBe("");
     expect(results[0]?.metaInstant).toBe("2026-08-15T18:30:00.000Z");
+    // The badge inputs: the project hit carries the anglicism template,
+    // the post hit plain Greek copy, each with its tone.
     expect(results[0]?.badgeTone).toBe("project");
     expect(results[1]?.badgeTone).toBe("accent");
-
-    // Project badge is the Projects anglicism inside lang="en"; the post
-    // badge is Greek "Αναρτήσεις".
-    const projectBadge = cardRoot(results[0]!).querySelector(".badge");
-    expect(
-      projectBadge?.querySelector('span[lang="en"]')?.textContent?.trim(),
-    ).toBe(el.search.typeProjects);
-    expect(projectBadge?.getAttribute("data-tone")).toBe("project");
     expect(results[1]?.badge).toBe(el.search.typePosts);
 
-    // The whole row is one anchor to its detail route, and the description
-    // renders plain (the row shape carries no quote glyphs).
-    expect(
-      cardRoot(results[0]!).querySelector("a.frame")?.getAttribute("href"),
-    ).toBe("/projects/p1");
-    expect(text(cardRoot(results[0]!), ".description")).toBe("Έργο");
-
-    // The thumbnail input renders its image; a null one renders no img.
+    // The row's link target is the detail route and the thumbnail rides its
+    // input; the card's suite pins the anchor and image rendering.
+    expect(results[0]?.href).toBe("/projects/p1");
     expect(results[0]?.thumbnailUrl).toBe("https://example.com/p.jpg");
-    expect(
-      cardRoot(results[0]!).querySelector("img.thumb")?.getAttribute("src"),
-    ).toBe("https://example.com/p.jpg");
-    expect(cardRoot(results[1]!).querySelector("img.thumb")).toBeNull();
+    expect(results[1]?.thumbnailUrl).toBeNull();
 
     page.remove();
   });
@@ -1174,7 +1126,7 @@ describe("search-page", () => {
   test("a newer query supersedes the in-flight load", async () => {
     const signals: (AbortSignal | null)[] = [];
     let releaseFirst: (() => void) | null = null;
-    stubFetch(async (url, init) => {
+    stubFetch(async (url, _method, init) => {
       signals.push(init?.signal ?? null);
       if (url.includes("q=first")) {
         await new Promise<void>((resolve) => {
@@ -1215,7 +1167,7 @@ describe("search-page", () => {
   test("teardown aborts the in-flight load", async () => {
     const signals: (AbortSignal | null)[] = [];
     let release: (() => void) | null = null;
-    stubFetch(async (_url, init) => {
+    stubFetch(async (_url, _method, init) => {
       signals.push(init?.signal ?? null);
       await new Promise<void>((resolve) => {
         release = resolve;

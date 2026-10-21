@@ -13,8 +13,6 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { clearCSRFToken, setCSRFToken } from "@shared/api/client.js";
 import { el, heartersAriaLabel } from "@shared/catalog/el.js";
 import {
-  mockFetchImpl,
-  mockResponse,
   mockSessionContext,
   readSheet,
   resetHappyDOMURL,
@@ -23,6 +21,7 @@ import {
   setHappyDOMURL,
   shimHistoryLocationSync,
   stubDebounceTimers,
+  stubJsonFetch as stubFetch,
   stubProperty,
 } from "@shared/api/test-utils.js";
 
@@ -63,31 +62,6 @@ function mockSession(
 /** The shared happy-dom history shim (test-utils, graduated from the
  * notifications-page probe) — the thread's sort and focus flows both
  * write the URL. */
-function stubFetch(
-  handler: (
-    url: string,
-    method: string,
-  ) => Promise<{
-    status: number;
-    body: unknown;
-    headers?: Record<string, string>;
-  }>,
-) {
-  mockFetchImpl(async (input, init) => {
-    const url = typeof input === "string" ? input : input.toString();
-    const method = init?.method ?? "GET";
-    const res = await handler(url, method);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400
-          ? { "Content-Type": "application/problem+json" }
-          : (res.headers ?? {}),
-      jsonBody: res.body,
-    });
-  });
-}
 
 function author(overrides: Partial<CommentItem["author"]> = {}) {
   return {
@@ -560,6 +534,52 @@ describe("comments-thread", () => {
     expect(calls.some((c) => c.url.includes("focus=newid"))).toBe(true);
     // The fragment is the deep-link resource for the new comment.
     expect(window.location.hash).toBe("#comment-newid");
+  });
+
+  test("a create response after teardown does not rewrite the URL", async () => {
+    setCSRFToken("tok");
+    let resolvePost:
+      | ((r: {
+          status: number;
+          body: unknown;
+          headers?: Record<string, string>;
+        }) => void)
+      | null = null;
+    stubFetch(async (url, method) => {
+      if (url.endsWith("/comments/count"))
+        return { status: 200, body: { count: 0 } };
+      if (method === "POST") {
+        return new Promise((resolve) => {
+          resolvePost = resolve;
+        });
+      }
+      return { status: 200, body: EMPTY_BODY };
+    });
+
+    const thread = await renderThread();
+    (
+      root(thread).querySelector(".ct-composer textarea") as HTMLTextAreaElement
+    ).value = "Ένα νέο σχόλιο";
+    root(thread)
+      .querySelector(".ct-composer textarea")!
+      .dispatchEvent(new Event("input"));
+    (
+      root(thread).querySelector(".ct-composer .ct-submit") as HTMLButtonElement
+    ).click();
+    await settle();
+
+    const before = window.location.href;
+    thread.remove();
+    resolvePost!({
+      status: 201,
+      headers: { Location: "/api/v1/blog-posts/b1/comments?focus=newid" },
+      body: "",
+    });
+    await new Promise((r) => setTimeout(r, 10));
+
+    // The create landed for a thread that is gone: no fragment rewrite, no
+    // focus reload.
+    expect(window.location.href).toBe(before);
   });
 
   test("a 422 on create shows the body violation inline", async () => {

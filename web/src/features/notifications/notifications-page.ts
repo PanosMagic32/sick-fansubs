@@ -90,13 +90,15 @@ export class NotificationsPage extends LitElement {
    * page-count numerator. Reset on every load start/error. */
   @state() private total = 0;
 
-  @state() private _markAllPending = false;
+  /** The toolbar's ONE in-flight bulk action. Three overlapping flags would
+   * allow a second bulk request while the first is still running. */
+  @state() private _bulkPending: "markAll" | "clearRead" | "deleteAll" | null =
+    null;
 
-  /** The "delete every read entry" press. */
-  @state() private _clearReadPending = false;
-
-  /** The "delete the whole feed" press. */
-  @state() private _deleteAllPending = false;
+  /** Bumped whenever a load or a bulk delete replaces the rows. The items
+   * section reads it so a late item flow cannot mutate or navigate a list
+   * that is no longer on screen. */
+  _listGeneration = 0;
 
   /** Non-list error (a failed mark-read, delete, read-all, clear-read or
    * delete-all) — above the list. The items section writes it too; it is the
@@ -213,6 +215,7 @@ export class NotificationsPage extends LitElement {
       );
       if (controller.signal.aborted) return;
       this.items = page.items;
+      this._listGeneration++;
       this.hasNext = page.pageInfo.hasNextPage;
       this._endCursor = page.pageInfo.endCursor;
       this.total = page.pageInfo.total;
@@ -247,8 +250,8 @@ export class NotificationsPage extends LitElement {
   }
 
   private async _onMarkAll() {
-    if (this._markAllPending) return;
-    this._markAllPending = true;
+    if (this._bulkPending) return;
+    this._bulkPending = "markAll";
     this._readError = "";
     try {
       await markAllNotificationsRead();
@@ -257,7 +260,7 @@ export class NotificationsPage extends LitElement {
     } catch (err) {
       this._readError = mapError(err);
     } finally {
-      this._markAllPending = false;
+      this._bulkPending = null;
     }
   }
 
@@ -265,8 +268,8 @@ export class NotificationsPage extends LitElement {
    * rows and the unread rows stay; the local list drops exactly what the
    * server deleted, so the two never disagree. */
   private async _onClearRead() {
-    if (this._clearReadPending) return;
-    this._clearReadPending = true;
+    if (this._bulkPending) return;
+    this._bulkPending = "clearRead";
     this._readError = "";
     try {
       await clearReadNotifications();
@@ -275,7 +278,7 @@ export class NotificationsPage extends LitElement {
     } catch (err) {
       this._readError = mapError(err);
     } finally {
-      this._clearReadPending = false;
+      this._bulkPending = null;
     }
   }
 
@@ -284,9 +287,9 @@ export class NotificationsPage extends LitElement {
    * ledger itself keeps its rows. The list is emptied outright — nothing
    * survives server-side, so a reload and the local state cannot disagree. */
   private async _onDeleteAll() {
-    if (this._deleteAllPending) return;
+    if (this._bulkPending) return;
     if (!window.confirm(el.notifications.deleteAllConfirm)) return;
-    this._deleteAllPending = true;
+    this._bulkPending = "deleteAll";
     this._readError = "";
     try {
       await deleteAllNotifications();
@@ -300,6 +303,7 @@ export class NotificationsPage extends LitElement {
       // a reload must start from the bare list.
       window.history.replaceState({}, "", NOTIFICATIONS_PATH);
       this.items = [];
+      this._listGeneration++;
       this.hasNext = false;
       this._endCursor = null;
       this.total = 0;
@@ -307,7 +311,7 @@ export class NotificationsPage extends LitElement {
     } catch (err) {
       this._readError = mapError(err);
     } finally {
-      this._deleteAllPending = false;
+      this._bulkPending = null;
     }
   }
 
@@ -346,11 +350,11 @@ export class NotificationsPage extends LitElement {
                       ? html`<button
                           type="button"
                           class="button button--secondary button--sm clear-read"
-                          ?disabled=${this._clearReadPending}
+                          ?disabled=${this._bulkPending !== null}
                           @click=${this._onClearRead}
                         >
                           ${
-                            this._clearReadPending
+                            this._bulkPending === "clearRead"
                               ? el.notifications.clearReadPending
                               : el.notifications.clearRead
                           }
@@ -360,11 +364,11 @@ export class NotificationsPage extends LitElement {
                   <button
                     type="button"
                     class="button button--secondary button--sm mark-all"
-                    ?disabled=${this._markAllPending}
+                    ?disabled=${this._bulkPending !== null}
                     @click=${this._onMarkAll}
                   >
                     ${
-                      this._markAllPending
+                      this._bulkPending === "markAll"
                         ? el.notifications.markAllPending
                         : el.notifications.markAll
                     }
@@ -372,11 +376,11 @@ export class NotificationsPage extends LitElement {
                   <button
                     type="button"
                     class="button button--danger button--sm delete-all"
-                    ?disabled=${this._deleteAllPending}
+                    ?disabled=${this._bulkPending !== null}
                     @click=${this._onDeleteAll}
                   >
                     ${
-                      this._deleteAllPending
+                      this._bulkPending === "deleteAll"
                         ? el.notifications.deleteAllPending
                         : el.notifications.deleteAll
                     }

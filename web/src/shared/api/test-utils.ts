@@ -135,6 +135,44 @@ export function restoreMockFetch(): void {
 }
 
 /**
+ * The JSON-over-fetch double every UI suite needs: install a fetch impl that
+ * routes `(url, init)` through the handler, records the requested URLs, and
+ * answers a mock Response (problem+json for error statuses unless the
+ * handler supplies headers). Returns the recorded URLs so a test can assert
+ * the request sequence. Pair with restoreMockFetch() in afterEach.
+ */
+export interface JsonFetchResult {
+  status: number;
+  body: unknown;
+  headers?: Record<string, string>;
+}
+
+export function stubJsonFetch(
+  handler: (
+    url: string,
+    method: string,
+    init: RequestInit | undefined,
+  ) => Promise<JsonFetchResult>,
+): string[] {
+  const urls: string[] = [];
+  mockFetchImpl(async (input, init) => {
+    const url = typeof input === "string" ? input : input.toString();
+    urls.push(url);
+    const res = await handler(url, init?.method ?? "GET", init);
+    return mockResponse({
+      ok: res.status < 400,
+      status: res.status,
+      headers:
+        res.status >= 400
+          ? { "Content-Type": "application/problem+json", ...res.headers }
+          : (res.headers ?? {}),
+      jsonBody: res.body,
+    });
+  });
+  return urls;
+}
+
+/**
  * happy-dom's history API does not update window.location (production
  * browsers do), so URL-syncing components' pushState/replaceState calls
  * leave the test's `window.location` stale. Install this in beforeEach to

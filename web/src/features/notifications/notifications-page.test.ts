@@ -14,8 +14,6 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import { el } from "@shared/catalog/el.js";
 import {
-  mockFetchImpl,
-  mockResponse,
   mockSessionContext,
   readSheet,
   resetHappyDOMURL,
@@ -23,6 +21,7 @@ import {
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
+  stubJsonFetch as stubFetch,
   stubProperty,
   waitFor,
 } from "@shared/api/test-utils.js";
@@ -68,26 +67,6 @@ function mockSession(
 
 /** Install the suite's fetch double through the shared descriptor capture —
  * every install pairs with `restoreMockFetch()` in afterEach. */
-function stubFetch(
-  handler: (
-    url: string,
-    method: string,
-    init?: RequestInit,
-  ) => Promise<{ status: number; body: unknown }>,
-) {
-  mockFetchImpl(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === "string" ? input : input.toString();
-    const method = init?.method ?? "GET";
-    const res = await handler(url, method, init);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-}
 
 const LIST_BODY = {
   items: [
@@ -256,6 +235,28 @@ describe("notifications-page", () => {
     const page = await render("user");
 
     expect(root(page).querySelectorAll(".notification-item").length).toBe(2);
+  });
+
+  test("an unknown wire kind is dropped, never rendered as an account row", async () => {
+    stubFetch(async () => ({
+      status: 200,
+      body: {
+        items: [
+          {
+            id: "x1",
+            kind: "future_kind",
+            createdAt: "2026-08-20T12:00:00.000Z",
+            read: false,
+          },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null, total: 1 },
+      },
+    }));
+
+    const page = await render("user");
+
+    expect(root(page).querySelectorAll(".notification-row")).toHaveLength(0);
+    page.remove();
   });
 
   test("a moderator renders the feed with catalog copy and labels", async () => {
@@ -1083,6 +1084,51 @@ describe("notifications-page", () => {
     ).toHaveLength(0);
   });
 
+  test("a bulk action in flight disables every toolbar verb", async () => {
+    let resolvePost: ((res: { status: number; body: unknown }) => void) | null =
+      null;
+    stubFetch(async (_url, method) => {
+      if (method === "POST") {
+        return new Promise((resolve) => {
+          resolvePost = resolve;
+        });
+      }
+      return {
+        status: 200,
+        body: {
+          items: [
+            { ...COMMENT_REPLY_BODY.items[0], read: true },
+            COMMENT_REPLY_BODY.items[1],
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null, total: 2 },
+        },
+      };
+    });
+
+    const page = await render("moderator");
+    (root(page).querySelector(".clear-read") as HTMLButtonElement).click();
+    await waitFor(
+      () =>
+        (root(page).querySelector(".mark-all") as HTMLButtonElement).disabled,
+    );
+
+    // ONE shared gate: while clear-read is in flight no other bulk verb can
+    // start a second request.
+    expect(
+      (root(page).querySelector(".mark-all") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (root(page).querySelector(".delete-all") as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    resolvePost!({ status: 204, body: "" });
+    await waitFor(
+      () =>
+        !(root(page).querySelector(".mark-all") as HTMLButtonElement).disabled,
+    );
+    page.remove();
+  });
+
   test("a failed mark-all keeps the rows unread and shows the banner", async () => {
     stubFetch(async (_url, method) => {
       if (method === "POST") {
@@ -1141,6 +1187,35 @@ describe("notifications-page", () => {
     await waitFor(() => navigations.length === 1);
     expect(calls.filter((c) => c.startsWith("POST"))).toHaveLength(1);
     expect(navigations).toEqual(["/blog/b1#comment-c9"]);
+  });
+
+  test("a mark-read that lands after teardown neither navigates nor mutates", async () => {
+    let resolveRead: ((r: { status: number; body: unknown }) => void) | null =
+      null;
+    stubFetch(async (_url, method) => {
+      if (method === "POST") {
+        return new Promise((resolve) => {
+          resolveRead = resolve;
+        });
+      }
+      return { status: 200, body: COMMENT_REPLY_BODY };
+    });
+    const navigations: string[] = [];
+    onNavigate((path) => navigations.push(path));
+
+    const page = await render("user");
+    (
+      root(page).querySelector(".notification-item") as HTMLButtonElement
+    ).click();
+    await waitFor(() => resolveRead !== null);
+
+    // The page is torn down while the POST is out: the late 204 belongs to a
+    // list that no longer exists.
+    page.remove();
+    resolveRead!({ status: 204, body: "" });
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(navigations).toEqual([]);
   });
 
   test("a click on a redirected page marks read but skips the navigation", async () => {

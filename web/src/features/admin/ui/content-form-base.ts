@@ -88,7 +88,10 @@ export abstract class ContentFormBase<
 
   private _abort: AbortController | null = null;
   private _redirected = false;
-  private _started = false;
+  /** The row id the form has loaded (or latched for create mode). Keyed to
+   * the route id: the router reuses the same element tag in the same
+   * template position, so edit→edit navigation must reload the new row. */
+  private _startedId: string | null = null;
   /** Stored download rows waiting for the widget to render; updated()
    * consumes them once the element exists. */
   private _pendingRowLoad: DownloadRowValue[] | null = null;
@@ -152,8 +155,13 @@ export abstract class ContentFormBase<
     // must not load a row (the staff-detail GET would 403) and must never
     // render the create form for one cycle before the forbidden state
     // settles. The sibling staff base pins the same no-request floor.
-    if (!this._started && this._allowed()) {
-      this._started = true;
+    //
+    // The latch is keyed to the ROUTE ID, not to the element's lifetime: the
+    // routes template renders the same tag for /admin/blog/:id, so Lit
+    // reuses the element when the id changes and the new row must load.
+    if (this._allowed() && this._startedId !== this._rowId) {
+      this._startedId = this._rowId;
+      this._resetForRow();
       if (this._rowId) {
         void this._loadRow();
       } else {
@@ -167,6 +175,23 @@ export abstract class ContentFormBase<
       // the stored rows once the element exists (never updateComplete.then).
       this._downloadWidget()?.load(rows);
     }
+  }
+
+  /** Clear the state a previous row left behind before another id loads. */
+  private _resetForRow() {
+    this._abort?.abort();
+    this._abort = null;
+    this._row = null;
+    this._title = "";
+    this._description = "";
+    this._status = "draft";
+    this._fieldError = "";
+    this._titleError = "";
+    this._error = "";
+    this._success = "";
+    this.errorMessage = "";
+    this.status = "loading";
+    this._pendingRowLoad = null;
   }
 
   /** In edit mode the route carries a row id; create mode renders the empty
@@ -409,6 +434,11 @@ export abstract class ContentFormBase<
         void this._loadRow();
         this._error = this._preconditionMessage;
       } else {
+        // The sibling action path's 403 heal: a stale CSRF token revalidates
+        // the session instead of surfacing a dead form.
+        if (err instanceof ApiError && err.status === 403) {
+          void this.session?.revalidate();
+        }
         this._error = mapError(err);
       }
     } finally {

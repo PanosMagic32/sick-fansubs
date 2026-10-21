@@ -67,11 +67,13 @@ written, and where the machine-checked guards live.
    rule in `account-page.test.ts`.
 10. **Timer, debounce, and fetch stubs are per test and restored in `afterEach`.** Shared helpers
     live in `shared/api/test-utils.ts` (the fetch doubles `mockFetchOnce`/`mockFetchImpl` +
-    `restoreMockFetch`, the history-location shims, `waitFor`, `stubDebounceTimers`,
+    `restoreMockFetch`, `stubJsonFetch` — the URL-recording JSON handler every UI suite shares —
+    the history-location shims, `waitFor`, `stubDebounceTimers`,
     `stubAbortSignalTimeout`, `stubProperty`, `setHappyDOMURL`/`resetHappyDOMURL`,
     `stripCssComments`, `stripSourceComments`, `readSheet`/`readSource` (the comment-stripped file
     reads)); a third copy of
-    a stub is the point to graduate it.
+    a stub is the point to graduate it. The feature suites' `stubFetch` is an alias import of
+    `stubJsonFetch`, never a local copy.
 11. **Go-side tests are not the place for frontend behavior, and vice versa.** The only shared
     languages are the pins that read a frontend artifact from Go (the VAPID key copies, the audit
     event vocabulary) — those stay where their Go consumer lives.

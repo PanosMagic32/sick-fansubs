@@ -216,6 +216,25 @@ describe("media-upload", () => {
     expect(statusText(widget)).toBe(el.admin.uploadStatusUploaded);
   });
 
+  test("teardown clears the pending state so a re-added widget is usable", async () => {
+    const widget = await render("admin");
+    mockFetchImpl(() => new Promise<Response>(() => {}));
+
+    chooseFile(widget, new File(["a"], "a.jpg", { type: "image/jpeg" }));
+    await widget.updateComplete;
+    expect(widget.isUploading()).toBe(true);
+
+    // The aborted upload's finally block deliberately leaves the state alone;
+    // the teardown must clear it, or the widget stays stuck on "uploading".
+    widget.remove();
+    document.body.appendChild(widget);
+    await widget.updateComplete;
+
+    expect(widget.isUploading()).toBe(false);
+    expect(statusText(widget)).toBe(el.admin.uploadStatusNone);
+    widget.remove();
+  });
+
   test("a 413 shows the too-large copy and keeps the previous value", async () => {
     const widget = await render("admin");
 

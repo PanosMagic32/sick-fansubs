@@ -10,8 +10,6 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { el } from "@shared/catalog/el.js";
 import { formatDateTimeNumeric } from "@shared/utils/format.js";
 import {
-  mockFetchImpl,
-  mockResponse,
   mockSessionContext,
   readSheet,
   resetHappyDOMURL,
@@ -19,6 +17,7 @@ import {
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
+  stubJsonFetch as stubFetch,
 } from "@shared/api/test-utils.js";
 
 import "@features/auth/data-access/session.js";
@@ -44,24 +43,6 @@ function mockSession(
 }
 
 type FetchResult = { status: number; body: unknown };
-
-/** Stubs fetch and records every requested URL. */
-function stubFetch(handler: (url: string) => Promise<FetchResult>) {
-  const urls: string[] = [];
-  mockFetchImpl(async (input: RequestInfo | URL) => {
-    const url = typeof input === "string" ? input : input.toString();
-    urls.push(url);
-    const res = await handler(url);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-  return urls;
-}
 
 /**
  * Stubs the two reads the page makes, dispatching on the path so a test can

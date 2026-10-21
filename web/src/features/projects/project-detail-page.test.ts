@@ -6,6 +6,7 @@ import {
   mockResponse,
   mockSessionContext,
   restoreMockFetch,
+  stubJsonFetch as stubFetch,
 } from "@shared/api/test-utils.js";
 import { FAVORITE_CHANGED_EVENT } from "@shared/events.js";
 import { formatDateTimeNumeric } from "@shared/utils/format.js";
@@ -20,26 +21,6 @@ import "./project-detail-page.js";
 import type { ProjectDetailPage } from "./project-detail-page.js";
 import type { ContentCard } from "@shared/ui/content-card.js";
 import type { ProjectDetail } from "./data-access/types.js";
-
-/** Fetch-level router: component → real projects-api → real transport →
- * stub. The comments section fetches nothing
- * until its CTA is clicked, so these stubs only ever see the project
- * request. */
-function stubFetch(
-  handler: (url: string) => Promise<{ status: number; body: unknown }>,
-) {
-  mockFetchImpl(async (input) => {
-    const url = typeof input === "string" ? input : input.toString();
-    const res = await handler(url);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-}
 
 function sampleProject(overrides: Partial<ProjectDetail> = {}): ProjectDetail {
   return {

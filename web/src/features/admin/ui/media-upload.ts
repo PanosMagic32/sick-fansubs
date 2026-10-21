@@ -84,6 +84,11 @@ export class MediaUpload extends LitElement {
   disconnectedCallback() {
     this._uploadAbort?.abort();
     this._uploadAbort = null;
+    // An aborted upload's finally block deliberately does not touch the
+    // state; clear it here so a re-added widget never reads as uploading
+    // and never shows a revoked preview URL.
+    this._pending = false;
+    this._previewURL = this._value?.url ?? null;
     this._revokeLocal();
     super.disconnectedCallback();
   }

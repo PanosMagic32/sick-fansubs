@@ -11,8 +11,6 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import { el } from "@shared/catalog/el.js";
 import {
-  mockFetchImpl,
-  mockResponse,
   mockSessionContext,
   readSheet,
   readSource,
@@ -21,6 +19,7 @@ import {
   restoreMockFetch,
   setHappyDOMURL,
   shimHistoryLocationSync,
+  stubJsonFetch as stubFetch,
   stubProperty,
 } from "@shared/api/test-utils.js";
 
@@ -48,28 +47,6 @@ function mockSession(
 
 /** Install the fetch double for one test and return every requested URL in
  * call order — a test can assert that the server was never asked. */
-function stubFetch(
-  handler: (
-    url: string,
-    method: string,
-  ) => Promise<{ status: number; body: unknown }>,
-): string[] {
-  const urls: string[] = [];
-  mockFetchImpl(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === "string" ? input : input.toString();
-    urls.push(url);
-    const method = init?.method ?? "GET";
-    const res = await handler(url, method);
-    return mockResponse({
-      ok: res.status < 400,
-      status: res.status,
-      headers:
-        res.status >= 400 ? { "Content-Type": "application/problem+json" } : {},
-      jsonBody: res.body,
-    });
-  });
-  return urls;
-}
 
 const LIST_BODY = {
   items: [
@@ -235,6 +212,26 @@ describe("admin-users-page", () => {
     expect(root(page).querySelector(".admin-forbidden")).not.toBeNull();
     expect(root(page).querySelector(".members-list")).toBeNull();
     expect(urls.length).toBe(0);
+  });
+
+  test("a role upgrade after the forbidden state starts the first load", async () => {
+    const urls = stubFetch(async () => ({ status: 200, body: LIST_BODY }));
+
+    const page = await render("user");
+    expect(root(page).querySelector(".admin-forbidden")).not.toBeNull();
+    expect(urls.length).toBe(0);
+
+    // The staff latch must reset when access is lost, or the upgrade would
+    // land on the stale forbidden state with no request.
+    (page as unknown as { session: unknown }).session = mockSession(
+      "authenticated",
+      "admin",
+    );
+    page.requestUpdate();
+    await settle(page);
+
+    expect(urls.length).toBe(1);
+    expect(root(page).querySelector(".members-list")).not.toBeNull();
   });
 
   test("an admin viewer renders member cards with the server-provided email", async () => {

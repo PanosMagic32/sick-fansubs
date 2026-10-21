@@ -68,13 +68,16 @@ export abstract class AdminStaffPageBase extends LitElement {
     // re-renders without calling connectedCallback again.
     this._guard();
     const s = this.session?.state;
-    if (
-      s?.status === "authenticated" &&
-      this._hasStaffAccess(s.user.role) &&
-      !this._started
-    ) {
-      this._started = true;
-      this._start();
+    if (s?.status === "authenticated" && this._hasStaffAccess(s.user.role)) {
+      if (!this._started) {
+        this._started = true;
+        this._start();
+      }
+    } else {
+      // A role cycle (drop then upgrade, or a session error that recovers)
+      // must re-run the load: the previous attempt latched against access
+      // the viewer no longer has.
+      this._started = false;
     }
   }
 
