@@ -111,6 +111,41 @@ func TestRateLimitIPByPath_AllowsSafePath(t *testing.T) {
 	}
 }
 
+// TestRateLimitIPByPath_SafeMethodsDoNotSpendQuota pins that a probe or
+// preflight on a guarded path cannot consume the POST budget.
+func TestRateLimitIPByPath_SafeMethodsDoNotSpendQuota(t *testing.T) {
+	t.Parallel()
+	rl := NewRateLimiter(1, time.Minute, time.Minute)
+	calls := 0
+	handler := RateLimitIPByPath(rl, "/sign-in")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+	}))
+
+	for range 2 {
+		req := httptest.NewRequest(http.MethodGet, "/sign-in", nil)
+		req.RemoteAddr = "10.0.0.1:12345"
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	post := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/sign-in", nil)
+		req.RemoteAddr = "10.0.0.1:12345"
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		return rec
+	}
+
+	if rec := post(); rec.Code != http.StatusOK {
+		t.Fatalf("first POST status = %d, want 200 (safe methods must not spend the bucket)", rec.Code)
+	}
+	if rec := post(); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("second POST status = %d, want 429", rec.Code)
+	}
+	if calls != 3 {
+		t.Errorf("handler calls = %d, want 3 (two GETs plus one allowed POST)", calls)
+	}
+}
+
 func TestRateLimitIPByPath_BlocksRateLimitedPath(t *testing.T) {
 	t.Parallel()
 	rl := NewRateLimiter(1, time.Minute, time.Minute)

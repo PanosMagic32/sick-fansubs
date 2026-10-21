@@ -257,6 +257,8 @@ type commentCursorPayload struct {
 // given namespace prefix. sort is one of the commentSort* constants
 // (comments.go).
 func encodeCommentCursor(prefix, sort string, createdAtMS, hearts int64, id string) string {
+	// The payload is a fixed struct of strings and integers, so Marshal
+	// cannot fail.
 	raw, _ := json.Marshal(commentCursorPayload{cursorVersion, sort, createdAtMS, hearts, id})
 	return prefix + base64.RawURLEncoding.EncodeToString(raw)
 }

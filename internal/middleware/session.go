@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
 
@@ -27,7 +26,9 @@ const CookieName = "sf_session"
 //
 // Missing, malformed, expired, revoked, or unknown session tokens result
 // in an unauthenticated request — the next handler receives a context
-// where GetSession returns nil. No error is returned to the client.
+// where GetSession returns nil. A session-store failure is different: it is
+// an infrastructure failure, so the middleware answers the masked 500 and
+// does not call the next handler.
 //
 // Expired sessions have their cookie cleared as a courtesy to the browser.
 // The secure parameter controls the Secure attribute on the deletion cookie
@@ -58,8 +59,7 @@ func Session(db *sql.DB, secure bool) func(http.Handler) http.Handler {
 				return
 			}
 			if err != nil {
-				logging.From(r.Context()).ErrorContext(r.Context(), "session lookup failed", "error", err)
-				next.ServeHTTP(w, r)
+				writeInternalError(w, r, "session lookup failed", "error", err)
 				return
 			}
 
@@ -74,6 +74,21 @@ func Session(db *sql.DB, secure bool) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// SessionDigest runs the one ambiguity gate shared by session resolution and
+// sign-out: exactly one well-formed sf_session cookie, or nil. Callers never
+// fall back to r.Cookie, which would silently choose the first duplicate.
+func SessionDigest(r *http.Request) []byte {
+	cookies := SessionCookies(r)
+	if len(cookies) != 1 {
+		return nil
+	}
+	digest, ok := SessionDigestValue(cookies[0].Value)
+	if !ok {
+		return nil
+	}
+	return digest
 }
 
 // SessionCookies returns every cookie named sf_session on the request.
@@ -112,7 +127,7 @@ func SessionDigestValue(value string) (digest []byte, ok bool) {
 	return h[:], true
 }
 
-// clearSessionCookie writes a deletion cookie matching the sf_session
+// ClearSessionCookie writes a deletion cookie matching the sf_session
 // cookie contract (same name, path, host-only scope, past expiry).
 // The secure parameter must match the original Set-Cookie — browsers
 // enforce downgrade protection: a Secure=false deletion cannot clear a

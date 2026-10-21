@@ -19,6 +19,15 @@ func writeForbidden(w http.ResponseWriter, r *http.Request, logDetail string) {
 		"/problems/forbidden", "Forbidden")
 }
 
+// writeInternalError logs the cause once and writes the masked 500 problem:
+// a non-sentinel error is an infrastructure failure (docs/patterns/go/errors.md),
+// and the client never sees the internal detail.
+func writeInternalError(w http.ResponseWriter, r *http.Request, msg string, args ...any) {
+	logging.From(r.Context()).ErrorContext(r.Context(), msg, args...)
+	problem.Write(w, r, http.StatusInternalServerError, GetRequestID(r.Context()),
+		"/problems/internal-error", "Internal server error")
+}
+
 // writeRateLimited writes a 429 Too Many Requests RFC 9457 Problem Details
 // response with a Retry-After header.
 func writeRateLimited(w http.ResponseWriter, r *http.Request, retryAfter time.Duration) {

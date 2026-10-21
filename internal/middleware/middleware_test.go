@@ -873,10 +873,11 @@ func TestCSRF_RejectionsLogTheDistinguishingDetail(t *testing.T) {
 	}
 }
 
-// TestSession_StoreFailureIsUnauthenticatedAndLogged pins the fail-safe branch:
-// a session lookup error serves the request unauthenticated and records one
-// error line naming the failure.
-func TestSession_StoreFailureIsUnauthenticatedAndLogged(t *testing.T) {
+// TestSession_StoreFailureAnswersMasked500AndLogsOnce pins the
+// infrastructure-failure branch: a session lookup error is never downgraded
+// to an anonymous request, and the cause is logged exactly once at the
+// boundary.
+func TestSession_StoreFailureAnswersMasked500AndLogsOnce(t *testing.T) {
 	t.Parallel()
 	db := openMiddlewareDB(t)
 
@@ -891,9 +892,7 @@ func TestSession_StoreFailureIsUnauthenticatedAndLogged(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if su := GetSession(r.Context()); su != nil {
-				t.Error("expected nil session after a store failure")
-			}
+			t.Error("handler must not run after a session-store failure")
 		},
 	}
 
@@ -904,11 +903,61 @@ func TestSession_StoreFailureIsUnauthenticatedAndLogged(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mw.ServeHTTP(rec, req)
 
-	if !handler.called {
-		t.Fatal("request must reach the handler unauthenticated after a store failure")
+	if handler.called {
+		t.Fatal("the next handler must not run after a session-store failure")
+	}
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "application/problem+json") {
+		t.Errorf("Content-Type = %q, want application/problem+json", ct)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode problem body %q: %v", rec.Body.String(), err)
+	}
+	if body["type"] != "/problems/internal-error" {
+		t.Errorf("problem type = %v, want /problems/internal-error", body["type"])
+	}
+	if strings.Contains(rec.Body.String(), "session lookup failed") {
+		t.Error("the internal cause leaked into the problem body")
 	}
 	if got := strings.Count(buf.String(), "session lookup failed"); got != 1 {
 		t.Errorf("session lookup failed records = %d, want 1 (log %q)", got, buf.String())
+	}
+}
+
+// TestSessionDigest_AmbiguityGate pins the one cookie gate shared by the
+// session middleware and sign-out: exactly one well-formed cookie or nil.
+func TestSessionDigest_AmbiguityGate(t *testing.T) {
+	t.Parallel()
+	token := base64.RawURLEncoding.EncodeToString(make([]byte, 32))
+
+	tests := []struct {
+		name   string
+		cookie []string
+		want   bool
+	}{
+		{name: "no cookie"},
+		{name: "one valid", cookie: []string{token}, want: true},
+		{name: "duplicate", cookie: []string{token, token}},
+		{name: "malformed", cookie: []string{"not-valid-base64!!!"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest("GET", "/", nil)
+			for _, value := range tt.cookie {
+				req.AddCookie(&http.Cookie{Name: CookieName, Value: value})
+			}
+			got := SessionDigest(req)
+			if (got != nil) != tt.want {
+				t.Errorf("SessionDigest() = %v, want non-nil: %v", got, tt.want)
+			}
+			if got != nil && len(got) != sha256.Size {
+				t.Errorf("digest length = %d, want %d", len(got), sha256.Size)
+			}
+		})
 	}
 }
 

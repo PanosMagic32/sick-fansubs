@@ -1816,10 +1816,9 @@ func TestAudit_StaleCookieSignOutEmitsNoEvent(t *testing.T) {
 }
 
 // TestAudit_SignOut_Failure pins the failure-result event: an attempted
-// sign-out whose deletion fails (store unavailable) is audit-worthy — the
-// user's trail shows the attempt did NOT succeed. The actor ID is absent
-// because the session middleware could not resolve the credential against
-// the broken store.
+// sign-out whose deletion fails is audit-worthy — the user's trail shows the
+// attempt did NOT succeed. The session lookup still succeeds, so the event
+// carries the resolved actor.
 func TestAudit_SignOut_Failure(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
@@ -1827,9 +1826,13 @@ func TestAudit_SignOut_Failure(t *testing.T) {
 	_, db, mux := setupAuthWithLogger(t, logger)
 	cookie, csrfTok := createUser(t, mux, "TestUser", "test@example.com", "password123")
 
-	// Break the database so the deletion fails while the cookie remains
-	// well-formed.
-	db.Close()
+	// Break only the session DELETE so lookup still succeeds: a closed
+	// database would now fail in the session middleware first and answer
+	// the masked 500 before the handler's audit hook can run.
+	if _, err := db.Exec(`CREATE TRIGGER fail_sign_out BEFORE DELETE ON sessions
+		BEGIN SELECT RAISE(ABORT, 'sign-out blocked'); END`); err != nil {
+		t.Fatalf("create sign-out failure trigger: %v", err)
+	}
 
 	srv := withMiddleware(mux, db)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sign-out", nil)
@@ -1850,8 +1853,8 @@ func TestAudit_SignOut_Failure(t *testing.T) {
 	if ev.Event != "sign_out" || ev.Result != "failure" {
 		t.Errorf("event: got %q/%q, want sign_out/failure", ev.Event, ev.Result)
 	}
-	if ev.ActorID != "" {
-		t.Errorf("unresolved session must not carry an actorID, got %q", ev.ActorID)
+	if ev.ActorID == "" {
+		t.Error("a resolved session must carry its actorID on the failure event")
 	}
 }
 

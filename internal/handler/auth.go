@@ -42,21 +42,6 @@ func setSessionCookie(w http.ResponseWriter, value string, secure bool) {
 	})
 }
 
-// cookieDigest reads the sf_session cookie, base64url-decodes it, and returns
-// its SHA-256 digest. Missing, malformed, or ambiguous (duplicate) cookies
-// return nil — an ambiguous credential is never acted on.
-func cookieDigest(r *http.Request) []byte {
-	cookies := middleware.SessionCookies(r)
-	if len(cookies) != 1 {
-		return nil
-	}
-	digest, ok := middleware.SessionDigestValue(cookies[0].Value)
-	if !ok {
-		return nil
-	}
-	return digest
-}
-
 // maxAuthBodySize is the maximum request body size for auth endpoints (4 KiB).
 const maxAuthBodySize = 4 * 1024
 
@@ -306,7 +291,7 @@ func (h *Auth) HandleSession(w http.ResponseWriter, r *http.Request) {
 func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	logger := logging.From(r.Context())
 	// Try to delete the session if we can identify it.
-	digest := cookieDigest(r)
+	digest := middleware.SessionDigest(r)
 	if digest != nil {
 		deleted, err := h.auth.SignOut(r.Context(), digest)
 		if err != nil {

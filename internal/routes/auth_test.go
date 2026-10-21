@@ -151,21 +151,27 @@ func TestAuth_UnregisteredPathAnswersJSONNotFound(t *testing.T) {
 	if body["type"] != "/problems/not-found" {
 		t.Errorf("problem type = %v, want /problems/not-found", body["type"])
 	}
+	headerID := rec.Header().Get("X-Request-ID")
+	if len(headerID) != 32 {
+		t.Fatalf("X-Request-ID = %q, want a 32-character ID", headerID)
+	}
+	if body["requestId"] != headerID {
+		t.Errorf("problem requestId = %v, want the header ID %q", body["requestId"], headerID)
+	}
 }
 
-// TestAuth_NestedFallbackKeepsOneRequestIdentity pins the nested-chain
-// contract end to end: an unknown auth path runs the auth chain and then the
-// fallback chain, and a record written earlier in the request, the response
-// header, and the problem body all share one request ID.
-func TestAuth_NestedFallbackKeepsOneRequestIdentity(t *testing.T) {
+// TestAuth_StoreFailureKeepsOneRequestIdentity pins the nested-chain identity
+// on the infrastructure-failure path: a well-formed cookie plus a closed store
+// answers the masked 500, and the record, the response header, and the problem
+// body all share one request ID.
+func TestAuth_StoreFailureKeepsOneRequestIdentity(t *testing.T) {
 	t.Parallel()
 
 	mux, db, _, _ := setupUsersMux(t)
 	Auth(mux, db, false, "http://localhost:5173", "http://localhost:3000", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	// A well-formed cookie (32 zero bytes, base64url) makes Session attempt a
-	// lookup; the closed store forces the error branch, which logs the ID the
-	// outer chain minted before the fallback runs.
+	// lookup; the closed store exercises the masked-500 branch.
 	const token = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	if err := db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)
@@ -180,8 +186,11 @@ func TestAuth_NestedFallbackKeepsOneRequestIdentity(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("status = %d, want 404 (body %q)", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500 (body %q)", rec.Code, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+		t.Errorf("Content-Type = %q, want application/problem+json", ct)
 	}
 	headerID := rec.Header().Get("X-Request-ID")
 	if len(headerID) != 32 {
@@ -189,9 +198,13 @@ func TestAuth_NestedFallbackKeepsOneRequestIdentity(t *testing.T) {
 	}
 	var body struct {
 		RequestID string `json:"requestId"`
+		Type      string `json:"type"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode problem: %v", err)
+	}
+	if body.Type != "/problems/internal-error" {
+		t.Errorf("problem type = %q, want /problems/internal-error", body.Type)
 	}
 	if body.RequestID != headerID {
 		t.Errorf("problem requestId = %q, want the header ID %q", body.RequestID, headerID)

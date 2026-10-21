@@ -117,7 +117,9 @@ func RateLimitIPByPath(limiter *RateLimiter, paths ...string) func(http.Handler)
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if pathSet[r.URL.Path] {
+			// Safe methods never spend the bucket: a probe, preflight, or
+			// stray GET on a guarded path must not use up a POST's quota.
+			if !isSafeMethod(r.Method) && pathSet[r.URL.Path] {
 				ip := ClientAddr(r)
 				allowed, retryAfter := limiter.Allow(ip)
 				if !allowed {
