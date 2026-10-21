@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-
-	"sick-fansubs/internal/id"
 )
 
 // notifyFollowersTx inserts one user_notifications row per follower of the
@@ -47,15 +45,15 @@ func notifyFollowersTx(ctx context.Context, tx *sql.Tx, notificationKind, actorI
 		if err := rows.Scan(&followerID); err != nil {
 			return nil, fmt.Errorf("store: scan notification follower: %w", err)
 		}
-		notificationID, err := id.New()
+		err := insertMintedTx(ctx, tx, "store: insert follower notification", func(ctx context.Context, notificationID string) error {
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				notificationID, followerID, notificationKind, actorID, k.kind, contentID, commentID, createdAtMS)
+			return err
+		})
 		if err != nil {
-			return nil, fmt.Errorf("store: notification id: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			notificationID, followerID, notificationKind, actorID, k.kind, contentID, commentID, createdAtMS); err != nil {
-			return nil, fmt.Errorf("store: insert follower notification: %w", err)
+			return nil, err
 		}
 		events = append(events, NotificationEvent{
 			RecipientID:  followerID,
@@ -141,15 +139,15 @@ func notifyDraftActivityTx(ctx context.Context, tx *sql.Tx, actorID, action stri
 		if err := rows.Scan(&recipientID); err != nil {
 			return nil, fmt.Errorf("store: scan draft activity recipient: %w", err)
 		}
-		notificationID, err := id.New()
+		err := insertMintedTx(ctx, tx, "store: insert draft activity notification", func(ctx context.Context, notificationID string) error {
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, draft_action, created_at_ms)
+				VALUES (?, ?, 'draft_activity', ?, ?, ?, NULL, ?, ?)`,
+				notificationID, recipientID, actorID, k.kind, contentID, action, createdAtMS)
+			return err
+		})
 		if err != nil {
-			return nil, fmt.Errorf("store: notification id: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, draft_action, created_at_ms)
-			VALUES (?, ?, 'draft_activity', ?, ?, ?, NULL, ?, ?)`,
-			notificationID, recipientID, actorID, k.kind, contentID, action, createdAtMS); err != nil {
-			return nil, fmt.Errorf("store: insert draft activity notification: %w", err)
+			return nil, err
 		}
 		events = append(events, NotificationEvent{
 			RecipientID:  recipientID,
@@ -221,15 +219,15 @@ func notifyNewContentTx(ctx context.Context, tx *sql.Tx, actorID string, k Conte
 		if err := rows.Scan(&recipientID); err != nil {
 			return nil, fmt.Errorf("store: scan new_content recipient: %w", err)
 		}
-		notificationID, err := id.New()
+		err := insertMintedTx(ctx, tx, "store: insert new_content notification", func(ctx context.Context, notificationID string) error {
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
+				VALUES (?, ?, 'new_content', ?, ?, ?, NULL, ?)`,
+				notificationID, recipientID, actorID, k.kind, contentID, createdAtMS)
+			return err
+		})
 		if err != nil {
-			return nil, fmt.Errorf("store: notification id: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
-			VALUES (?, ?, 'new_content', ?, ?, ?, NULL, ?)`,
-			notificationID, recipientID, actorID, k.kind, contentID, createdAtMS); err != nil {
-			return nil, fmt.Errorf("store: insert new_content notification: %w", err)
+			return nil, err
 		}
 		events = append(events, NotificationEvent{
 			RecipientID:  recipientID,

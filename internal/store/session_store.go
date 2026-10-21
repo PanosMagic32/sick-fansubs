@@ -183,12 +183,12 @@ type RehashPasswordAndCreateSessionParams struct {
 //   - ErrAuthVersionMismatch if the version changed or the user was suspended.
 //   - ErrNotFound if the user does not exist.
 //   - ErrDuplicate if the token digest already exists.
-func RehashPasswordAndCreateSession(ctx context.Context, db *sql.DB, p RehashPasswordAndCreateSessionParams) error {
+func RehashPasswordAndCreateSession(ctx context.Context, db *sql.DB, p RehashPasswordAndCreateSessionParams) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin rehash+session tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// 1. Conditional verifier update + auth_version bump.
 	res, err := tx.ExecContext(ctx,
@@ -303,12 +303,12 @@ type CreateUserAndSessionParams struct {
 //     collisions are ~2⁻¹²⁸ and a retry regenerates the values.
 //   - ErrAuthVersionMismatch if the session guard rejected the just-created
 //     user (non-active Status) — the user insert rolls back with it.
-func CreateUserAndSession(ctx context.Context, db *sql.DB, p CreateUserAndSessionParams) error {
+func CreateUserAndSession(ctx context.Context, db *sql.DB, p CreateUserAndSessionParams) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin register tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// 1. User row.
 	_, err = tx.ExecContext(ctx,

@@ -55,57 +55,76 @@ func ProjectCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 			publishedMS = nowMS
 		}
 
-		projectID, err := id.New()
-		if err != nil {
-			writeInternalError(w, r, logger, "content id generation failed", "error", err)
-			return
-		}
-
-		base := slug.GenerateBase(req.Title)
-		if base == "" {
-			base = "p-" + projectID
-		}
-
 		var project *store.StaffProject
 		var events []store.NotificationEvent
-		for attempt := range maxSlugAttempts {
-			candidate := base
-			if attempt > 0 {
-				candidate = fmt.Sprintf("%s-%d", base, attempt+1)
-			}
-			project, events, err = store.CreateProject(r.Context(), db, store.CreateProjectParams{
-				ID:            projectID,
-				Title:         req.Title,
-				Description:   req.Description,
-				Slug:          candidate,
-				ThumbnailURL:  req.ThumbnailPath,
-				Status:        req.Status,
-				CreatorID:     su.UserID,
-				UpdaterID:     su.UserID,
-				PublishedAtMS: publishedMS,
-				NowMS:         nowMS,
-				Downloads:     req.DownloadsParsed,
-			})
-			if err == nil {
-				break
-			}
-			if !errors.Is(err, store.ErrSlugTaken) {
-				// An absence is internal here too: the committed read-back
-				// raced a delete (the BlogCreate contract).
-				if errors.Is(err, store.ErrNotFound) {
-					writeInternalError(w, r, logger, "project create failed", "error", err)
-					logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
-					return
-				}
-				if writeStoreError(w, r, err, "project create", "error", err) == http.StatusInternalServerError {
-					logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
-				}
+		for range maxMintAttempts {
+			projectID, err := id.New()
+			if err != nil {
+				writeInternalError(w, r, logger, "content id generation failed", "error", err)
 				return
 			}
+
+			base := slug.GenerateBase(req.Title)
+			if base == "" {
+				base = "p-" + projectID
+			}
+
+			idCollision := false
+			for attempt := range maxSlugAttempts {
+				candidate := base
+				if attempt > 0 {
+					candidate = fmt.Sprintf("%s-%d", base, attempt+1)
+				}
+				project, events, err = store.CreateProject(r.Context(), db, store.CreateProjectParams{
+					ID:            projectID,
+					Title:         req.Title,
+					Description:   req.Description,
+					Slug:          candidate,
+					ThumbnailURL:  req.ThumbnailPath,
+					Status:        req.Status,
+					CreatorID:     su.UserID,
+					UpdaterID:     su.UserID,
+					PublishedAtMS: publishedMS,
+					NowMS:         nowMS,
+					Downloads:     req.DownloadsParsed,
+				})
+				if err == nil {
+					break
+				}
+				if errors.Is(err, store.ErrDuplicate) {
+					// The database rejected the freshly minted id. Retry the whole
+					// create with a new id; the failed attempt rolled back in full.
+					idCollision = true
+					break
+				}
+				if !errors.Is(err, store.ErrSlugTaken) {
+					// An absence is internal here too: the committed read-back
+					// raced a delete (the BlogCreate contract).
+					if errors.Is(err, store.ErrNotFound) {
+						writeInternalError(w, r, logger, "project create failed", "error", err)
+						logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
+						return
+					}
+					if writeStoreError(w, r, err, "project create", "error", err) == http.StatusInternalServerError {
+						logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
+					}
+					return
+				}
+			}
+			if project != nil {
+				break
+			}
+			if idCollision {
+				// Fresh id, fresh slug attempt budget.
+				continue
+			}
+			// All maxSlugAttempts candidates collided for this id.
+			writeInternalError(w, r, logger, "project create failed", "reason", "slug attempts exhausted", "base", base)
+			logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
+			return
 		}
 		if project == nil {
-			// All maxSlugAttempts candidates collided.
-			writeInternalError(w, r, logger, "project create failed", "reason", "slug attempts exhausted", "base", base)
+			writeInternalError(w, r, logger, "project create failed", "reason", "identifier attempts exhausted")
 			logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
 			return
 		}

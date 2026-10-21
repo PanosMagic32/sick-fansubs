@@ -71,6 +71,29 @@ func ftsRowCount(t *testing.T, db *sql.DB, id string) int {
 	return n
 }
 
+// TestCreateBlogPost_DuplicateIDMapsToErrDuplicate pins the create-side
+// uniqueness contract: a primary-key collision surfaces as the sentinel the
+// handler retries, never as a raw constraint error (the identifiers rule
+// makes the database the uniqueness authority).
+func TestCreateBlogPost_DuplicateIDMapsToErrDuplicate(t *testing.T) {
+	t.Parallel()
+	db := setupBlogAdminStore(t)
+	createPost(t, db, "p1", "draft", 0)
+
+	_, _, err := CreateBlogPost(t.Context(), db, CreateBlogPostParams{
+		ID:           "p1",
+		Title:        "Second claim",
+		ThumbnailURL: "media/images/ab/abcdef0123456789abcdef0123456789.jpg",
+		Status:       "draft",
+		CreatorID:    "admin1",
+		UpdaterID:    "admin1",
+		NowMS:        6_000,
+	})
+	if !errors.Is(err, ErrDuplicate) {
+		t.Fatalf("err = %v, want ErrDuplicate", err)
+	}
+}
+
 func TestCreateBlogPost_PublishedIndexesAtomically(t *testing.T) {
 	t.Parallel()
 	db := setupBlogAdminStore(t)

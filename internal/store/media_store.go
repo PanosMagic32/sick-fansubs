@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -28,7 +29,7 @@ func ReferencedMediaPaths(ctx context.Context, db *sql.DB) (map[string]struct{},
 
 	rows, err := db.QueryContext(ctx, strings.Join(terms, ` UNION `))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("store: referenced media paths query: %w", err)
 	}
 	defer rows.Close()
 
@@ -36,12 +37,12 @@ func ReferencedMediaPaths(ctx context.Context, db *sql.DB) (map[string]struct{},
 	for rows.Next() {
 		var path string
 		if err := rows.Scan(&path); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("store: scan referenced media path: %w", err)
 		}
 		set[path] = struct{}{}
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("store: iterate referenced media paths: %w", err)
 	}
 	return set, nil
 }
@@ -65,7 +66,7 @@ func MediaPathReferenced(ctx context.Context, db *sql.DB, path string) (bool, er
 		case errors.Is(err, sql.ErrNoRows):
 			continue
 		default:
-			return false, err
+			return false, fmt.Errorf("store: media reference lookup: %w", err)
 		}
 	}
 	return false, nil

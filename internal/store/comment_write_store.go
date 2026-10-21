@@ -10,12 +10,12 @@ import (
 // CreateComment inserts one top-level comment on published content and, per
 // follower of that content other than the author, one 'comment' notification
 // row — all in one transaction. The events are the push fan-out input.
-func CreateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, userID, body, id string, createdAtMS int64) ([]NotificationEvent, error) {
+func CreateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, userID, body, id string, createdAtMS int64) (events []NotificationEvent, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("store: begin comment: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO `+k.comments+` (id, user_id, `+k.commentFK+`, body, hearts_count, created_at_ms, updated_at_ms)
@@ -53,7 +53,7 @@ func CreateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, us
 	// 'comment' fan-out: one notification
 	// row per follower of the content — the author excluded (self-
 	// suppression, the reply precedent) — in the create transaction.
-	events, err := notifyFollowersTx(ctx, tx, "comment", userID, k, contentID, &id, contentTitle, createdAtMS)
+	events, err = notifyFollowersTx(ctx, tx, "comment", userID, k, contentID, &id, contentTitle, createdAtMS)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,12 @@ func CreateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, us
 // CreateCommentReply inserts one reply to a top-level comment and, unless the
 // parent author is the replier, the comment_reply notification row — one
 // transaction. Outcomes: ErrNotFound (masked) or ErrInvalidParent (depth 1).
-func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentID, parentID, userID, body, replyID, notificationID string, createdAtMS int64) (NotificationEvent, bool, error) {
+func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentID, parentID, userID, body, replyID, notificationID string, createdAtMS int64) (event NotificationEvent, emitted bool, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return NotificationEvent{}, false, fmt.Errorf("store: begin reply: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	var (
 		parentUserID string
@@ -126,7 +126,6 @@ func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentI
 		return NotificationEvent{}, false, ErrNotFound
 	}
 
-	var event NotificationEvent
 	if parentUserID != userID && parentActive {
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
@@ -155,12 +154,12 @@ func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentI
 
 // UpdateComment applies an author-only body edit (last-write-wins) and
 // returns the re-read item. Outcomes: ErrNotFound (masked) and ErrNotAuthor.
-func UpdateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, commentID, userID, body string, updatedAtMS int64) (*Comment, error) {
+func UpdateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, commentID, userID, body string, updatedAtMS int64) (comment *Comment, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("store: begin comment update: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	var (
 		authorID  string
@@ -235,12 +234,12 @@ func CommentAuthorID(ctx context.Context, db *sql.DB, k ContentKind, contentID, 
 // comment_removed notice to the author; a self-delete emits nothing, and an
 // inactive author is skipped (the active-recipient rule) — the delete
 // itself still lands.
-func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, actorID, notificationID string, createdAtMS int64) (NotificationEvent, bool, error) {
+func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, actorID, notificationID string, createdAtMS int64) (event NotificationEvent, emitted bool, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return NotificationEvent{}, false, fmt.Errorf("store: begin comment delete: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// The author plus the content id and title are read BEFORE the delete:
 	// the row is about to vanish, and the polymorphic notification ref needs
@@ -274,7 +273,6 @@ func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, ac
 		return NotificationEvent{}, false, ErrNotFound
 	}
 
-	var event NotificationEvent
 	if authorID != actorID && authorActive {
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)

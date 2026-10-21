@@ -288,7 +288,7 @@ func ReindexAll(ctx context.Context, db *sql.DB) (blogCount, projectCount int, e
 	if err != nil {
 		return 0, 0, fmt.Errorf("store: begin reindex: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	for _, k := range allContentKinds {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM `+k.searchIndex); err != nil {

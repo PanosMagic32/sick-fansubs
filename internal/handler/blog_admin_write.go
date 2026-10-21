@@ -14,6 +14,11 @@ import (
 	"sick-fansubs/internal/store"
 )
 
+// maxMintAttempts bounds a content create's identifier-collision retry. The
+// database is the uniqueness authority, and a 128-bit collision is
+// practically impossible; three attempts separate a freak repeat from a bug.
+const maxMintAttempts = 3
+
 // BlogCreate returns the handler for POST /api/v1/blog-posts.
 //
 // Outcomes: 201 + Location + staff-shaped body; 400 malformed body;
@@ -49,37 +54,54 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 			publishedMS = nowMS
 		}
 
-		postID, err := id.New()
-		if err != nil {
-			writeInternalError(w, r, logger, "content id generation failed", "error", err)
-			return
-		}
-
-		post, events, err := store.CreateBlogPost(r.Context(), db, store.CreateBlogPostParams{
-			ID:            postID,
-			Title:         req.Title,
-			Subtitle:      *req.Subtitle,
-			Description:   *req.Description,
-			ThumbnailURL:  req.ThumbnailPath,
-			Status:        *req.Status,
-			CreatorID:     su.UserID,
-			UpdaterID:     su.UserID,
-			PublishedAtMS: publishedMS,
-			NowMS:         nowMS,
-			Downloads:     req.DownloadsParsed,
-		})
-		if err != nil {
-			// A create owns no absence: ErrNotFound here is the post-commit
-			// read-back losing a race with a concurrent delete — an internal
-			// failure, never the masked 404 the sentinel maps to elsewhere.
-			if errors.Is(err, store.ErrNotFound) {
-				writeInternalError(w, r, logger, "blog create failed", "error", err)
-				logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
+		var post *store.StaffBlogPost
+		var events []store.NotificationEvent
+		for range maxMintAttempts {
+			postID, err := id.New()
+			if err != nil {
+				writeInternalError(w, r, logger, "content id generation failed", "error", err)
 				return
 			}
-			if writeStoreError(w, r, err, "blog create", "error", err) == http.StatusInternalServerError {
-				logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
+
+			post, events, err = store.CreateBlogPost(r.Context(), db, store.CreateBlogPostParams{
+				ID:            postID,
+				Title:         req.Title,
+				Subtitle:      *req.Subtitle,
+				Description:   *req.Description,
+				ThumbnailURL:  req.ThumbnailPath,
+				Status:        *req.Status,
+				CreatorID:     su.UserID,
+				UpdaterID:     su.UserID,
+				PublishedAtMS: publishedMS,
+				NowMS:         nowMS,
+				Downloads:     req.DownloadsParsed,
+			})
+			if errors.Is(err, store.ErrDuplicate) {
+				// The database rejected the freshly minted id. A collision this
+				// improbable is retried with a new id within a bounded budget
+				// (the identifiers rule makes the database the uniqueness
+				// authority); the failed attempt rolled back in full.
+				continue
 			}
+			if err != nil {
+				// A create owns no absence: ErrNotFound here is the post-commit
+				// read-back losing a race with a concurrent delete — an internal
+				// failure, never the masked 404 the sentinel maps to elsewhere.
+				if errors.Is(err, store.ErrNotFound) {
+					writeInternalError(w, r, logger, "blog create failed", "error", err)
+					logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
+					return
+				}
+				if writeStoreError(w, r, err, "blog create", "error", err) == http.StatusInternalServerError {
+					logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
+				}
+				return
+			}
+			break
+		}
+		if post == nil {
+			writeInternalError(w, r, logger, "blog create failed", "reason", "identifier attempts exhausted")
+			logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
 			return
 		}
 

@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
-	"sick-fansubs/internal/id"
 )
 
 // Content-kind descriptors (docs/patterns/go/content-kinds.md): one
@@ -207,18 +205,20 @@ func listContentDownloads(ctx context.Context, db *sql.DB, k ContentKind, conten
 
 // insertContentDownloadsTx inserts one download-row set (create path) inside
 // the caller's transaction: a fresh id per row, position = array index, and
-// the content row's created_at_ms.
+// the content row's created_at_ms. A minted-id collision is retried a bounded
+// number of times (the identifiers rule) instead of escaping as a 500.
 func insertContentDownloadsTx(ctx context.Context, tx *sql.Tx, k ContentKind, contentID string, createdMS int64, downloads []Download) error {
 	for i, d := range downloads {
-		downloadID, err := id.New()
+		op := fmt.Sprintf("store: insert %s download", k.label)
+		err := insertMintedTx(ctx, tx, op, func(ctx context.Context, downloadID string) error {
+			_, err := tx.ExecContext(ctx,
+				`INSERT INTO `+k.downloads+` (id, `+k.downloadFK+`, `+k.downloadLabel+`, magnet_link, torrent_link, position, created_at_ms)
+				 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				downloadID, contentID, d.Label, d.MagnetLink, d.TorrentLink, i, createdMS)
+			return err
+		})
 		if err != nil {
-			return fmt.Errorf("store: %s download id: %w", k.label, err)
-		}
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO `+k.downloads+` (id, `+k.downloadFK+`, `+k.downloadLabel+`, magnet_link, torrent_link, position, created_at_ms)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			downloadID, contentID, d.Label, d.MagnetLink, d.TorrentLink, i, createdMS); err != nil {
-			return fmt.Errorf("store: insert %s download: %w", k.label, err)
+			return err
 		}
 	}
 	return nil

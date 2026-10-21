@@ -137,6 +137,29 @@ func TestCreateProject_DraftStaysOutOfTheIndex(t *testing.T) {
 	}
 }
 
+// TestCreateProject_DuplicateIDMapsToErrDuplicate pins that a primary-key
+// collision is NOT swallowed as a slug collision: the create handler retries
+// it with a fresh id, while the slug path keeps its own sentinel.
+func TestCreateProject_DuplicateIDMapsToErrDuplicate(t *testing.T) {
+	t.Parallel()
+	db := setupProjectAdminStore(t)
+	createProject(t, db, "p1", "first", "draft", 0)
+
+	_, _, err := CreateProject(t.Context(), db, CreateProjectParams{
+		ID:           "p1",
+		Title:        "Second claim",
+		Slug:         "second",
+		ThumbnailURL: "media/images/ab/abcdef0123456789abcdef0123456789.jpg",
+		Status:       "draft",
+		CreatorID:    "admin1",
+		UpdaterID:    "admin1",
+		NowMS:        6_000,
+	})
+	if !errors.Is(err, ErrDuplicate) {
+		t.Fatalf("err = %v, want ErrDuplicate", err)
+	}
+}
+
 func TestCreateProject_SlugTaken(t *testing.T) {
 	t.Parallel()
 	db := setupProjectAdminStore(t)

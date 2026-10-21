@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -104,24 +105,6 @@ func verifyBackupCopy(dataDir, backupPath string) (string, error) {
 // (cmd/restore) owns the offline window: the application must be stopped or
 // unready for the whole run, exactly like cmd/migrate (docs/patterns/go/sqlite.md).
 func StagedRestore(opts StagedRestoreOptions) (StagedRestoreResult, error) {
-	// Validate the backup before touching anything (step 2): a restore never
-	// starts from an unverified artifact, and a rejected one leaves the live
-	// database untouched. The artifact is validated from a private COPY in
-	// the data directory — it may be WAL-mode (whose validation open needs
-	// sidecar files) and may sit in a READ-ONLY unit directory (the drill
-	// shape), so the original is only ever read, never opened by SQLite.
-	// The same verified copy is the staging source, so the bytes verified
-	// here are exactly the bytes staged (no re-read TOCTOU).
-	verifiedPath, err := verifyBackupCopy(opts.DataDir, opts.BackupPath)
-	if err != nil {
-		return StagedRestoreResult{}, fmt.Errorf("database: validate backup %q: %w", opts.BackupPath, err)
-	}
-	// The verified copy is scratch: best-effort removal at return; a leftover
-	// temp file is never promoted and never read as a unit.
-	defer func() {
-		_ = os.Remove(verifiedPath)
-	}()
-
 	present, err := restoreMarkerExists(opts.DataDir)
 	if err != nil {
 		return StagedRestoreResult{}, err
@@ -132,11 +115,33 @@ func StagedRestore(opts StagedRestoreOptions) (StagedRestoreResult, error) {
 		return resumeRestore(opts)
 	}
 
-	// Normal path: acquire the exclusive marker first (step 1). From here
-	// the application opener and readiness fail closed.
+	// Normal path: acquire the exclusive marker FIRST (step 1). From here the
+	// application opener and readiness fail closed, so two concurrent restores
+	// cannot both proceed. A validation failure below is provably untouched
+	// live state, so it removes the marker again.
 	if err := acquireRestoreMarker(opts.DataDir); err != nil {
 		return StagedRestoreResult{}, err
 	}
+
+	// Validate the backup before touching anything else (step 2): a restore
+	// never starts from an unverified artifact, and a rejected one leaves the
+	// live database untouched. The artifact is validated from a private COPY
+	// in the data directory — it may be WAL-mode (whose validation open needs
+	// sidecar files) and may sit in a READ-ONLY unit directory (the drill
+	// shape), so the original is only ever read, never opened by SQLite.
+	// The same verified copy is the staging source, so the bytes verified
+	// here are exactly the bytes staged (no re-read TOCTOU).
+	verifiedPath, err := verifyBackupCopy(opts.DataDir, opts.BackupPath)
+	if err != nil {
+		return StagedRestoreResult{}, errors.Join(
+			fmt.Errorf("database: validate backup %q: %w", opts.BackupPath, err),
+			removeRestoreMarker(opts.DataDir))
+	}
+	// The verified copy is scratch: best-effort removal at return; a leftover
+	// temp file is never promoted and never read as a unit.
+	defer func() {
+		_ = os.Remove(verifiedPath)
+	}()
 
 	return runStagedRestore(opts, verifiedPath)
 }

@@ -28,12 +28,12 @@ type CreateVerificationTokenParams struct {
 // resend surface is the recovery path). A user deleted
 // between the caller's lookup and this write surfaces as the raw FK error
 // — the caller logs it and the resend surface is the recovery path.
-func CreateVerificationToken(ctx context.Context, db *sql.DB, p CreateVerificationTokenParams) error {
+func CreateVerificationToken(ctx context.Context, db *sql.DB, p CreateVerificationTokenParams) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin verification-token tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM email_verification_tokens WHERE user_id = ?`, p.UserID,
@@ -112,12 +112,12 @@ type VerifyEmailParams struct {
 //
 // Returns ErrVerificationTokenInvalid for a missing/expired token or a
 // suspended/gone account (one generic outcome).
-func VerifyEmail(ctx context.Context, db *sql.DB, p VerifyEmailParams) error {
+func VerifyEmail(ctx context.Context, db *sql.DB, p VerifyEmailParams) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin verification-consume tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// 1. Token row.
 	var userID string

@@ -27,12 +27,12 @@ type CreateResetTokenParams struct {
 // unlikely with SHA-256; a retry regenerates the token). A user deleted
 // between the caller's lookup and this write surfaces as the raw FK error
 // — the service maps any failure here to the generic 500 path.
-func CreateResetToken(ctx context.Context, db *sql.DB, p CreateResetTokenParams) error {
+func CreateResetToken(ctx context.Context, db *sql.DB, p CreateResetTokenParams) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin reset-token tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM password_reset_tokens WHERE user_id = ?`, p.UserID,
@@ -117,12 +117,12 @@ type ResetPasswordWithTokenParams struct {
 //
 // Returns ErrResetTokenInvalid for a missing/expired token or a
 // suspended/mismatched account (one generic outcome).
-func ResetPasswordWithToken(ctx context.Context, db *sql.DB, p ResetPasswordWithTokenParams) error {
+func ResetPasswordWithToken(ctx context.Context, db *sql.DB, p ResetPasswordWithTokenParams) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin reset-consume tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// 1. Token row.
 	var userID string

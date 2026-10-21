@@ -71,12 +71,12 @@ type PushSubscriptionKeys struct {
 // upsert PRESERVES an existing label and only fills a NULL one: a rename is
 // the user's own data, and the browser's rotation healing must not overwrite
 // it.
-func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64) (string, error) {
+func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64) (storedID string, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return "", fmt.Errorf("store: begin push subscription upsert: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// Reassign before the insert so the UNIQUE endpoint can never collide
 	// with another user's row inside this transaction.
@@ -103,7 +103,6 @@ func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoin
 		return "", fmt.Errorf("store: upsert push subscription: %w", err)
 	}
 
-	var storedID string
 	if err := tx.QueryRowContext(ctx,
 		`SELECT id FROM push_subscriptions WHERE endpoint = ?`, endpoint).Scan(&storedID); err != nil {
 		return "", fmt.Errorf("store: read push subscription id: %w", err)

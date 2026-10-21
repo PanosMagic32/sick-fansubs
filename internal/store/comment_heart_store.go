@@ -10,12 +10,12 @@ import (
 // SetCommentHeart toggles one viewer's heart on a published comment in one
 // transaction: the heart row, the counter delta, and the heart notification
 // commit together. A self-heart is ErrSelfHeart; an unheart removes both.
-func SetCommentHeart(ctx context.Context, db *sql.DB, k ContentKind, userID, contentID, commentID string, on bool, heartNotificationID string, createdAtMS int64) (NotificationEvent, bool, error) {
+func SetCommentHeart(ctx context.Context, db *sql.DB, k ContentKind, userID, contentID, commentID string, on bool, heartNotificationID string, createdAtMS int64) (event NotificationEvent, emitted bool, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return NotificationEvent{}, false, fmt.Errorf("store: begin heart toggle: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	var (
 		authorID     string
@@ -38,7 +38,6 @@ func SetCommentHeart(ctx context.Context, db *sql.DB, k ContentKind, userID, con
 		return NotificationEvent{}, false, ErrSelfHeart
 	}
 
-	var event NotificationEvent
 	if on {
 		res, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO `+k.hearts+` (user_id, comment_id, created_at_ms) VALUES (?, ?, ?)`,

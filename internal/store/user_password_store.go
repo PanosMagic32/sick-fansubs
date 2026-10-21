@@ -15,12 +15,12 @@ import (
 //
 // Returns ErrAuthVersionMismatch if the version no longer matches.
 // Returns ErrNotFound if the user does not exist.
-func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID string, newHash string, currentAuthVersion int64, updatedAtMS int64) error {
+func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID string, newHash string, currentAuthVersion int64, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("store: begin tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// Update password + bump auth_version, clearing the forced-change flag.
 	// The flag is cleared unconditionally: a normal password change on an
@@ -94,12 +94,12 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 // write transaction.
 //
 // Returns ErrNotFound if the user does not exist.
-func ResetUserPassword(ctx context.Context, db *sql.DB, userID string, newHash string, updatedAtMS int64) error {
+func ResetUserPassword(ctx context.Context, db *sql.DB, userID string, newHash string, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin reset tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	res, err := tx.ExecContext(ctx,
 		`UPDATE users SET password = ?, must_change_password = 1, auth_version = auth_version + 1, updated_at_ms = ?
@@ -143,12 +143,12 @@ func ResetUserPassword(ctx context.Context, db *sql.DB, userID string, newHash s
 // interleave.
 //
 // Returns ErrNotFound if the user does not exist.
-func IncrementAuthVersionAndDeleteSessions(ctx context.Context, db *sql.DB, userID string, updatedAtMS int64) error {
+func IncrementAuthVersionAndDeleteSessions(ctx context.Context, db *sql.DB, userID string, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin bump+delete tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	res, err := tx.ExecContext(ctx,
 		`UPDATE users SET auth_version = auth_version + 1, updated_at_ms = ? WHERE id = ?`,

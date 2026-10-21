@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"sick-fansubs/internal/store/storetest"
 )
@@ -21,7 +22,10 @@ func TestParseMigrationFilename(t *testing.T) {
 		{"0001_users.sql", 1, "users", false},
 		{"0010_add_indexes.sql", 10, "add_indexes", false},
 		{"9999_some_change.sql", 9999, "some_change", false},
-		{"1_users.sql", 1, "users", false},
+		{"1_users.sql", 0, "", true},         // version must be four digits
+		{"00001_users.sql", 0, "", true},     // five digits
+		{"00a1_users.sql", 0, "", true},      // non-digit inside the width
+		{"0000_users.sql", 0, "", true},      // versions start at 1
 		{"0001_.sql", 1, "", true},           // empty description
 		{"notanumber_desc.sql", 0, "", true}, // non-numeric version
 		{"_users.sql", 0, "", true},          // no version prefix
@@ -330,6 +334,58 @@ func TestApplyRefusesNonPrefixHistory(t *testing.T) {
 	}
 	if count != 0 {
 		t.Errorf("version 3 rows = %d, want 0 (Apply must not write)", count)
+	}
+}
+
+// TestLoadMigrations_RejectsInvalidEntries pins the validation that runs
+// before any database write: the embedded set must contain only migration
+// files, versions must be four digits, and gaps fail.
+func TestLoadMigrations_RejectsInvalidEntries(t *testing.T) {
+	t.Parallel()
+
+	const validSQL = "CREATE TABLE t (id TEXT PRIMARY KEY) STRICT;"
+	tests := []struct {
+		name  string
+		files map[string]string
+		want  string
+	}{
+		{
+			name:  "non-sql entry",
+			files: map[string]string{"migrations/0001_users.sql": validSQL, "migrations/notes.txt": "x"},
+			want:  "invalid migration entry",
+		},
+		{
+			name:  "directory entry",
+			files: map[string]string{"migrations/0001_users.sql": validSQL, "migrations/nested/0002_x.sql": validSQL},
+			want:  "invalid migration entry",
+		},
+		{
+			name:  "short version",
+			files: map[string]string{"migrations/1_users.sql": validSQL},
+			want:  "four digits",
+		},
+		{
+			name:  "gap",
+			files: map[string]string{"migrations/0001_a.sql": validSQL, "migrations/0003_c.sql": validSQL},
+			want:  "non-contiguous",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			fsys := fstest.MapFS{}
+			for name, body := range tt.files {
+				fsys[name] = &fstest.MapFile{Data: []byte(body)}
+			}
+			_, err := loadMigrations(fsys)
+			if err == nil {
+				t.Fatalf("expected an error mentioning %q", tt.want)
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("err = %v, want %q", err, tt.want)
+			}
+		})
 	}
 }
 

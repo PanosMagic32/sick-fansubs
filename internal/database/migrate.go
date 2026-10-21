@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-//go:embed migrations/*.sql
+//go:embed migrations
 var migrationFS embed.FS
 
 // migrationDir is the filesystem subdirectory containing migration files.
@@ -29,14 +29,19 @@ type migration struct {
 	SQL      string // the raw SQL (Structured Query Language) content
 }
 
-// loadedMigrations reads, parses, validates, and sorts all embedded migrations.
-//
+// loadedMigrations reads, parses, validates, and sorts the embedded
+// migrations.
+func loadedMigrations() ([]migration, error) {
+	return loadMigrations(migrationFS)
+}
+
+// loadMigrations reads, parses, validates, and sorts the migrations in fsys.
 // It returns an error if:
-//   - Any filename does not match the expected pattern (NNNN_description.sql).
+//   - Any entry is not a migration file (NNNN_description.sql).
 //   - Duplicate versions or names are found.
 //   - Any file cannot be read.
-func loadedMigrations() ([]migration, error) {
-	entries, err := fs.ReadDir(migrationFS, migrationDir)
+func loadMigrations(fsys fs.FS) ([]migration, error) {
+	entries, err := fs.ReadDir(fsys, migrationDir)
 	if err != nil {
 		return nil, fmt.Errorf("migrate: read migration directory: %w", err)
 	}
@@ -46,12 +51,12 @@ func loadedMigrations() ([]migration, error) {
 	seenNames := make(map[string]bool)
 
 	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
 		name := entry.Name()
-		if !strings.HasSuffix(name, ".sql") {
-			continue
+		if entry.IsDir() || !strings.HasSuffix(name, ".sql") {
+			// The whole directory is embedded, so anything that is not a
+			// migration file is a mistake that must fail before any database
+			// write — never a silent skip.
+			return nil, fmt.Errorf("migrate: invalid migration entry %q: expected NNNN_description.sql", name)
 		}
 
 		version, desc, err := parseMigrationFilename(name)
@@ -67,7 +72,7 @@ func loadedMigrations() ([]migration, error) {
 		seenVersions[version] = true
 		seenNames[desc] = true
 
-		content, err := migrationFS.ReadFile(migrationDir + "/" + name)
+		content, err := fs.ReadFile(fsys, migrationDir+"/"+name)
 		if err != nil {
 			return nil, fmt.Errorf("migrate: read %q: %w", name, err)
 		}
@@ -116,13 +121,16 @@ func parseMigrationFilename(name string) (version int, desc string, err error) {
 	}
 
 	versionStr := base[:idx]
-	if len(versionStr) < 1 {
-		return 0, "", fmt.Errorf("invalid migration filename %q: version part too short", name)
+	if len(versionStr) != 4 || strings.IndexFunc(versionStr, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
+		return 0, "", fmt.Errorf("invalid migration filename %q: version must be four digits", name)
 	}
 
 	v, err := strconv.Atoi(versionStr)
-	if err != nil || v < 1 {
+	if err != nil {
 		return 0, "", fmt.Errorf("invalid migration version in %q: %w", name, err)
+	}
+	if v < 1 {
+		return 0, "", fmt.Errorf("invalid migration filename %q: version must be at least 0001", name)
 	}
 
 	desc = base[idx+1:]

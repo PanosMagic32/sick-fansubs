@@ -55,13 +55,13 @@ type UpdateProjectParams struct {
 // CreateProject inserts one row, its download rows, and — for a published
 // row — its FTS entry, in one transaction. Same events as CreateBlogPost; a
 // slug collision surfaces as ErrSlugTaken (the caller retries with a suffix).
-func CreateProject(ctx context.Context, db *sql.DB, p CreateProjectParams) (*StaffProject, []NotificationEvent, error) {
+func CreateProject(ctx context.Context, db *sql.DB, p CreateProjectParams) (project *StaffProject, events []NotificationEvent, err error) {
 	k := ProjectContent
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return nil, nil, fmt.Errorf("store: begin %s create: %w", k.label, err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	res, err := tx.ExecContext(ctx,
 		`INSERT INTO `+k.table+` (id, title, `+k.ownColumn+`, description, thumbnail_url, status,
@@ -72,6 +72,11 @@ func CreateProject(ctx context.Context, db *sql.DB, p CreateProjectParams) (*Sta
 	if err != nil {
 		if isSlugTakenViolation(err) {
 			return nil, nil, ErrSlugTaken
+		}
+		if IsUniqueViolation(err) {
+			// A primary-key collision on a freshly minted id. The create
+			// handler re-mints and retries within a bounded budget.
+			return nil, nil, fmt.Errorf("%w: %v", ErrDuplicate, err)
 		}
 		return nil, nil, fmt.Errorf("store: insert %s: %w", k.noun, err)
 	}
@@ -95,7 +100,6 @@ func CreateProject(ctx context.Context, db *sql.DB, p CreateProjectParams) (*Sta
 
 	// The emission legs are mutually exclusive: a published create
 	// broadcasts, a draft create notices the staff who can see it.
-	var events []NotificationEvent
 	if p.PublishedAtMS > 0 {
 		events, err = notifyNewContentTx(ctx, tx, p.CreatorID, k, p.ID, p.Title, p.NowMS)
 	} else {
@@ -110,7 +114,7 @@ func CreateProject(ctx context.Context, db *sql.DB, p CreateProjectParams) (*Sta
 	}
 
 	// The row is our own — the ungated read-back needs no visibility gate.
-	project, err := getStaffProjectUngated(ctx, db, p.ID)
+	project, err = getStaffProjectUngated(ctx, db, p.ID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,13 +124,13 @@ func CreateProject(ctx context.Context, db *sql.DB, p CreateProjectParams) (*Sta
 // UpdateProject applies a revision-conditional update with the search,
 // favorites, and download cascades in one transaction (the UpdateBlogPost
 // contract, plus the slug backstop: ErrSlugTaken on a collision).
-func UpdateProject(ctx context.Context, db *sql.DB, id string, revision int64, p UpdateProjectParams) (*StaffProject, []NotificationEvent, error) {
+func UpdateProject(ctx context.Context, db *sql.DB, id string, revision int64, p UpdateProjectParams) (project *StaffProject, events []NotificationEvent, err error) {
 	k := ProjectContent
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return nil, nil, fmt.Errorf("store: begin %s update: %w", k.label, err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	var (
 		rowid        int64
@@ -205,7 +209,6 @@ func UpdateProject(ctx context.Context, db *sql.DB, id string, revision int64, p
 		}
 	}
 
-	var events []NotificationEvent
 	switch {
 	case curStatus == "published" && p.Status == "published":
 		events, err = notifyFollowersTx(ctx, tx, "content_updated", p.UpdaterID, k, id, nil, p.Title, p.NowMS)
@@ -226,7 +229,7 @@ func UpdateProject(ctx context.Context, db *sql.DB, id string, revision int64, p
 		return nil, nil, fmt.Errorf("store: commit %s update: %w", k.label, err)
 	}
 
-	project, err := getStaffProjectUngated(ctx, db, id)
+	project, err = getStaffProjectUngated(ctx, db, id)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -236,13 +239,13 @@ func UpdateProject(ctx context.Context, db *sql.DB, id string, revision int64, p
 // DeleteProject hard-deletes one row under the revision guard. Downloads and
 // favorites cascade via their foreign keys; the FTS entry is removed in the
 // same transaction. A stale revision is ErrConflict.
-func DeleteProject(ctx context.Context, db *sql.DB, id string, revision int64) error {
+func DeleteProject(ctx context.Context, db *sql.DB, id string, revision int64) (err error) {
 	k := ProjectContent
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin %s delete: %w", k.label, err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	var rowid int64
 	err = tx.QueryRowContext(ctx,

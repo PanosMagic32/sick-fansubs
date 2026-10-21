@@ -102,12 +102,12 @@ func DeleteReadNotifications(ctx context.Context, db *sql.DB, viewerID string, i
 // visible, not-yet-dismissed audit event. The audit ledger rows themselves
 // are never deleted. Returns the total number of entries that left the feed;
 // a second call finds nothing and returns 0.
-func DeleteAllNotifications(ctx context.Context, db *sql.DB, viewerID string, viewerRoleWeight int, includeStaff bool, nowMS int64) (int64, error) {
+func DeleteAllNotifications(ctx context.Context, db *sql.DB, viewerID string, viewerRoleWeight int, includeStaff bool, nowMS int64) (removed int64, err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return 0, fmt.Errorf("store: begin delete-all notifications: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	userWhere := `WHERE recipient_id = ?`
 	args := []any{viewerID}

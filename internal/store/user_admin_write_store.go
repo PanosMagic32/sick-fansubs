@@ -57,12 +57,12 @@ func guardLastActiveSuperAdminTx(ctx context.Context, tx *sql.Tx, wouldReduce bo
 //
 // Returns ErrNotFound if the user does not exist.
 // Returns ErrLastActiveSuperAdmin if the change would leave zero active super-admins.
-func ChangeUserRole(ctx context.Context, db *sql.DB, userID, newRole string, updatedAtMS int64) error {
+func ChangeUserRole(ctx context.Context, db *sql.DB, userID, newRole string, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin role-change tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// 1. Load the current role/status for the guard decision.
 	var currentRole, status string
@@ -126,12 +126,12 @@ func ChangeUserRole(ctx context.Context, db *sql.DB, userID, newRole string, upd
 //
 // Returns ErrNotFound if the user does not exist.
 // Returns ErrLastActiveSuperAdmin if the deletion would leave zero active super-admins.
-func DeleteUser(ctx context.Context, db *sql.DB, userID string) error {
+func DeleteUser(ctx context.Context, db *sql.DB, userID string) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin delete-user tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// 1. Load the current role/status for the guard decision.
 	var currentRole, status string
@@ -203,12 +203,12 @@ func DeleteUser(ctx context.Context, db *sql.DB, userID string) error {
 //
 // Returns ErrNotFound if the user does not exist.
 // Returns ErrLastActiveSuperAdmin if the suspension would leave zero active super-admins.
-func SuspendUser(ctx context.Context, db *sql.DB, userID string, updatedAtMS int64) error {
+func SuspendUser(ctx context.Context, db *sql.DB, userID string, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin suspend-user tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// 1. Load the current role/status for the guard decision.
 	var currentRole, status string

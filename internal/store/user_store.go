@@ -180,11 +180,11 @@ func UpdateUserAvatar(ctx context.Context, db *sql.DB, userID, avatarURL string,
 
 	res, err := db.ExecContext(ctx, q, nullableString(avatarURL), updatedAtMS, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("store: update user avatar: %w", err)
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("store: update user avatar rows affected: %w", err)
 	}
 	if n == 0 {
 		return ErrNotFound
@@ -215,12 +215,12 @@ func UpdateUserAvatar(ctx context.Context, db *sql.DB, userID, avatarURL string,
 // by another row (the UNIQUE backstop behind the service's advisory
 // pre-check — concurrent changes/registrations answer 422, never a raw
 // constraint 500).
-func ChangeUserEmail(ctx context.Context, db *sql.DB, userID, email string, currentAuthVersion int64, updatedAtMS int64) error {
+func ChangeUserEmail(ctx context.Context, db *sql.DB, userID, email string, currentAuthVersion int64, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("store: begin email-change tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	res, err := tx.ExecContext(ctx,
 		`UPDATE users SET email = ?, email_verified_at_ms = NULL, updated_at_ms = ?

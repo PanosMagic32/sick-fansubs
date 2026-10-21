@@ -46,13 +46,13 @@ type UpdateBlogPostParams struct {
 // CreateBlogPost inserts one row, its download rows, and — for a published
 // row — its FTS entry, in one transaction. It returns the created staff row
 // plus the fan-out events (a broadcast, or a draft notice, per status).
-func CreateBlogPost(ctx context.Context, db *sql.DB, p CreateBlogPostParams) (*StaffBlogPost, []NotificationEvent, error) {
+func CreateBlogPost(ctx context.Context, db *sql.DB, p CreateBlogPostParams) (post *StaffBlogPost, events []NotificationEvent, err error) {
 	k := BlogContent
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return nil, nil, fmt.Errorf("store: begin %s create: %w", k.label, err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	res, err := tx.ExecContext(ctx,
 		`INSERT INTO `+k.table+` (id, title, `+k.ownColumn+`, description, thumbnail_url, status,
@@ -61,6 +61,11 @@ func CreateBlogPost(ctx context.Context, db *sql.DB, p CreateBlogPostParams) (*S
 		p.ID, p.Title, p.Subtitle, p.Description, p.ThumbnailURL, p.Status,
 		p.CreatorID, p.UpdaterID, p.PublishedAtMS, p.NowMS, p.NowMS)
 	if err != nil {
+		if IsUniqueViolation(err) {
+			// A primary-key collision on a freshly minted id. The create
+			// handler re-mints and retries within a bounded budget.
+			return nil, nil, fmt.Errorf("%w: %v", ErrDuplicate, err)
+		}
 		return nil, nil, fmt.Errorf("store: insert %s: %w", k.noun, err)
 	}
 	// Capture the content row's rowid before any other insert: the FTS row
@@ -83,7 +88,6 @@ func CreateBlogPost(ctx context.Context, db *sql.DB, p CreateBlogPostParams) (*S
 
 	// The emission legs are mutually exclusive: a published create
 	// broadcasts, a draft create notices the staff who can see it.
-	var events []NotificationEvent
 	if p.PublishedAtMS > 0 {
 		events, err = notifyNewContentTx(ctx, tx, p.CreatorID, k, p.ID, p.Title, p.NowMS)
 	} else {
@@ -98,7 +102,7 @@ func CreateBlogPost(ctx context.Context, db *sql.DB, p CreateBlogPostParams) (*S
 	}
 
 	// The row is our own — the ungated read-back needs no visibility gate.
-	post, err := getStaffBlogPostUngated(ctx, db, p.ID)
+	post, err = getStaffBlogPostUngated(ctx, db, p.ID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,13 +112,13 @@ func CreateBlogPost(ctx context.Context, db *sql.DB, p CreateBlogPostParams) (*S
 // UpdateBlogPost applies a revision-conditional update with the search,
 // favorites, and download cascades in one transaction; a stale revision is
 // ErrConflict. The events are the emission gates' fan-out input.
-func UpdateBlogPost(ctx context.Context, db *sql.DB, id string, revision int64, p UpdateBlogPostParams) (*StaffBlogPost, []NotificationEvent, error) {
+func UpdateBlogPost(ctx context.Context, db *sql.DB, id string, revision int64, p UpdateBlogPostParams) (post *StaffBlogPost, events []NotificationEvent, err error) {
 	k := BlogContent
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return nil, nil, fmt.Errorf("store: begin %s update: %w", k.label, err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	var (
 		rowid        int64
@@ -190,7 +194,6 @@ func UpdateBlogPost(ctx context.Context, db *sql.DB, id string, revision int64, 
 		}
 	}
 
-	var events []NotificationEvent
 	switch {
 	case curStatus == "published" && p.Status == "published":
 		events, err = notifyFollowersTx(ctx, tx, "content_updated", p.UpdaterID, k, id, nil, p.Title, p.NowMS)
@@ -211,7 +214,7 @@ func UpdateBlogPost(ctx context.Context, db *sql.DB, id string, revision int64, 
 		return nil, nil, fmt.Errorf("store: commit %s update: %w", k.label, err)
 	}
 
-	post, err := getStaffBlogPostUngated(ctx, db, id)
+	post, err = getStaffBlogPostUngated(ctx, db, id)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -221,13 +224,13 @@ func UpdateBlogPost(ctx context.Context, db *sql.DB, id string, revision int64, 
 // DeleteBlogPost hard-deletes one row under the revision guard. Downloads
 // and favorites cascade via their foreign keys; the FTS entry is removed in
 // the same transaction. A stale revision is ErrConflict.
-func DeleteBlogPost(ctx context.Context, db *sql.DB, id string, revision int64) error {
+func DeleteBlogPost(ctx context.Context, db *sql.DB, id string, revision int64) (err error) {
 	k := BlogContent
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin %s delete: %w", k.label, err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	var rowid int64
 	err = tx.QueryRowContext(ctx,

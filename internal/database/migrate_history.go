@@ -217,19 +217,8 @@ func migrationHistoryOKCtx(ctx context.Context, db *sql.DB) error {
 		}
 	}
 
-	// Check for extra versions (applied but not embedded — future schema).
-	for v, row := range applied {
-		found := false
-		for _, m := range embedded {
-			if m.Version == v {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("migrate: extra migration version %d (%s) in applied history not in embedded set", v, row.Name)
-		}
-	}
-
+	// The count equality above and the per-version lookup just performed make
+	// an applied version outside the embedded set impossible: both sides hold
+	// the same number of distinct versions.
 	return nil
 }

@@ -291,8 +291,9 @@ func TestStagedRestore_OlderSchemaBackupUpgrades(t *testing.T) {
 }
 
 // TestStagedRestore_RejectsCorruptBackup pins the fail-closed validation
-// order: an unverifiable backup is refused BEFORE the marker is created and
-// the live database is left byte-for-byte intact.
+// order: the marker is acquired first, the unverifiable backup is refused
+// under it, the marker is removed again (the live database was provably
+// untouched), and the artifact is never staged.
 func TestStagedRestore_RejectsCorruptBackup(t *testing.T) {
 	dir, backupPath, _ := setupRestoreFixture(t)
 
@@ -316,6 +317,44 @@ func TestStagedRestore_RejectsCorruptBackup(t *testing.T) {
 	app, err := OpenApplication(Config{DataDir: dir})
 	if err != nil {
 		t.Fatalf("live database changed by a rejected restore: %v", err)
+	}
+	app.Close()
+}
+
+// TestStagedRestore_PreHeldMarkerSkipsValidation pins the concurrency
+// contract: a marker left by another attempt routes the run into resume
+// state recovery, never into a second validation/staging pass — so two
+// restores cannot interleave even when their artifacts are both corrupt.
+func TestStagedRestore_PreHeldMarkerSkipsValidation(t *testing.T) {
+	dir, backupPath, _ := setupRestoreFixture(t)
+	if err := os.WriteFile(backupPath, []byte("not a sqlite database"), 0o600); err != nil {
+		t.Fatalf("corrupt backup: %v", err)
+	}
+	if err := acquireRestoreMarker(dir); err != nil {
+		t.Fatalf("pre-hold marker: %v", err)
+	}
+
+	_, err := StagedRestore(StagedRestoreOptions{DataDir: dir, BackupPath: backupPath})
+	if err == nil {
+		t.Fatal("expected the resume path to refuse the stale marker")
+	}
+	if strings.Contains(err.Error(), "validate backup") {
+		t.Fatalf("artifact validation ran behind a held marker: %v", err)
+	}
+	if !strings.Contains(err.Error(), "previous restore attempt") {
+		t.Fatalf("err = %v, want the resume-path diagnostic", err)
+	}
+
+	present, err := restoreMarkerExists(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if present {
+		t.Fatal("marker still present after the pre-activation resume cleanup")
+	}
+	app, err := OpenApplication(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("live database changed by the refused restore: %v", err)
 	}
 	app.Close()
 }
