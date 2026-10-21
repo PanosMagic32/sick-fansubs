@@ -13,7 +13,8 @@
  *          marker). The blog/projects list cards. A null thumbnail keeps the
  *          16/9 cell as a seam.
  *   hero   the grid layout as a lead card: two columns on desktop, the
- *          title beside an optional badge, the same footer. The blog list's
+ *          title beside an optional badge, the subtitle below the title and
+ *          above the description, the same footer. The blog list's
  *          first-page entry point.
  *   row    a horizontal list row: optional badge and meta line on top, then
  *          the title — beside an inline subtitle behind a decorative
@@ -48,7 +49,9 @@
  * `favoriteCountAction` turns the favorite indicator into a button that
  * dispatches `sf-favorite-count-click` (the likers modal's trigger); the
  * decorative chip stays the default, so a surface with no modal to open
- * never carries a dead control.
+ * never carries a dead control. The action is only honored on an UNLINKED
+ * card: a linked card's whole frame is one anchor, and an interactive
+ * control inside it is invalid (a linked surface uses the `overlay` slot).
  *
  * An internal anchor is safe: the shell's link interceptor reads
  * `e.composedPath()`, so a click on the card's anchor routes like any other
@@ -110,7 +113,8 @@ export class ContentCard extends LitElement {
   @property({ type: Number, attribute: "heading-level" }) headingLevel = 2;
 
   /** The title's display line: inline beside the title behind the decorative
-   * separator on the grid/hero/row shapes, stacked on `detail`. */
+   * separator on the grid/row shapes, stacked below the title on `hero` and
+   * `detail`. */
   @property() subtitle = "";
 
   /** The quoted description — the ❝ ❞ treatment every shape shares. */
@@ -229,8 +233,9 @@ export class ContentCard extends LitElement {
         ${this._thumbCellTemplate(false)}
         <div class="body">
           <div class="topline">
-            ${this._titleLineTemplate()} ${this._badgeTemplate()}
+            ${this._titleTemplate()} ${this._badgeTemplate()}
           </div>
+          ${this.subtitle ? html`<p class="subtitle">${this.subtitle}</p>` : ""}
           ${
             this.description
               ? html`<p class="description">${this._quotedTemplate()}</p>`
@@ -309,9 +314,9 @@ export class ContentCard extends LitElement {
     `;
   }
 
-  // The title line shared by the grid, hero and row shapes: the subtitle
-  // sits beside the title behind a decorative separator, never on its own
-  // muted line. The detail shape keeps its own stacked header.
+  // The title line shared by the grid and row shapes: the subtitle sits
+  // beside the title behind a decorative separator. The hero and detail
+  // shapes keep their own stacked subtitle below the title.
   private _titleLineTemplate(): TemplateResult {
     return html`<div class="title-line">
       ${this._titleTemplate()}
@@ -465,7 +470,7 @@ export class ContentCard extends LitElement {
           <span class="stat-num" aria-hidden="true">${this.commentCount}</span>
         </span>
         ${
-          this.favoriteCountAction
+          this.favoriteCountAction && !this.href
             ? html`<button
                 type="button"
                 class="button button--ghost stat stat-action"

@@ -133,8 +133,9 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
     owns four shapes — `grid` (the blog/projects list cards), `hero` (the blog list's featured
     post), `row` (the search results and the favorites/admin lists, with `dense` for their compact
     geometry) and `detail` (a detail page's lead block) — each keyed on the host's `shape`
-    attribute in `content-card.css`. The `grid` and `hero` shapes read «Title – Subtitle» on one
-    line: the subtitle sits beside the title behind a decorative separator, and the `row` shape
+    attribute in `content-card.css`. The `grid` shape reads «Title – Subtitle» on one line: the
+    subtitle sits beside the title behind a decorative separator. The `hero` shape keeps the title
+    beside its badge and stacks the subtitle BELOW the title, above the description. The `row` shape
     renders the same inline line when a `subtitle` input is set — every row surface passes one when
     its kind has a subtitle (search, favorites, and the blog staff rows; projects have none). A row
     without one keeps the plain title and its `secondary` line, and the `detail` shape keeps its
@@ -149,7 +150,8 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
     a row's trailing control, the detail title row's toggles and staff edit link) or the `overlay`
     slot (a linked row's corner control — the element places it and reserves the room). A linked
     card never carries an in-flow action: an interactive control inside the card's own anchor is
-    invalid, so a linked row uses `overlay`. The surface styling lives only in
+    invalid, so a linked row uses `overlay`, and a linked card ignores `favorite-count-action` (its
+    favorite chip stays decorative). The surface styling lives only in
     `shared/ui/content-card.css` — `architecture.test.ts` fails the retired per-surface classes
     anywhere else, and fails a card surface that renders no `<content-card>`. One recorded
     exception: the admin users member list (`admin-users-page.ts`) is an interactive management

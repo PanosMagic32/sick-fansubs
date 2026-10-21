@@ -54,7 +54,15 @@ const ui = {
   // Relative-time floor — under a minute renders this instead of the Intl
   // relative wording.
   justNow: "μόλις τώρα",
+  // The footer's copyright holder (the community organization, distinct
+  // from the site name).
+  copyrightHolder: "Sick-HQ",
 } as const;
+
+/** The footer's copyright line — the year is dynamic, the copy is not. */
+export function copyrightNotice(year: number): string {
+  return `© ${year} ${ui.copyrightHolder}`;
+}
 
 /**
  * The pager's position line: the 1-based ordinal and the page count the

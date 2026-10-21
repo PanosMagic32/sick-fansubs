@@ -32,6 +32,7 @@ import { customElement, property } from "lit/decorators.js";
 import sharedStyles from "@core/styles/baseline.css?inline";
 import controlStyles from "@shared/ui/controls.css?inline";
 import { el, pagerPageOf } from "@shared/catalog/el.js";
+import { DEFAULT_PAGE_SIZE } from "@shared/utils/url-cursor-paging.js";
 
 import styles from "./pager-nav.css?inline";
 
@@ -51,7 +52,7 @@ export class PagerNav extends LitElement {
   @property({ type: Boolean }) hasNext = false;
 
   /** The active page size (from the URL, normalized by the controller). */
-  @property({ type: Number }) limit = 10;
+  @property({ type: Number }) limit: number = DEFAULT_PAGE_SIZE;
 
   /** The 1-based page ordinal the URL states (the controller's `page`). */
   @property({ type: Number }) page = 1;
@@ -151,7 +152,9 @@ export class PagerNav extends LitElement {
           </button>
         </nav>
 
-        <span class="page-status">${pagerPageOf(this.page, pages)}</span>
+        <span class="page-status" role="status"
+          >${pagerPageOf(this.page, pages)}</span
+        >
       </div>
     `;
   }

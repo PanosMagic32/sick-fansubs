@@ -293,6 +293,9 @@ describe("pager-nav", () => {
     const nav = rootEl.querySelector("nav.pager");
     const status = rootEl.querySelector(".page-status");
     expect(status).not.toBeNull();
+    // The caption is the live region: it persists across page turns, so a
+    // Next/Previous announces the new position.
+    expect(status?.getAttribute("role")).toBe("status");
     // A caption, not a row child.
     expect(nav?.contains(status as Node)).toBe(false);
     expect(

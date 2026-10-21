@@ -113,6 +113,26 @@ describe("content-card", () => {
     card.remove();
   });
 
+  test("a linked card never renders the in-flow favorite action", async () => {
+    const card = await render({
+      shape: "row",
+      href: "/blog/p1",
+      title: "Τίτλος",
+      commentCount: 3,
+      favoriteCount: 2,
+      favoriteCountAction: true,
+    });
+
+    // The whole linked row is one anchor: an interactive control inside it
+    // is invalid, so the action flag is ignored and the chip stays
+    // decorative.
+    expect(root(card).querySelector("a.frame")).not.toBeNull();
+    expect(root(card).querySelector(".stat-action")).toBeNull();
+    expect(root(card).querySelectorAll(".content-stats .stat").length).toBe(2);
+
+    card.remove();
+  });
+
   test("a null thumbnail keeps the grid cell; an absent description and subtitle render nothing", async () => {
     const card = await render({
       shape: "grid",
@@ -135,8 +155,8 @@ describe("content-card", () => {
     card.remove();
   });
 
-  test('the list cards read "Title – Subtitle" inline behind a decorative separator', async () => {
-    for (const shape of ["grid", "hero", "row"] as const) {
+  test('the grid and row cards read "Title – Subtitle" inline behind a decorative separator', async () => {
+    for (const shape of ["grid", "row"] as const) {
       const card = await render({
         shape,
         href: "/blog/p1",
@@ -263,11 +283,13 @@ describe("content-card", () => {
     }
   });
 
-  test("the hero shape puts the title beside the badge and keeps the frame's lead treatment", async () => {
+  test("the hero shape puts the title beside the badge and stacks the subtitle", async () => {
     const card = await render({
       shape: "hero",
       href: "/blog/p1",
       title: "Τίτλος",
+      subtitle: "Υπότιτλος",
+      description: "Περιγραφή",
       badge: el.blog.latestBadge,
       badgeTone: "latest",
       thumbnailUrl: "https://example.com/t.jpg",
@@ -281,6 +303,16 @@ describe("content-card", () => {
     const badge = topline.querySelector(".badge");
     expect(badge?.textContent?.trim()).toBe(el.blog.latestBadge);
     expect(badge?.getAttribute("data-tone")).toBe("latest");
+    // The hero's subtitle is its own muted line BELOW the title and ABOVE
+    // the description — never inline in the title line.
+    expect(topline.querySelector(".subtitle")).toBeNull();
+    const subtitle = root(card).querySelector(".body .subtitle");
+    expect(subtitle?.textContent).toBe("Υπότιτλος");
+    const description = root(card).querySelector(".body .description");
+    expect(
+      subtitle!.compareDocumentPosition(description as Node) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     // The hero reads the same footer inputs as the grid shape.
     expect(root(card).querySelector(".footer .content-stats")).not.toBeNull();
     expect(root(card).querySelector(".footer .more")).not.toBeNull();

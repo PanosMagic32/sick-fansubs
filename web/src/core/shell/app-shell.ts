@@ -73,7 +73,7 @@ export class AppShell extends LitElement {
   private session?: SessionContext;
 
   private _rafId = 0;
-  private _routes!: Routes;
+  private readonly _routes: Routes = createRoutes(this);
 
   /** Latches the one-shot forced-change redirect (see _maybeForceChangeRoute). */
   private _forcedRedirected = false;
@@ -88,8 +88,9 @@ export class AppShell extends LitElement {
     super.connectedCallback();
     this._loadTheme();
 
-    // Create the routes controller and perform the initial route match.
-    this._routes = createRoutes(this);
+    // Perform the initial route match. The controller itself is created
+    // once per element (constructor), so a reconnect never stacks a second
+    // routes controller on the host.
     this._routes.goto(window.location.pathname);
 
     // Sync the current path so the header can highlight the active link.
@@ -274,7 +275,9 @@ export class AppShell extends LitElement {
     if (!rawHref) return;
 
     // Fragment-only links (skip-to-content, in-page anchors) stay native
-    // so the browser performs fragment scrolling and focus movement.
+    // so the browser performs fragment scrolling and focus movement. The
+    // shell's own skip link is the exception: its target lives in the
+    // shell's shadow root, which document-level fragment lookup cannot see.
     if (rawHref.startsWith("#")) return;
 
     let url: URL;
@@ -297,6 +300,16 @@ export class AppShell extends LitElement {
     this._routes.goto(url.pathname);
     this.currentPath = url.pathname;
     this._setTitle(url.pathname);
+    this._focusMain();
+  };
+
+  /**
+   * The skip link targets `<main>` inside the shell's shadow root. Native
+   * fragment navigation resolves ids in the DOCUMENT tree only, so the
+   * click must move focus itself.
+   */
+  private _onSkipLinkClick = (e: Event) => {
+    e.preventDefault();
     this._focusMain();
   };
 
@@ -339,7 +352,9 @@ export class AppShell extends LitElement {
 
   render() {
     return html`
-      <a href="#main-content" class="skip-link">${el.ui.skipToContent}</a>
+      <a href="#main-content" class="skip-link" @click=${this._onSkipLinkClick}
+        >${el.ui.skipToContent}</a
+      >
 
       <div class="bg" aria-hidden="true">
         <div class="bg-dots"></div>

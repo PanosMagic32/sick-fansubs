@@ -1,7 +1,7 @@
 import { html, LitElement, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
-import { el } from "@shared/catalog/el.js";
+import { copyrightNotice, el } from "@shared/catalog/el.js";
 import { BUY_ME_A_COFFEE_URL } from "@shared/config/links.js";
 
 import styles from "./app-footer.css?inline";
@@ -26,6 +26,10 @@ export class AppFooter extends LitElement {
   @state() private health: HealthStatus = "loading";
   private _version = "";
 
+  // Which health probe owns the footer's status line: a reconnect starts a
+  // new probe, and the previous one's late result must not paint over it.
+  private _healthProbe = 0;
+
   static styles = [
     unsafeCSS(sharedStyles),
     unsafeCSS(controlStyles),
@@ -36,7 +40,13 @@ export class AppFooter extends LitElement {
     super.connectedCallback();
     this.setAttribute("role", "contentinfo");
     this._readVersion();
-    this._checkHealth();
+    this._checkHealth(++this._healthProbe);
+  }
+
+  disconnectedCallback() {
+    // Invalidate the in-flight probe: its result belongs to a teardown.
+    this._healthProbe++;
+    super.disconnectedCallback();
   }
 
   /** Version from the Go server's `<meta name="app-version">` (read once). */
@@ -47,15 +57,21 @@ export class AppFooter extends LitElement {
     this._version = meta?.content ?? "";
   }
 
-  private async _checkHealth() {
+  private async _checkHealth(probe: number) {
     try {
       const res = await fetch("/health/ready", {
         signal: AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS),
       });
+      if (!this._ownsProbe(probe)) return;
       this.health = res.ok ? "online" : "offline";
     } catch {
+      if (!this._ownsProbe(probe)) return;
       this.health = "offline";
     }
+  }
+
+  private _ownsProbe(probe: number): boolean {
+    return this.isConnected && probe === this._healthProbe;
   }
 
   render() {
@@ -105,7 +121,7 @@ export class AppFooter extends LitElement {
       </div>
 
       <div class="footer-right">
-        <small>© ${new Date().getFullYear()} Sick-HQ</small>
+        <small>${copyrightNotice(new Date().getFullYear())}</small>
         ${version}
       </div>
     `;

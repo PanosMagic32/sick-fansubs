@@ -208,7 +208,7 @@ export class UrlCursorPagingController implements ReactiveController {
   private _parsePage(raw: string | null): number {
     if (raw === null || !/^\d+$/.test(raw)) return 1;
     const n = Number(raw);
-    return n >= 1 ? n : 1;
+    return Number.isSafeInteger(n) && n >= 1 ? n : 1;
   }
 
   private _onPopState = () => {

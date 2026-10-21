@@ -142,6 +142,23 @@ describe("app-shell", () => {
     el.remove();
   });
 
+  test("the skip link focuses the main region inside the shadow root", async () => {
+    const shell = renderShell();
+    await shell.updateComplete;
+
+    // Native fragment navigation resolves ids in the DOCUMENT tree only;
+    // the target lives in the shell's shadow root, so the click must move
+    // focus itself (pinned by activeElement, not markup).
+    const link = shell.shadowRoot?.querySelector(".skip-link") as HTMLElement;
+    const event = dispatchClick(link);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(shell.shadowRoot?.activeElement?.id).toBe("main-content");
+    expect(window.history.pushState).not.toHaveBeenCalled();
+
+    shell.remove();
+  });
+
   test("background dots are aria-hidden", async () => {
     const el = renderShell();
     await el.updateComplete;

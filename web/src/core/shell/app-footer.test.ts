@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 
 import { readSheet, stubAbortSignalTimeout } from "@shared/api/test-utils.js";
-import { el } from "@shared/catalog/el.js";
+import { copyrightNotice, el } from "@shared/catalog/el.js";
 import { BUY_ME_A_COFFEE_URL } from "@shared/config/links.js";
 
 import "./app-footer.js";
@@ -26,6 +26,9 @@ describe("app-footer", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    // The shared happy-dom body is reused across files: a failed test that
+    // leaves a footer attached must not leak into the next one.
+    document.body.innerHTML = "";
   });
 
   test("renders role contentinfo", async () => {
@@ -173,7 +176,7 @@ describe("app-footer", () => {
     await el.updateComplete;
 
     const small = el.shadowRoot?.querySelector("small");
-    expect(small?.textContent).toContain("Sick-HQ");
+    expect(small?.textContent).toBe(copyrightNotice(new Date().getFullYear()));
 
     el.remove();
   });
@@ -213,7 +216,41 @@ describe("app-footer", () => {
 
     // Copyright + version sit in the right zone.
     const right = footer.shadowRoot?.querySelector(".footer-right");
-    expect(right?.querySelector("small")?.textContent).toContain("Sick-HQ");
+    expect(right?.querySelector("small")?.textContent).toContain(
+      el.ui.copyrightHolder,
+    );
+
+    footer.remove();
+  });
+
+  test("a probe that resolves after teardown never paints a stale status", async () => {
+    const resolvers: Array<(res: Response) => void> = [];
+    globalThis.fetch = (() =>
+      new Promise<Response>((resolve) => {
+        resolvers.push(resolve);
+      })) as unknown as typeof fetch;
+
+    const footer = renderFooter();
+    await footer.updateComplete;
+
+    // Teardown happens while the first probe is in flight.
+    footer.remove();
+    resolvers[0]!(new Response("{}", { status: 503 }));
+    await Promise.resolve();
+
+    // Reconnect starts a new probe; the old failure must not answer for it.
+    document.body.appendChild(footer);
+    await footer.updateComplete;
+    expect(
+      footer.shadowRoot?.querySelector(".status-dot.loading"),
+    ).not.toBeNull();
+
+    resolvers[1]!(new Response("{}", { status: 200 }));
+    await new Promise((r) => setTimeout(r, 10));
+    await footer.updateComplete;
+    expect(
+      footer.shadowRoot?.querySelector(".status-dot.online"),
+    ).not.toBeNull();
 
     footer.remove();
   });

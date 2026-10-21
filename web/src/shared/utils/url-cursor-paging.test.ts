@@ -390,7 +390,18 @@ describe("UrlCursorPagingController", () => {
       loads.push({ after, limit, scroll }),
     );
 
-    for (const garbage of ["abc", "2abc", "1.5", "0", "-3", ""]) {
+    // The digits-only pre-check does not bound magnitude: a 16+ digit
+    // ordinal parses to an unsafe integer, which the pager could never have
+    // produced.
+    for (const garbage of [
+      "abc",
+      "2abc",
+      "1.5",
+      "0",
+      "-3",
+      "",
+      "9007199254740993",
+    ]) {
       setHappyDOMURL(`https://example.com/posts?after=v1.a&page=${garbage}`);
       controller.sync();
       expect(controller.page).toBe(1);

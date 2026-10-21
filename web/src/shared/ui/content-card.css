@@ -300,11 +300,6 @@
     -webkit-line-clamp: 3;
 }
 
-:host([shape="hero"]) .title-line {
-    column-gap: 0.45rem;
-    flex: 1 1 auto;
-}
-
 :host([shape="hero"]) .subtitle {
     font-size: 0.95rem;
     line-height: 1.5;

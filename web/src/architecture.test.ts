@@ -317,7 +317,9 @@ guard({
   files: "**/*.css",
   check: (path, text) => {
     const findings: string[] = [];
-    for (const match of text.matchAll(/var\((--sf-[a-z-]+)/g)) {
+    for (const match of stripCssComments(text).matchAll(
+      /var\((--sf-[a-z-]+)/g,
+    )) {
       if (!declaredTokens.has(match[1] ?? "")) {
         findings.push(`${path}: undefined token ${match[1]}`);
       }
@@ -325,7 +327,11 @@ guard({
     return findings;
   },
   bad: { path: "features/x/x.css", text: ".a { color: var(--sf-nope); }" },
-  clean: { path: "features/x/x.css", text: ".a { color: var(--sf-text); }" },
+  clean: {
+    path: "features/x/x.css",
+    // A comment naming a retired token must never fail the guard.
+    text: "/* var(--sf-retired) */ .a { color: var(--sf-text); }",
+  },
   minScanned: 25,
 });
 
