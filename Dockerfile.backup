@@ -4,7 +4,7 @@
 # 1000, compose user: "1000:1000") so the daily unit lands with ownership the
 # app and the host-side scripts can read, and /app/data + /app/backups exist
 # for volume/bind mounts.
-FROM golang:1.27.2-alpine3.24 AS build
+FROM golang:1.27.3-alpine3.24 AS build
 
 WORKDIR /app
 COPY go.mod go.sum ./

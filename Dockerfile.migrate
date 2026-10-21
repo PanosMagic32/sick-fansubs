@@ -1,6 +1,6 @@
 # Build the migration binary.
 # This image is NOT a service — use it with "docker compose run".
-FROM golang:1.27.2-alpine3.24 AS build
+FROM golang:1.27.3-alpine3.24 AS build
 
 WORKDIR /app
 COPY go.mod go.sum ./
