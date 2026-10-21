@@ -218,7 +218,14 @@ export class NotificationsPage extends LitElement {
       if (controller.signal.aborted) return;
       // A kind this client cannot word is dropped from the list (the server
       // contract defines the union; this is forward-compatibility defense).
-      this.items = page.items.filter(isKnownNotificationItem);
+      this.items = page.items.filter((item) => {
+        if (isKnownNotificationItem(item)) return true;
+        console.warn(
+          "notifications: unknown item kind",
+          (item as { kind?: unknown }).kind,
+        );
+        return false;
+      });
       this._listGeneration++;
       this.hasNext = page.pageInfo.hasNextPage;
       this._endCursor = page.pageInfo.endCursor;
@@ -255,12 +262,19 @@ export class NotificationsPage extends LitElement {
 
   private async _onMarkAll() {
     if (this._bulkPending) return;
+    const generation = this._listGeneration;
     this._bulkPending = "markAll";
     this._readError = "";
     try {
       await markAllNotificationsRead();
-      this.items = this.items.map((item) => ({ ...item, read: true }));
       this._dispatchChanged();
+      // A load that started after the click may still be painting the
+      // pre-read snapshot; re-sync instead of mutating a list it owns.
+      if (generation !== this._listGeneration) {
+        this.paging.sync(false);
+        return;
+      }
+      this.items = this.items.map((item) => ({ ...item, read: true }));
     } catch (err) {
       this._readError = mapError(err);
     } finally {
@@ -273,12 +287,17 @@ export class NotificationsPage extends LitElement {
    * server deleted, so the two never disagree. */
   private async _onClearRead() {
     if (this._bulkPending) return;
+    const generation = this._listGeneration;
     this._bulkPending = "clearRead";
     this._readError = "";
     try {
       await clearReadNotifications();
-      this.items = this.items.filter((i) => !i.read || isAccountEvent(i));
       this._dispatchChanged();
+      if (generation !== this._listGeneration) {
+        this.paging.sync(false);
+        return;
+      }
+      this.items = this.items.filter((i) => !i.read || isAccountEvent(i));
     } catch (err) {
       this._readError = mapError(err);
     } finally {

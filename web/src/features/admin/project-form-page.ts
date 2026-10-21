@@ -174,6 +174,7 @@ export class ProjectFormPage extends ContentFormBase<
     action: FormAction,
     status: ContentStatus,
     body: ProjectCreateBody,
+    generation: number,
   ): Promise<void> {
     if (this._isEdit && this._row) {
       // The slug rides ONLY the update body, and only for admin+ — the
@@ -187,6 +188,7 @@ export class ProjectFormPage extends ContentFormBase<
         this._row.revision,
         updateBody,
       );
+      if (!this._ownsAction(generation)) return;
       this._row = updated;
       this._slug = updated.slug;
       this._status = updated.status;
@@ -206,6 +208,7 @@ export class ProjectFormPage extends ContentFormBase<
     }
 
     const created = await createProject(body);
+    if (!this._ownsAction(generation)) return;
     if (status === "published") {
       navigate(`/projects/${created.id}`);
       return;
@@ -214,7 +217,11 @@ export class ProjectFormPage extends ContentFormBase<
     navigate(this._listPath);
   }
 
-  protected async _deleteRow(id: string, revision: number): Promise<void> {
+  protected async _deleteRow(
+    id: string,
+    revision: number,
+    _generation: number,
+  ): Promise<void> {
     await deleteProject(id, revision);
   }
 

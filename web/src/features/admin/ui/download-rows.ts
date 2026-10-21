@@ -3,9 +3,9 @@
  * forms embed.
  *
  * Contract (the media-upload precedent): the parent calls load() with the
- * stored rows in edit mode, getValue() at submit, and reset() never (the
- * form's lifetime matches the widget's — reset() exists for symmetry and
- * tests). getValue() maps empty inputs to null (the wire contract's "no
+ * stored rows in edit mode, getValue() at submit, and reset() when the
+ * route's row changes (the form reuses the widget across an edit→edit
+ * navigation). getValue() maps empty inputs to null (the wire contract's "no
  * link for this slot") and trims; the SERVER validates the grammar — the
  * client never hand-validates links.
  *

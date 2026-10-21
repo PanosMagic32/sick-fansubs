@@ -700,6 +700,92 @@ describe("blog-form-page", () => {
     page.remove();
   });
 
+  test("a save that lands after the route moved to another row is ignored", async () => {
+    let resolvePut: ((r: Response) => void) | null = null;
+    mockFetchImpl(async (input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (init?.method === "PUT") {
+        return new Promise<Response>((resolve) => {
+          resolvePut = resolve;
+        });
+      }
+      const id = url.split("/").pop() ?? "";
+      return mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: {
+          ...POST_RESPONSE,
+          id,
+          title: id === "p2" ? "Second Post" : "New Post",
+        },
+      });
+    });
+    const nav = listenForNavigation(navCleanups);
+
+    const page = await render("p1");
+    await settle();
+    await page.updateComplete;
+    submit(page);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(resolvePut).not.toBeNull();
+
+    // The editor moves on to another row while the p1 write is in flight.
+    page.postId = "p2";
+    page.requestUpdate();
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    resolvePut!(
+      mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: { ...POST_RESPONSE, id: "p1", title: "Late p1" },
+      }),
+    );
+    await settle();
+    await page.updateComplete;
+
+    // The late response must not overwrite p2's row, its revision, or
+    // navigate away from it.
+    expect(
+      (page.shadowRoot?.querySelector("#content-title") as HTMLInputElement)
+        .value,
+    ).toBe("Second Post");
+    expect(nav.path).toBeNull();
+  });
+
+  test("a role cycle on the same row reloads after the promotion", async () => {
+    let gets = 0;
+    mockFetchImpl(async (_input, init) => {
+      if (!init?.method || init.method === "GET") gets++;
+      return mockResponse({ ok: true, status: 200, jsonBody: POST_RESPONSE });
+    });
+
+    const page = await render("p1", "admin");
+    await settle();
+    await page.updateComplete;
+    expect(gets).toBe(1);
+
+    (page as any).session = mockSession("user");
+    page.requestUpdate();
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+    expect(page.shadowRoot?.textContent).toContain(
+      el.problems["/problems/forbidden"],
+    );
+
+    (page as any).session = mockSession("admin");
+    page.requestUpdate();
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    expect(gets).toBe(2);
+    expect(page.shadowRoot?.querySelector("form")).not.toBeNull();
+  });
+
   test("a moderator on the create route sees the forbidden state and no row load starts", async () => {
     let calls = 0;
     mockFetchImpl(async () => {

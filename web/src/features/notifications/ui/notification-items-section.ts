@@ -177,12 +177,14 @@ export class NotificationItemsSection implements ReactiveController {
     this.refresh();
     try {
       await markNotificationRead(item.id);
+      // The server-side read flip stands even when the visible list moved
+      // on; the badge must hear about it either way.
+      this._host._dispatchChanged();
       // The list may have been replaced (a page turn, a bulk delete) or the
       // page torn down while the POST was out: its result must not mutate
       // or navigate a list that is no longer on screen.
       if (!this._ownsList(generation)) return;
       this._host._markLocalRead(item.id);
-      this._host._dispatchChanged();
       // Skip the jump when the 401 kicked off the guard's /sign-in
       // redirect (a dead session) — the user is leaving anyway.
       if (!this._host._redirected) {
@@ -224,9 +226,9 @@ export class NotificationItemsSection implements ReactiveController {
     this.refresh();
     try {
       await deleteNotification(item.id);
+      this._host._dispatchChanged();
       if (!this._ownsList(generation)) return;
       this._host._removeItem(item.id);
-      this._host._dispatchChanged();
     } catch (err) {
       this._host._readError = mapError(err);
     } finally {

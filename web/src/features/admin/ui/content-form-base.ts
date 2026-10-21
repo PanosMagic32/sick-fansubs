@@ -92,6 +92,10 @@ export abstract class ContentFormBase<
    * the route id: the router reuses the same element tag in the same
    * template position, so edit→edit navigation must reload the new row. */
   private _startedId: string | null = null;
+
+  /** Bumped whenever the route's row changes; an in-flight action from the
+   * previous row is ignored when it lands. */
+  private _actionGeneration = 0;
   /** Stored download rows waiting for the widget to render; updated()
    * consumes them once the element exists. */
   private _pendingRowLoad: DownloadRowValue[] | null = null;
@@ -118,10 +122,15 @@ export abstract class ContentFormBase<
     action: FormAction,
     status: ContentStatus,
     body: TBody,
+    generation: number,
   ): Promise<void>;
 
   /** The kind's delete call, behind the shared confirm. */
-  protected abstract _deleteRow(id: string, revision: number): Promise<void>;
+  protected abstract _deleteRow(
+    id: string,
+    revision: number,
+    generation: number,
+  ): Promise<void>;
 
   /** The kind's staff list, where archive/create-draft and delete land. */
   protected abstract get _listPath(): string;
@@ -171,6 +180,10 @@ export abstract class ContentFormBase<
       } else {
         this.status = "ready";
       }
+    } else if (!this._allowed()) {
+      // A demotion latches the guard's forbidden state; clear the row latch
+      // so a later promotion on the same id runs the load again.
+      this._startedId = null;
     }
     if (this._pendingRowLoad !== null) {
       const rows = this._pendingRowLoad;
@@ -196,6 +209,7 @@ export abstract class ContentFormBase<
     this.errorMessage = "";
     this._pending = false;
     this._pendingAction = null;
+    this._actionGeneration++;
     this.status = "loading";
     this._pendingRowLoad = null;
     this._resetKindFields();
@@ -204,6 +218,13 @@ export abstract class ContentFormBase<
     // never be submitted for the new one.
     this._downloadWidget()?.reset();
     this._mediaWidget()?.reset();
+  }
+
+  /** True while an awaited write still belongs to the current row. */
+  protected _ownsAction(generation: number): boolean {
+    return (
+      generation === this._actionGeneration && this._rowId === this._startedId
+    );
   }
 
   /** In edit mode the route carries a row id; create mode renders the empty
@@ -400,11 +421,12 @@ export abstract class ContentFormBase<
     const status = this._statusFor(action);
     const body = this._writeBody(status);
     if (!body) return;
+    const generation = this._actionGeneration;
 
     this._pending = true;
     this._pendingAction = action;
     try {
-      await this._save(action, status, body);
+      await this._save(action, status, body, generation);
     } catch (err) {
       if (err instanceof ApiError && err.status === 412) {
         // Someone else edited: reload the fresh row so the form holds the
@@ -437,8 +459,10 @@ export abstract class ContentFormBase<
     if (!window.confirm(el.admin.deleteConfirm)) return;
     this._pending = true;
     this._error = "";
+    const generation = this._actionGeneration;
     try {
-      await this._deleteRow(this._rowId, this._row.revision);
+      await this._deleteRow(this._rowId, this._row.revision, generation);
+      if (!this._ownsAction(generation)) return;
       this._success = this._deletedLabel;
       navigate(this._listPath);
     } catch (err) {

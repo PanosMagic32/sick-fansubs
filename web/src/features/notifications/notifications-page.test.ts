@@ -1199,6 +1199,10 @@ describe("notifications-page", () => {
     });
     const navigations: string[] = [];
     onNavigate((path) => navigations.push(path));
+    let changed = 0;
+    onChanged(() => {
+      changed++;
+    });
 
     const page = await render("user");
     (
@@ -1213,6 +1217,8 @@ describe("notifications-page", () => {
     await new Promise((r) => setTimeout(r, 10));
 
     expect(navigations).toEqual([]);
+    // The badge must still hear about the confirmed read.
+    expect(changed).toBe(1);
     // The late 204 must not flip a row of a list that is gone.
     const items = (page as unknown as { items: Array<{ read: boolean }> })
       .items;

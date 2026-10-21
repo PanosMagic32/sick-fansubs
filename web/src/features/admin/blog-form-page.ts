@@ -149,6 +149,7 @@ export class BlogFormPage extends ContentFormBase<
     action: FormAction,
     status: ContentStatus,
     body: BlogPostWrite,
+    generation: number,
   ): Promise<void> {
     if (this._isEdit && this._row) {
       const updated = await updateBlogPost(
@@ -156,6 +157,7 @@ export class BlogFormPage extends ContentFormBase<
         this._row.revision,
         body,
       );
+      if (!this._ownsAction(generation)) return;
       this._row = updated;
       this._status = updated.status;
       if (status === "published") {
@@ -174,6 +176,7 @@ export class BlogFormPage extends ContentFormBase<
     }
 
     const created = await createBlogPost(body);
+    if (!this._ownsAction(generation)) return;
     if (status === "published") {
       navigate(`/blog/${created.id}`);
       return;
@@ -182,7 +185,11 @@ export class BlogFormPage extends ContentFormBase<
     navigate(this._listPath);
   }
 
-  protected async _deleteRow(id: string, revision: number): Promise<void> {
+  protected async _deleteRow(
+    id: string,
+    revision: number,
+    _generation: number,
+  ): Promise<void> {
     await deleteBlogPost(id, revision);
   }
 
