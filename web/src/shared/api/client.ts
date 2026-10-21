@@ -72,7 +72,6 @@ export class ApiError extends Error {
   readonly type: string;
   readonly status: number;
   readonly title: string;
-  readonly detail: string | undefined;
   readonly requestId: string | undefined;
   /** Seconds from the Retry-After header (429 responses). */
   readonly retryAfterSeconds: number | undefined;
@@ -83,13 +82,13 @@ export class ApiError extends Error {
     this.type = problem.type;
     this.status = problem.status;
     this.title = problem.title;
-    this.detail = problem.detail;
     this.requestId = problem.requestId;
     this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
-/** 422 Validation Failed — carries per-field violations. */
+/** An error response carrying field-level violations — any status may
+ * carry them (the media 413 is the recorded non-422 case). */
 export class ValidationError extends ApiError {
   readonly violations: ValidationProblem["violations"];
 
@@ -315,9 +314,11 @@ async function handleResponse<T>(
       ? normalizeProblem(raw, response.status)
       : internalErrorProblem(response.status);
 
-    // 422 has a violations array — use the richer ValidationError. The
-    // Array.isArray guard doubles as the malformed-response defense.
-    if (response.status === 422 && Array.isArray(raw?.violations)) {
+    // A violations array is the richer ValidationError whatever the status:
+    // the contract allows violations on any Problem (the media 413 carries
+    // {file, tooLarge}). The Array.isArray guard doubles as the
+    // malformed-response defense.
+    if (Array.isArray(raw?.violations)) {
       throw new ValidationError({
         ...problem,
         violations: raw.violations as Violation[],
@@ -368,7 +369,6 @@ function normalizeProblem(
         ? raw.title
         : `Unexpected ${status} response`,
     status,
-    detail: typeof raw.detail === "string" ? raw.detail : undefined,
     requestId: typeof raw.requestId === "string" ? raw.requestId : undefined,
   };
 }

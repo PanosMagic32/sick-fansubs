@@ -47,6 +47,9 @@ export interface AccountProfileSectionHost extends ReactiveControllerHost {
   readonly authed: boolean;
   /** The page's shadow root — the email form focuses its first invalid field. */
   readonly shadowRoot: ShadowRoot | null;
+  /** The session context — the email change revalidates a 401/403 so a
+   * genuinely dead session or stale CSRF token heals. */
+  readonly sessionContext?: { revalidate(): void | Promise<void> };
 }
 
 /** Input ids for the email-change widget — shared by both focus calls. */
@@ -293,10 +296,28 @@ export class AccountProfileSection implements ReactiveController {
       const { fields, banner, retryAfterSeconds } = mapSubmitError(err, {
         serverField: (f): f is "email" | "currentPassword" =>
           f === "email" || f === "currentPassword",
+        // The contract answers a wrong current password with the generic
+        // 401 (the sign-in outcome) — name the field instead of a banner.
+        specialApiError: (apiErr) =>
+          apiErr.type === "/problems/auth/invalid-credentials"
+            ? {
+                fields: { currentPassword: el.auth.wrongCurrentPassword },
+                banner: "",
+              }
+            : null,
       });
       this._emailFieldErrors = fields;
       this._emailChangeError = banner;
       this._verifyCooldown.start(retryAfterSeconds);
+      // changeEmail suppresses the global 401 transition, so revalidate to
+      // heal a genuinely dead session (the guard then redirects) or a stale
+      // CSRF token behind a 403.
+      if (
+        err instanceof ApiError &&
+        (err.status === 401 || err.status === 403)
+      ) {
+        void this._host.sessionContext?.revalidate();
+      }
     } finally {
       this._emailPending = false;
     }

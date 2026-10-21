@@ -18,7 +18,6 @@ export interface ProblemDetail {
   type: string;
   title: string;
   status: number;
-  detail?: string;
   requestId?: string;
 }
 
@@ -28,7 +27,9 @@ export interface Violation {
   code: string;
 }
 
-/** 422 response from the API — extends ProblemDetail with violations. */
+/** An error response carrying field-level violations. The Go contract's
+ * Problem schema allows violations on ANY status (a media 413 carries
+ * `{file, tooLarge}`), not only 422. */
 export interface ValidationProblem extends ProblemDetail {
   violations: Violation[];
 }

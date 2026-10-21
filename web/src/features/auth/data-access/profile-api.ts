@@ -46,7 +46,10 @@ export function fetchCurrentUserProfile(
  * PUT /api/v1/users/me/email — change the account email.
  * Current-password re-authentication; 200 returns the refreshed profile
  * (the new address starts unverified). CSRF'd like every mutation, with
- * the auth-action deadline as its default signal.
+ * the auth-action deadline as its default signal. The contract answers a
+ * wrong current password with the generic 401, so the global 401→anonymous
+ * transition is suppressed — a password typo must not sign the user out.
+ * The caller maps that 401 to the current-password field and revalidates.
  */
 export function changeEmail(
   body: EmailChangeRequest,
@@ -55,6 +58,7 @@ export function changeEmail(
   return request<EmailChangeResponse>("PUT", "/users/me/email", body, {
     needsCSRF: true,
     signal: opts?.signal ?? AbortSignal.timeout(AUTH_ACTION_TIMEOUT_MS),
+    suppress401Callback: true,
   });
 }
 

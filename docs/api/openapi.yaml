@@ -2829,12 +2829,14 @@ paths:
         Unread entries always survive — the action can
         never discard something the viewer has not looked at — and the audit
         half of the feed is untouched: dismissing ledger entries belongs to
-        the per-item delete and delete-all, never to clear-read. Idempotent
+        the per-item delete and delete-all, never to clear-read. Below the
+        staff floor the staff-only draft_activity kind is excluded, the same
+        re-gate every read and delete path applies. Idempotent
         — a second call deletes nothing and still answers 204. Requires the
         trusted origin and a valid X-CSRF-Token (the authenticated chain).
       responses:
         "204":
-          description: Every read event entry is deleted.
+          description: Every eligible read event entry is deleted.
           headers:
             X-Request-ID:
               $ref: "#/components/headers/RequestID"

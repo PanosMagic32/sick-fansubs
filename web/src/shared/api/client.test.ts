@@ -686,6 +686,33 @@ describe("request error mapping", () => {
     }
   });
 
+  test("a non-422 problem with violations throws ValidationError (media 413)", async () => {
+    mockFetchOnce({
+      ok: false,
+      status: 413,
+      headers: { "content-type": "application/problem+json" },
+      jsonBody: {
+        type: "/problems/validation",
+        title: "Validation failed",
+        status: 413,
+        violations: [{ field: "file", code: "tooLarge" }],
+      },
+    });
+
+    try {
+      await requestForm("/media", new FormData());
+      expect.unreachable();
+    } catch (err) {
+      // The contract's Problem schema carries violations on any status; the
+      // upload UI maps the file violation from the 413.
+      expect(err).toBeInstanceOf(ValidationError);
+      expect((err as ValidationError).status).toBe(413);
+      expect((err as ValidationError).violations).toEqual([
+        { field: "file", code: "tooLarge" },
+      ]);
+    }
+  });
+
   test("AbortError is re-thrown (not wrapped in NetworkError)", async () => {
     mockFetchImpl(async () => {
       throw new DOMException("The operation was aborted", "AbortError");
@@ -811,7 +838,6 @@ describe("ApiError", () => {
       type: "/problems/forbidden",
       title: "Forbidden",
       status: 403,
-      detail: "Not allowed",
       requestId: "req-123",
     });
 
@@ -819,7 +845,6 @@ describe("ApiError", () => {
     expect(err.message).toBe("Forbidden");
     expect(err.type).toBe("/problems/forbidden");
     expect(err.status).toBe(403);
-    expect(err.detail).toBe("Not allowed");
     expect(err.requestId).toBe("req-123");
     expect(err).toBeInstanceOf(Error);
   });

@@ -2369,6 +2369,70 @@ describe("account-page email verification", () => {
     expect(page.shadowRoot?.querySelector(".verify-banner")).not.toBeNull();
   });
 
+  test("a wrong current password names the field, keeps the session, and revalidates", async () => {
+    const session = mockSession();
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      const url = typeof input === "string" ? input : (input as Request).url;
+      if (url.includes("/users/me/email") && init?.method === "PUT") {
+        return mockResponse({
+          ok: false,
+          status: 401,
+          headers: { "Content-Type": "application/problem+json" },
+          jsonBody: {
+            type: "/problems/auth/invalid-credentials",
+            title: "Invalid credentials",
+            status: 401,
+            requestId: "rid",
+          },
+        });
+      }
+      const sessions = routeSessions(url, EMPTY_SESSIONS);
+      if (sessions) return sessions;
+      if (url.includes("/users/me/favorites/")) {
+        return mockResponse({
+          ok: true,
+          status: 200,
+          jsonBody: EMPTY_FAVORITES,
+        });
+      }
+      return mockResponse({ ok: true, status: 200, jsonBody: PROFILE_BODY });
+    }) as unknown as typeof fetch;
+
+    const page = document.createElement("account-page") as AccountPage;
+    (page as any).session = session;
+    document.body.appendChild(page);
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    (
+      page.shadowRoot?.querySelector(
+        ".email-change button",
+      ) as HTMLButtonElement
+    ).click();
+    await page.updateComplete;
+    fill(page, "account-new-email", "fresh@example.com");
+    fill(page, "account-email-current-password", "wrong-password");
+    await page.updateComplete;
+    submit(page);
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    // The contract's generic 401 is a wrong CURRENT password, not a dead
+    // session: the email form names the field and the page revalidates.
+    expect(
+      page.shadowRoot
+        ?.querySelector("#account-email-current-password-error")
+        ?.textContent?.trim(),
+    ).toBe(el.auth.wrongCurrentPassword);
+    expect(session.revalidate).toHaveBeenCalled();
+    expect(page.shadowRoot?.querySelector(".email-change form")).not.toBeNull();
+  });
+
   test("consumes the verify-success storage banner once", async () => {
     sessionStorage.setItem("sf-verify-success", "1");
     const page = render();

@@ -7,7 +7,13 @@
 
 import { describe, expect, test, afterEach } from "bun:test";
 
-import { clearCSRFToken, setCSRFToken } from "@shared/api/client.js";
+import {
+  clearCSRFToken,
+  clearOnUnauthenticated,
+  getCSRFToken,
+  onUnauthenticated,
+  setCSRFToken,
+} from "@shared/api/client.js";
 import {
   mockFetchOnce,
   restoreMockFetch,
@@ -28,6 +34,7 @@ afterEach(() => {
   timeoutSpy?.restore();
   timeoutSpy = null;
   clearCSRFToken();
+  clearOnUnauthenticated();
   restoreMockFetch();
 });
 
@@ -112,6 +119,40 @@ describe("changeEmail", () => {
     expect(req.signal).toBeInstanceOf(AbortSignal);
     expect(timeoutSpy.spy.mock.calls[0]?.[0]).toBe(AUTH_ACTION_TIMEOUT_MS);
     expect(profile.email).toBe("new@example.com");
+  });
+
+  test("a wrong-password 401 does not run the global 401 transition", async () => {
+    setCSRFToken("token-123");
+    let signedOut = false;
+    onUnauthenticated(() => {
+      signedOut = true;
+    });
+    timeoutSpy = stubAbortSignalTimeout();
+    mockFetchOnce({
+      ok: false,
+      status: 401,
+      headers: { "Content-Type": "application/problem+json" },
+      jsonBody: {
+        type: "/problems/auth/invalid-credentials",
+        title: "Invalid credentials",
+        status: 401,
+      },
+    });
+
+    try {
+      await changeEmail({
+        email: "new@example.com",
+        currentPassword: "wrong",
+      });
+      expect.unreachable();
+    } catch (err) {
+      expect((err as { status: number }).status).toBe(401);
+    }
+
+    // The 401 here means "wrong current password" — the session and CSRF
+    // token must survive so the user can retry.
+    expect(signedOut).toBe(false);
+    expect(getCSRFToken()).toBe("token-123");
   });
 });
 

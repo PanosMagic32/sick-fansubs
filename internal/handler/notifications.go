@@ -368,7 +368,9 @@ func NotificationsDelete(db *sql.DB, now func() time.Time) http.HandlerFunc {
 // remove every READ event row of the viewer — the bulk sibling of the
 // per-item delete, idempotent 204. Unread entries survive by construction,
 // and the audit half is untouched (the per-viewer dismissal sweep belongs to
-// delete-all); the handler logs the count.
+// delete-all); the handler logs the count. Below the staff floor the store
+// excludes the re-gated draft_activity kind, the same rule every delete
+// path applies.
 func NotificationsClearRead(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := logging.From(r.Context())
