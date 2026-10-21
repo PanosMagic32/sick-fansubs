@@ -135,10 +135,16 @@ func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentI
 	}
 
 	if parentUserID != userID && parentActive {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
-			VALUES (?, ?, 'comment_reply', ?, ?, ?, ?, ?)`,
-			notificationID, parentUserID, userID, k.kind, contentID, replyID, createdAtMS); err != nil {
+		if err := insertNotificationTx(ctx, tx, notificationRow{
+			ID:          notificationID,
+			RecipientID: parentUserID,
+			Kind:        "comment_reply",
+			ActorID:     &userID,
+			ContentKind: k.kind,
+			ContentID:   contentID,
+			CommentID:   &replyID,
+			CreatedAtMS: createdAtMS,
+		}); err != nil {
 			if IsUniqueViolation(err) {
 				return NotificationEvent{}, false, fmt.Errorf("%w: %v", ErrDuplicate, err)
 			}
@@ -285,10 +291,15 @@ func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, ac
 	}
 
 	if authorID != actorID && authorActive {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
-			VALUES (?, ?, 'comment_removed', NULL, ?, ?, ?, ?)`,
-			notificationID, authorID, k.kind, contentID, commentID, createdAtMS); err != nil {
+		if err := insertNotificationTx(ctx, tx, notificationRow{
+			ID:          notificationID,
+			RecipientID: authorID,
+			Kind:        "comment_removed",
+			ContentKind: k.kind,
+			ContentID:   contentID,
+			CommentID:   &commentID,
+			CreatedAtMS: createdAtMS,
+		}); err != nil {
 			if IsUniqueViolation(err) {
 				return NotificationEvent{}, false, fmt.Errorf("%w: %v", ErrDuplicate, err)
 			}

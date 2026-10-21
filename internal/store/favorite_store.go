@@ -193,25 +193,17 @@ func listFavorites(ctx context.Context, db *sql.DB, columns, fromWhere, order, k
 	}
 	defer rows.Close()
 
-	var items []FavoriteItem
-	for rows.Next() {
+	items, hasNext, err := scanKeysetPage(rows, limit, "favorite item", func(rows *sql.Rows) (FavoriteItem, error) {
 		var it FavoriteItem
-		if err := rows.Scan(
+		err := rows.Scan(
 			&it.ID, &it.Title, &it.Subtitle, &it.Description,
 			&it.ThumbnailURL, &it.PublishedAtMS, &it.FavoritedAtMS,
 			&it.CommentCount, &it.FavoriteCount,
-		); err != nil {
-			return nil, false, fmt.Errorf("store: scan favorite item: %w", err)
-		}
-		items = append(items, it)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, false, fmt.Errorf("store: iterate favorites: %w", err)
-	}
-
-	hasNext := len(items) > limit
-	if hasNext {
-		items = items[:limit]
+		)
+		return it, err
+	})
+	if err != nil {
+		return nil, false, err
 	}
 	return items, hasNext, nil
 }

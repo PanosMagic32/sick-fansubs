@@ -196,23 +196,13 @@ func SearchContent(ctx context.Context, db *sql.DB, q SearchQuery) ([]SearchResu
 	}
 	defer rows.Close()
 
-	var results []SearchResult
-	for rows.Next() {
+	results, hasNext, err := scanKeysetPage(rows, q.Limit, "search result", func(rows *sql.Rows) (SearchResult, error) {
 		var r SearchResult
-		if err := rows.Scan(&r.Type, &r.ID, &r.Title, &r.Subtitle, &r.Description, &r.ThumbnailURL, &r.PublishedAtMS, &r.CommentCount, &r.FavoriteCount); err != nil {
-			return nil, false, fmt.Errorf("store: scan search result: %w", err)
-		}
-		results = append(results, r)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, false, fmt.Errorf("store: iterate search results: %w", err)
-	}
-
-	// The limit+1th row only proves a next page exists; it is not part of
-	// this page's items.
-	hasNext := len(results) > q.Limit
-	if hasNext {
-		results = results[:q.Limit]
+		err := rows.Scan(&r.Type, &r.ID, &r.Title, &r.Subtitle, &r.Description, &r.ThumbnailURL, &r.PublishedAtMS, &r.CommentCount, &r.FavoriteCount)
+		return r, err
+	})
+	if err != nil {
+		return nil, false, err
 	}
 	return results, hasNext, nil
 }

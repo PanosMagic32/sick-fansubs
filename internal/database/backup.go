@@ -124,7 +124,11 @@ func createBackupCore(dataDir, destDir, fileName string, deadline time.Time, his
 		return "", fmt.Errorf("database: create backup directory: %w", err)
 	}
 
-	tmpPath := filepath.Join(destDir, ".tmp-"+randomHex(8)+".db")
+	suffix, err := randomHex(8)
+	if err != nil {
+		return "", err
+	}
+	tmpPath := filepath.Join(destDir, ".tmp-"+suffix+".db")
 	// Best-effort cleanup of temp names the caller never sees; the returned
 	// error is the failure, and a stray temp file is never promoted.
 	cleanup := func() {

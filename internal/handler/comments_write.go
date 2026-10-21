@@ -73,22 +73,9 @@ func CommentsCreate(kind commentKind, db *sql.DB, notify push.Notifier, now func
 			return
 		}
 
-		// 'comment' fan-out: the per-follower
-		// notification rows committed in the create transaction — hand each
-		// event to the push channel AFTER the commit (the reply precedent).
-		if notify != nil {
-			for _, ev := range events {
-				notify.NotifyPush(r.Context(), push.Event{
-					RecipientID:   ev.RecipientID,
-					Kind:          ev.Kind,
-					ActorUsername: su.Username,
-					ContentTitle:  ev.ContentTitle,
-					ContentKind:   ev.ContentKind,
-					ContentID:     ev.ContentID,
-					CommentID:     ev.CommentID,
-				})
-			}
-		}
+		// 'comment' fan-out: the per-follower notification rows committed in
+		// the create transaction.
+		fanOutPush(r.Context(), notify, events, su.Username)
 		writeCreatedWithLocation(w, r, kind.threadURL(contentID, commentID))
 	}
 }
@@ -158,18 +145,9 @@ func CommentsReply(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 			return
 		}
 		event, emitted := res.event, res.emitted
-		// The notification row committed in the same transaction — hand the
-		// event to the push channel AFTER the commit.
-		if emitted && notify != nil {
-			notify.NotifyPush(r.Context(), push.Event{
-				RecipientID:   event.RecipientID,
-				Kind:          event.Kind,
-				ActorUsername: su.Username,
-				ContentTitle:  event.ContentTitle,
-				ContentKind:   event.ContentKind,
-				ContentID:     event.ContentID,
-				CommentID:     event.CommentID,
-			})
+		// The notification row committed in the same transaction.
+		if emitted {
+			fanOutPush(r.Context(), notify, []store.NotificationEvent{event}, su.Username)
 		}
 		writeCreatedWithLocation(w, r, kind.threadURL(contentID, replyID))
 	}
@@ -312,19 +290,11 @@ func CommentsDelete(kind commentKind, db *sql.DB, notify push.Notifier, now func
 		if !isSelf {
 			logAuditTargetEvent(r, audit.EventCommentDeleted, audit.ResultSuccess, su.UserID, authorID, "")
 		}
-		// The notification row committed in the same transaction — hand the
-		// event to the push channel AFTER the commit, WITHOUT an actor: the
-		// notice never names the moderator (the actorless ruling), so the
-		// payload must not carry the username either.
-		if emitted && notify != nil {
-			notify.NotifyPush(r.Context(), push.Event{
-				RecipientID:  event.RecipientID,
-				Kind:         event.Kind,
-				ContentTitle: event.ContentTitle,
-				ContentKind:  event.ContentKind,
-				ContentID:    event.ContentID,
-				CommentID:    event.CommentID,
-			})
+		// The notification row committed in the same transaction — handed to
+		// the push channel WITHOUT an actor: the notice never names the
+		// moderator (the actorless ruling).
+		if emitted {
+			fanOutPush(r.Context(), notify, []store.NotificationEvent{event}, "")
 		}
 		writeNoContent(w, r)
 	}
@@ -385,20 +355,10 @@ func CommentsHeart(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 			return
 		}
 		event, emitted := res.event, res.emitted
-		if emitted && notify != nil {
-			// The notification row committed in the same transaction — hand
-			// the event to the push channel AFTER the commit. A repeat heart
-			// emits nothing (the row existed), so
-			// no duplicate push can follow an idempotent PUT.
-			notify.NotifyPush(r.Context(), push.Event{
-				RecipientID:   event.RecipientID,
-				Kind:          event.Kind,
-				ActorUsername: su.Username,
-				ContentTitle:  event.ContentTitle,
-				ContentKind:   event.ContentKind,
-				ContentID:     event.ContentID,
-				CommentID:     event.CommentID,
-			})
+		if emitted {
+			// A repeat heart emits nothing (the row existed), so no duplicate
+			// push can follow an idempotent PUT.
+			fanOutPush(r.Context(), notify, []store.NotificationEvent{event}, su.Username)
 		}
 		writeNoContent(w, r)
 	}

@@ -72,9 +72,15 @@ func CreateSession(ctx context.Context, db *sql.DB, p CreateSessionParams) error
 		// Could be not found, version mismatch, or suspended.
 		// ErrAuthVersionMismatch covers all three because the service layer
 		// maps all of them to the same public outcome (generic 401).
+		// There is no transaction here — the statement ran on the pool — so
+		// the disambiguating read uses the pool too; an infrastructure
+		// failure is reported, never flattened into the 401.
 		_, lookupErr := UserByID(ctx, db, p.UserID)
 		if errors.Is(lookupErr, ErrNotFound) {
 			return ErrNotFound
+		}
+		if lookupErr != nil {
+			return fmt.Errorf("store: create session disambiguation: %w", lookupErr)
 		}
 		return ErrAuthVersionMismatch
 	}
@@ -204,12 +210,14 @@ func RehashPasswordAndCreateSession(ctx context.Context, db *sql.DB, p RehashPas
 		return fmt.Errorf("store: rehash update rows affected: %w", err)
 	}
 	if n == 0 {
-		// Disambiguate "user not found" from "version changed". The lookup
-		// is outside the transaction — a benign TOCTOU window (the same
-		// disambiguation shape as the other guarded writes) that cannot
-		// produce a wrong outcome.
-		_, lookupErr := UserByID(ctx, db, p.UserID)
-		if errors.Is(lookupErr, ErrNotFound) {
+		// Disambiguate "user not found" from "version changed" inside the
+		// transaction, so the answer comes from the same snapshot as the
+		// conditional UPDATE.
+		exists, lookupErr := userExistsTx(ctx, tx, p.UserID)
+		if lookupErr != nil {
+			return fmt.Errorf("store: rehash disambiguation: %w", lookupErr)
+		}
+		if !exists {
 			return ErrNotFound
 		}
 		return ErrAuthVersionMismatch

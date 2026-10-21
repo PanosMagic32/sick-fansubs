@@ -43,7 +43,7 @@ type favoritesKindSet struct {
 }
 
 // importUserFavorites imports one user's arrays in a single transaction.
-func importUserFavorites(ctx context.Context, db *sql.DB, rec LegacyUser, report *ReconciliationReport) error {
+func importUserFavorites(ctx context.Context, db *sql.DB, rec LegacyUser, report *ReconciliationReport) (err error) {
 	blog := rec.FavoriteBlogPostIds
 	projects := rec.FavoriteProjectIds
 	if len(blog) == 0 && len(projects) == 0 {
@@ -65,7 +65,7 @@ func importUserFavorites(ctx context.Context, db *sql.DB, rec LegacyUser, report
 	if err != nil {
 		return fmt.Errorf("begin favorites tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// The anchor is the IMPORTED users.updated_at_ms (after the createdAt
 	// fallback), read inside the transaction — the user cannot disappear between the

@@ -60,10 +60,16 @@ func SetCommentHeart(ctx context.Context, db *sql.DB, k ContentKind, userID, con
 			// The counter always moves; only the notice respects the
 			// active-recipient rule.
 			if authorActive {
-				if _, err := tx.ExecContext(ctx, `
-					INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
-					VALUES (?, ?, 'heart', ?, ?, ?, ?, ?)`,
-					heartNotificationID, authorID, userID, k.kind, contentID, commentID, createdAtMS); err != nil {
+				if err := insertNotificationTx(ctx, tx, notificationRow{
+					ID:          heartNotificationID,
+					RecipientID: authorID,
+					Kind:        "heart",
+					ActorID:     &userID,
+					ContentKind: k.kind,
+					ContentID:   contentID,
+					CommentID:   &commentID,
+					CreatedAtMS: createdAtMS,
+				}); err != nil {
 					if IsUniqueViolation(err) {
 						return NotificationEvent{}, false, fmt.Errorf("%w: %v", ErrDuplicate, err)
 					}

@@ -213,16 +213,15 @@ func buildDSNForFile(absPath string) string {
 }
 
 // randomHex returns n random bytes as lowercase hex (unpredictable temp
-// filenames — docs/patterns/go/sqlite.md).
-func randomHex(n int) string {
+// filenames — docs/patterns/go/sqlite.md). A broken entropy source is an
+// error, never a timestamp fallback: a guessable temp name weakens the
+// owner-only destination contract.
+func randomHex(n int) (string, error) {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
-		// rand.Read fails only when the system entropy source is broken;
-		// a timestamp fallback keeps the name unique enough to continue
-		// while the copy-phase failures would be reported loudly anyway.
-		return fmt.Sprintf("%x", time.Now().UnixNano())
+		return "", fmt.Errorf("database: random bytes for temp name: %w", err)
 	}
-	return hex.EncodeToString(b)
+	return hex.EncodeToString(b), nil
 }
 
 // syncFile fsyncs the named file's contents so a crash after publication

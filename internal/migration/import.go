@@ -32,7 +32,7 @@ func ImportBlogPosts(ctx context.Context, db *sql.DB, records []LegacyBlogPost) 
 }
 
 // importOne maps and inserts one record.
-func importOne(ctx context.Context, db *sql.DB, rec LegacyBlogPost, report *ReconciliationReport) error {
+func importOne(ctx context.Context, db *sql.DB, rec LegacyBlogPost, report *ReconciliationReport) (err error) {
 	tr, err := TransformBlogPost(rec)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func importOne(ctx context.Context, db *sql.DB, rec LegacyBlogPost, report *Reco
 	if err != nil {
 		return fmt.Errorf("begin import tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// creator_id/updater_id are nullable — pass a typed nil for NULL.
 	var creatorArg any
@@ -190,7 +190,7 @@ func ImportProjects(ctx context.Context, db *sql.DB, records []LegacyProject) (*
 }
 
 // importProjectOne maps and inserts one project record.
-func importProjectOne(ctx context.Context, db *sql.DB, rec LegacyProject, report *ReconciliationReport, seenSlugs map[string]bool) error {
+func importProjectOne(ctx context.Context, db *sql.DB, rec LegacyProject, report *ReconciliationReport, seenSlugs map[string]bool) (err error) {
 	tr, err := TransformProject(rec)
 	if err != nil {
 		return err
@@ -250,7 +250,7 @@ func importProjectOne(ctx context.Context, db *sql.DB, rec LegacyProject, report
 	if err != nil {
 		return fmt.Errorf("begin import tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// creator_id/updater_id are nullable — pass a typed nil for NULL.
 	var updaterArg any
@@ -338,7 +338,7 @@ func ImportUsers(ctx context.Context, db *sql.DB, records []LegacyUser) (*Reconc
 }
 
 // importUserOne maps and inserts one user record.
-func importUserOne(ctx context.Context, db *sql.DB, rec LegacyUser, report *ReconciliationReport, seenCanon, seenEmail map[string]bool) error {
+func importUserOne(ctx context.Context, db *sql.DB, rec LegacyUser, report *ReconciliationReport, seenCanon, seenEmail map[string]bool) (err error) {
 	tr := TransformUser(rec)
 	report.accumulateUserCounts(tr)
 	report.Warnings = append(report.Warnings, tr.Warnings...)
@@ -370,7 +370,7 @@ func importUserOne(ctx context.Context, db *sql.DB, rec LegacyUser, report *Reco
 	if err != nil {
 		return fmt.Errorf("begin import tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// avatar_url is NULL: the legacy value is an absolute same-VPS MinIO URL
 	// and the target column holds a relative media path — avatar media

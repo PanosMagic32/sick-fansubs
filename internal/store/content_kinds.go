@@ -301,21 +301,11 @@ func listPublishedContent[T any](ctx context.Context, db *sql.DB, r contentRead[
 	}
 	defer rows.Close()
 
-	var items []T
-	for rows.Next() {
-		item, err := r.scan(rows.Scan)
-		if err != nil {
-			return nil, false, fmt.Errorf("store: scan %s: %w", r.kind.noun, err)
-		}
-		items = append(items, item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, false, fmt.Errorf("store: iterate %ss: %w", r.kind.noun, err)
-	}
-
-	hasNext := len(items) > limit
-	if hasNext {
-		items = items[:limit]
+	items, hasNext, err := scanKeysetPage(rows, limit, r.kind.noun, func(rows *sql.Rows) (T, error) {
+		return r.scan(rows.Scan)
+	})
+	if err != nil {
+		return nil, false, err
 	}
 	return items, hasNext, nil
 }

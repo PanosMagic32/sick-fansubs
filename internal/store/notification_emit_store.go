@@ -6,6 +6,33 @@ import (
 	"fmt"
 )
 
+// notificationRow is one user_notifications insert target. ActorID is nil
+// for the actorless comment_removed notice; CommentID and DraftAction are nil
+// for the kinds that carry no such reference.
+type notificationRow struct {
+	ID          string
+	RecipientID string
+	Kind        string
+	ActorID     *string
+	ContentKind string
+	ContentID   string
+	CommentID   *string
+	DraftAction *string
+	CreatedAtMS int64
+}
+
+// insertNotificationTx writes one user_notifications row inside the caller's
+// transaction — the single home for the column list. Callers map the returned
+// constraint error (UNIQUE to ErrDuplicate, FK to ErrNotFound).
+func insertNotificationTx(ctx context.Context, tx *sql.Tx, row notificationRow) error {
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, draft_action, created_at_ms)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		row.ID, row.RecipientID, row.Kind, row.ActorID, row.ContentKind, row.ContentID,
+		row.CommentID, row.DraftAction, row.CreatedAtMS)
+	return err
+}
+
 // notifyFollowersTx inserts one user_notifications row per follower of the
 // content (the actor excluded — self-suppression, the reply precedent) and
 // returns the per-follower fan-out events, all inside the CALLER'S
@@ -46,11 +73,16 @@ func notifyFollowersTx(ctx context.Context, tx *sql.Tx, notificationKind, actorI
 			return nil, fmt.Errorf("store: scan notification follower: %w", err)
 		}
 		err := insertMintedTx(ctx, tx, "store: insert follower notification", func(ctx context.Context, notificationID string) error {
-			_, err := tx.ExecContext(ctx, `
-				INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-				notificationID, followerID, notificationKind, actorID, k.kind, contentID, commentID, createdAtMS)
-			return err
+			return insertNotificationTx(ctx, tx, notificationRow{
+				ID:          notificationID,
+				RecipientID: followerID,
+				Kind:        notificationKind,
+				ActorID:     &actorID,
+				ContentKind: k.kind,
+				ContentID:   contentID,
+				CommentID:   commentID,
+				CreatedAtMS: createdAtMS,
+			})
 		})
 		if err != nil {
 			return nil, err
@@ -140,11 +172,16 @@ func notifyDraftActivityTx(ctx context.Context, tx *sql.Tx, actorID, action stri
 			return nil, fmt.Errorf("store: scan draft activity recipient: %w", err)
 		}
 		err := insertMintedTx(ctx, tx, "store: insert draft activity notification", func(ctx context.Context, notificationID string) error {
-			_, err := tx.ExecContext(ctx, `
-				INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, draft_action, created_at_ms)
-				VALUES (?, ?, 'draft_activity', ?, ?, ?, NULL, ?, ?)`,
-				notificationID, recipientID, actorID, k.kind, contentID, action, createdAtMS)
-			return err
+			return insertNotificationTx(ctx, tx, notificationRow{
+				ID:          notificationID,
+				RecipientID: recipientID,
+				Kind:        "draft_activity",
+				ActorID:     &actorID,
+				ContentKind: k.kind,
+				ContentID:   contentID,
+				DraftAction: &action,
+				CreatedAtMS: createdAtMS,
+			})
 		})
 		if err != nil {
 			return nil, err
@@ -220,11 +257,15 @@ func notifyNewContentTx(ctx context.Context, tx *sql.Tx, actorID string, k Conte
 			return nil, fmt.Errorf("store: scan new_content recipient: %w", err)
 		}
 		err := insertMintedTx(ctx, tx, "store: insert new_content notification", func(ctx context.Context, notificationID string) error {
-			_, err := tx.ExecContext(ctx, `
-				INSERT INTO user_notifications (id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
-				VALUES (?, ?, 'new_content', ?, ?, ?, NULL, ?)`,
-				notificationID, recipientID, actorID, k.kind, contentID, createdAtMS)
-			return err
+			return insertNotificationTx(ctx, tx, notificationRow{
+				ID:          notificationID,
+				RecipientID: recipientID,
+				Kind:        "new_content",
+				ActorID:     &actorID,
+				ContentKind: k.kind,
+				ContentID:   contentID,
+				CreatedAtMS: createdAtMS,
+			})
 		})
 		if err != nil {
 			return nil, err

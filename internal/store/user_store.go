@@ -21,14 +21,21 @@ import (
 	"sick-fansubs/internal/identity"
 )
 
+// userColumns is the identity.User projection every user reader scans. Keep
+// the order in step with scanUserRow.
+const userColumns = `id, username, username_canon, email, password,
+	role, status, auth_version, must_change_password, avatar_url, email_verified_at_ms, created_at_ms, updated_at_ms`
+
+// userByWhere reads one user through the shared projection. pred is a fixed
+// SQL fragment owned by this file — never request input.
+func userByWhere(ctx context.Context, db *sql.DB, pred string, args ...any) (*identity.User, error) {
+	return scanUser(db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE `+pred, args...))
+}
+
 // UserByCanonical looks up a user by their canonicalized (lowercased)
 // username. Returns ErrNotFound if no matching row exists.
 func UserByCanonical(ctx context.Context, db *sql.DB, usernameCanon string) (*identity.User, error) {
-	const q = `SELECT id, username, username_canon, email, password,
-		role, status, auth_version, must_change_password, avatar_url, email_verified_at_ms, created_at_ms, updated_at_ms
-	FROM users WHERE username_canon = ?`
-
-	return scanUser(db.QueryRowContext(ctx, q, usernameCanon))
+	return userByWhere(ctx, db, `username_canon = ?`, usernameCanon)
 }
 
 // UserRefByCanonical resolves one account's public content-byline projection
@@ -57,8 +64,7 @@ func UserByCanonicalLenient(ctx context.Context, db *sql.DB, usernameCanon strin
 	// The SQL prefilter strips every Unicode whitespace rune from both sides —
 	// a coarse superset — and the Go comparison below is the authority, so a
 	// fetched row that only looks alike is discarded.
-	q := `SELECT id, username, username_canon, email, password,
-		role, status, auth_version, must_change_password, avatar_url, email_verified_at_ms, created_at_ms, updated_at_ms
+	q := `SELECT ` + userColumns + `
 	FROM users
 	WHERE username_canon = ?
 	   OR ` + stripWhitespaceSQL("username_canon") + ` = ?`
@@ -150,21 +156,13 @@ func stripWhitespace(s string) string {
 // UserByEmail looks up a user by their lowercased email address.
 // Returns ErrNotFound if no matching row exists.
 func UserByEmail(ctx context.Context, db *sql.DB, email string) (*identity.User, error) {
-	const q = `SELECT id, username, username_canon, email, password,
-		role, status, auth_version, must_change_password, avatar_url, email_verified_at_ms, created_at_ms, updated_at_ms
-	FROM users WHERE email = ?`
-
-	return scanUser(db.QueryRowContext(ctx, q, email))
+	return userByWhere(ctx, db, `email = ?`, email)
 }
 
 // UserByID looks up a user by their opaque ID.
 // Returns ErrNotFound if no matching row exists.
 func UserByID(ctx context.Context, db *sql.DB, id string) (*identity.User, error) {
-	const q = `SELECT id, username, username_canon, email, password,
-			role, status, auth_version, must_change_password, avatar_url, email_verified_at_ms, created_at_ms, updated_at_ms
-		FROM users WHERE id = ?`
-
-	return scanUser(db.QueryRowContext(ctx, q, id))
+	return userByWhere(ctx, db, `id = ?`, id)
 }
 
 // UpdateUserAvatar sets the user's avatar reference and bumps
@@ -242,11 +240,13 @@ func ChangeUserEmail(ctx context.Context, db *sql.DB, userID, email string, curr
 		return fmt.Errorf("store: change user email rows affected: %w", err)
 	}
 	if n == 0 {
-		// Not found or version changed — disambiguate outside the
-		// transaction (the same disambiguation shape as the other guarded
-		// writes).
-		_, lookupErr := UserByID(ctx, db, userID)
-		if errors.Is(lookupErr, ErrNotFound) {
+		// Not found or version changed — disambiguate inside the transaction
+		// (the same shape as the other guarded writes).
+		exists, lookupErr := userExistsTx(ctx, tx, userID)
+		if lookupErr != nil {
+			return fmt.Errorf("store: change user email disambiguation: %w", lookupErr)
+		}
+		if !exists {
 			return ErrNotFound
 		}
 		return ErrAuthVersionMismatch

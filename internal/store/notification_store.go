@@ -221,8 +221,7 @@ func ListNotifications(ctx context.Context, db *sql.DB, viewerID string, viewerR
 	}
 	defer rows.Close()
 
-	var items []NotificationItem
-	for rows.Next() {
+	items, hasNext, err := scanKeysetPage(rows, limit, "notification", func(rows *sql.Rows) (NotificationItem, error) {
 		var (
 			it        NotificationItem
 			actor     sql.NullString
@@ -240,7 +239,7 @@ func ListNotifications(ctx context.Context, db *sql.DB, viewerID string, viewerR
 			&it.ID, &it.Kind, &result, &actor, &target, &role,
 			&title, &contentK, &contentID, &commentID, &draft, &it.CreatedAtMS, &isRead,
 		); err != nil {
-			return nil, false, fmt.Errorf("store: scan notification: %w", err)
+			return it, err
 		}
 		it.Read = isRead != 0
 		it.Result = nullStringValue(result)
@@ -252,17 +251,10 @@ func ListNotifications(ctx context.Context, db *sql.DB, viewerID string, viewerR
 		it.ContentID = nullStringValue(contentID)
 		it.CommentID = nullStringValue(commentID)
 		it.DraftAction = nullStringValue(draft)
-		items = append(items, it)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, false, fmt.Errorf("store: iterate notifications: %w", err)
-	}
-
-	// The limit+1th row only proves a next page exists; it is not part of
-	// this page's items.
-	hasNext := len(items) > limit
-	if hasNext {
-		items = items[:limit]
+		return it, nil
+	})
+	if err != nil {
+		return nil, false, err
 	}
 	return items, hasNext, nil
 }

@@ -150,7 +150,7 @@ func parseMigrationFilename(name string) (version int, desc string, err error) {
 // If the table already exists with the correct structure, this is a no-op.
 //
 // See: docs/patterns/go/sqlite.md
-func bootstrapMigrations(db *sql.DB) error {
+func bootstrapMigrations(db *sql.DB) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -158,7 +158,7 @@ func bootstrapMigrations(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("migrate: bootstrap transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	_, err = tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
 		version      INTEGER PRIMARY KEY CHECK (version > 0),
@@ -246,7 +246,7 @@ func Apply(db *sql.DB) error {
 const migrationTimeout = 30 * time.Second
 
 // applyOne applies a single migration within its own transaction.
-func applyOne(db *sql.DB, m migration) error {
+func applyOne(db *sql.DB, m migration) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), migrationTimeout)
 	defer cancel()
 
@@ -254,7 +254,7 @@ func applyOne(db *sql.DB, m migration) error {
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackTx(tx, &err)
 
 	// Re-check within the transaction to guard against concurrent runners.
 	var existing struct {

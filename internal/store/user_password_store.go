@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 )
 
@@ -40,16 +39,13 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 		return fmt.Errorf("store: rows affected: %w", err)
 	}
 	if n == 0 {
-		// Disambiguate "user not found" from "auth version changed."
-		// This lookup is outside the transaction, creating a benign TOCTOU
-		// window: the user could be deleted or have auth_version change again
-		// between the UPDATE and this SELECT. The window cannot produce an
-		// incorrect outcome (returning ErrNotFound for a deleted user is
-		// correct; returning ErrAuthVersionMismatch for a re-bumped version
-		// is also correct), but the returned sentinel might not reflect the
-		// original failure cause.
-		_, lookupErr := UserByID(ctx, db, userID)
-		if errors.Is(lookupErr, ErrNotFound) {
+		// Disambiguate "user not found" from "auth version changed" inside
+		// the transaction, so the answer matches the UPDATE's snapshot.
+		exists, lookupErr := userExistsTx(ctx, tx, userID)
+		if lookupErr != nil {
+			return fmt.Errorf("store: password update disambiguation: %w", lookupErr)
+		}
+		if !exists {
 			return ErrNotFound
 		}
 		return ErrAuthVersionMismatch

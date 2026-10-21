@@ -54,3 +54,20 @@ func insertMintedTx(ctx context.Context, tx *sql.Tx, op string, insert func(ctx 
 	}
 	return fmt.Errorf("%s: %w: %v", op, ErrDuplicate, collision)
 }
+
+// userExistsTx reports whether the user row exists, inside the caller's
+// transaction. The guarded writes use it to disambiguate a zero-row UPDATE
+// without leaving the transaction (sqlite.md rule 6) — a read on the parent
+// pool while the write transaction is open answers from a different
+// connection and reopens the TOCTOU window the transaction exists to close.
+func userExistsTx(ctx context.Context, tx *sql.Tx, userID string) (bool, error) {
+	var one int
+	err := tx.QueryRowContext(ctx, `SELECT 1 FROM users WHERE id = ?`, userID).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}

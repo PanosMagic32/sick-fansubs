@@ -143,25 +143,17 @@ func listLikers(ctx context.Context, db *sql.DB, fromWhere string, args []any, a
 	}
 	defer rows.Close()
 
-	var items []LikerItem
-	for rows.Next() {
+	items, hasNext, err := scanKeysetPage(rows, limit, "liker item", func(rows *sql.Rows) (LikerItem, error) {
 		var (
 			it     LikerItem
 			avatar sql.NullString
 		)
-		if err := rows.Scan(&it.UserID, &it.Username, &avatar, &it.LikedAtMS); err != nil {
-			return nil, false, fmt.Errorf("store: scan liker item: %w", err)
-		}
+		err := rows.Scan(&it.UserID, &it.Username, &avatar, &it.LikedAtMS)
 		it.AvatarURL = nullStringPtr(avatar)
-		items = append(items, it)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, false, fmt.Errorf("store: iterate likers: %w", err)
-	}
-
-	hasNext := len(items) > limit
-	if hasNext {
-		items = items[:limit]
+		return it, err
+	})
+	if err != nil {
+		return nil, false, err
 	}
 	return items, hasNext, nil
 }

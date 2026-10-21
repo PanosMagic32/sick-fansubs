@@ -129,24 +129,10 @@ func ProjectCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 			return
 		}
 
-		// new_content fan-out: the
-		// broadcast rows committed in the create transaction — hand each
-		// recipient's event to the push channel AFTER the commit (the
-		// heart/reply precedent). A DRAFT create carries the draft_activity
-		// notice instead, through the same loop.
-		if notify != nil {
-			for _, ev := range events {
-				notify.NotifyPush(r.Context(), push.Event{
-					RecipientID:   ev.RecipientID,
-					Kind:          ev.Kind,
-					ActorUsername: su.Username,
-					ContentTitle:  ev.ContentTitle,
-					ContentKind:   ev.ContentKind,
-					ContentID:     ev.ContentID,
-					DraftAction:   ev.DraftAction,
-				})
-			}
-		}
+		// new_content fan-out: the broadcast rows committed in the create
+		// transaction. A DRAFT create carries the draft_activity notice
+		// instead, through the same loop.
+		fanOutPush(r.Context(), notify, events, su.Username)
 
 		logAuditEvent(r, audit.EventContentCreated, audit.ResultSuccess, su.UserID)
 		// The created resource's canonical address is the STAFF detail: the
@@ -237,25 +223,10 @@ func ProjectUpdate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 			return
 		}
 
-		// Fan-out — the same after-commit seam as BlogUpdate:
-		// the notification rows committed in the update transaction; each
-		// follower's content_updated event, each opted-in recipient's
-		// new_content event, or each visible staff member's draft_activity
-		// notice goes to the push channel; silent transitions emitted no
-		// rows.
-		if notify != nil {
-			for _, ev := range events {
-				notify.NotifyPush(r.Context(), push.Event{
-					RecipientID:   ev.RecipientID,
-					Kind:          ev.Kind,
-					ActorUsername: su.Username,
-					ContentTitle:  ev.ContentTitle,
-					ContentKind:   ev.ContentKind,
-					ContentID:     ev.ContentID,
-					DraftAction:   ev.DraftAction,
-				})
-			}
-		}
+		// Fan-out — the same after-commit seam as BlogUpdate: content_updated
+		// followers, new_content recipients, or the draft notice; silent
+		// transitions emitted no rows.
+		fanOutPush(r.Context(), notify, events, su.Username)
 
 		logAuditEvent(r, audit.EventContentUpdated, audit.ResultSuccess, su.UserID)
 		w.Header().Set("ETag", etagForRevision(project.Revision))
