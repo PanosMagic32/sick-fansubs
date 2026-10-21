@@ -96,7 +96,7 @@ Passes run ripple-ascending — smallest ripple first, refactors last.
 
 | Severity  | Meaning                                                                           |
 | --------- | --------------------------------------------------------------------------------- |
-| `blocker` | Cutover-blocking: security hole, data loss, or broken contract; fix on discovery. |
+| `blocker` | Release-blocking: security hole, data loss, or broken contract; fix on discovery. |
 | `major`   | Clear defect or contract drift; fixed before done, or parked by owner ruling.     |
 | `minor`   | Improvement worth recording; batched or deferred by owner ruling.                 |
 | `nit`     | Cosmetic; recorded, never blocking.                                               |

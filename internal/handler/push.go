@@ -86,7 +86,6 @@ type notificationPreferenceRequest struct {
 // every known kind with its effective push toggle.
 func NotificationPreferencesGet(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "notification preferences read requires authentication")
 		if !ok {
 			return
@@ -99,7 +98,7 @@ func NotificationPreferencesGet(db *sql.DB) http.HandlerFunc {
 			return roleDefaultsPushOn(su.Role, kind)
 		})
 		if err != nil {
-			writeInternalError(w, r, logger, "notification preferences read failed", "error", err)
+			writeInternalError(w, r, "notification preferences read failed", "error", err)
 			return
 		}
 		items := make([]notificationPreferenceDTO, 0, len(prefs))
@@ -223,7 +222,7 @@ func PushTestSend(tester push.TestSender, limiter *middleware.RateLimiter) http.
 		if tester != nil {
 			r2, err := tester.SendTest(r.Context(), su.UserID)
 			if err != nil {
-				writeInternalError(w, r, logger, "push test send failed", "error", err)
+				writeInternalError(w, r, "push test send failed", "error", err)
 				return
 			}
 			report = r2

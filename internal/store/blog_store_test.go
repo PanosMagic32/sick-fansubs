@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -29,7 +28,7 @@ func TestGetPublishedBlogPost_Found(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateUser(t, db, "u1", "creator", "creator", "creator@example.com")
 	if _, err := db.Exec(`UPDATE users SET avatar_url = 'https://example.com/c.png' WHERE id = 'u1'`); err != nil {
@@ -88,7 +87,7 @@ func TestGetPublishedBlogPost_CreatorNull(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "p1", Title: "T", ThumbnailURL: "https://example.com/t.jpg", PublishedAtMS: 3000}, "published")
 
@@ -112,7 +111,7 @@ func TestGetPublishedBlogPost_UpdaterOnly(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateUser(t, db, "u2", "editor", "editor", "editor@example.com")
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "p1", Title: "T", ThumbnailURL: "https://example.com/t.jpg", PublishedAtMS: 3000}, "published")
@@ -140,7 +139,7 @@ func TestGetPublishedBlogPost_UserRefsDeleted(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateUser(t, db, "u1", "creator", "creator", "creator@example.com")
 	mustCreateUser(t, db, "u2", "editor", "editor", "editor@example.com")
@@ -172,7 +171,7 @@ func TestGetPublishedBlogPost_NotFoundAndMasked(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "draft", Title: "D", ThumbnailURL: "https://example.com/d.jpg", PublishedAtMS: 9000}, "draft")
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "archived", Title: "A", ThumbnailURL: "https://example.com/a.jpg", PublishedAtMS: 8000}, "archived")
@@ -193,7 +192,7 @@ func TestListPublishedBlogPosts_CreatorJoin(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateUser(t, db, "u1", "creator", "creator", "creator@example.com")
 	if _, err := db.Exec(`UPDATE users SET avatar_url = 'https://example.com/a.png' WHERE id = 'u1'`); err != nil {
@@ -236,7 +235,7 @@ func TestListPublishedBlogPosts_NewestFirst(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "old", Title: "Old", ThumbnailURL: "https://example.com/o.jpg", PublishedAtMS: 1000}, "published")
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "new", Title: "New", ThumbnailURL: "https://example.com/n.jpg", PublishedAtMS: 3000}, "published")
@@ -273,7 +272,7 @@ func TestListPublishedBlogPosts_ExcludesNonPublicRows(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "published", Title: "P", ThumbnailURL: "https://example.com/p.jpg", PublishedAtMS: 1000}, "published")
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "draft", Title: "D", ThumbnailURL: "https://example.com/d.jpg", PublishedAtMS: 9000}, "draft")
@@ -299,7 +298,7 @@ func TestCountPublishedContent_ExcludesNonPublicRows(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "published", Title: "P", ThumbnailURL: "https://example.com/p.jpg", PublishedAtMS: 1000}, "published")
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "draft", Title: "D", ThumbnailURL: "https://example.com/d.jpg", PublishedAtMS: 9000}, "draft")
@@ -331,7 +330,7 @@ func TestListPublishedBlogPosts_KeysetPagesCoverExactlyOnce(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Full ordering: p5(5000), p4(4000), p3a(3000), p3b(3000), p2(2000).
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "p2", Title: "T", ThumbnailURL: "https://example.com/2.jpg", PublishedAtMS: 2000}, "published")
@@ -387,7 +386,7 @@ func TestListPublishedBlogPosts_KeysetStableAcrossInserts(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "a", Title: "T", ThumbnailURL: "https://example.com/a.jpg", PublishedAtMS: 3000}, "published")
 	mustCreateBlogPost(t, db, BlogPostSummary{ID: "b", Title: "T", ThumbnailURL: "https://example.com/b.jpg", PublishedAtMS: 2000}, "published")
@@ -417,7 +416,7 @@ func TestListPublishedBlogPosts_EmptyTable(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	posts, hasNext, err := ListPublishedBlogPosts(ctx, db, 20, nil)
 	if err != nil {
@@ -440,7 +439,7 @@ func TestBlogPostIndicatorCounts(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	mustCreateUser(t, db, "u1", "alice", "alice", "alice@example.com")
 	mustCreateUser(t, db, "u2", "bob", "bob", "bob@example.com")

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"sick-fansubs/internal/id"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/media"
 	"sick-fansubs/internal/store"
 )
@@ -51,7 +50,6 @@ func AvatarUpload(db *sql.DB, dataDir, publicBaseURL string, now func() time.Tim
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "avatar upload requires authentication")
 		if !ok {
 			return
@@ -63,11 +61,10 @@ func AvatarUpload(db *sql.DB, dataDir, publicBaseURL string, now func() time.Tim
 		}
 		defer src.Close()
 
-		// Fresh random ID — uploads never reuse the migration's
-		// content-derived IDs.
+		// Fresh random ID — uploads never reuse a content-derived ID.
 		uploadID, err := id.New()
 		if err != nil {
-			writeInternalError(w, r, logger, "avatar upload id generation failed", "error", err)
+			writeInternalError(w, r, "avatar upload id generation failed", "error", err)
 			return
 		}
 

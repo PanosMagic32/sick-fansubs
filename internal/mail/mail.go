@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"mime"
+	"mime/quotedprintable"
 	"net"
 	"net/smtp"
 	"net/textproto"
@@ -120,8 +121,14 @@ func (r *Relay) send(ctx context.Context, to string, msg []byte) error {
 	// stdlib net/smtp has no context support — only the dial consumed the
 	// deadline. The absolute deadline bounds EVERY post-dial command (greet,
 	// auth, envelope, data, quit), so a relay that accepts TCP and stalls
-	// cannot hold the request goroutine past the send budget.
-	if err := conn.SetDeadline(time.Now().Add(r.sendTimeout)); err != nil {
+	// cannot hold the request goroutine past the send budget. Reuse the
+	// context's deadline when it has one, so the dial and the commands share
+	// one budget.
+	deadline := time.Now().Add(r.sendTimeout)
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	}
+	if err := conn.SetDeadline(deadline); err != nil {
 		return fmt.Errorf("smtp set deadline: %w", err)
 	}
 
@@ -243,18 +250,26 @@ func (r *Relay) auth() smtp.Auth {
 // config-validated base URL), and the From address is validated at config
 // load. No Reply-To header is emitted: the From address
 // is a no-reply sender and replies are meant to bounce. The subject is RFC
-// 2047 encoded-word (Greek copy needs non-ASCII headers).
+// 2047 encoded-word (Greek copy needs non-ASCII headers) and the body is
+// quoted-printable, so no non-ASCII byte ever rides an 8-bit transport that
+// did not advertise 8BITMIME (RFC 6152 §3, RFC 2045 §6.2).
 func buildMessage(from, to, subject, body string) []byte {
 	subject = mime.QEncoding.Encode("utf-8", subject)
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "From: %s\r\n", from)
 	fmt.Fprintf(&b, "To: %s\r\n", to)
+	fmt.Fprintf(&b, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
 	fmt.Fprintf(&b, "Subject: %s\r\n", subject)
 	fmt.Fprintf(&b, "MIME-Version: 1.0\r\n")
 	fmt.Fprintf(&b, "Content-Type: text/plain; charset=utf-8\r\n")
-	fmt.Fprintf(&b, "Content-Transfer-Encoding: 8bit\r\n")
-	fmt.Fprintf(&b, "\r\n%s", body)
+	fmt.Fprintf(&b, "Content-Transfer-Encoding: quoted-printable\r\n")
+	fmt.Fprintf(&b, "\r\n")
+	// A strings.Builder write cannot fail; quotedprintable only propagates its
+	// writer's error.
+	qp := quotedprintable.NewWriter(&b)
+	_, _ = qp.Write([]byte(body))
+	_ = qp.Close()
 	return []byte(b.String())
 }
 

@@ -961,12 +961,15 @@ func TestSendTestReportOrder(t *testing.T) {
 		if err != nil {
 			t.Fatalf("generate subscription key: %v", err)
 		}
-		p256dh := base64.RawURLEncoding.EncodeToString(elliptic.Marshal(elliptic.P256(), priv.PublicKey.X, priv.PublicKey.Y))
+		p256dh, err := priv.PublicKey.Bytes()
+		if err != nil {
+			t.Fatalf("encode subscription key: %v", err)
+		}
 		authBytes := make([]byte, 16)
 		if _, err := rand.Read(authBytes); err != nil {
 			t.Fatalf("generate auth secret: %v", err)
 		}
-		return p256dh, base64.RawURLEncoding.EncodeToString(authBytes)
+		return base64.RawURLEncoding.EncodeToString(p256dh), base64.RawURLEncoding.EncodeToString(authBytes)
 	}
 
 	_, srv := newFakePushService(t, http.StatusCreated)
@@ -1124,5 +1127,35 @@ func TestSendTestWithoutSubscriptions(t *testing.T) {
 	}
 	if got := fake.count(); got != 0 {
 		t.Errorf("push service saw %d requests, want 0", got)
+	}
+}
+
+// TestRetryAfterDelay pins the header parser used by the retry ladder:
+// delta-seconds and HTTP-date both work, a past date is a zero wait, and a
+// malformed value falls back to the sender's own backoff.
+func TestRetryAfterDelay(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, time.October, 21, 12, 0, 0, 0, time.UTC)
+
+	cases := []struct {
+		name string
+		in   string
+		want time.Duration
+		ok   bool
+	}{
+		{"empty", "", 0, false},
+		{"seconds", "12", 12 * time.Second, true},
+		{"negative", "-1", 0, false},
+		{"future date", now.Add(90 * time.Second).Format(http.TimeFormat), 90 * time.Second, true},
+		{"past date", now.Add(-time.Minute).Format(http.TimeFormat), 0, true},
+		{"garbage", "soon", 0, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := retryAfterDelay(tc.in, now)
+			if got != tc.want || ok != tc.ok {
+				t.Errorf("retryAfterDelay(%q) = (%v, %v), want (%v, %v)", tc.in, got, ok, tc.want, tc.ok)
+			}
+		})
 	}
 }

@@ -94,7 +94,8 @@ paths:
       description: >-
         Reports whether the request carries a valid session. Never returns 401 —
         an absent, malformed, or expired session produces the unauthenticated
-        envelope. When authenticated, csrfToken and user are always present.
+        envelope. When authenticated, csrfToken and user are always present. A
+        session-store failure answers the masked 500.
       responses:
         "200":
           description: Current authentication state.
@@ -107,6 +108,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SessionBootstrap"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/v1/auth/sign-out:
     post:
       operationId: signOut
@@ -903,6 +906,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/MediaTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
         "422":
           $ref: "#/components/responses/Validation"
         "500":
@@ -2479,6 +2484,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/MediaTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
         "422":
           $ref: "#/components/responses/Validation"
         "500":
@@ -5020,8 +5027,8 @@ components:
         nullable in the DATABASE; on the wire a NULL is OMITTED here rather
         than sent as an empty string, so a client renders only what actually
         arrived. remoteAddr is the client address resolved by
-        middleware.ClientAddr: the left-most
-        X-Forwarded-For entry when Caddy supplied one, else the peer address
+        middleware.ClientAddr: the address Caddy resolved and supplied in
+        X-Forwarded-For, else the peer address
         without its port.
       additionalProperties: false
       required:

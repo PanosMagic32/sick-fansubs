@@ -19,11 +19,6 @@ type notified struct {
 	emitted bool
 }
 
-// errIDMint marks a local identifier-mint failure inside a mintRetry
-// operation, so the caller can keep its own message instead of reporting a
-// store failure.
-var errIDMint = errors.New("handler: identifier mint")
-
 // mintRetry runs op up to maxMintAttempts times while the database rejects a
 // freshly minted identifier (store.ErrDuplicate). The store maps that
 // constraint; this function is the call-site half of the bounded retry

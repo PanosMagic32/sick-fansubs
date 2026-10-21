@@ -12,8 +12,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
+	"mime/quotedprintable"
 	"net"
 	"strconv"
 	"strings"
@@ -259,7 +261,7 @@ func TestSend_ImplicitTLS(t *testing.T) {
 	if !srv.authed {
 		t.Error("expected AUTH to be attempted")
 	}
-	if !strings.Contains(srv.msgBody, "Σύνδεσμος.") {
+	if !strings.Contains(decodedMessageBody(t, srv.msgBody), "Σύνδεσμος.") {
 		t.Errorf("message body missing Greek copy: %q", srv.msgBody)
 	}
 }
@@ -275,7 +277,7 @@ func TestSend_STARTTLS(t *testing.T) {
 	if !srv.authed {
 		t.Error("expected AUTH to be attempted after STARTTLS")
 	}
-	if !strings.Contains(srv.msgBody, "Σώμα μηνύματος.") {
+	if !strings.Contains(decodedMessageBody(t, srv.msgBody), "Σώμα μηνύματος.") {
 		t.Errorf("message body missing copy: %q", srv.msgBody)
 	}
 }
@@ -453,18 +455,58 @@ func TestNewRelay_RequiresHostAndFrom(t *testing.T) {
 	}
 }
 
+func isASCII(s string) bool {
+	for i := range len(s) {
+		if s[i] > 0x7f {
+			return false
+		}
+	}
+	return true
+}
+
+// decodedMessageBody returns the quoted-printable body of a built message.
+func decodedMessageBody(t *testing.T, msg string) string {
+	t.Helper()
+	_, body, ok := strings.Cut(msg, "\r\n\r\n")
+	if !ok {
+		t.Fatalf("message has no header/body separator: %q", msg)
+	}
+	raw, err := io.ReadAll(quotedprintable.NewReader(strings.NewReader(body)))
+	if err != nil {
+		t.Fatalf("decode quoted-printable body: %v", err)
+	}
+	return string(raw)
+}
+
 func TestBuildMessage(t *testing.T) {
 	msg := string(buildMessage("noreply@sickfansubs.com", "user@example.com", "Επαναφορά κωδικού", "Γεια σου."))
 
 	for _, want := range []string{
 		"From: noreply@sickfansubs.com\r\n",
 		"To: user@example.com\r\n",
+		"Date: ",
 		"Content-Type: text/plain; charset=utf-8\r\n",
-		"\r\n\r\nΓεια σου.",
+		"Content-Transfer-Encoding: quoted-printable\r\n",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("message missing %q in:\n%s", want, msg)
 		}
+	}
+	// The body is quoted-printable, so a relay without 8BITMIME still gets
+	// pure ASCII (RFC 6152 §3).
+	headers, bodyPart, ok := strings.Cut(msg, "\r\n\r\n")
+	if !ok {
+		t.Fatalf("message has no header/body separator:\n%s", msg)
+	}
+	decoded, err := io.ReadAll(quotedprintable.NewReader(strings.NewReader(bodyPart)))
+	if err != nil {
+		t.Fatalf("decode quoted-printable body: %v", err)
+	}
+	if string(decoded) != "Γεια σου." {
+		t.Errorf("body = %q, want %q", decoded, "Γεια σου.")
+	}
+	if !isASCII(bodyPart) {
+		t.Errorf("quoted-printable body carries non-ASCII bytes: %q", bodyPart)
 	}
 	// No Reply-To header — replies to the no-reply From
 	// are meant to bounce.
@@ -473,7 +515,6 @@ func TestBuildMessage(t *testing.T) {
 	}
 	// The Greek subject must be RFC 2047 encoded (raw non-ASCII in headers
 	// is invalid).
-	headers, _, _ := strings.Cut(msg, "\r\n\r\n")
 	if strings.Contains(headers, "Επαναφορά") {
 		t.Errorf("raw Greek in headers — subject must be encoded-word:\n%s", headers)
 	}

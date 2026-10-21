@@ -32,11 +32,12 @@ failed`).
    Errors go under `error`. Never reuse a `slog` built-in key (`time`, `level`, `msg`,
    `source`) for your own attribute. `requestId` is present on every request-scoped record
    because the request logger carries it.
-5. **Log once, at the boundary that owns the policy.** `handler.writeInternalError` is the
-   only sanctioned 500 path for JSON endpoints: it records one Error at the handler
-   boundary and writes the generic problem. `internal/handler/media.go`'s plain-text 500 is
-   the recorded exception — it serves bytes, not JSON, so it keeps its own body and logs
-   through the same mechanism.
+5. **Log once, at the boundary that owns the policy.** `problem.WriteInternal` is the
+   single 500 implementation: it records one Error with the request-scoped logger and writes
+   the generic problem. `handler.writeInternalError` is the handler-layer wrapper, and the
+   middleware session gate calls `problem.WriteInternal` directly. `internal/handler/media.go`'s
+   plain-text 500 is the recorded exception — it serves bytes, not JSON, so it keeps its own
+   body and logs through the same logger.
 6. **Levels express severity, not verbosity.** The names are integers (Debug −4, Info 0,
    Warn 4, Error 8) and this repository defines no custom level. The agreed use:
 

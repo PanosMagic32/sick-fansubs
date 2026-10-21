@@ -9,7 +9,6 @@ import (
 	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/id"
 	"sick-fansubs/internal/identity"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/push"
 	"sick-fansubs/internal/store"
 )
@@ -24,7 +23,6 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, _, ok := staffRequester(w, r)
 		if !ok {
 			return
@@ -51,10 +49,11 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 
 		var post *store.StaffBlogPost
 		var events []store.NotificationEvent
+		var lastErr error
 		for range maxMintAttempts {
 			postID, err := id.New()
 			if err != nil {
-				writeInternalError(w, r, logger, "content id generation failed", "error", err)
+				writeInternalError(w, r, "content id generation failed", "error", err)
 				return
 			}
 
@@ -76,6 +75,7 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 				// improbable is retried with a new id within a bounded budget
 				// (the identifiers rule makes the database the uniqueness
 				// authority); the failed attempt rolled back in full.
+				lastErr = err
 				continue
 			}
 			if err != nil {
@@ -83,7 +83,7 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 				// read-back losing a race with a concurrent delete — an internal
 				// failure, never the masked 404 the sentinel maps to elsewhere.
 				if errors.Is(err, store.ErrNotFound) {
-					writeInternalError(w, r, logger, "blog create failed", "error", err)
+					writeInternalError(w, r, "blog create failed", "error", err)
 					logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
 					return
 				}
@@ -95,7 +95,7 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 			break
 		}
 		if post == nil {
-			writeInternalError(w, r, logger, "blog create failed", "reason", "identifier attempts exhausted")
+			writeInternalError(w, r, "blog create failed", "error", lastErr)
 			logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
 			return
 		}

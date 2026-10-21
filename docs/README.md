@@ -9,7 +9,7 @@ describes or linked from this page.
 | ------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Pattern       | `docs/patterns/**`                                                                 | What is the one agreed way to do this?                            |
 | Feature doc   | `AGENTS.md` beside the code (`internal/<pkg>/`, `cmd/<tool>/`, `web/src/<scope>/`) | What does this scope do, what are its contracts, its gotchas?     |
-| Operations    | `docs/ops/**`                                                                      | How do we deploy, back up, restore, cut over?                     |
+| Operations    | `docs/ops/**`                                                                      | How do we deploy, back up, and restore?                           |
 | Architecture  | [`docs/architecture.md`](architecture.md)                                          | What is the system's shape: context, containers, flows, topology? |
 | Wire contract | `docs/api/openapi.yaml`                                                            | What are the endpoints, statuses, and payloads?                   |
 | Index         | this file                                                                          | Where does everything live?                                       |

@@ -25,7 +25,7 @@ handler, built at registration time. A rule marked _house rule_ is this reposito
    | ------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
    | `publicChain`             | RequestID                                                                                  | public reads, health probes, media serving, `notFound()`                     |
    | `optionalSessionChain`    | RequestID → TrustedOrigin → Session                                                        | a public read that personalizes when a session is present (comments threads) |
-   | `authenticatedReadsChain` | RequestID → TrustedOrigin → Session → ForcePasswordChange                                  | an authenticated read (notifications, push, and likers reads)                |
+   | `authenticatedReadsChain` | RequestID → TrustedOrigin → Session → ForcePasswordChange                                  | an authenticated read (notifications, push, likers, and staff/admin reads)   |
    | `authenticatedChain`      | RequestID → TrustedOrigin → Session → ForcePasswordChange → CSRF                           | every write, and every authenticated read on a subtree that also has writes  |
    | `authChain`               | RequestID → TrustedOrigin → path-scoped IP limits → Session → CSRF (no forced-change gate) | the auth subtree                                                             |
 

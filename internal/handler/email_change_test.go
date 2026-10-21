@@ -234,6 +234,8 @@ func TestEmailChange_Validation(t *testing.T) {
 		{"empty password", map[string]string{"email": "x@example.com", "currentPassword": ""}, "required"},
 		{"invalid format", map[string]string{"email": "not-an-email", "currentPassword": "password123"}, "invalidFormat"},
 		{"taken", map[string]string{"email": "TAKEN@example.com", "currentPassword": "password123"}, "alreadyTaken"},
+		{"email maxLength", map[string]string{"email": strings.Repeat("a", 243) + "@example.com", "currentPassword": "password123"}, "maxLength"},
+		{"password maxLength", map[string]string{"email": "x@example.com", "currentPassword": strings.Repeat("a", 129)}, "maxLength"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -245,6 +247,25 @@ func TestEmailChange_Validation(t *testing.T) {
 				t.Errorf("missing violation code %q: %s", tc.code, rec.Body.String())
 			}
 		})
+	}
+}
+
+// TestEmailChange_PasswordRuneBound pins the unit: maxLength counts code
+// points, so a 128-rune password over the 128-byte ASCII spelling reaches
+// the password check (401) instead of the handler's 422.
+func TestEmailChange_PasswordRuneBound(t *testing.T) {
+	t.Parallel()
+	sender := &resetFakeSender{}
+	limiter := middleware.NewRateLimiter(1000, time.Hour, time.Minute)
+	_, h, mux := setupEmailChange(t, sender, limiter)
+
+	cookie, csrf := createUser(t, mux, "runebound", "runebound@example.com", "password123")
+	rec := emailChangeReq(t, h, cookie, csrf, map[string]string{
+		"email":           "other@example.com",
+		"currentPassword": strings.Repeat("α", 128),
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status %d, want 401 for a 128-rune password (body %s)", rec.Code, rec.Body.String())
 	}
 }
 

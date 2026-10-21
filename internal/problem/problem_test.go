@@ -2,10 +2,48 @@ package problem
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
+// TestWriteInternal_WritesMasked500 pins the shared internal-error writer:
+// the body carries the generic problem, the request ID, and no internal text.
+func TestWriteInternal_WritesMasked500(t *testing.T) {
+	t.Parallel()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/example", nil)
+
+	WriteInternal(rec, req, "req-1", "blog list query failed", "error", errors.New("database is locked"))
+
+	if got := rec.Code; got != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", got, http.StatusInternalServerError)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/problem+json" {
+		t.Errorf("Content-Type = %q, want application/problem+json", got)
+	}
+	if got := rec.Header().Get("X-Request-ID"); got != "req-1" {
+		t.Errorf("X-Request-ID = %q, want req-1", got)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if body["type"] != "/problems/internal-error" {
+		t.Errorf("type = %v, want /problems/internal-error", body["type"])
+	}
+	if body["title"] != "Internal server error" {
+		t.Errorf("title = %v, want Internal server error", body["title"])
+	}
+	if body["requestId"] != "req-1" {
+		t.Errorf("requestId = %v, want req-1", body["requestId"])
+	}
+	if detail, ok := body["detail"]; ok {
+		t.Errorf("body carries detail = %v, want none", detail)
+	}
+}
 
 // TestWrite_EmptyRequestIDOmitsMemberAndHeader pins the omission rule: the
 // requestId member and the X-Request-ID header appear only when a correlation

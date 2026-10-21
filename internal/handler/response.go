@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"slices"
 	"time"
@@ -54,13 +53,10 @@ func writeProblem(w http.ResponseWriter, r *http.Request, status int, problemTyp
 	problem.Write(w, r, status, middleware.RequestIDFrom(r.Context()), problemType, title)
 }
 
-// writeInternalError is the only sanctioned 500 response for JSON endpoints:
-// the caller names the failed operation, the request-scoped logger records it
-// once at this boundary, and the body stays generic.
-func writeInternalError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, msg string, args ...any) {
-	logger.ErrorContext(r.Context(), msg, args...)
-	writeProblem(w, r, http.StatusInternalServerError,
-		"/problems/internal-error", "Internal server error")
+// writeInternalError is the handler layer's JSON 500: the shared problem
+// writer logs the failed operation once and the body stays generic.
+func writeInternalError(w http.ResponseWriter, r *http.Request, msg string, args ...any) {
+	problem.WriteInternal(w, r, middleware.RequestIDFrom(r.Context()), msg, args...)
 }
 
 // writeBadRequest writes the 400 problem for a malformed request.
@@ -72,6 +68,9 @@ func writeBadRequest(w http.ResponseWriter, r *http.Request, logDetail string) {
 
 func writeUnauthorized(w http.ResponseWriter, r *http.Request, logDetail string) {
 	logging.From(r.Context()).WarnContext(r.Context(), "unauthorized", "detail", logDetail)
+	// A 401 must carry a challenge (RFC 9110 §15.5.2). The browser sends the
+	// session cookie on its own; the scheme name documents that fact.
+	w.Header().Set("WWW-Authenticate", `Cookie realm="sick-fansubs"`)
 	writeProblem(w, r, http.StatusUnauthorized,
 		"/problems/auth/invalid-credentials", "Invalid credentials")
 }

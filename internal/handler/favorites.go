@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
 
@@ -128,7 +127,6 @@ func FavoritesList(kind favoriteKind, db *sql.DB, publicBaseURL string) http.Han
 // unauthenticated.
 func FavoritesStatus(kind favoriteKind, db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" favorites status requires authentication")
 		if !ok {
 			return
@@ -144,7 +142,7 @@ func FavoritesStatus(kind favoriteKind, db *sql.DB) http.HandlerFunc {
 
 		published, favorited, err := store.FavoriteStatus(r.Context(), db, kind.content, su.UserID, id)
 		if err != nil {
-			writeInternalError(w, r, logger, kind.label+" favorite status failed", "error", err)
+			writeInternalError(w, r, kind.label+" favorite status failed", "error", err)
 			return
 		}
 		if !published {
@@ -196,7 +194,6 @@ func FavoritesAdd(kind favoriteKind, db *sql.DB, now func() time.Time) http.Hand
 // unauthenticated; 403 origin/CSRF failure (middleware).
 func FavoritesRemove(kind favoriteKind, db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" favorite remove requires authentication")
 		if !ok {
 			return
@@ -208,7 +205,7 @@ func FavoritesRemove(kind favoriteKind, db *sql.DB) http.HandlerFunc {
 		}
 
 		if err := store.RemoveFavorite(r.Context(), db, kind.content, su.UserID, id); err != nil {
-			writeInternalError(w, r, logger, kind.label+" favorite remove failed", "error", err)
+			writeInternalError(w, r, kind.label+" favorite remove failed", "error", err)
 			return
 		}
 

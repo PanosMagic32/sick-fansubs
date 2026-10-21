@@ -80,7 +80,12 @@ sickfansubs.com {
 		}
 	}
 
-	reverse_proxy app:8080
+	reverse_proxy app:8080 {
+		# Replace client-supplied X-Forwarded-For with the address Caddy
+		# resolved through trusted_proxies, so a forged prefix can never reach
+		# the rate limiter or the audit rows.
+		header_up X-Forwarded-For {http.request.client_ip}
+	}
 }
 
 # The apex is canonical — every www request is sent to the same path

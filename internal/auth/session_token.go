@@ -92,35 +92,43 @@ func generateSessionMaterial() (sessionMaterial, error) {
 // clientLabel is the classifier's bounded device label;
 // the empty string stores SQL NULL.
 func (s *Service) createSessionAfterSignIn(ctx context.Context, u *identity.User, rehashNeeded bool, newHash, clientLabel string) (sessionToken, csrfToken string, err error) {
-	m, err := generateSessionMaterial()
-	if err != nil {
-		return "", "", err
-	}
-	if rehashNeeded {
-		err = store.RehashPasswordAndCreateSession(ctx, s.db, store.RehashPasswordAndCreateSessionParams{
-			UserID:             u.ID,
-			CurrentAuthVersion: u.AuthVersion,
-			NewHash:            newHash,
-			UpdatedAtMS:        m.nowMS,
-			SessionID:          m.id,
-			TokenDigest:        m.digest,
-			CSRF:               m.rawCSRF,
-			ClientLabel:        clientLabel,
-			CreatedAtMS:        m.nowMS,
-			ExpiresAtMS:        m.nowMS + SessionLifetime.Milliseconds(),
-		})
-	} else {
-		err = store.CreateSession(ctx, s.db, store.CreateSessionParams{
-			ID:          m.id,
-			UserID:      u.ID,
-			TokenDigest: m.digest,
-			CSRF:        m.rawCSRF,
-			AuthVersion: u.AuthVersion,
-			ClientLabel: clientLabel,
-			CreatedAtMS: m.nowMS,
-			ExpiresAtMS: m.nowMS + SessionLifetime.Milliseconds(),
-		})
-	}
+	// Each collision mints fresh material and retries within the bounded budget
+	// (docs/patterns/go/ids.md rule 5); a failed attempt committed nothing.
+	m, err := retryDuplicate(func() (sessionMaterial, error) {
+		m, err := generateSessionMaterial()
+		if err != nil {
+			return sessionMaterial{}, err
+		}
+		if rehashNeeded {
+			err = store.RehashPasswordAndCreateSession(ctx, s.db, store.RehashPasswordAndCreateSessionParams{
+				UserID:             u.ID,
+				CurrentAuthVersion: u.AuthVersion,
+				NewHash:            newHash,
+				UpdatedAtMS:        m.nowMS,
+				SessionID:          m.id,
+				TokenDigest:        m.digest,
+				CSRF:               m.rawCSRF,
+				ClientLabel:        clientLabel,
+				CreatedAtMS:        m.nowMS,
+				ExpiresAtMS:        m.nowMS + SessionLifetime.Milliseconds(),
+			})
+		} else {
+			err = store.CreateSession(ctx, s.db, store.CreateSessionParams{
+				ID:          m.id,
+				UserID:      u.ID,
+				TokenDigest: m.digest,
+				CSRF:        m.rawCSRF,
+				AuthVersion: u.AuthVersion,
+				ClientLabel: clientLabel,
+				CreatedAtMS: m.nowMS,
+				ExpiresAtMS: m.nowMS + SessionLifetime.Milliseconds(),
+			})
+		}
+		if err != nil {
+			return sessionMaterial{}, err
+		}
+		return m, nil
+	})
 	if err != nil {
 		return "", "", err
 	}

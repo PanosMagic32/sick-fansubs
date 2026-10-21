@@ -3,8 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-
-	"sick-fansubs/internal/logging"
 )
 
 // The shared keyset collection mechanism: one envelope and one page builder,
@@ -52,7 +50,7 @@ func writeKeysetPage[Row, Item any](w http.ResponseWriter, r *http.Request, op s
 	if page.count == nil {
 		// Defensive: a caller that forgets its count is a wiring error, not a
 		// request outcome — the same masked 500 every unmapped failure gets.
-		writeInternalError(w, r, logging.From(r.Context()), "collection count not wired")
+		writeInternalError(w, r, "collection count not wired")
 		return
 	}
 	rows, hasNext, err := page.read(r.Context())

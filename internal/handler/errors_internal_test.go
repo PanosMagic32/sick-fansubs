@@ -183,6 +183,11 @@ func TestWriteAuthError_MapsEverySentinel(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			status := writeAuthError(rec, requestWithLogger(&buf), tc.err, "register", "error", tc.err)
+			if tc.status == http.StatusUnauthorized {
+				if got := rec.Header().Get("WWW-Authenticate"); got == "" {
+					t.Error("401 response carries no WWW-Authenticate challenge")
+				}
+			}
 
 			if status != tc.status || rec.Code != tc.status {
 				t.Fatalf("status = %d/%d for %v, want %d", status, rec.Code, tc.err, tc.status)

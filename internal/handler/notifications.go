@@ -248,7 +248,6 @@ func NotificationsList(db *sql.DB) http.HandlerFunc {
 // No query parameters are accepted.
 func NotificationsUnreadCount(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su := notificationsFloor(w, r)
 		if su == nil {
 			return
@@ -260,7 +259,7 @@ func NotificationsUnreadCount(db *sql.DB) http.HandlerFunc {
 		viewerID, weight, includeStaff := notificationsScope(su)
 		count, err := store.UnreadNotificationCount(r.Context(), db, viewerID, weight, includeStaff)
 		if err != nil {
-			writeInternalError(w, r, logger, "notifications unread count failed", "error", err)
+			writeInternalError(w, r, "notifications unread count failed", "error", err)
 			return
 		}
 		writeJSON(w, r, http.StatusOK, unreadCountResponse{Unread: count})
@@ -317,7 +316,7 @@ func NotificationsMarkAllRead(db *sql.DB, now func() time.Time) http.HandlerFunc
 		viewerID, weight, includeStaff := notificationsScope(su)
 		n, err := store.MarkAllNotificationsRead(r.Context(), db, viewerID, weight, includeStaff, now().UnixMilli())
 		if err != nil {
-			writeInternalError(w, r, logger, "mark all notifications read failed", "error", err)
+			writeInternalError(w, r, "mark all notifications read failed", "error", err)
 			return
 		}
 		logger.InfoContext(r.Context(), "notifications marked read",
@@ -340,7 +339,6 @@ func NotificationsDelete(db *sql.DB, now func() time.Time) http.HandlerFunc {
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su := notificationsFloor(w, r)
 		if su == nil {
 			return
@@ -355,7 +353,7 @@ func NotificationsDelete(db *sql.DB, now func() time.Time) http.HandlerFunc {
 		viewerID, weight, includeStaff := notificationsScope(su)
 		deleted, err := store.DeleteNotification(r.Context(), db, viewerID, id, weight, includeStaff, now().UnixMilli())
 		if err != nil {
-			writeInternalError(w, r, logger, "delete notification failed", "error", err)
+			writeInternalError(w, r, "delete notification failed", "error", err)
 			return
 		}
 		if !deleted {
@@ -382,7 +380,7 @@ func NotificationsClearRead(db *sql.DB) http.HandlerFunc {
 		_, _, includeStaff := notificationsScope(su)
 		n, err := store.DeleteReadNotifications(r.Context(), db, su.UserID, includeStaff)
 		if err != nil {
-			writeInternalError(w, r, logger, "clear read notifications failed", "error", err)
+			writeInternalError(w, r, "clear read notifications failed", "error", err)
 			return
 		}
 		logger.InfoContext(r.Context(), "read notifications cleared",
@@ -410,7 +408,7 @@ func NotificationsDeleteAll(db *sql.DB, now func() time.Time) http.HandlerFunc {
 		viewerID, weight, includeStaff := notificationsScope(su)
 		n, err := store.DeleteAllNotifications(r.Context(), db, viewerID, weight, includeStaff, now().UnixMilli())
 		if err != nil {
-			writeInternalError(w, r, logger, "delete all notifications failed", "error", err)
+			writeInternalError(w, r, "delete all notifications failed", "error", err)
 			return
 		}
 		logger.InfoContext(r.Context(), "notifications deleted",

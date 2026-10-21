@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,6 +35,29 @@ type Sender struct {
 	mu     sync.Mutex
 	closed bool
 	wg     sync.WaitGroup
+}
+
+// maxRetryAfter bounds a push service's Retry-After. A longer request is
+// honored by stopping this event's ladder, not by blocking the fan-out.
+const maxRetryAfter = 30 * time.Second
+
+// retryAfterDelay parses Retry-After as delta-seconds or an HTTP-date
+// (RFC 9110 §10.2.3). It reports false for an empty or malformed value and a
+// zero delay for a date already in the past.
+func retryAfterDelay(v string, now time.Time) (time.Duration, bool) {
+	if v == "" {
+		return 0, false
+	}
+	if secs, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && secs >= 0 {
+		return time.Duration(secs) * time.Second, true
+	}
+	if t, err := http.ParseTime(v); err == nil {
+		if d := t.Sub(now); d > 0 {
+			return d, true
+		}
+		return 0, true
+	}
+	return 0, false
 }
 
 // NewSender builds a Sender. subscriber is the VAPID `sub` contact URI;
@@ -186,15 +211,19 @@ func (s *Sender) sendOne(logCtx, ctx context.Context, ev Event, sub store.PushSu
 	}
 
 	var lastStatus int
+	var retryAfter time.Duration
 	for attempt := range maxAttempts {
 		if attempt > 0 {
-			// Backoff between attempts; ctx bounds the total window.
+			// Backoff between attempts; ctx bounds the total window. A push
+			// service's Retry-After wins when it is longer than our ladder
+			// (RFC 8030 §8.4).
+			wait := max(retryAfter, s.backoff(attempt))
 			select {
 			case <-ctx.Done():
 				logging.From(logCtx).WarnContext(logCtx, "push delivery aborted", "subscriptionId", sub.ID, "kind", ev.Kind, "service", service)
 				outcome.Status = lastStatus
 				return outcome
-			case <-time.After(s.backoff(attempt)):
+			case <-time.After(wait):
 			}
 		}
 
@@ -238,6 +267,15 @@ func (s *Sender) sendOne(logCtx, ctx context.Context, ev Event, sub store.PushSu
 			http.StatusBadGateway,
 			http.StatusServiceUnavailable,
 			http.StatusGatewayTimeout:
+			retryAfter = 0
+			if d, ok := retryAfterDelay(resp.Header.Get("Retry-After"), time.Now()); ok {
+				if d > maxRetryAfter {
+					logging.From(logCtx).WarnContext(logCtx, "push delivery retry-after exceeds the window", "subscriptionId", sub.ID, "kind", ev.Kind, "service", service, "status", lastStatus)
+					outcome.Status = lastStatus
+					return outcome
+				}
+				retryAfter = d
+			}
 			continue
 		default:
 			logging.From(logCtx).WarnContext(logCtx, "push delivery rejected", "subscriptionId", sub.ID, "kind", ev.Kind, "service", service, "status", lastStatus)

@@ -161,7 +161,7 @@ func rollbackIfBackedUp(dataDir, backupPath string, restore restoreFn, cause err
 		return cause
 	}
 	if err := restore(dataDir, backupPath); err != nil {
-		return fmt.Errorf("%v; and rollback failed: %w", cause, err)
+		return fmt.Errorf("migration failed (%w) and rollback failed: %w", cause, err)
 	}
-	return fmt.Errorf("migration failed; database rolled back to the pre-migration backup %s (%v)", backupPath, cause)
+	return fmt.Errorf("migration failed and database rolled back to the pre-migration backup %s: %w", backupPath, cause)
 }

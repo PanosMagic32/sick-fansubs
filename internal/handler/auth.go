@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"time"
+	"unicode/utf8"
 
 	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/auth"
@@ -163,10 +164,10 @@ type Auth struct {
 // AuthLimiters groups the handler's user-keyed rate-limit buckets by purpose.
 // Named fields keep four same-typed limiters from being swapped silently.
 type AuthLimiters struct {
-	SignInID       *middleware.RateLimiter
-	PasswordChange *middleware.RateLimiter
-	ForgotID       *middleware.RateLimiter
-	Resend         *middleware.RateLimiter
+	SignInID       *middleware.RateLimiter // identifier-keyed sign-in bucket
+	PasswordChange *middleware.RateLimiter // user-keyed password-change bucket
+	ForgotID       *middleware.RateLimiter // identifier-keyed forgot-password bucket
+	Resend         *middleware.RateLimiter // shared verification-send bucket
 }
 
 // NewAuth creates an Auth with the given dependencies.
@@ -208,13 +209,13 @@ func (h *Auth) HandleSignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate field lengths before passing to the service.
-	if len(req.Identifier) > 256 {
+	if utf8.RuneCountInString(req.Identifier) > 256 {
 		writeValidationErrors(w, r, []Violation{
 			{Field: "identifier", Code: "maxLength"},
 		})
 		return
 	}
-	if len(req.Password) > 128 {
+	if utf8.RuneCountInString(req.Password) > 128 {
 		writeValidationErrors(w, r, []Violation{
 			{Field: "password", Code: "maxLength"},
 		})
@@ -305,7 +306,6 @@ func (h *Auth) HandleSession(w http.ResponseWriter, r *http.Request) {
 //
 // Success: 200 { "authenticated": false } + cleared cookie.
 func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
-	logger := logging.From(r.Context())
 	// Try to delete the session if we can identify it.
 	digest := middleware.SessionDigest(r)
 	if digest != nil {
@@ -322,7 +322,7 @@ func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 			// Do NOT clear the cookie: the session row still exists server-side,
 			// so the client must keep the credential and retry (clear the
 			// cookie only after the deletion commits).
-			writeInternalError(w, r, logger, "sign-out session delete failed", "error", err)
+			writeInternalError(w, r, "sign-out session delete failed", "error", err)
 			return
 		}
 		// Audit only when a session row was actually deleted. A well-formed
@@ -355,7 +355,6 @@ func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 //
 // Success: 200 { "authenticated": false } + cleared cookie.
 func (h *Auth) HandleSignOutAll(w http.ResponseWriter, r *http.Request) {
-	logger := logging.From(r.Context())
 	su := middleware.SessionFrom(r.Context())
 	if su == nil {
 		// The auth chain carries no session requirement, so an unauthenticated
@@ -371,7 +370,7 @@ func (h *Auth) HandleSignOutAll(w http.ResponseWriter, r *http.Request) {
 		// investigating an account takeover need to see that a sign-out-all
 		// attempt did NOT succeed.
 		h.logAudit(r, audit.EventSignOutAll, audit.ResultFailure, su.UserID)
-		writeInternalError(w, r, logger, "sign-out-all failed", "error", err)
+		writeInternalError(w, r, "sign-out-all failed", "error", err)
 		return
 	}
 

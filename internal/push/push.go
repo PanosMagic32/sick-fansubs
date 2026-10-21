@@ -15,7 +15,6 @@ package push
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -119,11 +118,6 @@ const (
 	// record under the ceiling above; payloadFor enforces it.
 	maxPayloadBytes = maxBridgedRecordSize - recordOverhead
 )
-
-// errPayloadOverBudget reports a body that cannot fit even after the title is
-// trimmed away — a bound drifted without the ceiling, so the send fails closed
-// rather than letting a push service answer 413.
-var errPayloadOverBudget = fmt.Errorf("push: payload exceeds the %d-byte budget with an empty title", maxPayloadBytes)
 
 // recordSizeFor returns the ECE record size for one marshalled payload: the
 // body webpush-go will actually POST. Keeping it just above the payload costs

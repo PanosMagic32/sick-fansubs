@@ -31,7 +31,8 @@ repository's own convention, chosen where the sources are silent.
    `handler.Auth`, not `handler.AuthHandler`. Name a constructor `New` when the package's subject is
    the type it returns, and otherwise repeat only the type: `handler.NewAuth`.
 7. **No `Get` prefix** on accessors — `Owner()`, `SetOwner()`. `Get` is kept only where the concept
-   really is an HTTP GET.
+   really is an HTTP GET, or where dropping it would collide with the result type (`GetMetricsTotals`
+   returns `MetricsTotals`, `GetStaffBlogPost` returns `StaffBlogPost`).
 8. **Initialisms keep one case**: `ID`, `URL`, `HTTP`, `API`, `DB`, `CSRF`, `JSON`, `SQL`. So `userID`,
    `SessionUser.CSRF`, `appURL`, never `userId` or `Url`. Millisecond fields carry the suite's `MS`
    suffix (`NowMS`, `CreatedAtMS`) — not `Ms`, `Millis`, or `_ms` (house rule).

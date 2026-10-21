@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/search"
 	"sick-fansubs/internal/store"
 )
@@ -123,7 +122,6 @@ func Search(db *sql.DB, publicBaseURL string) http.HandlerFunc {
 // built FTS5 MATCH argument — user text never reaches the SQL layer as
 // syntax. The shared limit plumbing lives in list_params.go.
 func parseSearchParams(w http.ResponseWriter, r *http.Request) (store.SearchQuery, bool) {
-	logger := logging.From(r.Context())
 	query, ok := strictQueryParams(w, r, "q", "type", "sort", "from", "to", "limit", "after")
 	if !ok {
 		return store.SearchQuery{}, false
@@ -151,7 +149,7 @@ func parseSearchParams(w http.ResponseWriter, r *http.Request) (store.SearchQuer
 		}
 		// Unreachable for the current BuildQuery implementation, but a
 		// future sanitizer failure must not leak: treat it as server-side.
-		writeInternalError(w, r, logger, "search query construction failed", "error", err)
+		writeInternalError(w, r, "search query construction failed", "error", err)
 		return store.SearchQuery{}, false
 	}
 

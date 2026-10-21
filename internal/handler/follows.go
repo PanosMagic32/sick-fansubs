@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
 
@@ -52,7 +51,6 @@ type followStatusDTO struct {
 // favorites status contract).
 func FollowsStatus(kind followKind, db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" follow status requires authentication")
 		if !ok {
 			return
@@ -68,7 +66,7 @@ func FollowsStatus(kind followKind, db *sql.DB) http.HandlerFunc {
 
 		published, following, err := store.FollowStatus(r.Context(), db, kind.content, su.UserID, id)
 		if err != nil {
-			writeInternalError(w, r, logger, kind.label+" follow status failed", "error", err)
+			writeInternalError(w, r, kind.label+" follow status failed", "error", err)
 			return
 		}
 		if !published {
@@ -119,7 +117,6 @@ func FollowsAdd(kind followKind, db *sql.DB, now func() time.Time) http.HandlerF
 // (middleware).
 func FollowsRemove(kind followKind, db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" follow remove requires authentication")
 		if !ok {
 			return
@@ -131,7 +128,7 @@ func FollowsRemove(kind followKind, db *sql.DB) http.HandlerFunc {
 		}
 
 		if err := store.RemoveFollow(r.Context(), db, kind.content, su.UserID, id); err != nil {
-			writeInternalError(w, r, logger, kind.label+" follow remove failed", "error", err)
+			writeInternalError(w, r, kind.label+" follow remove failed", "error", err)
 			return
 		}
 

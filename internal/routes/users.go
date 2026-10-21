@@ -14,13 +14,13 @@ import (
 // the same-typed strings (origin, public base URL, data dir) from being
 // swapped silently at a call site.
 type UsersDeps struct {
-	DB                *sql.DB
-	Secure            bool
-	TrustedOrigin     string
-	PublicBaseURL     string
-	DataDir           string
-	Sender            mail.Sender
-	VerifySendLimiter *middleware.RateLimiter
+	DB                *sql.DB                 // application pool
+	Secure            bool                    // Secure attribute on session cookies
+	TrustedOrigin     string                  // exact origin allowed for unsafe requests
+	PublicBaseURL     string                  // canonical public origin for emitted URLs
+	DataDir           string                  // media data root
+	Sender            mail.Sender             // transactional mail relay
+	VerifySendLimiter *middleware.RateLimiter // shared verification-send bucket
 }
 
 // Users registers user endpoints under /api/v1/users/.

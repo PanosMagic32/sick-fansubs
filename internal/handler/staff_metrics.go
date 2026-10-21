@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"sick-fansubs/internal/identity"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
 
@@ -118,7 +117,6 @@ type staffMetrics struct {
 // touches the database.
 func StaffMetrics(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "staff metrics requires authentication")
 		if !ok {
 			return
@@ -133,7 +131,7 @@ func StaffMetrics(db *sql.DB) http.HandlerFunc {
 
 		totals, err := store.GetMetricsTotals(r.Context(), db)
 		if err != nil {
-			writeInternalError(w, r, logger, "staff metrics totals failed", "error", err)
+			writeInternalError(w, r, "staff metrics totals failed", "error", err)
 			return
 		}
 
@@ -143,7 +141,7 @@ func StaffMetrics(db *sql.DB) http.HandlerFunc {
 		since := time.Now().Add(-metricsActivityWindow)
 		activity, err := store.GetMetricsActivity(r.Context(), db, since.UnixMilli())
 		if err != nil {
-			writeInternalError(w, r, logger, "staff metrics activity failed", "error", err)
+			writeInternalError(w, r, "staff metrics activity failed", "error", err)
 			return
 		}
 

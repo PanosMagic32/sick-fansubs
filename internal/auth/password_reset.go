@@ -69,20 +69,26 @@ func (s *Service) ForgotPassword(ctx context.Context, identifier string) (userID
 	}
 
 	// Mint the token (reuses the session-token material shape: 32 bytes
-	// crypto/rand, base64url on the wire, SHA-256 at rest).
-	_, encoded, digest, err := generateSessionToken()
+	// crypto/rand, base64url on the wire, SHA-256 at rest). A digest collision
+	// is retried with fresh material within the bounded budget.
+	encoded, err := retryDuplicate(func() (string, error) {
+		_, encoded, digest, err := generateSessionToken()
+		if err != nil {
+			return "", fmt.Errorf("auth: generate reset token: %w", err)
+		}
+		now := time.Now().UnixMilli()
+		if err := store.CreateResetToken(ctx, s.db, store.CreateResetTokenParams{
+			TokenDigest: digest,
+			UserID:      u.ID,
+			CreatedAtMS: now,
+			ExpiresAtMS: now + resetTokenLifetime.Milliseconds(),
+		}); err != nil {
+			return "", fmt.Errorf("auth: store reset token: %w", err)
+		}
+		return encoded, nil
+	})
 	if err != nil {
-		return u.ID, fmt.Errorf("auth: generate reset token: %w", err)
-	}
-
-	now := time.Now().UnixMilli()
-	if err := store.CreateResetToken(ctx, s.db, store.CreateResetTokenParams{
-		TokenDigest: digest,
-		UserID:      u.ID,
-		CreatedAtMS: now,
-		ExpiresAtMS: now + resetTokenLifetime.Milliseconds(),
-	}); err != nil {
-		return u.ID, fmt.Errorf("auth: store reset token: %w", err)
+		return u.ID, err
 	}
 
 	subject, body := mail.ResetEmail(s.base + "/auth/reset?token=" + encoded)

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"sick-fansubs/internal/audit"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/middleware"
 	"sick-fansubs/internal/store"
 )
@@ -123,7 +122,6 @@ func SessionsList(db *sql.DB, now func() time.Time) http.HandlerFunc {
 // a failure row when the delete was attempted and failed.
 func SessionRevoke(db *sql.DB, secure bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "session revoke requires authentication")
 		if !ok {
 			return
@@ -137,7 +135,7 @@ func SessionRevoke(db *sql.DB, secure bool) http.HandlerFunc {
 		deleted, err := store.RevokeSession(r.Context(), db, su.UserID, id)
 		if err != nil {
 			logAuditEvent(r, audit.EventSessionRevoked, audit.ResultFailure, su.UserID)
-			writeInternalError(w, r, logger, "session revoke failed", "error", err)
+			writeInternalError(w, r, "session revoke failed", "error", err)
 			return
 		}
 

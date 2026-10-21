@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"unicode/utf8"
 
 	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/logging"
@@ -46,7 +47,7 @@ func (h *Auth) HandlePasswordChange(w http.ResponseWriter, r *http.Request) {
 	// Bound the current password like sign-in's password field (a separately
 	// bounded field). Verification
 	// compares at most 72 bytes, but the request contract stays explicit.
-	if len(req.CurrentPassword) > 128 {
+	if utf8.RuneCountInString(req.CurrentPassword) > 128 {
 		writeValidationErrors(w, r, []Violation{
 			{Field: "currentPassword", Code: "maxLength"},
 		})
@@ -113,7 +114,7 @@ func (h *Auth) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if len(req.Identifier) > 256 {
+	if utf8.RuneCountInString(req.Identifier) > 256 {
 		writeValidationErrors(w, r, []Violation{
 			{Field: "identifier", Code: "maxLength"},
 		})
@@ -141,7 +142,7 @@ func (h *Auth) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
 		if userID != "" {
 			h.logAudit(r, audit.EventPasswordResetRequested, audit.ResultFailure, userID)
 		}
-		writeInternalError(w, r, logger, "forgot-password failed", "error", err)
+		writeInternalError(w, r, "forgot-password failed", "error", err)
 		return
 	}
 

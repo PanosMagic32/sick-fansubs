@@ -19,6 +19,7 @@ func testFrontendFS() fstest.MapFS {
 		"web/dist/sw.js":                {Data: []byte(`const SF_VERSION = "dev";\nself.addEventListener("fetch", () => {});\n`)},
 		"web/dist/manifest.json":        {Data: []byte(`{"name":"Sick-Fansubs","icons":[{"src":"/icons/icon-192.png"}]}`)},
 		"web/dist/icons/icon-192.png":   {Data: []byte("png-bytes")},
+		"web/dist/favicon.ico":          {Data: []byte("ico-bytes")},
 		"web/dist/assets/app-abc123.js": {Data: []byte("console.log('hashed')")},
 	}
 }
@@ -154,6 +155,18 @@ func TestFrontendHashedAssetsKeepImmutableCache(t *testing.T) {
 	}
 	if got := rec.Header().Get("Cache-Control"); got != "public, max-age=31536000, immutable" {
 		t.Errorf("Cache-Control = %q, want immutable", got)
+	}
+}
+
+func TestFrontendUnhashedFilesRevalidate(t *testing.T) {
+	h := newTestFrontend(t, "v1")
+
+	rec := doFrontend(t, h, http.MethodGet, "/favicon.ico")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Errorf("Cache-Control = %q, want no-cache for an unhashed file", got)
 	}
 }
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"net/http"
+	"unicode/utf8"
 
 	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/auth"
@@ -68,6 +69,12 @@ func EmailChange(db *sql.DB, svc *auth.Service, publicBaseURL string, limiter *m
 		}
 		if req.CurrentPassword == "" {
 			violations = append(violations, Violation{Field: "currentPassword", Code: "required"})
+		}
+		if utf8.RuneCountInString(req.Email) > 254 {
+			violations = append(violations, Violation{Field: "email", Code: "maxLength"})
+		}
+		if utf8.RuneCountInString(req.CurrentPassword) > 128 {
+			violations = append(violations, Violation{Field: "currentPassword", Code: "maxLength"})
 		}
 		if len(violations) > 0 {
 			writeValidationErrors(w, r, violations)

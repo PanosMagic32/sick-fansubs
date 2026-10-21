@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"sick-fansubs/internal/auth"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
 
@@ -42,6 +41,11 @@ var (
 
 	// errTrailingData reports a body with more than one JSON value; 400.
 	errTrailingData = errors.New("request body must contain exactly one JSON value")
+
+	// errIDMint marks a local identifier-mint failure inside a mintRetry
+	// operation, so the caller can keep its own message instead of reporting a
+	// store failure.
+	errIDMint = errors.New("handler: identifier mint")
 
 	// errInvalidCursor reports a cursor that fails strict decode; 400 — the
 	// cursor is one opaque token, and the reason is never distinguished.
@@ -112,7 +116,7 @@ func writeStoreOutcome(w http.ResponseWriter, r *http.Request, err error, op str
 		writeValidationErrors(w, r, []Violation{{Field: "slug", Code: "alreadyTaken"}})
 		return http.StatusUnprocessableEntity
 	}
-	writeInternalError(w, r, logging.From(r.Context()), op+" failed", args...)
+	writeInternalError(w, r, op+" failed", args...)
 	return http.StatusInternalServerError
 }
 
@@ -149,6 +153,6 @@ func writeAuthError(w http.ResponseWriter, r *http.Request, err error, op string
 		writeValidationErrors(w, r, violations, "error", err)
 		return http.StatusUnprocessableEntity
 	}
-	writeInternalError(w, r, logging.From(r.Context()), op+" failed", args...)
+	writeInternalError(w, r, op+" failed", args...)
 	return http.StatusInternalServerError
 }

@@ -48,20 +48,26 @@ func (s *Service) SendVerificationEmail(ctx context.Context, userID string) erro
 		return fmt.Errorf("auth: sweep verification tokens: %w", err)
 	}
 
-	// Mint the token (the shared 32-byte material shape).
-	_, encoded, digest, err := generateSessionToken()
+	// Mint the token (the shared 32-byte material shape). A digest collision is
+	// retried with fresh material within the bounded budget.
+	encoded, err := retryDuplicate(func() (string, error) {
+		_, encoded, digest, err := generateSessionToken()
+		if err != nil {
+			return "", fmt.Errorf("auth: generate verification token: %w", err)
+		}
+		now := time.Now().UnixMilli()
+		if err := store.CreateVerificationToken(ctx, s.db, store.CreateVerificationTokenParams{
+			TokenDigest: digest,
+			UserID:      userID,
+			CreatedAtMS: now,
+			ExpiresAtMS: now + verificationTokenLifetime.Milliseconds(),
+		}); err != nil {
+			return "", fmt.Errorf("auth: store verification token: %w", err)
+		}
+		return encoded, nil
+	})
 	if err != nil {
-		return fmt.Errorf("auth: generate verification token: %w", err)
-	}
-
-	now := time.Now().UnixMilli()
-	if err := store.CreateVerificationToken(ctx, s.db, store.CreateVerificationTokenParams{
-		TokenDigest: digest,
-		UserID:      userID,
-		CreatedAtMS: now,
-		ExpiresAtMS: now + verificationTokenLifetime.Milliseconds(),
-	}); err != nil {
-		return fmt.Errorf("auth: store verification token: %w", err)
+		return err
 	}
 
 	subject, body := mail.VerifyEmail(s.base + "/auth/verify?token=" + encoded)

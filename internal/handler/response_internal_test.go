@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/middleware"
 )
 
@@ -21,9 +22,10 @@ func TestWriteInternalError_LogsOnceAndMasksTheBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/blog-posts", nil)
 	req = req.WithContext(middleware.SetRequestID(req.Context(), "req-1"))
+	req = req.WithContext(logging.With(req.Context(), logger))
 	rec := httptest.NewRecorder()
 
-	writeInternalError(rec, req, logger, "blog list query failed", "error", "database is locked")
+	writeInternalError(rec, req, "blog list query failed", "error", "database is locked")
 
 	lines := bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n"))
 	if len(lines) != 1 {

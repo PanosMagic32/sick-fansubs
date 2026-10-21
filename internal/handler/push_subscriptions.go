@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/ecdh"
 	"database/sql"
 	"encoding/base64"
 	"errors"
@@ -14,7 +15,6 @@ import (
 
 	"sick-fansubs/internal/auth"
 	"sick-fansubs/internal/id"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
 
@@ -96,7 +96,6 @@ func PushSubscriptionCreate(db *sql.DB, now func() time.Time) http.HandlerFunc {
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "push subscription create requires authentication")
 		if !ok {
 			return
@@ -124,7 +123,7 @@ func PushSubscriptionCreate(db *sql.DB, now func() time.Time) http.HandlerFunc {
 				endpoint, req.Keys.P256dh, req.Keys.Auth, auth.ClientLabel(r.UserAgent()), now().UnixMilli())
 		})
 		if errors.Is(err, errIDMint) {
-			writeInternalError(w, r, logger, "push subscription id generation failed", "error", err)
+			writeInternalError(w, r, "push subscription id generation failed", "error", err)
 			return
 		}
 		if err != nil {
@@ -157,7 +156,7 @@ func validatePushSubscriptionBody(w http.ResponseWriter, r *http.Request, req pu
 		}
 	}
 
-	if !validPushKey(req.Keys.P256dh, p256dhDecodedLen) {
+	if !validP256dhKey(req.Keys.P256dh) {
 		violations = append(violations, Violation{Field: "keys.p256dh", Code: "invalidFormat"})
 	}
 	if !validPushKey(req.Keys.Auth, authDecodedLen) {
@@ -172,12 +171,28 @@ func validatePushSubscriptionBody(w http.ResponseWriter, r *http.Request, req pu
 }
 
 // validPushKey reports whether key is base64url that decodes to exactly
-// want bytes. URL-safe decoding first (no padding — browsers send raw),
-// then padded variants the library also accepts (p256dh/auth base64url
-// as received).
+// want bytes.
 func validPushKey(key string, want int) bool {
-	if key == "" || len(key) > 512 {
+	raw, ok := decodePushKey(key)
+	return ok && len(raw) == want
+}
+
+// validP256dhKey reports whether key is a 65-byte uncompressed point on
+// P-256. Length alone is not enough: RFC 8291 §7 requires the application to
+// verify the point, or every later send fails at Unmarshal.
+func validP256dhKey(key string) bool {
+	raw, ok := decodePushKey(key)
+	if !ok || len(raw) != p256dhDecodedLen {
 		return false
+	}
+	_, err := ecdh.P256().NewPublicKey(raw)
+	return err == nil
+}
+
+// decodePushKey decodes base64url with or without padding (browsers send raw).
+func decodePushKey(key string) ([]byte, bool) {
+	if key == "" || len(key) > 512 {
+		return nil, false
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(key)
 	if err != nil {
@@ -185,17 +200,16 @@ func validPushKey(key string, want int) bool {
 		// uses (webpush-go pads before decoding).
 		raw, err = base64.URLEncoding.DecodeString(key)
 		if err != nil {
-			return false
+			return nil, false
 		}
 	}
-	return len(raw) == want
+	return raw, true
 }
 
 // PushSubscriptionsList returns GET /api/v1/push-subscriptions — the
 // user's subscription rows for the settings list.
 func PushSubscriptionsList(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "push subscriptions list requires authentication")
 		if !ok {
 			return
@@ -205,7 +219,7 @@ func PushSubscriptionsList(db *sql.DB) http.HandlerFunc {
 		}
 		subs, err := store.ListPushSubscriptions(r.Context(), db, su.UserID)
 		if err != nil {
-			writeInternalError(w, r, logger, "push subscriptions list failed", "error", err)
+			writeInternalError(w, r, "push subscriptions list failed", "error", err)
 			return
 		}
 		items := make([]pushSubscriptionItemDTO, 0, len(subs))
@@ -230,7 +244,6 @@ func PushSubscriptionsList(db *sql.DB) http.HandlerFunc {
 // are masked — no existence disclosure).
 func PushSubscriptionDelete(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "push subscription delete requires authentication")
 		if !ok {
 			return
@@ -241,7 +254,7 @@ func PushSubscriptionDelete(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		if err := store.DeletePushSubscription(r.Context(), db, su.UserID, id); err != nil {
-			writeInternalError(w, r, logger, "push subscription delete failed", "error", err)
+			writeInternalError(w, r, "push subscription delete failed", "error", err)
 			return
 		}
 		writeNoContent(w, r)

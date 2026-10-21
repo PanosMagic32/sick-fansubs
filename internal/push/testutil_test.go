@@ -70,7 +70,11 @@ func testKeypair(t *testing.T) (public, private string) {
 	if err != nil {
 		t.Fatalf("generate keypair: %v", err)
 	}
-	public = base64.RawURLEncoding.EncodeToString(elliptic.Marshal(elliptic.P256(), priv.PublicKey.X, priv.PublicKey.Y))
+	publicBytes, err := priv.PublicKey.Bytes()
+	if err != nil {
+		t.Fatalf("encode public key: %v", err)
+	}
+	public = base64.RawURLEncoding.EncodeToString(publicBytes)
 	private = base64.RawURLEncoding.EncodeToString(priv.D.Bytes())
 	return public, private
 }
@@ -157,7 +161,11 @@ func subscribeTo(t *testing.T, db *sql.DB, userID, endpoint string) {
 	if err != nil {
 		t.Fatalf("generate subscription key: %v", err)
 	}
-	p256dh := base64.RawURLEncoding.EncodeToString(elliptic.Marshal(elliptic.P256(), priv.PublicKey.X, priv.PublicKey.Y))
+	p256dhBytes, err := priv.PublicKey.Bytes()
+	if err != nil {
+		t.Fatalf("encode subscription key: %v", err)
+	}
+	p256dh := base64.RawURLEncoding.EncodeToString(p256dhBytes)
 	authBytes := make([]byte, 16)
 	if _, err := rand.Read(authBytes); err != nil {
 		t.Fatalf("generate auth secret: %v", err)

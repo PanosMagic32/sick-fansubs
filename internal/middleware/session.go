@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"sick-fansubs/internal/problem"
 	"sick-fansubs/internal/store"
 )
 
@@ -59,7 +60,7 @@ func Session(db *sql.DB, secure bool) func(http.Handler) http.Handler {
 				return
 			}
 			if err != nil {
-				writeInternalError(w, r, "session lookup failed", "error", err)
+				problem.WriteInternal(w, r, RequestIDFrom(r.Context()), "session lookup failed", "error", err)
 				return
 			}
 

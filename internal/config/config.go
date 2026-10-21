@@ -33,6 +33,7 @@ import (
 	"crypto/ecdh"
 	"encoding/base64"
 	"fmt"
+	netmail "net/mail"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -109,7 +110,9 @@ type Config struct {
 	// is baked into the web bundle as well. The default is the PRODUCTION
 	// keypair's public half; the rotation flow regenerates both halves and
 	// swaps every copy. The PRIVATE half is the compose secret
-	// vapid_private_key via LoadSecret — never an env var.
+	// vapid_private_key via LoadSecret — never an environment variable in
+	// the app process (compose reads the VPS-side .env when it creates the
+	// secret).
 	VAPIDPublicKey string
 }
 
@@ -220,6 +223,15 @@ func (c *Config) validateSMTP() error {
 	}
 	if strings.ContainsAny(c.SMTPFrom, "\r\n") {
 		return fmt.Errorf("config: SMTP_FROM must not contain CR/LF")
+	}
+	if c.SMTPFrom != "" {
+		// The value feeds both the header From and the SMTP reverse-path;
+		// a display-name form is a legal header but an invalid envelope
+		// sender (RFC 5321 §4.1.2).
+		addr, err := netmail.ParseAddress(c.SMTPFrom)
+		if err != nil || addr.Name != "" || addr.Address != c.SMTPFrom {
+			return fmt.Errorf("config: SMTP_FROM must be a bare addr-spec, got %q", c.SMTPFrom)
+		}
 	}
 	return nil
 }

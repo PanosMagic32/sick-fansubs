@@ -10,7 +10,6 @@ import (
 	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/id"
 	"sick-fansubs/internal/identity"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/middleware"
 	"sick-fansubs/internal/push"
 	"sick-fansubs/internal/store"
@@ -30,7 +29,6 @@ func CommentsCreate(kind commentKind, db *sql.DB, notify push.Notifier, now func
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" comment create requires authentication")
 		if !ok {
 			return
@@ -65,7 +63,7 @@ func CommentsCreate(kind commentKind, db *sql.DB, notify push.Notifier, now func
 			return store.CreateComment(r.Context(), db, kind.content, contentID, su.UserID, body, commentID, now().UnixMilli())
 		})
 		if errors.Is(err, errIDMint) {
-			writeInternalError(w, r, logger, "comment id generation failed", "error", err)
+			writeInternalError(w, r, "comment id generation failed", "error", err)
 			return
 		}
 		if err != nil {
@@ -89,7 +87,6 @@ func CommentsReply(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" comment reply requires authentication")
 		if !ok {
 			return
@@ -137,7 +134,7 @@ func CommentsReply(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 			return notified{event: event, emitted: emitted}, err
 		})
 		if errors.Is(err, errIDMint) {
-			writeInternalError(w, r, logger, "reply id generation failed", "error", err)
+			writeInternalError(w, r, "reply id generation failed", "error", err)
 			return
 		}
 		if err != nil {
@@ -218,7 +215,6 @@ func CommentsDelete(kind commentKind, db *sql.DB, notify push.Notifier, now func
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" comment delete requires authentication")
 		if !ok {
 			return
@@ -276,7 +272,7 @@ func CommentsDelete(kind commentKind, db *sql.DB, notify push.Notifier, now func
 			return notified{event: event, emitted: emitted}, err
 		})
 		if errors.Is(err, errIDMint) {
-			writeInternalError(w, r, logger, "comment_removed notification id generation failed", "error", err)
+			writeInternalError(w, r, "comment_removed notification id generation failed", "error", err)
 			return
 		}
 		if err != nil {
@@ -311,7 +307,6 @@ func CommentsHeart(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, kind.label+" comment heart requires authentication")
 		if !ok {
 			return
@@ -347,7 +342,7 @@ func CommentsHeart(kind commentKind, db *sql.DB, notify push.Notifier, now func(
 			return notified{event: event, emitted: emitted}, err
 		})
 		if errors.Is(err, errIDMint) {
-			writeInternalError(w, r, logger, "heart notification id generation failed", "error", err)
+			writeInternalError(w, r, "heart notification id generation failed", "error", err)
 			return
 		}
 		if err != nil {

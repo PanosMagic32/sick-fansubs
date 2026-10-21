@@ -134,10 +134,10 @@ tag push ─▶ test job (Go + web) ─▶ build job (5 images → ghcr) ─▶ 
   images.** The preflight pulls auxiliary images directly by name for that reason; keep that shape
   when editing the script.
 - **A forged `X-Forwarded-For` must not change the resolved client.** `internal/middleware`
-  deliberately keeps no Go-side allowlist because the app publishes no port and Caddy parses the
-  header strictly against the static Cloudflare ranges; a client-supplied value is rejected.
-  Re-probe after any edge change, asserting the resolved address is the true client (not the
-  Cloudflare edge).
+  deliberately keeps no Go-side allowlist because the app publishes no port and Caddy replaces the
+  header with the address it resolved through `trusted_proxies` (`header_up X-Forwarded-For
+{http.request.client_ip}`); a client-supplied value is discarded. Re-probe after any edge change,
+  asserting the resolved address is the true client (not the Cloudflare edge).
 - **`.env` names only a healthy deploy.** The deploy phase exports the new pair to compose and
   commits it to `.env` after the health gate, so a failed or interrupted deploy leaves the previous
   pair in place — "re-run failed jobs" still computes the right rollback target. Rollback restores

@@ -1,7 +1,9 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
+	"crypto/ecdh"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -80,12 +82,19 @@ func pushAuthedReq(method, path, userID, body string) *http.Request {
 
 // realSubscriptionBody returns a body with real-shaped key material.
 func realSubscriptionBody() string {
-	// Zero-filled bytes of the right LENGTHS (65/16) — the handler only checks
-	// decode lengths, so any base64 of that size is fine (the store never
-	// validates key content either).
-	p256dh := base64.RawURLEncoding.EncodeToString(make([]byte, 65))
+	p256dh := validP256dhKey()
 	auth := base64.RawURLEncoding.EncodeToString(make([]byte, 16))
 	return `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + p256dh + `","auth":"` + auth + `"}}`
+}
+
+// validP256dhKey returns a deterministic uncompressed P-256 point: a real key
+// the handler's on-curve check accepts.
+func validP256dhKey() string {
+	key, err := ecdh.P256().NewPrivateKey(bytes.Repeat([]byte{1}, 32))
+	if err != nil {
+		panic(err) // fixed scalar on P-256 cannot be invalid
+	}
+	return base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes())
 }
 
 func servePush(mux http.Handler, req *http.Request) *httptest.ResponseRecorder {
@@ -195,11 +204,12 @@ func TestPushSubscriptionCreateValidation(t *testing.T) {
 		body string
 		code int
 	}{
-		{"unknown field", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 65)) + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"},"extra":1}`, http.StatusBadRequest},
+		{"unknown field", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"},"extra":1}`, http.StatusBadRequest},
 		{"missing endpoint", `{"keys":{"p256dh":"AAAA","auth":"AAAA"}}`, http.StatusUnprocessableEntity},
-		{"non-https endpoint", `{"endpoint":"http://push.example.com/e","keys":{"p256dh":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 65)) + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		{"non-https endpoint", `{"endpoint":"http://push.example.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
 		{"wrong p256dh length", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"AAAA","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
-		{"wrong auth length", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 65)) + `","auth":"AAAA"}}`, http.StatusUnprocessableEntity},
+		{"off-curve p256dh", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + base64.RawURLEncoding.EncodeToString(append([]byte{0x04}, make([]byte, 64)...)) + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		{"wrong auth length", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"AAAA"}}`, http.StatusUnprocessableEntity},
 		{"non-base64 key", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"!!!","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
 	}
 	for _, tc := range cases {
@@ -215,7 +225,7 @@ func TestPushSubscriptionCreateValidation(t *testing.T) {
 func TestPushSubscriptionDelete(t *testing.T) {
 	db, mux := setupPushHandlers(t)
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s1", "viewer",
-		"https://push.example.com/e", base64.RawURLEncoding.EncodeToString(make([]byte, 65)),
+		"https://push.example.com/e", validP256dhKey(),
 		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
@@ -247,12 +257,12 @@ func TestPushSubscriptionDelete(t *testing.T) {
 func TestPushSubscriptionRename(t *testing.T) {
 	db, mux := setupPushHandlers(t)
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s1", "viewer",
-		"https://push.example.com/e", base64.RawURLEncoding.EncodeToString(make([]byte, 65)),
+		"https://push.example.com/e", validP256dhKey(),
 		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
 		t.Fatalf("seed own: %v", err)
 	}
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s2", "plain",
-		"https://push.example.com/e2", base64.RawURLEncoding.EncodeToString(make([]byte, 65)),
+		"https://push.example.com/e2", validP256dhKey(),
 		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
 		t.Fatalf("seed foreign: %v", err)
 	}

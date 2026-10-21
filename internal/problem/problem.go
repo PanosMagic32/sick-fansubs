@@ -29,6 +29,15 @@ func Write(w http.ResponseWriter, r *http.Request, status int, requestID, proble
 	WriteWithExtensions(w, r, status, requestID, problemType, title, nil)
 }
 
+// WriteInternal logs the failure once and writes the masked 500 problem. It is
+// the single implementation both the handler and middleware layers use; the
+// client never sees the internal detail.
+func WriteInternal(w http.ResponseWriter, r *http.Request, requestID, msg string, args ...any) {
+	logging.From(r.Context()).ErrorContext(r.Context(), msg, args...)
+	Write(w, r, http.StatusInternalServerError, requestID,
+		"/problems/internal-error", "Internal server error")
+}
+
 // WriteWithExtensions writes an RFC 9457 Problem Details response with
 // additional extension members (RFC 9457 §3.2). Extensions are endpoint-
 // specific, accepted contract shapes — e.g. the 422 "violations" array.

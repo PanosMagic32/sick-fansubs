@@ -54,6 +54,16 @@ func TestCloudflareRangesMatch(t *testing.T) {
 	}
 }
 
+// TestCaddyRewritesForwardedFor pins the trust boundary: Caddy must replace
+// a client-supplied X-Forwarded-For with the address it resolved through
+// trusted_proxies, so the app's left-most read cannot be spoofed.
+func TestCaddyRewritesForwardedFor(t *testing.T) {
+	caddy := readCF(t, filepath.Join(repoRoot(t), "Caddyfile"))
+	if !strings.Contains(caddy, "header_up X-Forwarded-For {http.request.client_ip}") {
+		t.Fatal("Caddyfile must replace X-Forwarded-For with {http.request.client_ip}")
+	}
+}
+
 func readCF(t *testing.T, path string) string {
 	t.Helper()
 	b, err := os.ReadFile(path)

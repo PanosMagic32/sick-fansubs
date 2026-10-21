@@ -10,7 +10,6 @@ import (
 	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/id"
 	"sick-fansubs/internal/identity"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/push"
 	"sick-fansubs/internal/slug"
 	"sick-fansubs/internal/store"
@@ -30,7 +29,6 @@ func ProjectCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 		now = time.Now
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, _, ok := staffRequester(w, r)
 		if !ok {
 			return
@@ -57,10 +55,11 @@ func ProjectCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 
 		var project *store.StaffProject
 		var events []store.NotificationEvent
+		var lastErr error
 		for range maxMintAttempts {
 			projectID, err := id.New()
 			if err != nil {
-				writeInternalError(w, r, logger, "content id generation failed", "error", err)
+				writeInternalError(w, r, "content id generation failed", "error", err)
 				return
 			}
 
@@ -94,6 +93,7 @@ func ProjectCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 				if errors.Is(err, store.ErrDuplicate) {
 					// The database rejected the freshly minted id. Retry the whole
 					// create with a new id; the failed attempt rolled back in full.
+					lastErr = err
 					idCollision = true
 					break
 				}
@@ -101,7 +101,7 @@ func ProjectCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 					// An absence is internal here too: the committed read-back
 					// raced a delete (the BlogCreate contract).
 					if errors.Is(err, store.ErrNotFound) {
-						writeInternalError(w, r, logger, "project create failed", "error", err)
+						writeInternalError(w, r, "project create failed", "error", err)
 						logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
 						return
 					}
@@ -119,12 +119,12 @@ func ProjectCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push
 				continue
 			}
 			// All maxSlugAttempts candidates collided for this id.
-			writeInternalError(w, r, logger, "project create failed", "reason", "slug attempts exhausted", "base", base)
+			writeInternalError(w, r, "project create failed", "error", err, "base", base)
 			logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
 			return
 		}
 		if project == nil {
-			writeInternalError(w, r, logger, "project create failed", "reason", "identifier attempts exhausted")
+			writeInternalError(w, r, "project create failed", "error", lastErr)
 			logAuditEvent(r, audit.EventContentCreated, audit.ResultFailure, su.UserID)
 			return
 		}

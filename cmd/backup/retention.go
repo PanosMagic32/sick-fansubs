@@ -10,12 +10,10 @@ import (
 	"strings"
 )
 
-// Retention and stale-stage cleanup for the backup directory: the two
-// operations that enumerate existing units rather than create one.
-
 // backupFolders lists date-stamped folders under backupDir, newest first
 // (YYYY-MM-DD strings sort chronologically). Foreign entries are never
-// returned and never touched.
+// returned and never touched. It and clearStaleStages are the two retention
+// operations that enumerate existing units rather than create one.
 func backupFolders(backupDir string) ([]string, error) {
 	entries, err := os.ReadDir(backupDir)
 	if os.IsNotExist(err) {

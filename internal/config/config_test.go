@@ -464,6 +464,14 @@ func TestLoadSMTP(t *testing.T) {
 			t.Error("SMTP_FROM with CRLF accepted")
 		}
 	})
+
+	t.Run("display-name from rejected", func(t *testing.T) {
+		devBase(t)
+		os.Setenv("SMTP_FROM", "Sick Fansubs <noreply@example.com>")
+		if _, err := Load(); err == nil {
+			t.Error("SMTP_FROM with a display name accepted (invalid SMTP reverse-path)")
+		}
+	})
 }
 
 // TestValidateMailRelay covers the API-surface-only environment

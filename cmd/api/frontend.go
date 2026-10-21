@@ -125,8 +125,15 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 		f, err := sub.Open(path)
 		if err == nil {
 			f.Close()
-			// Hashed asset — immutable cache.
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			// Vite emits content-hashed names under assets/, so those are safe
+			// to cache forever. Every other embedded file keeps its name across
+			// deploys and must revalidate (RFC 9111 freshness, RFC 8246
+			// immutable).
+			if strings.HasPrefix(path, "assets/") {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			fileServer.ServeHTTP(w, r)
 			return
 		}

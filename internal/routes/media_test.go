@@ -400,6 +400,19 @@ func TestMediaUpload_Validation(t *testing.T) {
 		}
 	})
 
+	t.Run("wrong request media type", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/media", strings.NewReader("file"))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", "http://localhost:3000")
+		req.AddCookie(&http.Cookie{Name: "sf_session", Value: cookie})
+		req.Header.Set("X-CSRF-Token", csrf)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("status = %d, want 415 for a non-multipart request", rec.Code)
+		}
+	})
+
 	t.Run("no parts at all", func(t *testing.T) {
 		// A multipart body with zero parts: no "file" — 422 {file, required}.
 		var buf bytes.Buffer

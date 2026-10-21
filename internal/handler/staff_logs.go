@@ -77,7 +77,6 @@ type staffLogs struct {
 // a below-floor request never reaches the sink.
 func StaffLogs(logDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "staff logs requires authentication")
 		if !ok {
 			return
@@ -119,7 +118,7 @@ func StaffLogs(logDir string) http.HandlerFunc {
 			Limit:    limit,
 		})
 		if err != nil {
-			writeInternalError(w, r, logger, "staff logs read failed", "error", err)
+			writeInternalError(w, r, "staff logs read failed", "error", err)
 			return
 		}
 

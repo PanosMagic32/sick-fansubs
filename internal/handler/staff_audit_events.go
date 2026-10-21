@@ -7,7 +7,6 @@ import (
 
 	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/identity"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
 
@@ -70,7 +69,6 @@ type staffAuditEvents struct {
 // The floor check runs BEFORE the query is parsed and before any store call.
 func StaffAuditEvents(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "staff audit events requires authentication")
 		if !ok {
 			return
@@ -101,7 +99,7 @@ func StaffAuditEvents(db *sql.DB) http.HandlerFunc {
 			Limit: limit,
 		})
 		if err != nil {
-			writeInternalError(w, r, logger, "staff audit events read failed", "error", err)
+			writeInternalError(w, r, "staff audit events read failed", "error", err)
 			return
 		}
 

@@ -62,13 +62,13 @@ func MediaDelete(dataDir string, db *sql.DB) http.HandlerFunc {
 					"/problems/not-found", "Not found")
 				return
 			}
-			writeInternalError(w, r, logger, "media stat failed", "error", unwrappedCause(err))
+			writeInternalError(w, r, "media stat failed", "error", unwrappedCause(err))
 			return
 		}
 
 		referenced, err := store.MediaPathReferenced(r.Context(), db, rel)
 		if err != nil {
-			writeInternalError(w, r, logger, "media reference check failed", "error", err)
+			writeInternalError(w, r, "media reference check failed", "error", err)
 			return
 		}
 		if referenced {
@@ -84,7 +84,7 @@ func MediaDelete(dataDir string, db *sql.DB) http.HandlerFunc {
 					"/problems/not-found", "Not found")
 				return
 			}
-			writeInternalError(w, r, logger, "media remove failed", "error", unwrappedCause(err))
+			writeInternalError(w, r, "media remove failed", "error", unwrappedCause(err))
 			return
 		}
 		logger.InfoContext(r.Context(), "media deleted",

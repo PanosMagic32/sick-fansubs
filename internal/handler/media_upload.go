@@ -2,12 +2,12 @@ package handler
 
 import (
 	"errors"
+	"mime"
 	"mime/multipart"
 	"net/http"
 
 	"sick-fansubs/internal/id"
 	"sick-fansubs/internal/identity"
-	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/media"
 )
 
@@ -45,7 +45,6 @@ type mediaUploadDTO struct {
 // URL field (the same value every media-emitting handler receives).
 func MediaUpload(dataDir, publicBaseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "media upload requires authentication")
 		if !ok {
 			return
@@ -61,11 +60,10 @@ func MediaUpload(dataDir, publicBaseURL string) http.HandlerFunc {
 		}
 		defer src.Close()
 
-		// Fresh random ID — uploads never reuse the migration's
-		// content-derived IDs.
+		// Fresh random ID — uploads never reuse a content-derived ID.
 		uploadID, err := id.New()
 		if err != nil {
-			writeInternalError(w, r, logger, "media upload id generation failed", "error", err)
+			writeInternalError(w, r, "media upload id generation failed", "error", err)
 			return
 		}
 
@@ -92,6 +90,13 @@ func MediaUpload(dataDir, publicBaseURL string) http.HandlerFunc {
 // caller must not continue. On success it returns the opened file part and
 // true; the caller closes it.
 func readUploadFile(w http.ResponseWriter, r *http.Request) (multipart.File, bool) {
+	// The request framing must be multipart/form-data (RFC 7578 §4.1);
+	// anything else is a media-type mismatch, not a malformed body.
+	if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "multipart/form-data" {
+		writeUnsupportedMediaType(w, r)
+		return nil, false
+	}
+
 	// Frame the whole multipart body before parsing: a request larger
 	// than file bound + slack dies here with a MaxBytesError instead of
 	// spooling an unbounded temp file.
@@ -141,7 +146,6 @@ func readUploadFile(w http.ResponseWriter, r *http.Request) (multipart.File, boo
 // header/decode failures are 422 file:invalidFormat, and everything else
 // is a logged generic 500.
 func writeProcessError(w http.ResponseWriter, r *http.Request, err error) {
-	logger := logging.From(r.Context())
 	switch {
 	case errors.Is(err, media.ErrInputTooLarge),
 		errors.Is(err, media.ErrPixelsTooBig),
@@ -153,6 +157,6 @@ func writeProcessError(w http.ResponseWriter, r *http.Request, err error) {
 		errors.Is(err, media.ErrDecode):
 		writeValidationErrors(w, r, []Violation{{Field: "file", Code: "invalidFormat"}})
 	default:
-		writeInternalError(w, r, logger, "upload processing failed", "error", err)
+		writeInternalError(w, r, "upload processing failed", "error", err)
 	}
 }

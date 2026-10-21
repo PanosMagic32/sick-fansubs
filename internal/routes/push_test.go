@@ -2,6 +2,8 @@ package routes
 
 import (
 	"context"
+	"crypto/ecdh"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
@@ -203,7 +205,11 @@ func TestPush_RoutesRegistered(t *testing.T) {
 	// its own chain and bucket are pinned in TestPush_TestSendRoute.
 	mux, _, cookie := setupPushMux(t, nil)
 
-	p256dh := base64.RawURLEncoding.EncodeToString(make([]byte, 65))
+	key, err := ecdh.P256().GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("generate P-256 key: %v", err)
+	}
+	p256dh := base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes())
 	auth := base64.RawURLEncoding.EncodeToString(make([]byte, 16))
 	body := `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + p256dh + `","auth":"` + auth + `"}}`
 

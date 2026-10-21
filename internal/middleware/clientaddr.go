@@ -15,12 +15,13 @@ import (
 // Trust: the header is accepted
 // without a Go-side allowlist, and that is deliberate. The app publishes NO
 // host port (`compose.yaml`: `expose` only) and Caddy is its only ingress, so
-// the only writers of the header are Caddy and, behind it, Cloudflare — and
-// Caddy parses X-Forwarded-For right-to-left against the static Cloudflare
-// ranges (`Caddyfile`, `trusted_proxies static … + trusted_proxies_strict`),
-// dropping any client-appended prefix before it reaches Go. The left-most
-// entry is therefore the original client. A second allowlist inside the app
-// would duplicate that trust boundary and add a way to get it wrong.
+// the only writer of the header is Caddy. Caddy resolves the client through
+// its static Cloudflare ranges (`Caddyfile`, `trusted_proxies static … +
+// trusted_proxies_strict`) and REPLACES `X-Forwarded-For` with that address
+// (`header_up X-Forwarded-For {http.request.client_ip}`), so a client-supplied
+// prefix never reaches Go. The header therefore carries one trusted value. A
+// second allowlist inside the app would duplicate that trust boundary and add
+// a way to get it wrong.
 //
 // A forwarded entry that does not parse as a bare IP literal (a malformed
 // value, or one carrying an IPv6 zone identifier — attacker-chosen text) is

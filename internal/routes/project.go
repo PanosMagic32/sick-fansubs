@@ -27,11 +27,11 @@ import (
 //
 // Middleware: the public GETs keep the public chain (RequestID only), and
 // the favoriters list keeps CSRF off its GET through authenticatedReadsChain.
-// The mutations carry authenticatedChain (RequestID → TrustedOrigin →
-// Session → ForcePasswordChange → CSRF; the method-aware mux picks the chain
-// per method on the same path). The admin subtree shares the same chain — CSRF only
-// validates unsafe methods, so the staff GETs pass through it untouched (the
-// favorites pattern). No rate limit on any of these: authenticated per-user
+// The staff/admin GETs (list + detail) also use authenticatedReadsChain; the
+// mutations carry authenticatedChain (RequestID → TrustedOrigin → Session →
+// ForcePasswordChange → CSRF; the method-aware mux picks the chain per method
+// on the same path). CSRF only validates unsafe methods, so a read-only chain
+// is enough for the GETs. No rate limit on any of these: authenticated per-user
 // operations protected by origin + CSRF. Unknown /api/v1 paths — the admin
 // subtree included — fall to the shared /api/v1/ JSON 404 (APIFallback).
 //

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"sick-fansubs/internal/audit"
-	"sick-fansubs/internal/logging"
 )
 
 // HandleVerifyEmail consumes a verification token and stamps the account
@@ -74,7 +73,6 @@ func writeVerificationTokenInvalid(w http.ResponseWriter, r *http.Request) {
 // unverified sends only), 500 (send/store failure — an explicit send
 // operation never silently drops).
 func (h *Auth) HandleResendVerification(w http.ResponseWriter, r *http.Request) {
-	logger := logging.From(r.Context())
 	su, ok := requireSession(w, r, "resend verification requires authentication")
 	if !ok {
 		return
@@ -86,7 +84,7 @@ func (h *Auth) HandleResendVerification(w http.ResponseWriter, r *http.Request) 
 	// landing between the check and the send makes the send a no-op.
 	verified, err := h.auth.IsEmailVerified(r.Context(), su.UserID)
 	if err != nil {
-		writeInternalError(w, r, logger, "resend-verification check failed", "error", err)
+		writeInternalError(w, r, "resend-verification check failed", "error", err)
 		return
 	}
 	if verified {
@@ -104,7 +102,7 @@ func (h *Auth) HandleResendVerification(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := h.auth.ResendVerification(r.Context(), su.UserID); err != nil {
-		writeInternalError(w, r, logger, "resend-verification failed", "error", err)
+		writeInternalError(w, r, "resend-verification failed", "error", err)
 		return
 	}
 
