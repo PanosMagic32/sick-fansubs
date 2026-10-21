@@ -162,7 +162,7 @@ func TestBlogDetail_Success(t *testing.T) {
 		t.Errorf("subtitle = %v, want empty", body["subtitle"])
 	}
 	if body["thumbnailUrl"] != "https://example.com/p1.jpg" {
-		t.Errorf("thumbnailUrl = %v, want legacy pass-through", body["thumbnailUrl"])
+		t.Errorf("thumbnailUrl = %v, want absolute pass-through", body["thumbnailUrl"])
 	}
 	if body["publishedAt"] != "1970-01-01T00:00:03.000Z" {
 		t.Errorf("publishedAt = %v, want canonical millisecond time", body["publishedAt"])
@@ -440,7 +440,7 @@ func TestBlogDetail_MasksMalformedLinks(t *testing.T) {
 
 	db, h := setupBlogDetail(t)
 
-	// The p1 fixture's third download carries legacy garbage — masked.
+	// The p1 fixture's third download carries malformed text — masked.
 	rec, body := doBlogDetail(t, h, "p1", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("p1 status = %d, want 200 (%v)", rec.Code, body)

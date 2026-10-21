@@ -59,7 +59,7 @@ type staffMetricsUserTotals struct {
 
 // staffMetricsContentTotals is one content type's status breakdown. Archived
 // ships alongside total/published/draft so total is self-explanatory on
-// imported data: the beta carries archived rows, and a total that does not
+// stored data: archived rows exist, and a total that does not
 // equal the sum of its parts would read as a bug.
 type staffMetricsContentTotals struct {
 	Total     int64 `json:"total"`

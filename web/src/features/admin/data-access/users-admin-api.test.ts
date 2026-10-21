@@ -62,8 +62,8 @@ describe("staff users API", () => {
       status: 200,
       jsonBody: {
         id: "u1",
-        username: "Beta",
-        email: "beta@example.com",
+        username: "Second",
+        email: "noreply@example.com",
         role: "user",
         status: "suspended",
         createdAt: "2023-11-14T22:13:20.000Z",
@@ -85,7 +85,7 @@ describe("staff users API", () => {
       status: 200,
       jsonBody: {
         id: "u2",
-        username: "Beta",
+        username: "Second",
         role: "user",
         status: "active",
         createdAt: "2023-11-14T22:13:20.000Z",
@@ -122,7 +122,7 @@ describe("staff users API", () => {
       status: 200,
       jsonBody: {
         id: "u1",
-        username: "Beta",
+        username: "Second",
         role: "moderator",
         status: "active",
         createdAt: "2023-11-14T22:13:20.000Z",

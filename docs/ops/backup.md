@@ -180,7 +180,7 @@ publish` means the unit was renamed but the directory could not be made crash-du
 
 - Index: [../README.md](../README.md)
 - Staged restore and the quarterly drill: [restore.md](restore.md)
-- Deploy sequence and rollback: [deploy.md](deploy.md); production cutover: [cutover.md](cutover.md)
+- Deploy sequence and rollback: [deploy.md](deploy.md)
 - SQLite backup/restore rules: [../patterns/go/sqlite.md](../patterns/go/sqlite.md)
 - The backup command: [../../cmd/backup/AGENTS.md](../../cmd/backup/AGENTS.md)
 - Media manifest contract: [../../internal/media/AGENTS.md](../../internal/media/AGENTS.md)

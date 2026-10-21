@@ -365,8 +365,8 @@ func TestUpdateBlogPost_ReplacesDownloads(t *testing.T) {
 	if n != 1 {
 		t.Errorf("row count = %d, want 1 after the replacement", n)
 	}
-	// The replacement row keeps the CONTENT row's created_at_ms (the import
-	// precedent), not the update's now.
+	// The replacement row keeps the CONTENT row's created_at_ms (the stamp
+	// rule), not the update's now.
 	var createdMS int64
 	if err := db.QueryRow(`SELECT created_at_ms FROM blog_post_downloads WHERE blog_post_id = 'p1'`).Scan(&createdMS); err != nil {
 		t.Fatalf("read stamp: %v", err)
@@ -521,9 +521,9 @@ func TestStaffBlogPostDraftVisibility(t *testing.T) {
 	}
 }
 
-// TestStaffBlogPost_NullCreatorUpdater pins the migrated-row shape: the
-// import never stamps creator/updater (NULL ids) and user deletion SETs
-// them NULL, so the staff detail must read both without a Scan error — a
+// TestStaffBlogPost_NullCreatorUpdater pins the NULL-id shape: creator/updater
+// can be absent and user deletion SETs them NULL, so the staff detail must
+// read both without a Scan error — a
 // NULL scan into a plain string fails with "converting NULL to string is
 // unsupported".
 func TestStaffBlogPost_NullCreatorUpdater(t *testing.T) {
@@ -544,7 +544,7 @@ func TestStaffBlogPost_NullCreatorUpdater(t *testing.T) {
 		// creator has no role weight, so any staff role sees it.
 		{"draft-null-both", "mig-draft", "draft", 0, nil, nil},
 		// Mixed shape: a NULL creator but a stamped updater (the first
-		// staff edit of a migrated row).
+		// staff edit of an unattributed row).
 		{"published-null-creator", "mig-mixed", "published", 5000, nil, "admin1"},
 	}
 	for _, c := range cases {
@@ -552,9 +552,9 @@ func TestStaffBlogPost_NullCreatorUpdater(t *testing.T) {
 			if _, err := db.Exec(
 				`INSERT INTO blog_posts (id, title, subtitle, description, thumbnail_url, status,
 					creator_id, updater_id, published_at_ms, created_at_ms, updated_at_ms, revision)
-				 VALUES (?, 'Migrated', '', '', 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
+				 VALUES (?, 'Stored', '', '', 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
 				 	?, ?, ?, NULLIF(?, 0), 1000, 1000, 1)`, c.id, c.status, c.creator, c.updater, c.publishedMS); err != nil {
-				t.Fatalf("seed migrated post: %v", err)
+				t.Fatalf("seed post without a creator: %v", err)
 			}
 
 			post, err := GetStaffBlogPost(ctx, db, c.id, "mod1", 1)
@@ -574,10 +574,10 @@ func TestStaffBlogPost_NullCreatorUpdater(t *testing.T) {
 	}
 }
 
-// TestUpdateBlogPost_MigratedRow pins the edit path on a NULL-creator
-// migrated row: the staff pre-read (staffReadGate) AND the
+// TestUpdateBlogPost_NullCreator pins the edit path on a NULL-creator
+// row: the staff pre-read (staffReadGate) AND the
 // revision-guarded update must work.
-func TestUpdateBlogPost_MigratedRow(t *testing.T) {
+func TestUpdateBlogPost_NullCreator(t *testing.T) {
 	t.Parallel()
 	db := setupBlogAdminStore(t)
 	ctx := t.Context()
@@ -585,9 +585,9 @@ func TestUpdateBlogPost_MigratedRow(t *testing.T) {
 	if _, err := db.Exec(
 		`INSERT INTO blog_posts (id, title, subtitle, description, thumbnail_url, status,
 			creator_id, updater_id, published_at_ms, created_at_ms, updated_at_ms, revision)
-		 VALUES ('mig1', 'Migrated', '', '', 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
+		 VALUES ('mig1', 'Stored', '', '', 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
 		 	'published', NULL, NULL, 5000, 1000, 1000, 1)`); err != nil {
-		t.Fatalf("seed migrated post: %v", err)
+		t.Fatalf("seed post without a creator: %v", err)
 	}
 
 	// The pre-read a handler performs before the write (staffReadGate).
@@ -596,7 +596,7 @@ func TestUpdateBlogPost_MigratedRow(t *testing.T) {
 	}
 
 	post, _, err := UpdateBlogPost(ctx, db, "mig1", 1, UpdateBlogPostParams{
-		Title:        "Migrated",
+		Title:        "Stored",
 		Subtitle:     "",
 		Description:  "",
 		ThumbnailURL: "media/images/ab/abcdef0123456789abcdef0123456789.jpg",

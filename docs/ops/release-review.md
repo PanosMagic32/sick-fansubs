@@ -2,22 +2,21 @@
 
 ## Purpose
 
-The whole-application review that runs before every stable cutover: the agent lenses that run it,
+The whole-application review that runs before every stable release: the agent lenses that run it,
 the research-first and batch protocols, the ripple-ascending pass order, the findings model, and
 the owner gates that close it.
 
 This is a process review, not a diff review. Every change already passes its own adversarial review;
 this one targets cross-cutting drift that accumulated between slices, plus quality axes the slice
-reviews never covered — accessibility, SEO, infrastructure, and ripple effects. Legacy parity is not
-a review axis.
+reviews never covered — accessibility, SEO, infrastructure, and ripple effects.
 
 ## Rules
 
 1. **Whole-app scope, no fixed point.** Each batch reviews its subtree against the checklists below,
    the pattern docs (`docs/patterns/`), the wire contract (`docs/api/openapi.yaml`), and the scope's
    feature doc. Per-slice findings stay with the slice review; this review never re-litigates them.
-2. **Legacy parity is not an axis.** The new application is its own entity. Legacy material is
-   evidence about product behavior, never a checklist.
+2. **The application is its own entity.** The wire contract and the feature docs are the checklist;
+   no external system defines it.
 3. **Research first.** Every batch opens with a context brief built from primary sources: official
    language and platform documentation, the pattern docs, the feature docs, and the wire contract.
    The brief selects the batch tooling. Briefs live in the local, gitignored scratch directory
@@ -39,7 +38,7 @@ a review axis.
 9. **Pause only at batch boundaries.** Never stop inside a batch. Resume from the latest pass
    summary; the next batch starts only after the previous batch's findings and rulings are
    written.
-10. **Recurrence.** The review runs before every stable cutover, and on demand when the owner calls
+10. **Recurrence.** The review runs before every stable release, and on demand when the owner calls
     it. There is no fixed calendar.
 11. **The review workspace is local scratch, never committed.** The functionality inventory,
     context briefs, findings, and rulings live in a gitignored scratch directory
@@ -114,7 +113,7 @@ The owner pairs on VPS-adjacent batches: the agent writes the checklist, the own
 and the findings come back for review together.
 
 - **4.1 Docker images and Compose.** Every `Dockerfile*` (app, migrate, backup, restore,
-  rebuildsearch, importdata, importmedia, importavatars, caddy), `compose.yaml`, `.dockerignore`,
+  rebuildsearch, caddy), `compose.yaml`, `.dockerignore`,
   non-root uid/gid, pinned base images, secrets through `/run/secrets`, no baked credentials, layer
   hygiene.
 - **4.2 CI/CD.** The GitHub Actions workflow, the tag-deploy policy ([deploy.md](deploy.md)),
@@ -165,8 +164,8 @@ dependencies, and the review adds no Go dependencies.
 
 ### AppSec checklist (Pass 3)
 
-- **3.1 Authentication flows.** Sign-in, register, password-change, and reset contracts; legacy
-  bcrypt 72-byte verifier handling; session expiry; revocation through the auth version; reset
+- **3.1 Authentication flows.** Sign-in, register, password-change, and reset contracts; bcrypt
+  72-byte verifier handling; session expiry; revocation through the auth version; reset
   tokens (single use, hashed, short TTL).
 - **3.2 Session, CSRF, and origin chain.** Cookie flags, the opaque session shape, chain order
   (the rule is [route-chains.md](../patterns/go/route-chains.md) rules 3–4: origin before the path
@@ -192,13 +191,12 @@ dependencies, and the review adds no Go dependencies.
   OpenAPI document, chain order, problem types, DTO shapes, 422 violation codes.
 - **1.3 `internal/auth`, `internal/identity`, `internal/problem`.** Business rules, session and user
   shapes, expiry logic, problem types and 422 shapes.
-- **1.4 `internal/media`, `internal/search`, `internal/slug`, `internal/migration`.** The pure-Go
-  pipeline, FTS5 query construction, Greek normalization, transliteration, import transforms.
+- **1.4 `internal/media`, `internal/search`, `internal/slug`.** The pure-Go pipeline, FTS5 query
+  construction, Greek normalization, transliteration.
 - **1.5 `internal/audit` and `internal/config`.** Event schema, environment variables and defaults,
   the config loader and its secrets.
 - **1.6 `cmd/*`.** `api` (startup/shutdown, sweeps, frontend serving), `migrate`, `backup`,
-  `restore`, `importdata`, `importavatars`, `importmedia`, `fetchmedia`, `rebuildsearch`,
-  `resetpassword`, `sweepmedia`, `docslint`.
+  `restore`, `rebuildsearch`, `resetpassword`, `sweepmedia`, `docslint`.
 - **1.7 `web/src` architecture.** Lit patterns, feature-folder discipline, state locality, API
   transport separation, TypeScript strictness, memory (leaks, listener cleanup, happy-dom restore
   pairing).
@@ -263,7 +261,6 @@ Pause after batch 4.3. Pass summary: release review, pass 4, next batch 4.4.
 - SQLite rules the platform checkpoint reviews against:
   [../patterns/go/sqlite.md](../patterns/go/sqlite.md)
 - Wire contract: [../api/openapi.yaml](../api/openapi.yaml)
-- The other operations: [deploy.md](deploy.md), [backup.md](backup.md), [restore.md](restore.md),
-  [cutover.md](cutover.md)
+- The other operations: [deploy.md](deploy.md), [backup.md](backup.md), [restore.md](restore.md)
 - Package navigation: [../../AGENTS.md](../../AGENTS.md); middleware chain order:
   [../../internal/middleware/AGENTS.md](../../internal/middleware/AGENTS.md)

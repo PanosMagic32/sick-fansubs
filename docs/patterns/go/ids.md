@@ -19,11 +19,9 @@ guards in `internal/codestyle`.
    `INTEGER PRIMARY KEY` instead; no application table does — the runner's `schema_migrations`
    metadata table is the one integer-PK table, and session ids are public revocation handles and
    stay `TEXT`.
-3. **Migrated records keep their legacy identifier where the row preserves one.** The import
-   preserves a valid MongoDB ObjectId string exactly for user IDs and project batch sub-ObjectIds
-   when present (a migration key, never a MongoDB runtime object); content identifiers instead
-   derive deterministically from the legacy ObjectId (`deriveTargetID`). The tree therefore stores
-   two shapes: 24-hex preserved ids and 32-hex generated or derived ones.
+3. **Some stored rows carry a 24-hex identifier.** User IDs and project batch ids may be
+   exactly 24 lowercase hex characters; every newly generated identifier uses the 32-hex shape.
+   The tree therefore stores two shapes: 24-hex ids and 32-hex generated ones.
 4. **Identifier checks stay shape-agnostic.** No query, DTO, or path check may require the 24-hex
    or 32-hex form of a domain or public identifier; the two shapes exist on purpose and public
    clients must not infer creation time or record type from a value. Two deliberately narrow
@@ -75,17 +73,13 @@ if err != nil {
 - `internal/middleware/request_id.go` — the only `Fallback` caller: mints, degrades, logs once.
 - `internal/handler/comments_write.go` — handler mints with op-specific failure messages
   (`"comment id generation failed"`).
-- `internal/migration/ids.go` — content ids derive from the legacy ObjectId (`deriveTargetID`);
-  blog download rows get fresh ids at the import edge (`import.go`), while project batch rows
-  preserve the legacy sub-ObjectId when present (`project.go`) — the rule-3 migrated-identifier
-  case.
 - `internal/codestyle/rules_test.go` — `TestIDMintingConfined`, `TestStoreDoesNotImportMedia`.
 
 ## Gotchas
 
 - **Do not add the standard library's `uuid` package** (since Go 1.27; [toolchain.md](toolchain.md)).
-  The stored shapes predate it, the migration preserves 24-hex ObjectIds, and a third shape would
-  buy nothing.
+  The stored shapes predate it and some rows keep their 24-hex ids, so a third shape would buy
+  nothing.
 - **A `Fallback` value is guessable.** It is fine for correlating a request in logs and never for
   anything a user could act on, guess, or trade on.
 - **`internal/id` has no module imports.** It stays a leaf package so every layer may depend on it

@@ -101,7 +101,7 @@ func TestProcessContentThumbnail_OpaquePNGBecomesJPEG(t *testing.T) {
 }
 
 // The two minimal WebP fixtures below are standard 1×1 test vectors (one
-// lossy VP8, one lossless VP8L). WebP is the dominant legacy format — the
+// lossy VP8, one lossless VP8L). WebP is a common source format — the
 // pipeline must decode it (WebP input accepted).
 func TestProcessContentThumbnail_WebPDecodes(t *testing.T) {
 	t.Parallel()
@@ -594,7 +594,7 @@ func TestProcessAvatar_RejectsHugeHeader(t *testing.T) {
 	}
 }
 
-// TestProcessAvatar_WebPDecodes pins the legacy-format contract: WebP
+// TestProcessAvatar_WebPDecodes pins the WebP contract: WebP
 // sources decode (WebP input accepted) and upscale to 200×200.
 func TestProcessAvatar_WebPDecodes(t *testing.T) {
 	t.Parallel()

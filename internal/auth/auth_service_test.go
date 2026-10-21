@@ -160,10 +160,10 @@ func TestSignIn_FallbackAtInUsername(t *testing.T) {
 	ctx := t.Context()
 	svc := newTestService(db)
 
-	// Simulate a legacy user whose username contains '@' by inserting directly.
-	// Current registration (isAlphanumeric) rejects '@', but migrated data may have it.
+	// Simulate a stored user whose username contains '@' by inserting directly.
+	// Current registration (isAlphanumeric) rejects '@', but stored data may have it.
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy01",
+		ID:           "user01",
 		Username:     "m@ria",
 		Email:        "maria@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
@@ -179,28 +179,28 @@ func TestSignIn_FallbackAtInUsername(t *testing.T) {
 	}
 }
 
-func TestSignIn_ImportedWhitespaceUsernames(t *testing.T) {
+func TestSignIn_IrregularWhitespaceUsernames(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
 	ctx := t.Context()
 	svc := newTestService(db)
 
-	// Imported names keep their legacy spacing; a sign-in form cannot
+	// Stored names keep their original spacing; a sign-in form cannot
 	// reproduce a leading, trailing, or doubled space.
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy11",
+		ID:           "user11",
 		Username:     "John Doe",
 		Email:        "jd@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
 	})
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy12",
+		ID:           "user12",
 		Username:     "Jane Doe ",
 		Email:        "janed@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
 	})
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy13",
+		ID:           "user13",
 		Username:     "Bob  Smith",
 		Email:        "bob@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
@@ -211,9 +211,9 @@ func TestSignIn_ImportedWhitespaceUsernames(t *testing.T) {
 		typed string
 		want  string
 	}{
-		{"inner space matches exactly", "John Doe", "legacy11"},
-		{"trailing space falls back", "Jane Doe", "legacy12"},
-		{"doubled space falls back", "Bob Smith", "legacy13"},
+		{"inner space matches exactly", "John Doe", "user11"},
+		{"trailing space falls back", "Jane Doe", "user12"},
+		{"doubled space falls back", "Bob Smith", "user13"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -235,13 +235,13 @@ func TestSignIn_AmbiguousWhitespaceMatchFailsClosed(t *testing.T) {
 	svc := newTestService(db)
 
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy11",
+		ID:           "user11",
 		Username:     "Dana Fox",
 		Email:        "dana@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
 	})
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy12",
+		ID:           "user12",
 		Username:     "Dana  Fox",
 		Email:        "dana2@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
@@ -258,7 +258,7 @@ func TestSignIn_AmbiguousWhitespaceMatchFailsClosed(t *testing.T) {
 // TestSignIn_RehashLowCostVerifier pins the atomic rehash+session contract:
 // the rehash bumps auth_version, and the session insert must use the bumped
 // version — against the stale version INSERT…SELECT matches zero rows and a
-// migrated cost<12 account fails its first sign-in with a generic 401.
+// low-cost account fails its first sign-in with a generic 401.
 func TestSignIn_RehashLowCostVerifier(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
@@ -267,27 +267,27 @@ func TestSignIn_RehashLowCostVerifier(t *testing.T) {
 	// (cost 12), so the low-cost test seam must not apply.
 	svc := New(db, mail.LogLink{}, "")
 
-	// Migrated account: valid verifier at cost 4 (below the target 12).
+	// Stored account: valid verifier at cost 4 (below the target 12).
 	lowCostHash, err := bcrypt.GenerateFromPassword([]byte("password123"), 4)
 	if err != nil {
 		t.Fatalf("bcrypt cost 4: %v", err)
 	}
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "migrated01",
-		Username:     "Migrated",
+		ID:           "stored01",
+		Username:     "Stored",
 		PasswordHash: string(lowCostHash),
 	})
 
-	sessionTok, _, user, _, err := svc.SignIn(ctx, "Migrated", "password123", "")
+	sessionTok, _, user, _, err := svc.SignIn(ctx, "Stored", "password123", "")
 	if err != nil {
-		t.Fatalf("first sign-in after migration must succeed: %v", err)
+		t.Fatalf("first sign-in with a low-cost verifier must succeed: %v", err)
 	}
-	if user.ID != "migrated01" {
-		t.Errorf("user.ID: got %q, want %q", user.ID, "migrated01")
+	if user.ID != "stored01" {
+		t.Errorf("user.ID: got %q, want %q", user.ID, "stored01")
 	}
 
 	// The verifier was rehashed to the target cost and the version bumped…
-	u, err := store.UserByID(ctx, db, "migrated01")
+	u, err := store.UserByID(ctx, db, "stored01")
 	if err != nil {
 		t.Fatalf("UserByID: %v", err)
 	}
@@ -314,11 +314,11 @@ func TestSignIn_RehashLowCostVerifier(t *testing.T) {
 
 	// Second sign-in exercises the no-rehash path (verifier already at cost
 	// 12): succeeds without another version bump.
-	_, _, _, _, err = svc.SignIn(ctx, "Migrated", "password123", "")
+	_, _, _, _, err = svc.SignIn(ctx, "Stored", "password123", "")
 	if err != nil {
 		t.Fatalf("second sign-in: %v", err)
 	}
-	u, err = store.UserByID(ctx, db, "migrated01")
+	u, err = store.UserByID(ctx, db, "stored01")
 	if err != nil {
 		t.Fatalf("UserByID after second sign-in: %v", err)
 	}
@@ -496,10 +496,10 @@ func TestRegister_SpaceUsernames(t *testing.T) {
 		t.Errorf("SignIn(\"john doe\") = %v, want success", err)
 	}
 
-	// A legacy row differing only by whitespace is the SAME name: registration
+	// A stored row differing only by whitespace is the SAME name: registration
 	// must refuse the near-duplicate the login could not tell apart.
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy31",
+		ID:           "user31",
 		Username:     "Jane  Roe",
 		Email:        "jr@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
@@ -509,23 +509,23 @@ func TestRegister_SpaceUsernames(t *testing.T) {
 		t.Errorf("Register(a whitespace near-duplicate) = %v, want ErrUsernameTaken", err)
 	}
 
-	// Several legacy rows normalizing alike cannot be told apart either — the
+	// Several stored rows normalizing alike cannot be told apart either — the
 	// new name must not become a third near-duplicate the login then refuses.
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy32",
+		ID:           "user32",
 		Username:     "Dana  Fox",
 		Email:        "df@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
 	})
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy33",
+		ID:           "user33",
 		Username:     "Dana   Fox",
 		Email:        "df2@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
 	})
 	_, _, _, err = svc.Register(ctx, "dana fox", "df3@example.com", "password123", "")
 	if !errors.Is(err, ErrUsernameTaken) {
-		t.Errorf("Register(a name two legacy rows normalize to) = %v, want ErrUsernameTaken", err)
+		t.Errorf("Register(a name two stored rows normalize to) = %v, want ErrUsernameTaken", err)
 	}
 }
 
@@ -904,10 +904,9 @@ func TestVerificationTokenLifetime(t *testing.T) {
 	}
 }
 
-// TestBcryptCostConstants pins the tuned cost values; the migration
-// classifier mirrors the same literals on its own side
-// (internal/migration/user_test.go). Each side pins its own pair — change
-// both sides together.
+// TestBcryptCostConstants pins the tuned cost values. Stored verifiers may
+// carry a lower cost, so maxBcryptCost is the ceiling the sign-in path
+// accepts and bcryptCost the cost new hashes use.
 func TestBcryptCostConstants(t *testing.T) {
 	t.Parallel()
 	if bcryptCost != 12 {
@@ -1031,12 +1030,12 @@ func TestSignIn_WrongPasswordSkipsDummyComparison(t *testing.T) {
 	}
 }
 
-// TestSignIn_Over72ByteLegacyPassword pins the verification-only
-// truncation: a legacy library hashed only the first 72 bytes of an
+// TestSignIn_Over72BytePassword pins the verification-only
+// truncation: a stored hash may cover only the first 72 bytes of an
 // over-72-byte password, so the target must compare the 72-byte prefix. The
 // 72-byte boundary is BYTES, not characters — 40 Greek letters are 80 bytes
 // in UTF-8 without looking long at all.
-func TestSignIn_Over72ByteLegacyPassword(t *testing.T) {
+func TestSignIn_Over72BytePassword(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
 	ctx := t.Context()
@@ -1048,23 +1047,23 @@ func TestSignIn_Over72ByteLegacyPassword(t *testing.T) {
 		t.Fatalf("bcrypt prefix hash: %v", err)
 	}
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy01",
-		Username:     "Legacy",
+		ID:           "user01",
+		Username:     "Longpass",
 		PasswordHash: string(prefixHash),
 	})
 
-	// The FULL password verifies against the truncated legacy hash.
-	_, _, user, _, err := svc.SignIn(ctx, "Legacy", longPassword, "")
+	// The FULL password verifies against the truncated hash.
+	_, _, user, _, err := svc.SignIn(ctx, "Longpass", longPassword, "")
 	if err != nil {
-		t.Fatalf("over-72-byte legacy sign-in must succeed: %v", err)
+		t.Fatalf("over-72-byte sign-in must succeed: %v", err)
 	}
-	if user.ID != "legacy01" {
-		t.Errorf("user.ID: got %q, want %q", user.ID, "legacy01")
+	if user.ID != "user01" {
+		t.Errorf("user.ID: got %q, want %q", user.ID, "user01")
 	}
 
 	// The verifier is unchanged: cost 12 already, and truncation is
 	// verification-only — nothing is written anywhere.
-	u, err := store.UserByID(ctx, db, "legacy01")
+	u, err := store.UserByID(ctx, db, "user01")
 	if err != nil {
 		t.Fatalf("UserByID: %v", err)
 	}
@@ -1076,7 +1075,7 @@ func TestSignIn_Over72ByteLegacyPassword(t *testing.T) {
 	}
 
 	// A wrong over-72-byte password fails with the generic outcome.
-	_, _, _, _, err = svc.SignIn(ctx, "Legacy", strings.Repeat("β", 40), "")
+	_, _, _, _, err = svc.SignIn(ctx, "Longpass", strings.Repeat("β", 40), "")
 	if !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("wrong over-72-byte password: got %v, want ErrInvalidCredentials", err)
 	}
@@ -1098,16 +1097,16 @@ func TestSignIn_Over72ByteLowCostVerifierSkipsRehash(t *testing.T) {
 		t.Fatalf("bcrypt cost 4: %v", err)
 	}
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy02",
-		Username:     "Legacy2",
+		ID:           "user02",
+		Username:     "Longpass2",
 		PasswordHash: string(lowCostHash),
 	})
 
-	if _, _, _, _, err := svc.SignIn(ctx, "Legacy2", longPassword, ""); err != nil {
+	if _, _, _, _, err := svc.SignIn(ctx, "Longpass2", longPassword, ""); err != nil {
 		t.Fatalf("over-72-byte sign-in must succeed: %v", err)
 	}
 
-	u, err := store.UserByID(ctx, db, "legacy02")
+	u, err := store.UserByID(ctx, db, "user02")
 	if err != nil {
 		t.Fatalf("UserByID: %v", err)
 	}
@@ -1136,7 +1135,7 @@ func TestSignIn_VerifierAboveMaxCostRunsDummyComparison(t *testing.T) {
 		t.Fatalf("bcrypt cost 14: %v", err)
 	}
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy03",
+		ID:           "user03",
 		Username:     "HighCost",
 		PasswordHash: string(highCostHash),
 	})
@@ -1162,7 +1161,7 @@ func TestSignIn_VerifierAboveMaxCostRunsDummyComparison(t *testing.T) {
 // family gate: Go's parser accepts ANY minor character, so a
 // $2x$ verifier (the PHP-bug variant with different high-bit semantics)
 // would otherwise pass the cost gate and run a real comparison. The runtime
-// must deny non-$2a$/$2b$/$2y$ prefixes — imported verifiers are preserved
+// must deny non-$2a$/$2b$/$2y$ prefixes — stored verifiers are preserved
 // byte-for-byte, so this gate is the only thing standing between a
 // non-supported verifier and the expensive compare.
 //
@@ -1178,7 +1177,7 @@ func TestSignIn_UnsupportedVerifierPrefixRunsDummyComparison(t *testing.T) {
 	regular := mustBcryptHash(t, "password123")
 	x2xHash := "$2x$" + string(regular[4:])
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy06",
+		ID:           "user06",
 		Username:     "X2x",
 		PasswordHash: x2xHash,
 	})
@@ -1203,7 +1202,7 @@ func TestSignIn_UnsupportedVerifierPrefixRunsDummyComparison(t *testing.T) {
 }
 
 // TestChangePassword_Over72ByteCurrentPassword pins the second verification
-// site: a migrated over-72-byte credential verifies the same way
+// site: a stored over-72-byte credential verifies the same way
 // in the change-password current-password check, so the account can
 // self-repair to a ≤72-byte password.
 func TestChangePassword_Over72ByteCurrentPassword(t *testing.T) {
@@ -1215,17 +1214,17 @@ func TestChangePassword_Over72ByteCurrentPassword(t *testing.T) {
 	longPassword := strings.Repeat("α", 40)
 	prefixHash := mustBcryptHash(t, string([]byte(longPassword)[:72]))
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy04",
-		Username:     "Legacy4",
+		ID:           "user04",
+		Username:     "Longpass4",
 		PasswordHash: string(prefixHash),
 	})
 
-	if err := svc.ChangePassword(ctx, "legacy04", longPassword, "newpassword456"); err != nil {
+	if err := svc.ChangePassword(ctx, "user04", longPassword, "newpassword456"); err != nil {
 		t.Fatalf("ChangePassword with over-72-byte current password must succeed: %v", err)
 	}
 
 	// The new ≤72-byte password now signs in.
-	if _, _, _, _, err := svc.SignIn(ctx, "Legacy4", "newpassword456", ""); err != nil {
+	if _, _, _, _, err := svc.SignIn(ctx, "Longpass4", "newpassword456", ""); err != nil {
 		t.Fatalf("sign-in with the new password: %v", err)
 	}
 }
@@ -1245,12 +1244,12 @@ func TestChangePassword_VerifierAboveMaxCost(t *testing.T) {
 		t.Fatalf("bcrypt cost 14: %v", err)
 	}
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy05",
+		ID:           "user05",
 		Username:     "HighCost5",
 		PasswordHash: string(highCostHash),
 	})
 
-	err = svc.ChangePassword(ctx, "legacy05", "password123", "newpassword456")
+	err = svc.ChangePassword(ctx, "user05", "password123", "newpassword456")
 	if !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("above-max verifier: got %v, want ErrInvalidCredentials", err)
 	}
@@ -1318,17 +1317,17 @@ func TestForgotPassword_KnownUserSendsEmail(t *testing.T) {
 	}
 }
 
-// TestForgotPassword_ImportedWhitespaceUsername pins that the lenient lookup
-// serves self-service recovery too, so the cohort that can sign in with a
-// spaced legacy name can also reset its password.
-func TestForgotPassword_ImportedWhitespaceUsername(t *testing.T) {
+// TestForgotPassword_IrregularWhitespaceUsername pins that the lenient lookup
+// serves self-service recovery too, so a user stored with irregular spacing
+// can also reset its password.
+func TestForgotPassword_IrregularWhitespaceUsername(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
 	sender := &fakeSender{}
 	svc := newTestServiceWith(db, sender, "http://localhost:3000")
 
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy21",
+		ID:           "user21",
 		Username:     "Jane Doe ",
 		Email:        "janed@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
@@ -1338,8 +1337,8 @@ func TestForgotPassword_ImportedWhitespaceUsername(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ForgotPassword: %v", err)
 	}
-	if userID != "legacy21" {
-		t.Errorf("ForgotPassword(\"Jane Doe\") userID: got %q, want %q", userID, "legacy21")
+	if userID != "user21" {
+		t.Errorf("ForgotPassword(\"Jane Doe\") userID: got %q, want %q", userID, "user21")
 	}
 	if sender.count() != 1 {
 		t.Errorf("ForgotPassword(\"Jane Doe\") sent %d emails, want 1", sender.count())
@@ -1598,16 +1597,16 @@ func TestSendVerificationEmail_SendFailureKeepsTokenRow(t *testing.T) {
 	}
 }
 
-// TestRegister_EmailShadowingLegacyUsername pins the shadow rule: a new
-// registration cannot claim an email equal to a legacy account's username.
-func TestRegister_EmailShadowingLegacyUsername(t *testing.T) {
+// TestRegister_EmailShadowingUsername pins the shadow rule: a new
+// registration cannot claim an email equal to an account's username.
+func TestRegister_EmailShadowingUsername(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
 	svc := newTestService(db)
 	ctx := t.Context()
 
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:       "legacyshadow",
+		ID:       "shadowuser",
 		Username: "m@ria",
 	})
 
@@ -1621,7 +1620,7 @@ func TestRegister_EmailShadowingLegacyUsername(t *testing.T) {
 }
 
 // TestRegister_EmailShadowingWhitespaceVariantUsername pins the lenient shadow
-// rule: a migrated canon differing from the address only in whitespace still
+// rule: a stored canon differing from the address only in whitespace still
 // shadows, because sign-in and recovery resolve through the same lenient
 // lookup.
 func TestRegister_EmailShadowingWhitespaceVariantUsername(t *testing.T) {
@@ -1640,7 +1639,7 @@ func TestRegister_EmailShadowingWhitespaceVariantUsername(t *testing.T) {
 			svc := newTestService(db)
 			ctx := t.Context()
 
-			storetest.InsertUser(t, db, storetest.UserSpec{ID: "legacyvar", Username: tt.username})
+			storetest.InsertUser(t, db, storetest.UserSpec{ID: "variantuser", Username: tt.username})
 
 			_, _, _, err := svc.Register(ctx, "NewVar", "m@ria", "password123", "")
 			if !errors.Is(err, ErrEmailTaken) {
@@ -1650,16 +1649,16 @@ func TestRegister_EmailShadowingWhitespaceVariantUsername(t *testing.T) {
 	}
 }
 
-// TestChangeEmail_EmailShadowingLegacyUsername pins the same rule on the
-// change surface: another account cannot adopt an email equal to a legacy
+// TestChangeEmail_EmailShadowingUsername pins the same rule on the
+// change surface: another account cannot adopt an email equal to a stored
 // username.
-func TestChangeEmail_EmailShadowingLegacyUsername(t *testing.T) {
+func TestChangeEmail_EmailShadowingUsername(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
 	svc := newTestServiceWith(db, &fakeSender{}, "http://localhost:3000")
 	ctx := t.Context()
 
-	storetest.InsertUser(t, db, storetest.UserSpec{ID: "legacyshadow2", Username: "m@ria"})
+	storetest.InsertUser(t, db, storetest.UserSpec{ID: "shadowuser2", Username: "m@ria"})
 	_, _, user, err := svc.Register(ctx, "Other", "other@example.com", "password123", "")
 	if err != nil {
 		t.Fatalf("Register: %v", err)
@@ -1688,7 +1687,7 @@ func TestChangeEmail_EmailShadowingWhitespaceVariantUsername(t *testing.T) {
 			svc := newTestServiceWith(db, &fakeSender{}, "http://localhost:3000")
 			ctx := t.Context()
 
-			storetest.InsertUser(t, db, storetest.UserSpec{ID: "legacyvar2", Username: tt.username})
+			storetest.InsertUser(t, db, storetest.UserSpec{ID: "variantuser2", Username: tt.username})
 			_, _, user, err := svc.Register(ctx, "Other", "other@example.com", "password123", "")
 			if err != nil {
 				t.Fatalf("Register: %v", err)
@@ -1701,28 +1700,28 @@ func TestChangeEmail_EmailShadowingWhitespaceVariantUsername(t *testing.T) {
 	}
 }
 
-// TestChangeEmail_OwnLegacyUsernameNotShadowed pins the own-row exemption: a
-// legacy account whose username equals the email it adopts is not shadowed by
+// TestChangeEmail_OwnUsernameNotShadowed pins the own-row exemption: an
+// account whose username equals the email it adopts is not shadowed by
 // itself.
-func TestChangeEmail_OwnLegacyUsernameNotShadowed(t *testing.T) {
+func TestChangeEmail_OwnUsernameNotShadowed(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
 	svc := newTestServiceWith(db, &fakeSender{}, "http://localhost:3000")
 	ctx := t.Context()
 
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacyown",
+		ID:           "owneruser",
 		Username:     "m@ria",
 		Email:        "old@example.com",
 		PasswordHash: string(mustBcryptHash(t, "password123")),
 	})
 
-	u, previousEmail, changed, err := svc.ChangeEmail(ctx, "legacyown", "m@ria", "password123")
+	u, previousEmail, changed, err := svc.ChangeEmail(ctx, "owneruser", "m@ria", "password123")
 	if err != nil {
-		t.Fatalf("ChangeEmail(own legacy username) = %v, want success", err)
+		t.Fatalf("ChangeEmail(own username) = %v, want success", err)
 	}
 	if !changed || previousEmail != "old@example.com" || u.Email != "m@ria" {
-		t.Errorf("ChangeEmail(own legacy username) = (%q, %q, %v), want (m@ria, old@example.com, true)", u.Email, previousEmail, changed)
+		t.Errorf("ChangeEmail(own username) = (%q, %q, %v), want (m@ria, old@example.com, true)", u.Email, previousEmail, changed)
 	}
 }
 

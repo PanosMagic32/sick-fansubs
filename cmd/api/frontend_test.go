@@ -40,7 +40,7 @@ func doFrontend(t *testing.T, h http.Handler, method, target string) *httptest.R
 }
 
 func TestFrontendIndexInjectsVersionAndSecurityHeaders(t *testing.T) {
-	h := newTestFrontend(t, "2.0.0-beta.10")
+	h := newTestFrontend(t, "2.1.1")
 
 	rec := doFrontend(t, h, http.MethodGet, "/")
 	if rec.Code != http.StatusOK {
@@ -52,7 +52,7 @@ func TestFrontendIndexInjectsVersionAndSecurityHeaders(t *testing.T) {
 	if got := rec.Header().Get("Cache-Control"); got != "no-cache" {
 		t.Errorf("Cache-Control = %q, want no-cache", got)
 	}
-	if !strings.Contains(rec.Body.String(), `content="2.0.0-beta.10"`) {
+	if !strings.Contains(rec.Body.String(), `content="2.1.1"`) {
 		t.Errorf("index body lacks injected version: %q", rec.Body.String())
 	}
 	if strings.Contains(rec.Body.String(), `content="dev"`) {
@@ -91,7 +91,7 @@ func TestFrontendMissingAssetAnswers404(t *testing.T) {
 }
 
 func TestFrontendServiceWorkerVersionInjectionAndNoCache(t *testing.T) {
-	h := newTestFrontend(t, "2.0.0-beta.11")
+	h := newTestFrontend(t, "2.1.2")
 
 	rec := doFrontend(t, h, http.MethodGet, "/sw.js")
 	if rec.Code != http.StatusOK {
@@ -103,7 +103,7 @@ func TestFrontendServiceWorkerVersionInjectionAndNoCache(t *testing.T) {
 	if got := rec.Header().Get("Content-Type"); got != "text/javascript; charset=utf-8" {
 		t.Errorf("Content-Type = %q, want text/javascript", got)
 	}
-	if !strings.Contains(rec.Body.String(), `SF_VERSION = "2.0.0-beta.11"`) {
+	if !strings.Contains(rec.Body.String(), `SF_VERSION = "2.1.2"`) {
 		t.Errorf("sw body lacks injected version: %q", rec.Body.String())
 	}
 	if strings.Contains(rec.Body.String(), `SF_VERSION = "dev"`) {

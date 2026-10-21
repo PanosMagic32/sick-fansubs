@@ -36,20 +36,16 @@ build-errors.log
 # Development/runtime data dir (database, WAL/SHM, future media)
 data/
 
-# Legacy root-level database (make clean)
+# Root-level database (make clean)
 sick-fansubs.db
 sick-fansubs.db-wal
 sick-fansubs.db-shm
 
-# ── Sensitive migration evidence ───────────────────────────────
+# ── Sensitive local data ──────────────────────────────────────
 
 # Production/dev data dumps — project rule 8: do not publish.
 # Kept local-only; backed up separately from the repository.
 docs/current-data/
-
-# Locally downloaded legacy media objects (media-import rehearsal).
-# Production media bytes — project rule 8: never commit.
-media-source/
 
 # ── Frontend: Lit + Vite + Bun ─────────────────────────────────
 

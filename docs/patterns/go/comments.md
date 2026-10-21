@@ -110,9 +110,9 @@ The deprecation paragraph and the note markers have no instance in the tree yet;
 form:
 
 ```go
-// Deprecated: use Parse; ParseLegacy drops unknown fields silently.
+// Deprecated: use Parse; ParseCompat drops unknown fields silently.
 
-// TODO(uid): drop the shim when the legacy importer is gone.
+// TODO(uid): drop the shim when every caller uses Parse.
 // BUG(uid): a zero limit reaches the store as "unbounded", not "no rows".
 ```
 

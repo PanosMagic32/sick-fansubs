@@ -165,15 +165,15 @@ func TestBlogList_Success(t *testing.T) {
 
 // TestBlogList_ThumbnailURLConstruction pins the media URL contract
 // (the owner-accepted wire shape): stored relative paths are
-// emitted as base-joined absolute URLs; interim legacy absolute values pass
-// through unchanged until cmd/importmedia rewrites them.
+// emitted as base-joined absolute URLs; stored absolute values
+// pass through unchanged.
 func TestBlogList_ThumbnailURLConstruction(t *testing.T) {
 	t.Parallel()
 
 	db, h := setupBlogList(t)
 
-	// A post whose thumbnail is already a target-relative path (post-migration
-	// state). published_at_ms 6000 puts it first.
+	// A post whose thumbnail is already a stored relative path.
+	// published_at_ms 6000 puts it first.
 	const q = `INSERT INTO blog_posts
 		(id, title, subtitle, description, thumbnail_url, status,
 		 published_at_ms, created_at_ms, updated_at_ms)
@@ -196,14 +196,14 @@ func TestBlogList_ThumbnailURLConstruction(t *testing.T) {
 		t.Errorf("relative thumbnailUrl = %v, want %q", got, want)
 	}
 
-	// The legacy fixtures store absolute URLs; they must pass through as-is.
+	// The fixtures also store absolute URLs; they must pass through as-is.
 	var sawP2 bool
 	for _, it := range items {
 		m := it.(map[string]any)
 		if m["id"] == "p2" {
 			sawP2 = true
 			if got := m["thumbnailUrl"]; got != "https://example.com/p2.jpg" {
-				t.Errorf("legacy thumbnailUrl = %v, want pass-through", got)
+				t.Errorf("absolute thumbnailUrl = %v, want pass-through", got)
 			}
 		}
 	}

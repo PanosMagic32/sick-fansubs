@@ -40,8 +40,8 @@ const (
 	maxTotalPixels = 1 << 24
 
 	// MaxInputBytes bounds the decoded source (10 MB upload cap).
-	// Exported so callers that must read the source before processing (the
-	// import command hashes the bytes) enforce the same bound.
+	// Exported so a caller that bounds the request body before processing
+	// enforces the same limit.
 	MaxInputBytes = 10 << 20
 )
 

@@ -112,8 +112,8 @@ const (
 	recordOverhead = 256
 	// maxBridgedRecordSize is the ceiling the composed body must stay under:
 	// Mozilla autopush documents ~2744 bytes for bridged connections. Every
-	// payload the app can build fits well below it; the only way past it is an
-	// imported legacy title, which payloadFor trims.
+	// payload the app can build fits well below it; the only way past it is a
+	// stored title that is unbounded in the schema, which payloadFor trims.
 	maxBridgedRecordSize = 2688
 	// maxPayloadBytes is the marshalled body budget that keeps the composed
 	// record under the ceiling above; payloadFor enforces it.
@@ -140,7 +140,7 @@ func recordSizeFor(payloadLen int) uint32 {
 //
 // A title long enough to compose a record past maxBridgedRecordSize is cut
 // back to the LONGEST rune prefix that fits (a binary search, ~log2(runes)
-// marshals — imported legacy titles are unbounded in the schema, and an
+// marshals — stored titles are unbounded in the schema, and an
 // oversized body is refused with 413 by every push service: the silent-loss
 // class this bound closes). The returned count is the bytes the
 // accepted title lost, so the caller can log the magnitude without ever
@@ -282,8 +282,8 @@ const (
 // https + host) is "other" rather than an error: the report must never fail
 // because a label could not be derived. The families are the push services a
 // subscription can realistically point at — Chrome/Chromium endpoints live
-// under googleapis.com, Mozilla's under mozilla.com (current) or mozaws.net
-// (legacy), and Apple's under push.apple.com.
+// under googleapis.com, Mozilla's under mozilla.com or mozaws.net, and
+// Apple's under push.apple.com.
 func pushServiceFamily(endpoint string) string {
 	u, err := url.Parse(endpoint)
 	if err != nil {

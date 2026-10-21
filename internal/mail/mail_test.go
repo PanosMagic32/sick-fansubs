@@ -240,7 +240,7 @@ func testRelay(port int, fakePort int) *Relay {
 			Port:     port,
 			Username: "resend",
 			Password: "test-key",
-			From:     "beta@sickfansubs.com",
+			From:     "noreply@sickfansubs.com",
 		},
 		dialAddr:    net.JoinHostPort("127.0.0.1", strconv.Itoa(fakePort)),
 		rootCAs:     pool,
@@ -389,7 +389,7 @@ func TestSend_RefusesAuthWhenSTARTTLSWithheld(t *testing.T) {
 }
 
 func TestSend_UnreachableServer(t *testing.T) {
-	relay := &Relay{cfg: Config{Host: "127.0.0.1", Port: 587, Username: "r", Password: "k", From: "beta@sickfansubs.com"}, dialAddr: "127.0.0.1:1"}
+	relay := &Relay{cfg: Config{Host: "127.0.0.1", Port: 587, Username: "r", Password: "k", From: "noreply@sickfansubs.com"}, dialAddr: "127.0.0.1:1"}
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	err := relay.Send(ctx, "u@example.com", "s", "b")
@@ -454,10 +454,10 @@ func TestNewRelay_RequiresHostAndFrom(t *testing.T) {
 }
 
 func TestBuildMessage(t *testing.T) {
-	msg := string(buildMessage("beta@sickfansubs.com", "user@example.com", "Επαναφορά κωδικού", "Γεια σου."))
+	msg := string(buildMessage("noreply@sickfansubs.com", "user@example.com", "Επαναφορά κωδικού", "Γεια σου."))
 
 	for _, want := range []string{
-		"From: beta@sickfansubs.com\r\n",
+		"From: noreply@sickfansubs.com\r\n",
 		"To: user@example.com\r\n",
 		"Content-Type: text/plain; charset=utf-8\r\n",
 		"\r\n\r\nΓεια σου.",
@@ -514,8 +514,8 @@ func TestLogLink_LogsBodyNotRecipient(t *testing.T) {
 }
 
 func TestResetEmail(t *testing.T) {
-	subject, body := ResetEmail("https://v2.sickfansubs.com/auth/reset?token=abc")
-	if subject == "" || !strings.Contains(body, "https://v2.sickfansubs.com/auth/reset?token=abc") {
+	subject, body := ResetEmail("https://sickfansubs.com/auth/reset?token=abc")
+	if subject == "" || !strings.Contains(body, "https://sickfansubs.com/auth/reset?token=abc") {
 		t.Errorf("ResetEmail missing link: subject=%q body=%q", subject, body)
 	}
 	if !strings.Contains(body, "30 λεπτά") {
@@ -524,8 +524,8 @@ func TestResetEmail(t *testing.T) {
 }
 
 func TestVerifyEmailMessage(t *testing.T) {
-	subject, body := VerifyEmail("https://v2.sickfansubs.com/auth/verify?token=abc")
-	if subject == "" || !strings.Contains(body, "https://v2.sickfansubs.com/auth/verify?token=abc") {
+	subject, body := VerifyEmail("https://sickfansubs.com/auth/verify?token=abc")
+	if subject == "" || !strings.Contains(body, "https://sickfansubs.com/auth/verify?token=abc") {
 		t.Errorf("VerifyEmail missing link: subject=%q body=%q", subject, body)
 	}
 	if !strings.Contains(body, "7 ημέρες") {

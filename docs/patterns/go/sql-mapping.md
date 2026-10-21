@@ -13,15 +13,15 @@ is represented, and how a nullable column is read back. The mechanism lives in
 2. **The application supplies every timestamp from an injected clock.** A business or audit column
    never relies on a schema default such as `datetime('now')`; a store operation that needs "now"
    takes it from the caller's sample or its `Now` field.
-3. **An unknown instant stays NULL.** The import reports a malformed source time instead of
-   inventing one, and a NULL timestamp never becomes an epoch value.
+3. **An unknown instant stays NULL.** A malformed or missing timestamp is never replaced with
+   an epoch value.
 4. **Every ordered read carries a deterministic tie-break**, normally the opaque id after the time
    column, so equal instants page and compare identically on every run.
 5. **The null\* family is declared once, in `internal/store/null.go`.** The write side is
    `nullableString(string) any` (empty string → NULL); the read side is `nullStringPtr`
    (NULL → nil pointer) and `nullStringValue` (NULL → `""`). The guard `TestNullFamilyConfined`
    fails a declaration anywhere else. _House rule._
-6. **A nullable column scans into `sql.NullString`, never into a plain string.** A migrated NULL
+6. **A nullable column scans into `sql.NullString`, never into a plain string.** A NULL
    scanned into a plain string is a runtime scan error, not a zero value; the read half of the
    family does the conversion. A nullable `INTEGER` scans into `sql.NullInt64`, and a pointer
    projection takes `&v.Int64` exactly when `Valid`.

@@ -153,7 +153,7 @@ ls -la ~/sick-fansubs | grep -E 'restore-unit|drill-enc' || echo 'VPS cleanup cl
 
 - Index: [../README.md](../README.md)
 - Backup lifecycle and units: [backup.md](backup.md)
-- Deploy rollback: [deploy.md](deploy.md); production cutover: [cutover.md](cutover.md)
+- Deploy rollback: [deploy.md](deploy.md)
 - Staged restore rules: [../patterns/go/sqlite.md](../patterns/go/sqlite.md)
 - The restore command: [../../cmd/restore/AGENTS.md](../../cmd/restore/AGENTS.md)
 - The migration command's rollback carve-out: [../../cmd/migrate/AGENTS.md](../../cmd/migrate/AGENTS.md)

@@ -179,7 +179,7 @@ func TestValidOpaqueID(t *testing.T) {
 		want bool
 	}{
 		{"single character", "a", true},
-		{"migrated 24-hex", "65b0a1c2d3e4f5a6b7c8d9e0", true},
+		{"24-hex id", "65b0a1c2d3e4f5a6b7c8d9e0", true},
 		{"new 32-hex", "0123456789abcdef0123456789abcdef", true},
 		{"full unreserved set", "ABC-def_ghi.jkl~mno", true},
 		{"maximum length", strings.Repeat("a", 64), true},

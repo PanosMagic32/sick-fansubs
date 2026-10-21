@@ -178,7 +178,7 @@ func TestStaffUserList_AvatarURL(t *testing.T) {
 
 	db, mux := setupStaffUserListHandler(t)
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 3_000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "active", 2_000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "active", 2_000)
 	if _, err := db.Exec(`UPDATE users
 		SET avatar_url = 'media/images/ab/abcdef0123456789abcdef0123456789.jpg'
 		WHERE id = 'u1'`); err != nil {
@@ -259,7 +259,7 @@ func TestStaffUserList_Filters(t *testing.T) {
 
 	db, mux := setupStaffUserListHandler(t)
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 3_000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "suspended", 2_000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "suspended", 2_000)
 	cookie := mustCreateStaffSession(t, db, mustCreateStaffUser(t, db, "a1", "AdminOne", "admin", "active", 4_000))
 
 	rec := getStaffUserList(mux, cookie, "?status=suspended")
@@ -317,7 +317,7 @@ func TestStaffUserList_CursorRoundTrip(t *testing.T) {
 
 	db, mux := setupStaffUserListHandler(t)
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 4_000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "active", 3_000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "active", 3_000)
 	mustCreateStaffUser(t, db, "u3", "Gamma", "user", "active", 2_000)
 	cookie := mustCreateStaffSession(t, db, mustCreateStaffUser(t, db, "a1", "AdminOne", "admin", "active", 5_000))
 

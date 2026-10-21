@@ -1357,7 +1357,7 @@ const q = "SELECT COUNT(*) FROM " + BlogContent.table`
 	if got := checkSource(t, check, storePrefix+"blog_store_test.go", bad); len(got) != 0 {
 		t.Fatalf("check flags a store test file: %v", got)
 	}
-	if got := checkSource(t, check, filepath.Join("internal", "migration", "import.go"), bad); len(got) != 0 {
+	if got := checkSource(t, check, filepath.Join("internal", "handler", "blog.go"), bad); len(got) != 0 {
 		t.Fatalf("check flags a non-store package: %v", got)
 	}
 

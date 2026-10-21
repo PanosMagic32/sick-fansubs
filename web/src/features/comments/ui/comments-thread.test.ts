@@ -350,7 +350,7 @@ describe("comments-thread", () => {
           id: "cn",
           author: author({
             id: "u6",
-            username: "Legacy",
+            username: "Neutral",
             isStaff: true,
             staffRole: undefined,
           }),

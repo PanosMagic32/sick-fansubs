@@ -186,7 +186,7 @@ func scanStaffBlogPost(scan func(dest ...any) error) (StaffBlogPost, error) {
 	if pub.Valid {
 		p.PublishedAtMS = &pub.Int64
 	}
-	// The raw id columns are nullable — migrated rows never get stamped, and
+	// The raw id columns are nullable — a row can carry no stamp, and
 	// user deletion SETs them NULL — so they read through the null family
 	// like every other nullable column.
 	p.CreatorID = nullStringValue(rowCreatorID)

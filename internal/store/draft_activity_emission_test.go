@@ -387,7 +387,7 @@ func TestDraftActivityGateMirrorsDraftVisibility(t *testing.T) {
 }
 
 // TestDraftActivityUnattributedDraftAudience pins the gate's ELSE arm: an
-// unpublished row with NO creator (the import shape) weighs -1, so every
+// unpublished row with NO creator (an unattributed shape) weighs -1, so every
 // opted-in STAFF member sees it (the staff floor is what keeps a plain user
 // out — the weight comparison alone would let them in).
 func TestDraftActivityUnattributedDraftAudience(t *testing.T) {
@@ -398,12 +398,12 @@ func TestDraftActivityUnattributedDraftAudience(t *testing.T) {
 
 	if _, err := db.Exec(`
 		INSERT INTO blog_posts (id, title, subtitle, description, thumbnail_url, status, created_at_ms, updated_at_ms)
-		VALUES ('legacy', 'Legacy Draft', '', 'desc', 'media/images/ab/x.jpg', 'draft', 1000, 1000)`); err != nil {
+		VALUES ('unowned', 'Draft One', '', 'desc', 'media/images/ab/x.jpg', 'draft', 1000, 1000)`); err != nil {
 		t.Fatalf("seed unattributed draft: %v", err)
 	}
 
-	_, events, err := UpdateBlogPost(ctx, db, "legacy", 1, UpdateBlogPostParams{
-		Title: "Legacy Draft v2", Subtitle: "", Description: "desc",
+	_, events, err := UpdateBlogPost(ctx, db, "unowned", 1, UpdateBlogPostParams{
+		Title: "Draft Two", Subtitle: "", Description: "desc",
 		ThumbnailURL: "media/images/ab/x.jpg", Status: "draft", UpdaterID: "sa", NowMS: 9_000,
 	})
 	if err != nil {
@@ -411,7 +411,7 @@ func TestDraftActivityUnattributedDraftAudience(t *testing.T) {
 	}
 	// Every opted-in staff member except the actor; u1 (opted in, below the
 	// floor) never receives.
-	assertDraftActivity(t, db, events, "legacy", "Legacy Draft v2", "sa", "updated",
+	assertDraftActivity(t, db, events, "unowned", "Draft Two", "sa", "updated",
 		map[string]bool{"adm": true, "adm2": true, "mod": true})
 }
 

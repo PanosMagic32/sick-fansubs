@@ -3,7 +3,7 @@
 # The stock caddy image does NOT include dns.providers.cloudflare — it is a
 # non-standard module, excluded from the default Docker build. Attempting the
 # DNS challenge on the stock image fails at config load with
-# "module not registered: dns.providers.cloudflare" (beta bring-up incident
+# "module not registered: dns.providers.cloudflare" (bring-up incident
 # 2026-08-30). The official fix is this two-stage build: xcaddy compiles a
 # Caddy binary with the module, the runtime stage keeps the stock image.
 #

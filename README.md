@@ -1,8 +1,8 @@
 # Sick-Fansubs
 
-A fansub community website — blog posts, projects, search, and media management. Version 2.0.0
-replaces the legacy application at <https://sickfansubs.com>: a Go server with a SQLite database and
-an embedded Lit + Vite frontend. The cutover procedure is [docs/ops/cutover.md](docs/ops/cutover.md).
+A fansub community website — blog posts, projects, search, and media management. Version 2.1.1 is
+the production application at <https://sickfansubs.com>: a Go server with a SQLite database and
+an embedded Lit + Vite frontend.
 
 ## Stack
 
@@ -16,8 +16,8 @@ an embedded Lit + Vite frontend. The cutover procedure is [docs/ops/cutover.md](
 
 ## Current Status
 
-Version 2.1.1 is the production release. The deployment contract, the backup and restore procedures,
-and the cutover record live under [docs/ops/](docs/ops/). AI agents start at [`AGENTS.md`](AGENTS.md).
+Version 2.1.1 is the production release. The deployment contract and the backup and restore
+procedures live under [docs/ops/](docs/ops/). AI agents start at [`AGENTS.md`](AGENTS.md).
 
 ## Quick Start
 

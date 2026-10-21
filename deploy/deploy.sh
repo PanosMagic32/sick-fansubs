@@ -1,5 +1,5 @@
 #!/bin/sh
-# Versioned beta deploy. Runs on the VPS as
+# Versioned deploy. Runs on the VPS as
 # sick-deploy, invoked by the GH Actions deploy workflow with NEW_TAG set.
 # The workflow ships this script and compose.yaml together, so the deployed
 # commands are always the versioned, reviewed ones from the repo.
@@ -53,7 +53,7 @@ if [ -z "$PREV_TAG" ]; then
 	exit 1
 fi
 
-# PREV_AUX_TAG defaults to :latest — the pre-pairing beta state. After the
+# PREV_AUX_TAG defaults to :latest — the pre-pairing state. After the
 # first successful paired deploy it equals the previous TAG, so a rollback
 # restores the aux images the previous app was paired with.
 PREV_AUX_TAG=$(grep -E '^AUX_TAG=' .env | cut -d= -f2-)

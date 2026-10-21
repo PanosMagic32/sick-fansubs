@@ -49,7 +49,7 @@ const (
 
 // BlogList returns the public blog-post list handler. publicBaseURL is the
 // configured canonical public origin used to emit absolute thumbnail URLs
-// (see mediaURL for the interim legacy pass-through rule).
+// (see mediaURL for the absolute-URL pass-through rule).
 func BlogList(db *sql.DB, publicBaseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, limit, after, ok := parseKeysetParams(w, r, blogListDefaultLimit, blogListMaxLimit, blogCursorPrefix)

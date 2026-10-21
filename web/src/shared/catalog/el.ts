@@ -362,7 +362,7 @@ const blog = {
   updated: "Ενημερώθηκε",
 } as const;
 
-/** About page ("Η ομάδα") — static community page copy: the legacy text
+/** About page ("Η ομάδα") — static community page copy: the approved text
  * with the owner-ruled deltas (six active members, the «Donate» label, the
  * intro typo fix).
  *
@@ -395,7 +395,7 @@ const about = {
   githubSuffix: ".",
   trackerPrefix:
     "Αν θέλεις να δεις όλη τη δουλειά της ομάδας μας, μπορείς να την βρεις και στον ",
-  // Legacy copy renders the word lowercase inside the sentence
+  // The copy renders the word lowercase inside the sentence
   // ("…στον tracker μας.") — kept verbatim per owner decision.
   trackerLabel: "tracker",
   trackerSuffix: " μας.",
@@ -475,7 +475,7 @@ const search = {
   // aria-label for the input's clear (×) button.
   clear: "Καθαρισμός",
   // The form's submit control (owner ruling): the word the
-  // legacy-tuned audience recognizes as "send this form", not a repeat of
+  // community recognizes as "send this form", not a repeat of
   // the nav link's «Αναζήτηση».
   submit: "Υποβολή",
   // Sort control: label + the three orderings.

@@ -40,24 +40,22 @@ pagination shapes are written where they land.
 
 ## Pattern
 
-One body, several concrete entry points:
+One body serves several row shapes:
 
 ```go
-// readLegacyRecords decodes an export file as T, either the array or the JSON-lines shape.
-func readLegacyRecords[T any](path string) ([]T, error) { ... }
+// writeKeysetPage renders one keyset page for any stored row and wire item.
+func writeKeysetPage[Row, Item any](w http.ResponseWriter, r *http.Request, op string, page keysetPage[Row, Item]) { ... }
 
-func ReadLegacyProjectsFile(path string) ([]LegacyProject, error) {
-	return readLegacyRecords[LegacyProject](path)
-}
+writeKeysetPage(w, r, "blog list", blogPage)
+writeKeysetPage(w, r, "project list", projectPage)
 ```
 
-The generic worker stays unexported and each exported function names its record shape, so a reader
-sees the type from the name and the decoding logic exists once.
+The generic worker receives what differs per endpoint as function values, and each call site names
+its own row and item types; inference supplies the type arguments. The decoding and rendering logic
+exists once.
 
 ## Examples
 
-- `internal/migration/reader.go` holds `readLegacyRecords[T any]`, instantiated three times through
-  exported wrappers: blog posts, projects, users. One body, three element types, no type switch.
 - `internal/handler/collection.go` holds the collection mechanism: `collection[T]` is the one envelope,
   and `writeKeysetPage[Row, Item]` receives a `keysetPage` whose `read`, `item`, and `next` function
   values carry what differs per endpoint — the row type and its wire projection being the two
@@ -94,6 +92,4 @@ sees the type from the name and the decoding logic exists once.
 
 - Index: [../../README.md](../../README.md)
 - The conventions every pattern doc follows: [../docs-conventions.md](../docs-conventions.md)
-- The typed-wrapper rule for the migration reader:
-  [../../../internal/migration/AGENTS.md](../../../internal/migration/AGENTS.md)
 - The collection envelope and its page builder: [collections.md](collections.md)

@@ -90,7 +90,7 @@ func setupSearch(t *testing.T) (*sql.DB, http.Handler) {
 		t.Fatalf("archive row: %v", err)
 	}
 
-	// Index every published row with normalized text — the import contract.
+	// Index every published row with normalized text — the indexing contract.
 	// The archived row is deliberately indexed too: the query-time status
 	// filter is the authority on visibility, not the index.
 	for _, row := range []struct {
@@ -592,8 +592,8 @@ func TestSearch_TitleCursorRejections(t *testing.T) {
 }
 
 // insertSearchPost adds one published blog post carrying the shared fixture
-// term in its description and indexes it — the import contract (content row
-// + index entry in one transaction).
+// term in its description and indexes it — the content-index contract (content
+// row + index entry in one transaction).
 func insertSearchPost(t *testing.T, db *sql.DB, id, title string, published int64) {
 	t.Helper()
 	insertSearchPostBody(t, db, id, title, published, "ταξινόμηση")

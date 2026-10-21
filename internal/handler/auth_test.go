@@ -1304,7 +1304,7 @@ func TestHandlePasswordChange_MissingFields(t *testing.T) {
 
 // TestHandlePasswordChange_CurrentPasswordTooLong pins the
 // request bound: currentPassword carries the same 128-byte bound as sign-in's
-// password field (the separately bounded legacy-investigation field).
+// password field (a separately bounded field).
 func TestHandlePasswordChange_CurrentPasswordTooLong(t *testing.T) {
 	t.Parallel()
 	_, db, mux := setupAuth(t)

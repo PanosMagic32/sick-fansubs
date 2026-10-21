@@ -1,6 +1,6 @@
 # Build the restore command binary (the fail-closed staged restore).
 # NOT a compose service — a one-off "docker run" on the STOPPED volume, like
-# the importavatars leg (docs/ops/restore.md). Mirrors
+# the migrate and rebuildsearch images (docs/ops/restore.md). Mirrors
 # Dockerfile.backup: pinned non-root user (uid/gid 1000) so the staged files
 # land with the volume's ownership.
 FROM golang:1.27.3-alpine3.24 AS build

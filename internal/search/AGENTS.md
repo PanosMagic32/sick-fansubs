@@ -1,6 +1,6 @@
 # internal/search — Agent Navigation
 
-Pure text-processing rules for search: Greek accent normalization, FTS5 query construction, and the Greek title-sort collation. No database or HTTP dependencies — the import tool, the rebuild command, the handler, and the store all share this ONE implementation.
+Pure text-processing rules for search: Greek accent normalization, FTS5 query construction, and the Greek title-sort collation. No database or HTTP dependencies — the rebuild command, the handler, and the store all share this ONE implementation.
 
 ## Open this file when
 

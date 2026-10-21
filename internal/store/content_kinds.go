@@ -163,7 +163,7 @@ type userRefTail struct {
 }
 
 // ref returns the projection for the triple, or nil when the id column is
-// NULL — no creator stamped (migrated rows), or a deleted user
+// NULL — no creator stamped, or a deleted user
 // (ON DELETE SET NULL).
 func (t userRefTail) ref() *UserRef {
 	if !t.id.Valid {

@@ -4,7 +4,8 @@ Read this file before working on Sick-Fansubs.
 
 ## Project Direction
 
-Sick-Fansubs is a clean rewrite of the existing Nx/Angular/NestJS fansub community application.
+Sick-Fansubs is the fansub community application: blog posts, projects, search, comments, and
+media management for the community at <https://sickfansubs.com>.
 
 **Decided target:**
 
@@ -15,9 +16,9 @@ Sick-Fansubs is a clean rewrite of the existing Nx/Angular/NestJS fansub communi
 - Deployment to a self-managed VPS operated over SSH.
 - Preservation of core product capabilities and production data.
 - Lit production build embedded in Go; Caddy provides TLS/reverse proxy in the Docker topology.
-- All repository, CI/CD, runtime, and deployment naming is `sick-fansubs`; the retired beta-era names must not reappear.
+- All repository, CI/CD, runtime, and deployment naming is `sick-fansubs`.
 
-This is **not** a wire-compatible replacement. Legacy routes, payloads, cookies, session design, internal architecture, and frontend details are evidence to evaluate, not contracts to copy automatically. Intentional improvements are allowed when they are recorded and reviewed. Existing sessions do not need to survive cutover; a one-time logout is acceptable.
+Routes, payloads, cookies, session design, internal architecture, and frontend details are this application's own design. Intentional improvements are allowed when they are recorded and reviewed.
 
 ## Mandatory First Read
 
@@ -30,7 +31,7 @@ Then read the documents relevant to the task.
 
 ## Requirement Vocabulary
 
-**Legacy observation** — evidence from the existing system; migration evidence, not a target contract. **Decided target** — an accepted direction implementation must follow. **Open decision** — unresolved; do not implement a choice silently. **Deferred future work** — intentionally outside the current delivery scope.
+**Stored-data evidence** — values and constraints observed in the production database or historical reports; evidence, not a target contract. **Decided target** — an accepted direction implementation must follow. **Open decision** — unresolved; do not implement a choice silently. **Deferred future work** — intentionally outside the current delivery scope.
 
 ## Authority Order
 
@@ -39,7 +40,7 @@ When documents disagree, use this order:
 1. The user's latest explicit instruction.
 2. Pattern docs — [`docs/patterns/`](docs/patterns/) — the one agreed way to do something.
 3. Co-located feature docs (`AGENTS.md` beside the code), the operations docs (`docs/ops/`), and the architecture doc ([`docs/architecture.md`](docs/architecture.md)).
-4. Legacy observations and historical reports.
+4. Stored data and historical reports.
 
 Historical evidence cannot override a decided target. The retired planning documents and numbered
 records live in git history, never in the tree.
@@ -47,15 +48,15 @@ records live in git history, never in the tree.
 ## Non-Negotiable Working Rules
 
 1. **Teaching mode and incremental review remain active.** Work in the smallest useful vertical slice and ensure the owner can explain it.
-2. **Preserve capabilities and data, not accidental interfaces.** Use the legacy application to discover behavior, edge cases, and migration requirements.
+2. **Preserve capabilities and data, not accidental interfaces.** Capabilities live on through the target's tests and docs.
 3. **Do not settle an open choice silently.** Ask the owner, then record the ruling in the pattern or feature doc it belongs to — a choice with no doc and no owner ruling is not settled.
-4. **Use SQLite for the target application.** MongoDB Atlas is the safe migration source, not the target runtime database. The SQLite rules — driver, DSN/pragmas, WAL, pool, migrations, UTC-millisecond time, identifiers, backup — live in [`docs/patterns/go/sqlite.md`](docs/patterns/go/sqlite.md), with [`sql-mapping.md`](docs/patterns/go/sql-mapping.md) for values and [`ids.md`](docs/patterns/go/ids.md) for identifiers.
-5. **Use Lit + Vite for the target frontend.** Existing SolidJS experiments and HTMX are not the target.
+4. **Use SQLite for the target application.** SQLite is the only runtime database. The SQLite rules — driver, DSN/pragmas, WAL, pool, migrations, UTC-millisecond time, identifiers, backup — live in [`docs/patterns/go/sqlite.md`](docs/patterns/go/sqlite.md), with [`sql-mapping.md`](docs/patterns/go/sql-mapping.md) for values and [`ids.md`](docs/patterns/go/ids.md) for identifiers.
+5. **Use Lit + Vite for the target frontend.** No other frontend framework is the target.
 6. **Prefer simple Go.** Use the standard library first. Add dependencies only with a concrete reason.
 7. **Use boundaries where they add clarity.** Handler, domain-value, auth, and store separation is useful when responsibilities differ; do not create ceremonial layers or interfaces.
 8. **Protect production data.** References under `docs/current-data/` may contain sensitive context. Do not modify them, publish them, or copy sensitive values into documentation, fixtures, logs, or prompts.
 9. **Greek user interface remains a product requirement.** Keep user-facing copy in a central message catalog rather than scattering literals through components.
-10. **Do not describe same-VPS storage as off-site.** Local MinIO or another local volume can be a local backup only. Future off-VPS storage is required, but its provider is not selected.
+10. **Do not describe same-VPS storage as off-site.** A local volume can be a local backup only. Future off-VPS storage is required, but its provider is not selected.
 11. **Commands live in the Makefile.** `make help` lists the run/build/test targets; deploy runs through GH Actions SSH on version tags. Navigation docs point at the Makefile instead of restating commands.
 12. **Every agent session — and every spawned sub-agent — chats in the `caveman` skill's style (default level `full`).** Load the `caveman` skill FIRST, before any other skill or tool call, and keep its style for the whole session. The owner does not need to repeat this per prompt, and sub-agents inherit it without being told. Persisted files — code, comments, commits, docs, tickets — stay normal prose.
 13. **Run `make go-fix` before every commit.** `go fix` applies toolchain modernizations (for example `slices`/`maps` helpers, `wg.Go`, range-over-int) — review its diff like any other change, keep `make check` green afterwards, and fold the result into the same commit as the work it modernizes.
@@ -74,15 +75,14 @@ environment), the system map ([`docs/architecture.md`](docs/architecture.md)), a
 [`docs/api/openapi.yaml`](docs/api/openapi.yaml) (the wire contract). Git history
 holds the retired planning documents and decision records.
 
-| Task                                                      | Read                                                                                                                   |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Go rules: structure, errors, logging, SQL                 | [`docs/patterns/go/`](docs/patterns/go/)                                                                               |
-| Web rules: components, CSS, testing                       | [`docs/patterns/web/`](docs/patterns/web/)                                                                             |
-| API and data requirements                                 | [`docs/api/openapi.yaml`](docs/api/openapi.yaml)                                                                       |
-| System shape: context, containers, flows, deploy topology | [`docs/architecture.md`](docs/architecture.md)                                                                         |
-| Deployment, backup, restore, cutover                      | [`docs/ops/`](docs/ops/)                                                                                               |
-| Legacy behavior and data reconciliation                   | [`internal/migration/AGENTS.md`](internal/migration/AGENTS.md), [`cmd/importdata/AGENTS.md`](cmd/importdata/AGENTS.md) |
-| A scope's contracts                                       | its `AGENTS.md` — see Package Navigation below                                                                         |
+| Task                                                      | Read                                             |
+| --------------------------------------------------------- | ------------------------------------------------ |
+| Go rules: structure, errors, logging, SQL                 | [`docs/patterns/go/`](docs/patterns/go/)         |
+| Web rules: components, CSS, testing                       | [`docs/patterns/web/`](docs/patterns/web/)       |
+| API and data requirements                                 | [`docs/api/openapi.yaml`](docs/api/openapi.yaml) |
+| System shape: context, containers, flows, deploy topology | [`docs/architecture.md`](docs/architecture.md)   |
+| Deployment, backup, restore                               | [`docs/ops/`](docs/ops/)                         |
+| A scope's contracts                                       | its `AGENTS.md` — see Package Navigation below   |
 
 ## Package Navigation
 
@@ -94,10 +94,6 @@ gotchas, and pointers. Pattern-level rules live in [`docs/patterns/`](docs/patte
 | Startup/shutdown, the DB open path, expired-session cleanup, serving the frontend                 | [`cmd/api/AGENTS.md`](cmd/api/AGENTS.md)                                               |
 | Schema migration runs, their Makefile/container wiring                                            | [`cmd/migrate/AGENTS.md`](cmd/migrate/AGENTS.md)                                       |
 | Daily backup unit creation, age encryption, retention (`make backup-local`)                       | [`cmd/backup/AGENTS.md`](cmd/backup/AGENTS.md)                                         |
-| Legacy data import + reconciliation report                                                        | [`cmd/importdata/AGENTS.md`](cmd/importdata/AGENTS.md)                                 |
-| Legacy thumbnail HTTP fetch, its reason codes (`make fetch-media-local`)                          | [`cmd/fetchmedia/AGENTS.md`](cmd/fetchmedia/AGENTS.md)                                 |
-| Media import + reference rewrite + media reconciliation report                                    | [`cmd/importmedia/AGENTS.md`](cmd/importmedia/AGENTS.md)                               |
-| Legacy avatar import + reconciliation (`make import-avatars-local`)                               | [`cmd/importavatars/AGENTS.md`](cmd/importavatars/AGENTS.md)                           |
 | FTS5 search-index rebuild/backfill (`make rebuild-search-local`)                                  | [`cmd/rebuildsearch/AGENTS.md`](cmd/rebuildsearch/AGENTS.md)                           |
 | Media orphan sweep, manual trigger (`make sweep-media-local`)                                     | [`cmd/sweepmedia/AGENTS.md`](cmd/sweepmedia/AGENTS.md)                                 |
 | Operator password reset, break-glass (`make reset-password-local`)                                | [`cmd/resetpassword/AGENTS.md`](cmd/resetpassword/AGENTS.md)                           |
@@ -108,7 +104,6 @@ gotchas, and pointers. Pattern-level rules live in [`docs/patterns/`](docs/patte
 | Env vars and defaults                                                                             | [`internal/config/AGENTS.md`](internal/config/AGENTS.md)                               |
 | DSN/pragmas, openers, migration runner, readiness                                                 | [`internal/database/AGENTS.md`](internal/database/AGENTS.md)                           |
 | Identifier minting (`id.New`, the request-id fallback)                                            | [`internal/id/AGENTS.md`](internal/id/AGENTS.md)                                       |
-| Legacy-record transform, download classification, reconciliation report                           | [`internal/migration/AGENTS.md`](internal/migration/AGENTS.md)                         |
 | Wire contracts: statuses, DTOs, problems, cookies                                                 | [`internal/handler/AGENTS.md`](internal/handler/AGENTS.md)                             |
 | Log file sink, rotation, and the log tail reader                                                  | [`internal/logging/AGENTS.md`](internal/logging/AGENTS.md)                             |
 | SMTP relay + server-side email copy                                                               | [`internal/mail/AGENTS.md`](internal/mail/AGENTS.md)                                   |
@@ -137,7 +132,7 @@ gotchas, and pointers. Pattern-level rules live in [`docs/patterns/`](docs/patte
 
 ## Before Implementing a Slice
 
-1. Classify every input as a legacy observation, decided target, open choice, or deferred future work.
+1. Classify every input as stored-data evidence, a decided target, an open choice, or deferred future work.
 2. Resolve only the choices that block this slice, with the owner; the ruling lands in the pattern or feature doc it belongs to.
 3. Agree the definition of ready, acceptance criteria, and tests.
 4. Implement and review one small vertical slice.
@@ -145,15 +140,12 @@ gotchas, and pointers. Pattern-level rules live in [`docs/patterns/`](docs/patte
 
 ## Do Not
 
-- Treat NestJS response shapes, cookie names, token claims, throttling numbers, or Angular routes as mandatory merely because they exist.
-- Reintroduce MongoDB as a target runtime option without a superseding owner ruling recorded in a pattern or feature doc.
 - Open modernc SQLite with driver name `sqlite3`, accept an arbitrary runtime DSN, copy only the live main database file, or run schema migrations from ordinary request handlers.
-- Replace Lit with SolidJS, Angular, or HTMX without a superseding owner ruling recorded in a pattern or feature doc.
-- Require old sessions to remain valid after cutover.
+- Replace Lit with another frontend framework without a superseding owner ruling recorded in a pattern or feature doc.
 - Reintroduce access/refresh JSON Web Tokens or browser-stored bearer credentials without a superseding owner ruling recorded in a pattern or feature doc.
 - Compare cookie headers character by character; test the selected contract semantically.
 - Deploy the Lit build as a separate production artifact; the accepted topology embeds it in the Go application inside a Docker container while Caddy remains the TLS/reverse-proxy boundary.
 - Read retired material as current policy — recover it from git history for evidence only.
 - Cite a retired decision number in a new doc or a new code comment, or link to a retired planning document.
-- Reintroduce a retired beta-era name in the repository, images, runtime paths, or docs.
+- Use any name other than `sick-fansubs` in the repository, images, runtime paths, or docs.
 - Leave `make docs-lint` red.

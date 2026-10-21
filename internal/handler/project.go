@@ -49,7 +49,7 @@ const (
 
 // ProjectList returns the public project-list handler. publicBaseURL is the
 // configured canonical public origin used to emit absolute thumbnail URLs
-// (see mediaURL for the interim legacy pass-through rule).
+// (see mediaURL for the absolute-URL pass-through rule).
 func ProjectList(db *sql.DB, publicBaseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, limit, after, ok := parseKeysetParams(w, r, projectListDefaultLimit, projectListMaxLimit, projectCursorPrefix)

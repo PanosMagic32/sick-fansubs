@@ -87,7 +87,7 @@ func TestRecordSizeFor(t *testing.T) {
 		t.Errorf("maxBridgedRecordSize = %d — the ceiling must stay below Mozilla's ~2744-byte bridged limit", maxBridgedRecordSize)
 	}
 
-	// An IMPORTED legacy title is unbounded, so a payload can outgrow the
+	// A stored title is unbounded, so a payload can outgrow the
 	// ceiling. payloadFor must cut the title to the LONGEST prefix that fits
 	// rather than compose a body every push service refuses with 413 (the
 	// silent-loss class), keep it valid UTF-8, and report the bytes it dropped.
@@ -169,9 +169,9 @@ func TestPushServiceFamily(t *testing.T) {
 		want     string
 	}{
 		{"mozilla current", "https://updates.push.services.mozilla.com/wpush/v2/gAAAA", "mozilla"},
-		{"mozilla legacy", "https://updates-push.services.mozaws.net/push/abc", "mozilla"},
+		{"mozilla older host", "https://updates-push.services.mozaws.net/push/abc", "mozilla"},
 		{"fcm", "https://fcm.googleapis.com/fcm/send/abc", "fcm"},
-		{"fcm legacy", "https://android.googleapis.com/gcm/send/abc", "fcm"},
+		{"fcm older host", "https://android.googleapis.com/gcm/send/abc", "fcm"},
 		{"apple", "https://web.push.apple.com/abc", "apple"},
 		{"other host", "https://push.example.com/e", "other"},
 		{"unparseable", "://not a url", "other"},

@@ -23,9 +23,8 @@ import (
 // The database stores the storage-relative path
 // `media/images/<first-2-hex>/<id>.<ext>`; API responses emit the absolute
 // URL of the served pattern `/media/images/<id>.<ext>` (via
-// media.ServedPath). Serving is public, read-only, and immutable: IDs are
-// never reused for different content (the import derives them from the
-// source bytes), so a long-lived Cache-Control is safe.
+// media.ServedPath). Serving is public, read-only, and immutable: an id is
+// never reused for different bytes, so a long-lived Cache-Control is safe.
 
 // mediaIDPattern pins the served identifier: exactly 32 lowercase hex
 // characters — the generated identifier shape (docs/patterns/go/ids.md),
@@ -35,7 +34,7 @@ var mediaIDPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 // mediaExtensions maps a served extension to its Content-Type. The pipeline
 // writes jpg or png (JPEG 85 output, PNG for transparency). `.jpeg` is
-// tolerated by the parser for hand-placed legacy files but is never written
+// tolerated by the parser for hand-placed files but is never written
 // by the pipeline, so it normally 404s; WebP is decode-only and never stored.
 var mediaExtensions = map[string]string{
 	"jpg":  "image/jpeg",
@@ -134,13 +133,11 @@ func unwrappedCause(err error) error {
 // mapping (dropping the 2-hex subdirectory) lives in media.ServedPath —
 // layout knowledge has exactly one home.
 //
-// Interim rule: until cmd/importmedia rewrites legacy references,
-// the database can still hold the verbatim legacy absolute URL that
-// cmd/importdata copied in. Those values pass through unchanged, but only
-// when they parse as absolute http(s) URLs — anything else yields "" so a
-// malformed stored value can never smuggle another scheme (javascript:,
-// data:) into the JSON. The reference rewrite belongs to the migration
-// command, not to the read API.
+// Stored values can be absolute URLs. Those pass through
+// unchanged, but only when they parse as absolute http(s) URLs — anything
+// else yields "" so a malformed stored value can never smuggle another
+// scheme (javascript:, data:) into the JSON. Rewriting references is not
+// the read API's job.
 func mediaURL(baseURL, stored string) string {
 	if stored == "" {
 		return ""

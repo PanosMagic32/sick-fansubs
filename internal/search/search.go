@@ -13,10 +13,9 @@
 // titles follow them.
 //
 // It has no dependencies on the database or HTTP packages — every caller
-// (import tool, rebuild command, handler, store) shares one implementation,
-// so the indexed text and the query text are normalized by the SAME
-// function. That symmetry is what makes accent-insensitive Greek search
-// correct.
+// (rebuild command, handler, store) shares one implementation, so the
+// indexed text and the query text are normalized by the SAME function.
+// That symmetry is what makes accent-insensitive Greek search correct.
 package search
 
 import (

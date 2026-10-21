@@ -18,7 +18,7 @@ import (
 // (blog_detail.go): staff can never STORE a value the public read would
 // null out. Field bounds: at least one row (download
 // links are required), at most maxDownloadRows rows, labels 1..100 runes,
-// links at most 2000 runes (the legacy magnet links measured ≤ 480), and
+// links at most 2000 runes, and
 // each row needs at least one of its two links.
 
 const (

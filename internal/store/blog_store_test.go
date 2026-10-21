@@ -104,10 +104,10 @@ func TestGetPublishedBlogPost_CreatorNull(t *testing.T) {
 	}
 }
 
-// TestGetPublishedBlogPost_UpdaterOnly proves the realistic post-migration
-// mixed shape: the legacy export can carry updatedBy with an orphaned or
-// absent creator, so creator_id stays NULL while updater_id resolves. The
-// two joins must stay independent.
+// TestGetPublishedBlogPost_UpdaterOnly proves the mixed shape a stored row
+// can carry: updatedBy present with an orphaned or absent creator, so
+// creator_id stays NULL while updater_id resolves. The two joins must stay
+// independent.
 func TestGetPublishedBlogPost_UpdaterOnly(t *testing.T) {
 	t.Parallel()
 

@@ -122,7 +122,7 @@ func TestUserByCanonicalLenient_WhitespaceShapes(t *testing.T) {
 	db := openStoreDB(t)
 	ctx := t.Context()
 
-	// Imported names keep their legacy spacing — surrounding, trailing, and
+	// Stored names keep their original spacing — surrounding, trailing, and
 	// repeated whitespace — which a sign-in form cannot reproduce. The
 	// long-run row also pins the coarse SQL prefilter (a run longer than any
 	// collapse pass would catch), and the Unicode rows pin it against the

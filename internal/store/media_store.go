@@ -11,13 +11,13 @@ import (
 // Media reference rules (docs/patterns/go/content-kinds.md): a media file is
 // KEPT while its storage-relative path appears in at least one active
 // content row or one user avatar. The reference set spans ALL rows of EVERY
-// content kind — the media import deduplicates identical source bytes across
-// posts, so one file can serve several rows, and deleting on a single row's
-// lifecycle would break the others.
+// content kind — identical source bytes may be stored once and referenced by
+// several posts, so one file can serve several rows, and deleting on a single
+// row's lifecycle would break the others.
 
 // ReferencedMediaPaths returns the set of storage-relative media paths any
 // active content row or user avatar references; the media orphan sweep treats
-// membership as KEEP. Legacy absolute URLs are harmless set members.
+// membership as KEEP. Absolute URLs are harmless set members.
 func ReferencedMediaPaths(ctx context.Context, db *sql.DB) (map[string]struct{}, error) {
 	// The content legs sweep the descriptor list, so a new content kind
 	// joins the reference set without touching this function.

@@ -85,8 +85,8 @@ const LIST_BODY = {
     },
     {
       id: "u2",
-      username: "Beta",
-      email: "beta@example.com",
+      username: "Second",
+      email: "noreply@example.com",
       role: "user",
       status: "suspended",
       emailVerified: false,
@@ -276,7 +276,7 @@ describe("admin-users-page", () => {
       "https://example.com/media/images/9f/abc.png",
     );
     expect(list[1]!.querySelector(".member-avatar .avatar")?.textContent).toBe(
-      "B",
+      "S",
     );
 
     // Role/status copy comes from the catalog (Greek), not the raw values.
@@ -1416,11 +1416,11 @@ describe("admin-users-page", () => {
           (r) => r.method === "DELETE" && r.url === "/api/v1/users/u1",
         ),
       ).toBe(true);
-      // Two cards before, one after: only Beta (u2) remains.
+      // Two cards before, one after: only Second (u2) remains.
       const rest = cards(page);
       expect(rest.length).toBe(1);
       expect(rest[0]!.querySelector(".member-name")?.textContent?.trim()).toBe(
-        "Beta",
+        "Second",
       );
       // The deleted member's panel and staged edit went with the row.
       expect(root(page).querySelector(".member-panel")).toBeNull();

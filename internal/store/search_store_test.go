@@ -10,7 +10,7 @@ import (
 )
 
 // Fixtures — every helper writes content + index in ONE transaction,
-// mirroring the import/CRUD contract.
+// mirroring the content-index contract.
 
 // insertBlog inserts one blog post and its index entry atomically,
 // returning the content rowid. published==nil means "no publish time" —

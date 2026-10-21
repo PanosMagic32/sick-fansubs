@@ -26,34 +26,32 @@ const bcryptCost = 12
 // verification. A verifier above it fails fast WITHOUT
 // running the expensive comparison and routes the account to recovery.
 // New hashes are generated at bcryptCost, which stays below the maximum.
-// migration.classifyVerifier mirrors this boundary — keep both aligned.
 const maxBcryptCost = 13
 
-// legacyBcryptMaxPasswordBytes is bcrypt's 72-byte key boundary. The legacy
-// libraries (crypt_blowfish/bcryptjs) silently truncated submissions at this
-// boundary when hashing, so a legacy verifier encodes only the first 72
-// bytes. VERIFICATION compares the 72-byte prefix to keep that credential
-// working; hashing still rejects over-72-byte values.
-const legacyBcryptMaxPasswordBytes = 72
+// bcryptMaxPasswordBytes is bcrypt's 72-byte key boundary. A stored verifier
+// encodes only the first 72 bytes of the key. VERIFICATION compares the
+// 72-byte prefix so such a credential keeps working; hashing still rejects
+// over-72-byte values.
+const bcryptMaxPasswordBytes = 72
 
 // verifyPassword compares a submitted password against a stored bcrypt
 // verifier under the rules below:
 //
 //   - The prefix is checked FIRST against the supported family. Go's parser
 //     accepts ANY minor character ($2x$, $2z$, …), so the gate is explicit —
-//     the legacy $2x$ variant (a PHP-bug workaround with different high-bit
+//     the $2x$ variant (a PHP-bug workaround with different high-bit
 //     semantics) and anything unknown fail fast as unusable instead of
 //     running a potentially wrong comparison.
 //   - The verifier's cost is parsed next. Malformed/unsupported verifiers
 //     and costs above maxBcryptCost return errVerifierUnusable without
 //     running the expensive comparison — the DoS guard, not a comparison
 //     result.
-//   - A submitted password longer than legacyBcryptMaxPasswordBytes is
-//     compared by its first 72 bytes. The legacy libraries truncated at this
-//     boundary when hashing, so a legacy verifier encodes the 72-byte prefix;
-//     Go's comparison would otherwise cycle the FULL password through the
-//     blowfish key schedule and never match. Truncation is verification-only:
-//     hashing new passwords still rejects over-72-byte values.
+//   - A submitted password longer than bcryptMaxPasswordBytes is
+//     compared by its first 72 bytes. A stored verifier encodes the 72-byte
+//     prefix; Go's comparison would otherwise cycle the FULL password through
+//     the blowfish key schedule and never match. Truncation is
+//     verification-only: hashing new passwords still rejects over-72-byte
+//     values.
 //
 // Returns the verifier cost (always <= maxBcryptCost) and nil on a match.
 func verifyPassword(storedHash, submitted []byte) (int, error) {
@@ -64,8 +62,8 @@ func verifyPassword(storedHash, submitted []byte) (int, error) {
 	if err != nil || cost > maxBcryptCost {
 		return 0, errVerifierUnusable
 	}
-	if len(submitted) > legacyBcryptMaxPasswordBytes {
-		submitted = submitted[:legacyBcryptMaxPasswordBytes]
+	if len(submitted) > bcryptMaxPasswordBytes {
+		submitted = submitted[:bcryptMaxPasswordBytes]
 	}
 	if err := bcrypt.CompareHashAndPassword(storedHash, submitted); err != nil {
 		return 0, err
@@ -74,10 +72,8 @@ func verifyPassword(storedHash, submitted []byte) (int, error) {
 }
 
 // supportedVerifierPrefix reports whether a stored hash carries one of the
-// supported bcrypt family prefixes. Imported verifiers are
-// preserved byte-for-byte in every category, so the runtime gate — not the
-// migration tool — decides what sign-in will actually compare.
-// migration.classifyVerifier applies the same family — keep both aligned.
+// supported bcrypt family prefixes. The runtime gate decides what sign-in
+// will actually compare.
 func supportedVerifierPrefix(hash []byte) bool {
 	return bytes.HasPrefix(hash, []byte("$2a$")) ||
 		bytes.HasPrefix(hash, []byte("$2b$")) ||
@@ -107,9 +103,9 @@ func (s *Service) ChangePassword(ctx context.Context, userID, currentPassword, n
 		return fmt.Errorf("auth: lookup user: %w", err)
 	}
 
-	// Verify current password under the cost gate and the 72-byte legacy
-	// prefix rule — a migrated over-72-byte credential verifies the same way
-	// it did on the legacy system.
+	// Verify current password under the cost gate and the 72-byte prefix
+	// rule — an over-72-byte credential verifies by the prefix its stored
+	// verifier encodes.
 	if _, err := verifyPassword([]byte(u.Password), []byte(currentPassword)); err != nil {
 		return ErrInvalidCredentials
 	}
@@ -206,7 +202,7 @@ func validateNewPassword(field, password string) *FieldError {
 	if pwBytes < 8 {
 		return &FieldError{Field: field, Code: "minLength", Message: "password must be at least 8 bytes"}
 	}
-	if pwBytes > legacyBcryptMaxPasswordBytes {
+	if pwBytes > bcryptMaxPasswordBytes {
 		return &FieldError{Field: field, Code: "maxLength", Message: "password must be at most 72 bytes"}
 	}
 	return nil

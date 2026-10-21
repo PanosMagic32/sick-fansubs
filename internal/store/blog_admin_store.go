@@ -184,7 +184,7 @@ func UpdateBlogPost(ctx context.Context, db *sql.DB, id string, revision int64, 
 	}
 	// The download set is replaced in the same transaction: a stale revision
 	// rolls the whole change back, downloads included. New rows keep the
-	// content row's created_at_ms (the import precedent).
+	// content row's created_at_ms (the content-row stamp rule).
 	if err := replaceContentDownloadsTx(ctx, tx, k, id, curCreatedMS, p.Downloads); err != nil {
 		return nil, nil, err
 	}

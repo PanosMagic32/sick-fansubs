@@ -96,8 +96,8 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 
 	// Verify the password: the cost gate rejects unusable
 	// verifiers before any expensive work, and a submission longer than 72
-	// bytes is compared by its first 72 bytes — the credential a legacy
-	// truncating library actually encoded. CompareHashAndPassword itself is
+	// bytes is compared by its first 72 bytes — the credential a
+	// truncating bcrypt implementation actually encoded. CompareHashAndPassword itself is
 	// constant-time (subtle.ConstantTimeCompare), so an attacker cannot
 	// distinguish "wrong password" from "correct password" by timing alone.
 	cost, err := verifyPassword([]byte(u.Password), []byte(password))
@@ -116,7 +116,7 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 
 	// Decide whether the stored verifier needs a rehash: cost below the target
 	// → rehash at cost 12; cost at or above the target → retain. One further
-	// rule: an over-72-byte legacy credential cannot be rehashed (Go refuses
+	// rule: an over-72-byte credential cannot be rehashed (Go refuses
 	// to hash it), so that sign-in proceeds under the unchanged verifier and
 	// the account relies on the self-service password-change path.
 	// Hash generation is best-effort — if it fails, sign-in proceeds under the
@@ -126,7 +126,7 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 	// The COMPARISON side of the rehash gate uses the same field as the
 	// generation side — a test-lowered cost must not turn every sign-in
 	// into a perpetual rehash loop (the seam stays self-consistent).
-	if cost < s.bcryptCost && len(password) <= legacyBcryptMaxPasswordBytes {
+	if cost < s.bcryptCost && len(password) <= bcryptMaxPasswordBytes {
 		if h, err := bcrypt.GenerateFromPassword([]byte(password), s.bcryptCost); err == nil {
 			rehashNeeded, newHash = true, string(h)
 		}
@@ -200,9 +200,9 @@ func (s *Service) Register(ctx context.Context, username, email, password, userA
 	} else if !errors.Is(err, store.ErrNotFound) {
 		return "", "", identity.PublicUser{}, fmt.Errorf("auth: check username: %w", err)
 	}
-	// A legacy row differing only in whitespace is the SAME name: the lenient
+	// A stored row differing only in whitespace is the SAME name: the lenient
 	// lookup is the sign-in rule, so registration must not mint a
-	// near-duplicate — not even when several legacy rows normalize alike.
+	// near-duplicate — not even when several stored rows normalize alike.
 	if _, err := store.UserByCanonicalLenient(ctx, s.db, usernameCanon); err == nil || store.IsAmbiguousUser(err) {
 		return "", "", identity.PublicUser{}, ErrUsernameTaken
 	} else if !errors.Is(err, store.ErrNotFound) {
@@ -213,9 +213,9 @@ func (s *Service) Register(ctx context.Context, username, email, password, userA
 	} else if !errors.Is(err, store.ErrNotFound) {
 		return "", "", identity.PublicUser{}, fmt.Errorf("auth: check email: %w", err)
 	}
-	// An email equal to a legacy username would shadow that username at
+	// An email equal to a stored username would shadow that username at
 	// sign-in and recovery — both resolve through the lenient lookup, so the
-	// shadow check must use it too. Several legacy rows normalizing alike
+	// shadow check must use it too. Several stored rows normalizing alike
 	// make the address ambiguous, and ambiguity is taken.
 	if _, err := store.UserByCanonicalLenient(ctx, s.db, email); err == nil || store.IsAmbiguousUser(err) {
 		return "", "", identity.PublicUser{}, ErrEmailTaken
@@ -320,7 +320,7 @@ func (s *Service) lookupIdentifier(ctx context.Context, identifier string) (*ide
 // lookupUserByIdentifier resolves a username-or-email identifier through the
 // one shared chain: a lowercased '@'-containing value tries email first, then
 // the canonical and whitespace-lenient username lookups (the fallback covers
-// migrated usernames containing '@'); other identifiers try the two username
+// stored usernames containing '@'); other identifiers try the two username
 // lookups. A miss returns store.ErrNotFound so callers can branch on it;
 // other failures are wrapped once here.
 func (s *Service) lookupUserByIdentifier(ctx context.Context, identifier string) (*identity.User, error) {

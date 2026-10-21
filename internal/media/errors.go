@@ -3,8 +3,8 @@ package media
 import "errors"
 
 // The pipeline's error vocabulary in one place. Every sentinel is tested
-// with errors.Is; the import command maps them to report codes and the
-// upload handler to file violations (see internal/media/AGENTS.md).
+// with errors.Is; the upload handler maps them to file violations (see
+// internal/media/AGENTS.md).
 var (
 	// ErrInputTooLarge reports a source over [MaxInputBytes]; a 413
 	// {file, tooLarge}.
@@ -27,12 +27,10 @@ var (
 	ErrDecode = errors.New("media: cannot decode image")
 
 	// ErrEncode reports a failed re-encode of a decoded image: the upload
-	// boundary answers the generic masked 500, and the import report carries
-	// the encodeFailed code.
+	// boundary answers the generic masked 500.
 	ErrEncode = errors.New("media: cannot encode processed image")
 
 	// ErrWrite reports a failed write of the processed image: the upload
-	// boundary answers the generic masked 500, and the import report carries
-	// the writeFailed code.
+	// boundary answers the generic masked 500.
 	ErrWrite = errors.New("media: cannot write processed image")
 )

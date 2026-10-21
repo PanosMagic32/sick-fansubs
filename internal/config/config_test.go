@@ -186,15 +186,15 @@ func TestLoadAppEnv(t *testing.T) {
 				defer os.Unsetenv("APP_ENV")
 			}
 			if tt.env == EnvProduction {
-				os.Setenv("PUBLIC_BASE_URL", "https://v2.sickfansubs.com")
+				os.Setenv("PUBLIC_BASE_URL", "https://sickfansubs.com")
 				defer os.Unsetenv("PUBLIC_BASE_URL")
-				os.Setenv("TRUSTED_ORIGIN", "https://v2.sickfansubs.com")
+				os.Setenv("TRUSTED_ORIGIN", "https://sickfansubs.com")
 				defer os.Unsetenv("TRUSTED_ORIGIN")
 				// Production requires the relay — these
 				// cases exercise APP_ENV validation, not the mailer.
 				os.Setenv("SMTP_HOST", "smtp.example.com")
 				defer os.Unsetenv("SMTP_HOST")
-				os.Setenv("SMTP_FROM", "beta@example.com")
+				os.Setenv("SMTP_FROM", "noreply@example.com")
 				defer os.Unsetenv("SMTP_FROM")
 			} else {
 				os.Unsetenv("PUBLIC_BASE_URL")
@@ -228,8 +228,8 @@ func TestLoadTrustedOrigin(t *testing.T) {
 		wantErr bool
 	}{
 		{"dev default when unset", "", "http://localhost:3000", false},
-		{"explicit origin", "https://v2.sickfansubs.com", "https://v2.sickfansubs.com", false},
-		{"trailing slash normalized", "https://v2.sickfansubs.com/", "https://v2.sickfansubs.com", false},
+		{"explicit origin", "https://sickfansubs.com", "https://sickfansubs.com", false},
+		{"trailing slash normalized", "https://sickfansubs.com/", "https://sickfansubs.com", false},
 		{"path rejected", "https://sickfansubs.com/app", "", true},
 		{"wrong scheme", "file:///tmp", "", true},
 		{"missing host", "https://", "", true},
@@ -299,14 +299,14 @@ func TestLoadProductionFailClosed(t *testing.T) {
 	}{
 		{
 			name:          "unset TRUSTED_ORIGIN rejected",
-			baseURL:       "https://v2.sickfansubs.com",
+			baseURL:       "https://sickfansubs.com",
 			trustedOrigin: "",
 			wantErr:       true,
 		},
 		{
 			name:          "http TRUSTED_ORIGIN rejected",
-			baseURL:       "https://v2.sickfansubs.com",
-			trustedOrigin: "http://v2.sickfansubs.com",
+			baseURL:       "https://sickfansubs.com",
+			trustedOrigin: "http://sickfansubs.com",
 			wantErr:       true,
 		},
 		{
@@ -314,19 +314,19 @@ func TestLoadProductionFailClosed(t *testing.T) {
 			// which production must reject rather than silently accept.
 			name:          "unset PUBLIC_BASE_URL rejected",
 			baseURL:       "",
-			trustedOrigin: "https://v2.sickfansubs.com",
+			trustedOrigin: "https://sickfansubs.com",
 			wantErr:       true,
 		},
 		{
 			name:          "http PUBLIC_BASE_URL rejected",
-			baseURL:       "http://v2.sickfansubs.com",
-			trustedOrigin: "https://v2.sickfansubs.com",
+			baseURL:       "http://sickfansubs.com",
+			trustedOrigin: "https://sickfansubs.com",
 			wantErr:       true,
 		},
 		{
 			name:          "https both accepted",
-			baseURL:       "https://v2.sickfansubs.com",
-			trustedOrigin: "https://v2.sickfansubs.com",
+			baseURL:       "https://sickfansubs.com",
+			trustedOrigin: "https://sickfansubs.com",
 			wantErr:       false,
 		},
 	}
@@ -354,7 +354,7 @@ func TestLoadProductionFailClosed(t *testing.T) {
 			// cases fail on their own earlier checks.
 			os.Setenv("SMTP_HOST", "smtp.example.com")
 			defer os.Unsetenv("SMTP_HOST")
-			os.Setenv("SMTP_FROM", "beta@example.com")
+			os.Setenv("SMTP_FROM", "noreply@example.com")
 			defer os.Unsetenv("SMTP_FROM")
 
 			cfg, err := Load()
@@ -514,9 +514,9 @@ func TestValidateMailRelay(t *testing.T) {
 	t.Run("production requires host and from", func(t *testing.T) {
 		os.Setenv("APP_ENV", EnvProduction)
 		t.Cleanup(func() { os.Unsetenv("APP_ENV") })
-		os.Setenv("PUBLIC_BASE_URL", "https://v2.sickfansubs.com")
+		os.Setenv("PUBLIC_BASE_URL", "https://sickfansubs.com")
 		t.Cleanup(func() { os.Unsetenv("PUBLIC_BASE_URL") })
-		os.Setenv("TRUSTED_ORIGIN", "https://v2.sickfansubs.com")
+		os.Setenv("TRUSTED_ORIGIN", "https://sickfansubs.com")
 		t.Cleanup(func() { os.Unsetenv("TRUSTED_ORIGIN") })
 
 		cfg, err := Load()
@@ -530,7 +530,7 @@ func TestValidateMailRelay(t *testing.T) {
 		if err := cfg.ValidateMailRelay(); err == nil {
 			t.Error("production without SMTP_FROM accepted")
 		}
-		cfg.SMTPFrom = "beta@sickfansubs.com"
+		cfg.SMTPFrom = "noreply@sickfansubs.com"
 		if err := cfg.ValidateMailRelay(); err != nil {
 			t.Errorf("complete production SMTP config rejected: %v", err)
 		}

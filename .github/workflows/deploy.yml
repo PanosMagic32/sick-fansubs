@@ -2,9 +2,7 @@ name: deploy
 
 # Single deploy flow: every semantic-version tag — prerelease or not —
 # builds, pushes, and deploys to the current stack. Bare semver tags only
-# (2.0.0-beta.2 — the APP_VERSION convention; no "v" prefix). The cutover
-# (docs/ops/cutover.md) promotes the stack to production by swapping the
-# edge; this workflow does not change.
+# (2.1.1 — the APP_VERSION convention; no "v" prefix).
 on:
   push:
     tags:

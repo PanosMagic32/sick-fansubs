@@ -31,9 +31,6 @@
 //
 // Exit codes: 0 success, 1 on any failure. Outcomes go to structured logs
 // on stderr.
-//
-// This command owns schema migrations only. The legacy-source → SQLite data
-// import is a separate command (cmd/importdata).
 package main
 
 import (

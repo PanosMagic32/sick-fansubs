@@ -42,8 +42,7 @@ have their own docs: [sql-mapping.md](sql-mapping.md) and [ids.md](ids.md).
    Every database API that accepts a context gets one with an operation-appropriate deadline. On
    the request path that context is the HTTP request context — canceled when the client
    disconnects — and `busy_timeout` bounds lock waits, not query duration; maintenance commands
-   set their own deadlines, and the long import tools deliberately run under the operator's
-   control.
+   set their own deadlines.
 6. **Transactions are explicit and short.** Parameterized SQL only. Multi-row or security-state
    changes that must succeed together run in one `sql.Tx` owned by a store operation — no generic
    transaction manager reaches a handler. Every query inside the transaction uses the `*sql.Tx`,

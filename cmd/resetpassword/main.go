@@ -91,13 +91,13 @@ func run(logger *slog.Logger, username string, out io.Writer) error {
 
 	target, err := store.UserByCanonical(ctx, db, strings.ToLower(username))
 	if errors.Is(err, store.ErrNotFound) {
-		// Imported usernames keep legacy spacing the operator cannot retype
+		// Stored usernames keep their original spacing the operator cannot retype
 		// exactly — the same lenient bridge the sign-in path uses.
 		target, err = store.UserByCanonicalLenient(ctx, db, strings.ToLower(username))
 	}
 	if err != nil {
 		if store.IsAmbiguousUser(err) {
-			return fmt.Errorf("username %q matches several imported accounts; use the exact spelling", username)
+			return fmt.Errorf("username %q matches several accounts; use the exact spelling", username)
 		}
 		if errors.Is(err, store.ErrNotFound) {
 			return fmt.Errorf("no user with username %q", username)

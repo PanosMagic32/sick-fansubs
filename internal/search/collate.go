@@ -14,7 +14,7 @@ const CollationGreek = "sf_greek"
 
 // SortKeyRuneLimit bounds a collation key in runes. It matches the content
 // title bound (200 runes, internal/handler), so keys are lossless for every
-// row the API itself can write; a longer legacy title is truncated for
+// row the API itself can write; a longer stored title is truncated for
 // ordering and cursor purposes. The bound exists so a continuation cursor
 // carrying a text key has a bounded size.
 const SortKeyRuneLimit = 200

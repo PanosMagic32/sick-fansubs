@@ -741,9 +741,9 @@ func TestMigration0012_BackfillsExistingUsers(t *testing.T) {
 
 	// A pre-0012 user with a known creation stamp.
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:           "legacy1",
-		Username:     "legacyuser",
-		Email:        "legacy@example.com",
+		ID:           "user1",
+		Username:     "storeduser",
+		Email:        "stored@example.com",
 		PasswordHash: "x",
 		CreatedAtMS:  1111,
 	})
@@ -760,7 +760,7 @@ func TestMigration0012_BackfillsExistingUsers(t *testing.T) {
 
 	var verified int64
 	if err := db.QueryRow(
-		`SELECT email_verified_at_ms FROM users WHERE id = 'legacy1'`,
+		`SELECT email_verified_at_ms FROM users WHERE id = 'user1'`,
 	).Scan(&verified); err != nil {
 		t.Fatalf("read backfilled stamp: %v", err)
 	}

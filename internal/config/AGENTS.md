@@ -8,7 +8,7 @@ Typed, validated environment configuration.
 
 ## Folder-local conventions
 
-- `Load()` runs in `main` only — no package-init side effects. It is the single reader for application runtime configuration. Two command families additionally own variables: `cmd/backup` (`DATA_DIR`, `BACKUP_DIR`, `AGE_RECIPIENT`, `APP_ENV`) and `cmd/fetchmedia` (`IMPORT_FILE`, `MEDIA_SOURCE_DIR`) read them without calling `Load()`; the import tools (`importdata`, `importmedia`, `importavatars`) call `Load()` for the shared `DATA_DIR` contract and read only `IMPORT_FILE`/`MEDIA_SOURCE_DIR` themselves.
+- `Load()` runs in `main` only — no package-init side effects. It is the single reader for application runtime configuration. `cmd/backup` additionally owns `DATA_DIR`, `BACKUP_DIR`, `AGE_RECIPIENT`, and `APP_ENV`, read without calling `Load()`.
 - **Variable inventory.** Every command that calls `Load()` enforces the environment arms below, break-glass tools included; the mail-relay requirements are `ValidateMailRelay`'s and bind `cmd/api` only, and the two secret rows bind the commands that load them — `cmd/api` today.
 
   | Variable                     | Default                                      | Refused / required                                                                                                                       |

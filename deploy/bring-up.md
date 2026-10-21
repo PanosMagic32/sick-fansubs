@@ -295,7 +295,7 @@ API token) — give the first curl a few seconds.
    `/health/ready` return 200 JSON.
 4. **Smoke** — browser on `sickfansubs.com`: register → sign-out → sign-in; a
    Greek search (e.g. `?q=ναρουτό`) returns the 200 envelope (empty results
-   until the imports land content); the footer shows the deployed version.
+   on an empty database); the footer shows the deployed version.
 5. **Secrets** — `.env` is mode 600 and never left the VPS. The token appears
    only in the caddy container's env and `docker compose config` output on
    your owner-only host (expected by design — never paste either). Image

@@ -77,33 +77,6 @@ reset-password-local: ## Reset a user's password + force a change on next sign-i
 sweep-media-local: ## Remove orphaned media files not referenced by any content row (24h grace window)
 	@go run ./cmd/sweepmedia
 
-import-data-local: ## Import legacy blog data locally (migration-pilot source) — IMPORT_FILE=<path to JSON array or JSON-lines>
-	@test -n "$$IMPORT_FILE" || (echo "IMPORT_FILE is required (legacy export file)"; exit 1)
-	@go run ./cmd/importdata
-
-import-projects-local: ## Import legacy project data locally — IMPORT_FILE=<path to JSON array or JSON-lines>
-	@test -n "$$IMPORT_FILE" || (echo "IMPORT_FILE is required (legacy export file)"; exit 1)
-	@go run ./cmd/importdata -kind projects
-
-import-users-local: ## Import legacy user data locally (credential migration — run BEFORE content imports) — IMPORT_FILE=<path to JSON array or JSON-lines>
-	@test -n "$$IMPORT_FILE" || (echo "IMPORT_FILE is required (legacy export file)"; exit 1)
-	@go run ./cmd/importdata -kind users
-
-import-favorites-local: ## Import legacy favorites locally (users export — run AFTER users + content imports) — IMPORT_FILE=<path to JSON array or JSON-lines>
-	@test -n "$$IMPORT_FILE" || (echo "IMPORT_FILE is required (legacy users export file)"; exit 1)
-	@go run ./cmd/importdata -kind favorites
-
-import-media-local: ## Import legacy blog + project thumbnails locally — MEDIA_SOURCE_DIR=<dir with downloaded legacy objects> (default ./media-source)
-	@MEDIA_SOURCE_DIR="$${MEDIA_SOURCE_DIR:-./media-source}" go run ./cmd/importmedia
-
-import-avatars-local: ## Import legacy user avatars locally — IMPORT_FILE=<users export>, MEDIA_SOURCE_DIR (default ./media-source)
-	@test -n "$$IMPORT_FILE" || (echo "IMPORT_FILE is required (legacy users export file)"; exit 1)
-	@MEDIA_SOURCE_DIR="$${MEDIA_SOURCE_DIR:-./media-source}" go run ./cmd/importavatars
-
-fetch-media-local: ## Download legacy media from a legacy export into MEDIA_SOURCE_DIR (default ./media-source) — IMPORT_FILE=<path>, KIND=blog-posts|projects|users (default blog-posts)
-	@test -n "$$IMPORT_FILE" || (echo "IMPORT_FILE is required (legacy export file)"; exit 1)
-	@MEDIA_SOURCE_DIR="$${MEDIA_SOURCE_DIR:-./media-source}" go run ./cmd/fetchmedia -kind $${KIND:-blog-posts}
-
 dev-api: ## Start Go API locally (port 8080)
 	@go run ./cmd/api/...
 
@@ -138,15 +111,6 @@ docker-build-migrate: ## Build the migration tool image for a VPS flight
 
 docker-build-rebuildsearch: ## Build the search-index rebuild image for a VPS flight
 	@docker build -f Dockerfile.rebuildsearch -t sick-fansubs-rebuildsearch:latest .
-
-docker-build-importdata: ## Build the legacy-import image for a VPS flight (one-off docker run, mirrors Dockerfile.migrate)
-	@docker build -f Dockerfile.importdata -t sick-fansubs-importdata:latest .
-
-docker-build-importmedia: ## Build the legacy media-import image for a VPS flight (one-off docker run, mirrors Dockerfile.importdata)
-	@docker build -f Dockerfile.importmedia -t sick-fansubs-importmedia:latest .
-
-docker-build-importavatars: ## Build the legacy avatar-import image for a VPS flight (one-off docker run, mirrors Dockerfile.importmedia)
-	@docker build -f Dockerfile.importavatars -t sick-fansubs-importavatars:latest .
 
 docker-build-backup: ## Build the backup-command image (the compose backup service)
 	@DOCKER_BUILDKIT=1 docker build -f Dockerfile.backup -t sick-fansubs-backup:latest .
@@ -273,7 +237,7 @@ check-all: go-vet go-fmt-check docs-lint workflow-lint web-typecheck web-test go
 # deploy/deploy.sh. There is deliberately no local deploy target; the local
 # Docker targets above are the offline fallbacks.
 
-# ── Quality (legacy aliases, kept for compatibility) ─────────
+# ── Quality (compatibility aliases) ──────────────────────────
 
 itest: ## Run database tests
 	@go test ./internal/database -v
@@ -290,9 +254,8 @@ clean: ## Remove build artifacts
         migrate-local \
         restore-local \
 	        backup-local backup-status backup-docker down \
-	        docker-build-prod docker-build-migrate docker-build-rebuildsearch docker-build-importdata docker-build-importmedia docker-build-importavatars docker-build-backup docker-build-restore \
+	        docker-build-prod docker-build-migrate docker-build-rebuildsearch docker-build-backup docker-build-restore \
 	        rebuild-search-local sweep-media-local reset-password-local \
-	        import-data-local import-projects-local import-users-local import-favorites-local import-media-local import-avatars-local fetch-media-local \
         go-build go-build-dev build \
         go-test go-test-verbose go-test-all go-test-race go-test-coverage test \
         go-vet go-fmt go-fmt-check go-lint go-fix \

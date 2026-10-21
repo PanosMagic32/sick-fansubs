@@ -43,8 +43,8 @@ paths:
       summary: Authenticate and create a session
       description: >-
         Signs in with username-or-email + password and creates a new opaque
-        session. The identifier matches case-insensitively; imported usernames
-        keep their legacy spelling, so the lookup also tolerates surrounding
+        session. The identifier matches case-insensitively; stored usernames
+        keep their original spelling, so the lookup also tolerates surrounding
         or repeated whitespace (an ambiguous match fails closed). Rejected with
         403 while already authenticated. Body hard-limit 4 KiB (413 beyond).
       requestBody:
@@ -2493,7 +2493,7 @@ paths:
           The served media segment — the last path segment of the upload
           response's url field (<32hex>.<ext>), never hand-built. The
           pipeline writes jpg/png only; .jpeg is parser-tolerated for
-          hand-placed legacy files and never matches a written file.
+          hand-placed files and never matches a written file.
         schema:
           type: string
           pattern: "^[0-9a-f]{32}\\.(jpg|jpeg|png)$"
@@ -4703,7 +4703,8 @@ components:
           type: boolean
           description: >-
             Whether the account proved inbox control —
-            true for grandfathered imported accounts, verified links, and
+            true for accounts that carried a verification stamp when the
+            column landed, verified links, and
             self-service password resets; false for new registrations and
             freshly changed emails.
         createdAt:
@@ -4873,8 +4874,8 @@ components:
       type: object
       description: >-
         One content type's status breakdown. archived ships alongside
-        total/published/draft so total equals the sum of its parts on imported
-        data (migrated rows carry the archived status).
+        total/published/draft so total equals the sum of its parts on stored
+        data (archived rows exist).
       additionalProperties: false
       required:
         - total
@@ -5466,8 +5467,8 @@ components:
             Canonical UTC RFC 3339 instant of the last representation change
             (updated_at_ms). Always present; display policy
             (e.g. showing it only when a post was meaningfully edited) is the
-            UI slice's decision. Note: migration falls back to created_at_ms
-            when the legacy record has no updatedAt, so the value alone does
+            UI slice's decision. Note: a row with no stored updated stamp
+            falls back to created_at_ms, so the value alone does
             not prove the post was edited.
           example: "2026-07-24T08:15:00.000Z"
         commentCount:
@@ -5639,9 +5640,9 @@ components:
           format: date-time
           description: >-
             Canonical UTC RFC 3339 instant of the last representation
-            change (updated_at_ms). Migration falls back
-            to created_at_ms when the legacy record has no updatedAt, so
-            the value alone does not prove the project was edited.
+            change (updated_at_ms). A row with no stored updated stamp falls
+            back to created_at_ms, so the value alone does not prove the
+            project was edited.
           example: "2026-07-24T08:15:00.000Z"
         commentCount:
           type: integer
@@ -5657,7 +5658,7 @@ components:
             - type: "null"
           description: >-
             The project creator after the uploader fallback (see
-            ProjectUserRef): migrated rows without a creator resolve to the
+            ProjectUserRef): rows without a creator resolve to the
             fallback account, so null appears only when no fallback account
             resolves.
     ProjectList:
@@ -6119,7 +6120,7 @@ components:
           description: >-
             The project creator, or null when the project has no creator or
             the creator user was deleted (ON DELETE SET NULL).
-            Migrated rows have null creators until the staff CRUD assigns
+            Rows can have null creators until the staff CRUD assigns
             them.
         updater:
           oneOf:

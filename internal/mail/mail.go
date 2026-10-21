@@ -93,7 +93,7 @@ const defaultSendTimeout = 10 * time.Second
 // forgot-password 500 path).
 func (r *Relay) Send(ctx context.Context, to, subject, body string) error {
 	// Header-injection defense at the last boundary: the recipient comes
-	// from the users table (migrated emails bypass the registration charset
+	// from the users table (stored emails may bypass the registration charset
 	// rule), so CR/LF is rejected here rather than trusted.
 	if strings.ContainsAny(to, "\r\n") {
 		return fmt.Errorf("mail: invalid recipient address")

@@ -107,10 +107,9 @@ func TestGetPublishedProject_CreatorNull(t *testing.T) {
 	}
 }
 
-// TestGetPublishedProject_UpdaterOnly proves the realistic post-migration
-// mixed shape: legacy projects carry updatedBy with NO creator field at all,
-// so creator_id stays NULL while updater_id resolves.
-// The two joins must stay independent.
+// TestGetPublishedProject_UpdaterOnly proves the mixed shape a stored row
+// can carry: updatedBy present with NO creator at all, so creator_id stays
+// NULL while updater_id resolves. The two joins must stay independent.
 func TestGetPublishedProject_UpdaterOnly(t *testing.T) {
 	t.Parallel()
 

@@ -43,8 +43,8 @@ func (h *Auth) HandlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Bound the current password like sign-in's password field (the separately
-	// bounded legacy-investigation field). Verification
+	// Bound the current password like sign-in's password field (a separately
+	// bounded field). Verification
 	// compares at most 72 bytes, but the request contract stays explicit.
 	if len(req.CurrentPassword) > 128 {
 		writeValidationErrors(w, r, []Violation{

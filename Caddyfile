@@ -1,7 +1,7 @@
 # Sick-Fansubs — production edge
 #
 # Caddy is the TLS edge for sickfansubs.com behind Cloudflare and owns
-# host port 443 (compose maps it). The legacy stack is gone; port 80
+# host port 443 (compose maps it). Port 80
 # stays unpublished — ACME uses the DNS challenge, so no HTTP or
 # TLS-ALPN challenge needs to reach the origin.
 #

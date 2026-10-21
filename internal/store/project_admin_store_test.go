@@ -495,7 +495,7 @@ func TestStaffProjectDraftVisibility(t *testing.T) {
 }
 
 // TestStaffProject_NullCreatorUpdater is the project counterpart of
-// TestStaffBlogPost_NullCreatorUpdater: migrated rows carry NULL ids and
+// TestStaffBlogPost_NullCreatorUpdater: a row can carry NULL ids and
 // the staff detail must read them without a Scan error.
 func TestStaffProject_NullCreatorUpdater(t *testing.T) {
 	t.Parallel()
@@ -519,9 +519,9 @@ func TestStaffProject_NullCreatorUpdater(t *testing.T) {
 			if _, err := db.Exec(
 				`INSERT INTO projects (id, title, description, slug, thumbnail_url, status,
 					creator_id, updater_id, published_at_ms, created_at_ms, updated_at_ms, revision)
-				 VALUES (?, 'Migrated', '', ?, 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
+				 VALUES (?, 'Stored', '', ?, 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
 				 	?, ?, ?, NULLIF(?, 0), 1000, 1000, 1)`, c.id, c.id, c.status, c.creator, c.updater, c.publishedMS); err != nil {
-				t.Fatalf("seed migrated project: %v", err)
+				t.Fatalf("seed project without a creator: %v", err)
 			}
 
 			project, err := GetStaffProject(ctx, db, c.id, "mod1", 1)
@@ -541,10 +541,10 @@ func TestStaffProject_NullCreatorUpdater(t *testing.T) {
 	}
 }
 
-// TestUpdateProject_MigratedRow is the project counterpart of
-// TestUpdateBlogPost_MigratedRow: the pre-read + revision-guarded update
-// must work on a NULL-creator migrated row.
-func TestUpdateProject_MigratedRow(t *testing.T) {
+// TestUpdateProject_NullCreator is the project counterpart of
+// TestUpdateBlogPost_NullCreator: the pre-read + revision-guarded update
+// must work on a NULL-creator row.
+func TestUpdateProject_NullCreator(t *testing.T) {
 	t.Parallel()
 	db := setupProjectAdminStore(t)
 	ctx := t.Context()
@@ -552,9 +552,9 @@ func TestUpdateProject_MigratedRow(t *testing.T) {
 	if _, err := db.Exec(
 		`INSERT INTO projects (id, title, description, slug, thumbnail_url, status,
 			creator_id, updater_id, published_at_ms, created_at_ms, updated_at_ms, revision)
-		 VALUES ('mig1', 'Migrated', '', 'mig1', 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
+		 VALUES ('mig1', 'Stored', '', 'mig1', 'media/images/ab/abcdef0123456789abcdef0123456789.jpg',
 		 	'published', NULL, NULL, 5000, 1000, 1000, 1)`); err != nil {
-		t.Fatalf("seed migrated project: %v", err)
+		t.Fatalf("seed project without a creator: %v", err)
 	}
 
 	if _, err := GetStaffProject(ctx, db, "mig1", "mod1", 1); err != nil {
@@ -562,7 +562,7 @@ func TestUpdateProject_MigratedRow(t *testing.T) {
 	}
 
 	project, _, err := UpdateProject(ctx, db, "mig1", 1, UpdateProjectParams{
-		Title:        "Migrated",
+		Title:        "Stored",
 		Description:  "",
 		Slug:         "mig1",
 		ThumbnailURL: "media/images/ab/abcdef0123456789abcdef0123456789.jpg",

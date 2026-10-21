@@ -39,8 +39,8 @@ type MetricsUserTotals struct {
 }
 
 // MetricsContentTotals is one content type's status breakdown. Total is the
-// live row count, not the sum of the status buckets — for a migrated row the
-// status is always one of the three CHECK values, so the numbers agree.
+// live row count, not the sum of the status buckets — every stored row
+// carries one of the three CHECK statuses, so the numbers agree.
 type MetricsContentTotals struct {
 	Total     int64
 	Published int64

@@ -129,7 +129,7 @@ func TestReadUploadFile_FramingArms(t *testing.T) {
 
 // TestMediaURL pins the URL-joining contract of mediaURL: the storage
 // subdirectory is dropped, a base path prefix is kept, a flat stored path
-// stays flat, a legacy absolute URL passes through, and a value failing the
+// stays flat, an absolute URL passes through, and a value failing the
 // scheme guard emits the empty string.
 func TestMediaURL(t *testing.T) {
 	t.Parallel()
@@ -146,7 +146,7 @@ func TestMediaURL(t *testing.T) {
 			"https://cdn.example.com/static/media/images/cdef0123456789abcdef0123456789.jpg"},
 		{"flat stored path stays flat", "https://sickfansubs.com", "media/images/cdef0123456789abcdef0123456789.jpg",
 			"https://sickfansubs.com/media/images/cdef0123456789abcdef0123456789.jpg"},
-		{"legacy absolute passes through", "https://sickfansubs.com", "https://sickfansubs.com/media/images/old-key.webp",
+		{"absolute URL passes through", "https://sickfansubs.com", "https://sickfansubs.com/media/images/old-key.webp",
 			"https://sickfansubs.com/media/images/old-key.webp"},
 		{"javascript scheme rejected", "https://sickfansubs.com", "javascript:alert(1)", ""},
 		{"data scheme rejected", "https://sickfansubs.com", "data:image/png;base64,AAAA", ""},

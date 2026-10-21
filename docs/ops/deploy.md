@@ -4,7 +4,7 @@
 
 How the application reaches the production VPS: the runtime topology, the artifact boundary, the
 tag-driven pipeline, the deploy sequence and its rollback rules, and the secrets the stack needs.
-Backup, restore, and cutover have their own docs.
+Backup and restore have their own docs.
 
 ## Rules
 
@@ -27,7 +27,7 @@ Backup, restore, and cutover have their own docs.
    `trusted_proxies_strict`, so Go trusts client identity only from the edge. The range list is
    kept set-equal to the `DOCKER-USER` sources in
    [bring-up.md](../../deploy/bring-up.md) §4 (`internal/codestyle` guards the pair). The Caddy
-   port mapping is `443:443` ([cutover.md](cutover.md) rule 1). The access log drops the `token`
+   port mapping is `443:443`. The access log drops the `token`
    query key and the `Referer` header — the password-reset link carries a credential, and the
    token page's first asset fetches would otherwise log it.
 4. **The stack is one Compose project with one application data volume (plus Caddy's state
@@ -206,7 +206,6 @@ tag push ─▶ test job (Go + web) ─▶ build job (5 images → ghcr) ─▶ 
 
 - Index: [../README.md](../README.md)
 - Backup lifecycle: [backup.md](backup.md); staged restore: [restore.md](restore.md)
-- Production cutover: [cutover.md](cutover.md)
 - Dependency currency: [currency.md](currency.md)
 - SQLite foundation rules: [../patterns/go/sqlite.md](../patterns/go/sqlite.md)
 - Environment variables: [../../internal/config/AGENTS.md](../../internal/config/AGENTS.md)

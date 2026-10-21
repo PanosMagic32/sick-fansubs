@@ -136,9 +136,9 @@ func allowNoQueryParams(w http.ResponseWriter, r *http.Request) bool {
 
 // safeDownloadLink is the read-boundary link guard.
 //
-// The database stores download values as opaque text: migration preserved
-// malformed legacy values as-is with a warning rather
-// than destroying data. The public read still re-validates each value and
+// The database stores download values as opaque text: malformed stored
+// values are kept as-is rather than destroyed. The public read still
+// re-validates each value and
 // emits null for anything that is not a plausible link — an http(s) URL
 // with a host, or a magnet URI (scheme magnet followed by a query, i.e.
 // `magnet:?xt=…`). A malformed stored value can never smuggle another

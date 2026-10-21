@@ -146,7 +146,7 @@ func TestListStaffUsers_OrderingAndPagination(t *testing.T) {
 	// must sort. u2/u3 share a timestamp to pin the id-ASC tie-break.
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 3000)
 	mustCreateStaffUser(t, db, "u3", "Gamma", "user", "active", 2000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "active", 2000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "active", 2000)
 	mustCreateStaffUser(t, db, "u4", "Delta", "user", "active", 1000)
 
 	page1, hasNext, err := ListStaffUsers(ctx, db, 2, nil, "", "")
@@ -189,7 +189,7 @@ func TestListStaffUsers_RoleFilter(t *testing.T) {
 
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 3000)
 	mustCreateStaffUser(t, db, "m1", "ModOne", "moderator", "active", 2000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "active", 1000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "active", 1000)
 
 	mods, hasNext, err := ListStaffUsers(ctx, db, 10, nil, "moderator", "")
 	if err != nil {
@@ -221,7 +221,7 @@ func TestListStaffUsers_StatusFilter(t *testing.T) {
 	ctx := t.Context()
 
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 3000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "suspended", 2000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "suspended", 2000)
 
 	active, hasNext, err := ListStaffUsers(ctx, db, 10, nil, "", "active")
 	if err != nil {
@@ -247,7 +247,7 @@ func TestListStaffUsers_CombinedFilters(t *testing.T) {
 	ctx := t.Context()
 
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 3000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "suspended", 2000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "suspended", 2000)
 	mustCreateStaffUser(t, db, "m1", "ModOne", "moderator", "suspended", 1000)
 
 	got, _, err := ListStaffUsers(ctx, db, 10, nil, "user", "suspended")
@@ -267,7 +267,7 @@ func TestCountStaffUsers_Filters(t *testing.T) {
 	ctx := t.Context()
 
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 3000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "suspended", 2000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "suspended", 2000)
 	mustCreateStaffUser(t, db, "m1", "ModOne", "moderator", "active", 1000)
 
 	for _, tc := range []struct {
@@ -331,7 +331,7 @@ func TestListStaffUsers_AvatarProjection(t *testing.T) {
 	ctx := t.Context()
 
 	mustCreateStaffUser(t, db, "u1", "Alpha", "user", "active", 2000)
-	mustCreateStaffUser(t, db, "u2", "Beta", "user", "active", 1000)
+	mustCreateStaffUser(t, db, "u2", "Second", "user", "active", 1000)
 	const stored = "media/images/ab/abcdef0123456789abcdef0123456789.jpg"
 	if _, err := db.Exec(`UPDATE users SET avatar_url = ? WHERE id = 'u1'`, stored); err != nil {
 		t.Fatalf("set avatar: %v", err)

@@ -11,10 +11,8 @@ dist
 data
 docs/current-data
 # Sensitive or transient local trees that a local `docker build` (which
-# runs COPY . .) must never bake into daemon layers: production media
-# bytes (protect production data), plaintext backup units, the review
-# workspace, and restore-drill leftovers.
-media-source/
+# runs COPY . .) must never bake into daemon layers: plaintext backup
+# units, the review workspace, and restore-drill leftovers.
 backups/
 .scratch/
 restore-unit

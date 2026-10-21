@@ -58,8 +58,8 @@ func UserRefByCanonical(ctx context.Context, db *sql.DB, usernameCanon string) (
 }
 
 // UserByCanonicalLenient resolves a canonical username while ignoring
-// whitespace runs — the sign-in bridge for imported legacy spacing. An
-// ambiguous match wraps ErrNotFound; IsAmbiguousUser reports it.
+// whitespace runs — the sign-in bridge for stored names with irregular
+// spacing. An ambiguous match wraps ErrNotFound; IsAmbiguousUser reports it.
 func UserByCanonicalLenient(ctx context.Context, db *sql.DB, usernameCanon string) (*identity.User, error) {
 	// The SQL prefilter strips every Unicode whitespace rune from both sides —
 	// a coarse superset — and the Go comparison below is the authority, so a
@@ -313,8 +313,7 @@ func scanUserRow(row rowScanner) (*identity.User, error) {
 // portable constraint-violation sentinel). The match is pinned by a canary
 // test that triggers a real UNIQUE violation through the driver and fails if
 // the message format changes (session_store_test.go: TestIsUniqueViolation_Canary).
-// Exported for migration tooling, which needs the same discriminator for its
-// tool-owned INSERTs (migration.importUserOne).
+// Exported for callers that need the same discriminator.
 func IsUniqueViolation(err error) bool {
 	if err == nil {
 		return false

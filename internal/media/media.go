@@ -1,8 +1,8 @@
-// Package media owns the target media storage layout and
-// the pure-Go image processing pipeline. It is the single source of truth
-// for where a processed image lives and how an uploaded/migrated image
-// becomes the served file — serving (internal/handler) and migration
-// (internal/migration) both build paths through this package.
+// Package media owns the media storage layout and the pure-Go image
+// processing pipeline. It is the single source of truth for where a
+// processed image lives and how an uploaded image becomes the served
+// file — the upload handlers and the serving path both build through this
+// package.
 //
 // # Layout
 //
@@ -32,8 +32,8 @@ const tempPrefix = ".processing-"
 
 // RelativePath builds the database-facing relative path for a processed
 // image. Callers must have validated id as 32 lowercase hex characters and
-// ext as one of the accepted extensions — this package trusts its callers
-// (the serving handler and the import command both validate up front).
+// ext as one of the accepted extensions; the upload handlers validate up
+// front, so this package trusts its callers.
 func RelativePath(id, ext string) string {
 	return filepath.Join("media", "images", id[:2], id+"."+ext)
 }

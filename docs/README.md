@@ -44,17 +44,16 @@ How to write and structure any of these: [patterns/docs-conventions.md](patterns
 
 ## Operations
 
-How the system runs against the real VPS: deployment and rollback, the backup lifecycle, the
-staged restore and its drill, and the production cutover.
+How the system runs against the real VPS: deployment and rollback, the backup lifecycle, and the
+staged restore and its drill.
 
 | Doc                                            | Covers                                                                             |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
 | [ops/deploy.md](ops/deploy.md)                 | Topology, the tag-driven pipeline, the deploy/rollback sequence, secrets           |
 | [ops/backup.md](ops/backup.md)                 | The daily unit, encryption, retention, triggers, the off-VPS push, bring-up        |
 | [ops/restore.md](ops/restore.md)               | The fail-closed staged restore and the quarterly loss-of-VPS drill                 |
-| [ops/cutover.md](ops/cutover.md)               | The production cutover, the rollback window, and closing out the legacy stack      |
 | [ops/currency.md](ops/currency.md)             | Dependency currency: Dependabot, the weekly drift/vulnerability report, VPS checks |
-| [ops/release-review.md](ops/release-review.md) | Whole-app review before stable cutovers: lenses, passes, findings, gates           |
+| [ops/release-review.md](ops/release-review.md) | Whole-app review before stable releases: lenses, passes, findings, gates           |
 
 ## Feature docs
 

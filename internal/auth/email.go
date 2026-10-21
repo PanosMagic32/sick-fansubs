@@ -174,7 +174,7 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) (userID, role s
 // Order: password verification (bcrypt, before any write), then the
 // registration email validation (trimmed, ASCII charset, lowercased), then
 // the same-as-current no-op, then the uniqueness checks (the email column and
-// the legacy-username shadow), then the CAS
+// the username shadow), then the CAS
 // transaction. Returns the refreshed user row on success so the handler
 // can answer with the updated profile.
 //
@@ -224,7 +224,7 @@ func (s *Service) ChangeEmail(ctx context.Context, userID, email, currentPasswor
 	} else if !errors.Is(err, store.ErrNotFound) {
 		return nil, "", false, fmt.Errorf("auth: check email uniqueness: %w", err)
 	}
-	// An email equal to another account's legacy username would shadow that
+	// An email equal to another account's username would shadow that
 	// username at sign-in and recovery — the lenient lookup both surfaces
 	// resolve through, so the shadow check uses it too. The caller's own row
 	// is not a shadow; several rows normalizing alike make the address

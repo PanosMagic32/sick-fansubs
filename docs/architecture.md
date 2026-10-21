@@ -67,9 +67,6 @@ VPS
 
 ## Data flows
 
-- **Legacy import** (cutover only): a fresh volume receives users → content → search index → media
-  → avatars → favorites from the frozen legacy export, each leg printing a reconciliation report.
-  The runbook is [../deploy/data-import.md](../deploy/data-import.md).
 - **Media**: every processed image is stored under `media/images/<id[:2]>/<id>.<ext>`; the database
   stores storage-relative references and the serving path is public under `/media/images/`
   ([internal/media/AGENTS.md](../internal/media/AGENTS.md)).
@@ -92,9 +89,7 @@ VPS
   back `compose.yaml`, and a failure that has already moved the schema stops for a data decision
   ([ops/deploy.md](ops/deploy.md)).
 - The public probe runs from the VPS, because Cloudflare challenges the workflow runner's egress
-  IPs. Provisioning and rebuilds: [../deploy/bring-up.md](../deploy/bring-up.md); the production
-  cutover and the repository swap: [ops/cutover.md](ops/cutover.md),
-  [../deploy/repo-swap.md](../deploy/repo-swap.md).
+  IPs. Provisioning and rebuilds: [../deploy/bring-up.md](../deploy/bring-up.md).
 
 ## Rejected by design
 
@@ -105,8 +100,8 @@ frontend tooling experiments; further media-pipeline enhancements; further backu
 moving the Caddy token into a file secret; maskable PWA icons; direct messages and a home chat
 button.
 
-Architecture-level prohibitions — no MongoDB at runtime, no JWT or refresh-token flow, no separate
-frontend artifact, no SolidJS or HTMX — live in the root [`AGENTS.md`](../AGENTS.md) `Do Not` list.
+Architecture-level prohibitions — no JWT or refresh-token flow, no separate
+frontend artifact, no alternative frontend framework — live in the root [`AGENTS.md`](../AGENTS.md) `Do Not` list.
 
 ## Pointers
 
@@ -114,6 +109,6 @@ frontend artifact, no SolidJS or HTMX — live in the root [`AGENTS.md`](../AGEN
 - Wire contract: [api/openapi.yaml](api/openapi.yaml)
 - Go rules: [patterns/go/](patterns/go/); web rules: [patterns/web/](patterns/web/)
 - Operations: [ops/deploy.md](ops/deploy.md), [ops/backup.md](ops/backup.md),
-  [ops/restore.md](ops/restore.md), [ops/cutover.md](ops/cutover.md)
+  [ops/restore.md](ops/restore.md)
 - Per-scope contracts: the `AGENTS.md` beside the code, mapped in the root
   [`AGENTS.md`](../AGENTS.md)

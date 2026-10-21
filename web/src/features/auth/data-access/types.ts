@@ -135,7 +135,8 @@ export interface UserProfile {
   role: string;
   /**
    * Whether the account proved inbox control: true for
-   * grandfathered imported accounts, verified links, and self-service
+   * accounts that carried a verification stamp when the column landed,
+   * verified links, and self-service
    * password resets; false for new registrations and fresh email changes.
    */
   emailVerified: boolean;
