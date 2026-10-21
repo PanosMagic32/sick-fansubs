@@ -19,7 +19,7 @@ import (
 // [logAuditTargetEvent] is the actor+target sibling.
 func logAuditEvent(r *http.Request, event, result, userID string) {
 	audit.Event(r.Context(), event, result, userID,
-		middleware.GetRequestID(r.Context()), middleware.ClientAddr(r))
+		middleware.RequestIDFrom(r.Context()), middleware.ClientAddr(r))
 }
 
 // logAuditTargetEvent emits one actor+target audit event for the current
@@ -29,5 +29,5 @@ func logAuditEvent(r *http.Request, event, result, userID string) {
 // deletion, email/verification, comment moderation).
 func logAuditTargetEvent(r *http.Request, event, result, actorID, targetID, targetRole string) {
 	audit.EventWithTarget(r.Context(), event, result, actorID, targetID, targetRole,
-		middleware.GetRequestID(r.Context()), middleware.ClientAddr(r))
+		middleware.RequestIDFrom(r.Context()), middleware.ClientAddr(r))
 }

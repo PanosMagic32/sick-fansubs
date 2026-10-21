@@ -59,7 +59,15 @@ func setupUsersMux(t *testing.T) (*http.ServeMux, *sql.DB, string, string) {
 	}
 
 	mux := http.NewServeMux()
-	Users(mux, db, false, "http://localhost:5173", "http://localhost:3000", dir, mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Users(mux, UsersDeps{
+		DB:                db,
+		Secure:            false,
+		TrustedOrigin:     "http://localhost:5173",
+		PublicBaseURL:     "http://localhost:3000",
+		DataDir:           dir,
+		Sender:            mail.LogLink{},
+		VerifySendLimiter: middleware.NewRateLimiter(1000, time.Hour, time.Minute),
+	})
 	APIFallback(mux)
 	return mux, db, base64.RawURLEncoding.EncodeToString(raw), dir
 }

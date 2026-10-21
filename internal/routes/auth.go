@@ -55,7 +55,12 @@ func Auth(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, publicBase
 	pwChangeLimiter := middleware.NewRateLimiter(5, 15*time.Minute, time.Minute)
 	forgotIDLimiter := middleware.NewRateLimiter(3, time.Hour, time.Minute)
 
-	authHandler := handler.NewAuth(authSvc, secure, signInIDLimiter, pwChangeLimiter, forgotIDLimiter, verifySendLimiter)
+	authHandler := handler.NewAuth(authSvc, secure, handler.AuthLimiters{
+		SignInID:       signInIDLimiter,
+		PasswordChange: pwChangeLimiter,
+		ForgotID:       forgotIDLimiter,
+		Resend:         verifySendLimiter,
+	})
 
 	// Build the auth sub-mux with stripped paths.
 	authMux := http.NewServeMux()

@@ -68,13 +68,12 @@ func Projects(mux *http.ServeMux, db *sql.DB, dataDir string, secure bool, trust
 	var del http.Handler = handler.ProjectDelete(db)
 	mux.Handle("DELETE /api/v1/projects/{id}", authenticatedChain(del, db, secure, trustedOrigin))
 
-	// Staff read surface. Both GETs carry
-	// authenticatedChain; CSRF only validates unsafe methods so it passes the
-	// reads through. Non-GET methods on these paths and unknown /api/v1/admin
-	// paths fall to the shared /api/v1/ JSON 404 (APIFallback) — the
-	// method-aware mux's 405 text/plain never reaches the client.
-	adminList := authenticatedChain(handler.ProjectStaffList(db, publicBaseURL), db, secure, trustedOrigin)
+	// Staff read surface. Both GETs carry the narrow read chain (no CSRF).
+	// Non-GET methods on these paths and unknown /api/v1/admin paths fall to
+	// the shared /api/v1/ JSON 404 (APIFallback) — the method-aware mux's 405
+	// text/plain never reaches the client.
+	adminList := authenticatedReadsChain(handler.ProjectStaffList(db, publicBaseURL), db, secure, trustedOrigin)
 	mux.Handle("GET /api/v1/admin/projects", adminList)
-	adminDetail := authenticatedChain(handler.ProjectStaffDetail(db, publicBaseURL), db, secure, trustedOrigin)
+	adminDetail := authenticatedReadsChain(handler.ProjectStaffDetail(db, publicBaseURL), db, secure, trustedOrigin)
 	mux.Handle("GET /api/v1/admin/projects/{id}", adminDetail)
 }

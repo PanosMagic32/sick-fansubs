@@ -20,7 +20,7 @@ import (
 func (h *Auth) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	logger := logging.From(r.Context())
 	// Reject if already authenticated.
-	if su := middleware.GetSession(r.Context()); su != nil {
+	if su := middleware.SessionFrom(r.Context()); su != nil {
 		writeProblem(w, r, http.StatusForbidden,
 			"/problems/auth/already-authenticated",
 			"Already authenticated")

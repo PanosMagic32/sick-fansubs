@@ -23,7 +23,7 @@ import (
 // Write writes an RFC 9457 Problem Details response with no extension members.
 //
 // The requestID parameter is the server-authoritative correlation ID.
-// Callers obtain it from their context (middleware.GetRequestID); an empty
+// Callers obtain it from their context (middleware.RequestIDFrom); an empty
 // value omits the member and its header.
 func Write(w http.ResponseWriter, r *http.Request, status int, requestID, problemType, title string) {
 	WriteWithExtensions(w, r, status, requestID, problemType, title, nil)

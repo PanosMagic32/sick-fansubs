@@ -332,7 +332,12 @@ func TestEmailChange_SharedBucketWithResend(t *testing.T) {
 	limiter := middleware.NewRateLimiter(1, 30*time.Minute, time.Minute)
 	svc := auth.New(db, sender, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
-	authH := handler.NewAuth(svc, false, generous, generous, generous, limiter)
+	authH := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       generous,
+		PasswordChange: generous,
+		ForgotID:       generous,
+		Resend:         limiter,
+	})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/register", authH.HandleRegister)
@@ -464,7 +469,12 @@ func TestVerifiedResend_NoBucketConsumption(t *testing.T) {
 	limiter := middleware.NewRateLimiter(1, 30*time.Minute, time.Minute)
 	svc := auth.New(db, sender, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
-	authH := handler.NewAuth(svc, false, generous, generous, generous, limiter)
+	authH := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       generous,
+		PasswordChange: generous,
+		ForgotID:       generous,
+		Resend:         limiter,
+	})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/register", authH.HandleRegister)

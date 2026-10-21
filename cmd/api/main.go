@@ -259,7 +259,15 @@ func main() {
 
 	// Users: /api/v1/users/me — the current user's profile + favorites
 	// + the self-service avatar upload + the email change.
-	routes.Users(mux, db, cfg.SecureCookies(), cfg.TrustedOrigin, cfg.PublicBaseURL, cfg.DataDir, sender, verifySendLimiter)
+	routes.Users(mux, routes.UsersDeps{
+		DB:                db,
+		Secure:            cfg.SecureCookies(),
+		TrustedOrigin:     cfg.TrustedOrigin,
+		PublicBaseURL:     cfg.PublicBaseURL,
+		DataDir:           cfg.DataDir,
+		Sender:            sender,
+		VerifySendLimiter: verifySendLimiter,
+	})
 
 	// Blog: public read endpoints (the public chain) + staff CRUD/admin reads.
 	routes.Blog(mux, db, cfg.DataDir, cfg.SecureCookies(), cfg.TrustedOrigin, cfg.PublicBaseURL, notify)

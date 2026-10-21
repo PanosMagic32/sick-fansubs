@@ -27,7 +27,7 @@ func CSRF() func(http.Handler) http.Handler {
 				return
 			}
 
-			su := GetSession(r.Context())
+			su := SessionFrom(r.Context())
 			if su == nil {
 				// No session — CSRF doesn't apply. TrustedOrigin covers this case.
 				next.ServeHTTP(w, r)

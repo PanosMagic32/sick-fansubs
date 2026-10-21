@@ -93,7 +93,7 @@ func (h *Auth) HandlePasswordChange(w http.ResponseWriter, r *http.Request) {
 // recorded outage-residual channel).
 func (h *Auth) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
 	logger := logging.From(r.Context())
-	if su := middleware.GetSession(r.Context()); su != nil {
+	if su := middleware.SessionFrom(r.Context()); su != nil {
 		writeProblem(w, r, http.StatusForbidden,
 			"/problems/auth/already-authenticated",
 			"Already authenticated")
@@ -201,7 +201,7 @@ func (h *Auth) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 	// account (it was revoked by the auth_version bump). A session of a
 	// DIFFERENT user survives — their sessions were not touched. Clearing
 	// happens only after the store transaction committed.
-	if su := middleware.GetSession(r.Context()); su != nil && su.UserID == userID {
+	if su := middleware.SessionFrom(r.Context()); su != nil && su.UserID == userID {
 		middleware.ClearSessionCookie(w, h.secure)
 	}
 	writeNoContent(w, r)

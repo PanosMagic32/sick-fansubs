@@ -16,10 +16,10 @@ import (
 //	GET /api/v1/staff/logs         — the rotated log tail
 //	GET /api/v1/staff/audit-events — the audit-ledger tail
 //
-// Chain: RequestID → TrustedOrigin → Session → ForcePasswordChange → CSRF —
-// the authenticated chain every staff read uses. CSRF and origin only
-// validate unsafe methods, so the GET passes through untouched. No rate
-// limit — an authenticated staff read (the staff user list precedent).
+// Chain: RequestID → TrustedOrigin → Session → ForcePasswordChange — the
+// narrow authenticated-reads chain. The subtree has no writes, so it never
+// carries CSRF. No rate limit — an authenticated staff read (the staff user
+// list precedent).
 //
 // The floors are enforced in the handlers: identity.CanViewMetrics (moderator+)
 // for the metrics, identity.CanViewLogs (super-admin) for the logs and the audit
@@ -31,13 +31,13 @@ import (
 func Staff(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, logDir string) {
 
 	mux.Handle("GET /api/v1/staff/metrics",
-		authenticatedChain(handler.StaffMetrics(db), db, secure, trustedOrigin))
+		authenticatedReadsChain(handler.StaffMetrics(db), db, secure, trustedOrigin))
 
 	mux.Handle("GET /api/v1/staff/logs",
-		authenticatedChain(handler.StaffLogs(logDir), db, secure, trustedOrigin))
+		authenticatedReadsChain(handler.StaffLogs(logDir), db, secure, trustedOrigin))
 
 	mux.Handle("GET /api/v1/staff/audit-events",
-		authenticatedChain(handler.StaffAuditEvents(db), db, secure, trustedOrigin))
+		authenticatedReadsChain(handler.StaffAuditEvents(db), db, secure, trustedOrigin))
 
 	// The exact root and the subtree are both registered: the exact pattern
 	// catches /api/v1/staff itself, which the subtree pattern does not match

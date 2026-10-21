@@ -35,7 +35,7 @@ func logContext(logger *slog.Logger, next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		scoped := logger
-		if id := middleware.GetRequestID(r.Context()); id != "" {
+		if id := middleware.RequestIDFrom(r.Context()); id != "" {
 			scoped = logger.With("requestId", id)
 		}
 		next.ServeHTTP(w, r.WithContext(logging.With(r.Context(), scoped)))
@@ -82,7 +82,12 @@ func setupAuthWithLogger(t *testing.T, logger *slog.Logger) (*handler.Auth, *sql
 	// non-nil limiters — a nil limiter would silently disable abuse
 	// protection, so tests model the real wiring instead of a degenerate one.
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
-	h := handler.NewAuth(auth, false, generous, generous, generous, generous) // secure=false for test (HTTP)
+	h := handler.NewAuth(auth, false, handler.AuthLimiters{
+		SignInID:       generous,
+		PasswordChange: generous,
+		ForgotID:       generous,
+		Resend:         generous,
+	}) // secure=false for test (HTTP)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/sign-in", h.HandleSignIn)
@@ -295,7 +300,12 @@ func setupResetHandler(t *testing.T, sender *resetFakeSender) (*handler.Auth, *s
 
 	svc := auth.New(db, sender, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
-	h := handler.NewAuth(svc, false, generous, generous, generous, generous)
+	h := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       generous,
+		PasswordChange: generous,
+		ForgotID:       generous,
+		Resend:         generous,
+	})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/sign-in", h.HandleSignIn)

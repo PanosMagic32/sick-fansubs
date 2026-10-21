@@ -26,7 +26,7 @@ const CookieName = "sf_session"
 //
 // Missing, malformed, expired, revoked, or unknown session tokens result
 // in an unauthenticated request — the next handler receives a context
-// where GetSession returns nil. A session-store failure is different: it is
+// where SessionFrom returns nil. A session-store failure is different: it is
 // an infrastructure failure, so the middleware answers the masked 500 and
 // does not call the next handler.
 //

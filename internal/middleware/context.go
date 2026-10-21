@@ -26,9 +26,9 @@ func SetRequestID(ctx context.Context, id string) context.Context {
 	return context.WithValue(ctx, ctxKeyRequestID{}, id)
 }
 
-// GetRequestID retrieves the request ID from the context.
+// RequestIDFrom retrieves the request ID from the context.
 // Returns "" if no request ID was set.
-func GetRequestID(ctx context.Context) string {
+func RequestIDFrom(ctx context.Context) string {
 	id, _ := ctx.Value(ctxKeyRequestID{}).(string)
 	return id
 }
@@ -38,9 +38,9 @@ func SetSession(ctx context.Context, su *identity.SessionUser) context.Context {
 	return context.WithValue(ctx, ctxKeySession{}, su)
 }
 
-// GetSession retrieves the authenticated session from the context.
+// SessionFrom retrieves the authenticated session from the context.
 // Returns nil if the request is unauthenticated.
-func GetSession(ctx context.Context) *identity.SessionUser {
+func SessionFrom(ctx context.Context) *identity.SessionUser {
 	su, _ := ctx.Value(ctxKeySession{}).(*identity.SessionUser)
 	return su
 }

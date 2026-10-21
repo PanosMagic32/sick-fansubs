@@ -272,7 +272,7 @@ func parseCommentListParams(w http.ResponseWriter, r *http.Request, prefix strin
 // anonymous read never 401s.
 func CommentsList(kind commentKind, db *sql.DB, publicBaseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		su := middleware.GetSession(r.Context())
+		su := middleware.SessionFrom(r.Context())
 		var viewer *string
 		if su != nil {
 			viewer = &su.UserID
@@ -352,7 +352,7 @@ func CommentsCount(kind commentKind, db *sql.DB) http.HandlerFunc {
 // namespace, so a thread cursor is a 400 here.
 func CommentsReplies(kind commentKind, db *sql.DB, publicBaseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		su := middleware.GetSession(r.Context())
+		su := middleware.SessionFrom(r.Context())
 		var viewer *string
 		if su != nil {
 			viewer = &su.UserID

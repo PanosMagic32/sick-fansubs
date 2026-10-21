@@ -13,13 +13,13 @@ import (
 func ForcePasswordChange() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			su := GetSession(r.Context())
+			su := SessionFrom(r.Context())
 			if su == nil || !su.MustChangePassword {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			reqID := GetRequestID(r.Context())
+			reqID := RequestIDFrom(r.Context())
 			logging.From(r.Context()).WarnContext(r.Context(), "password change required")
 			problem.Write(w, r, http.StatusForbidden, reqID,
 				"/problems/auth/password-change-required", "Password change required")

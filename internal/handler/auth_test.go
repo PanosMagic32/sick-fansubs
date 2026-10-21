@@ -2132,7 +2132,12 @@ func TestForgotPassword_IdentifierBucket429(t *testing.T) {
 	svc := auth.New(db, sender, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
 	tiny := middleware.NewRateLimiter(1, time.Hour, time.Minute)
-	h := handler.NewAuth(svc, false, generous, generous, tiny, generous)
+	h := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       generous,
+		PasswordChange: generous,
+		ForgotID:       tiny,
+		Resend:         generous,
+	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", h.HandleForgotPassword)
 
@@ -2168,7 +2173,12 @@ func TestSignIn_IdentifierBucketFoldsWhitespace(t *testing.T) {
 	svc := auth.New(db, nil, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
 	tiny := middleware.NewRateLimiter(1, 15*time.Minute, time.Minute)
-	h := handler.NewAuth(svc, false, tiny, generous, generous, generous)
+	h := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       tiny,
+		PasswordChange: generous,
+		ForgotID:       generous,
+		Resend:         generous,
+	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/sign-in", h.HandleSignIn)
 
@@ -2214,7 +2224,12 @@ func TestSignIn_IdentifierBucketRecordOmitsTheIdentifier(t *testing.T) {
 	svc := auth.New(db, nil, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
 	tiny := middleware.NewRateLimiter(1, 15*time.Minute, time.Minute)
-	h := handler.NewAuth(svc, false, tiny, generous, generous, generous)
+	h := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       tiny,
+		PasswordChange: generous,
+		ForgotID:       generous,
+		Resend:         generous,
+	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/sign-in", h.HandleSignIn)
 	captured := logContext(logger, mux)
@@ -2268,7 +2283,12 @@ func TestForgotPassword_IdentifierBucketRecordOmitsTheIdentifier(t *testing.T) {
 	svc := auth.New(db, &resetFakeSender{}, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
 	tiny := middleware.NewRateLimiter(1, time.Hour, time.Minute)
-	h := handler.NewAuth(svc, false, generous, generous, tiny, generous)
+	h := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       generous,
+		PasswordChange: generous,
+		ForgotID:       tiny,
+		Resend:         generous,
+	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", h.HandleForgotPassword)
 	captured := logContext(logger, mux)
@@ -2310,7 +2330,7 @@ func TestResetPassword_AuthenticatedClearsCookieAndRevokes(t *testing.T) {
 	_, db, mux := setupResetHandler(t, sender)
 	mux.HandleFunc("GET /api/v1/auth/session", func(w http.ResponseWriter, r *http.Request) {
 		// Minimal bootstrap mirror for the semantic check.
-		if middleware.GetSession(r.Context()) != nil {
+		if middleware.SessionFrom(r.Context()) != nil {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"authenticated":true}`))
 			return
@@ -2365,7 +2385,7 @@ func TestResetPassword_OtherAccountSessionSurvives(t *testing.T) {
 	_, db, mux := setupResetHandler(t, sender)
 	mux.HandleFunc("GET /api/v1/auth/session", func(w http.ResponseWriter, r *http.Request) {
 		// Minimal bootstrap mirror for the semantic check.
-		if middleware.GetSession(r.Context()) != nil {
+		if middleware.SessionFrom(r.Context()) != nil {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"authenticated":true}`))
 			return
@@ -2779,7 +2799,12 @@ func TestResendVerification_RateLimit429(t *testing.T) {
 	svc := auth.New(db, sender, "http://localhost:3000")
 	generous := middleware.NewRateLimiter(1000, 15*time.Minute, time.Minute)
 	tiny := middleware.NewRateLimiter(1, time.Hour, time.Minute)
-	h := handler.NewAuth(svc, false, generous, generous, generous, tiny)
+	h := handler.NewAuth(svc, false, handler.AuthLimiters{
+		SignInID:       generous,
+		PasswordChange: generous,
+		ForgotID:       generous,
+		Resend:         tiny,
+	})
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/register", h.HandleRegister)
 	mux.HandleFunc("POST /api/v1/auth/resend-verification", h.HandleResendVerification)

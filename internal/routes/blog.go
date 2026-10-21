@@ -64,13 +64,12 @@ func Blog(mux *http.ServeMux, db *sql.DB, dataDir string, secure bool, trustedOr
 	var del http.Handler = handler.BlogDelete(db)
 	mux.Handle("DELETE /api/v1/blog-posts/{id}", authenticatedChain(del, db, secure, trustedOrigin))
 
-	// Staff read surface. Both GETs carry
-	// authenticatedChain; CSRF only validates unsafe methods so it passes the
-	// reads through. Non-GET methods on these paths and unknown /api/v1/admin
-	// paths fall to the shared /api/v1/ JSON 404 (APIFallback) — the
-	// method-aware mux's 405 text/plain never reaches the client.
-	adminList := authenticatedChain(handler.BlogStaffList(db, publicBaseURL), db, secure, trustedOrigin)
+	// Staff read surface. Both GETs carry the narrow read chain (no CSRF).
+	// Non-GET methods on these paths and unknown /api/v1/admin paths fall to
+	// the shared /api/v1/ JSON 404 (APIFallback) — the method-aware mux's 405
+	// text/plain never reaches the client.
+	adminList := authenticatedReadsChain(handler.BlogStaffList(db, publicBaseURL), db, secure, trustedOrigin)
 	mux.Handle("GET /api/v1/admin/blog-posts", adminList)
-	adminDetail := authenticatedChain(handler.BlogStaffDetail(db, publicBaseURL), db, secure, trustedOrigin)
+	adminDetail := authenticatedReadsChain(handler.BlogStaffDetail(db, publicBaseURL), db, secure, trustedOrigin)
 	mux.Handle("GET /api/v1/admin/blog-posts/{id}", adminDetail)
 }

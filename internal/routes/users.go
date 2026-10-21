@@ -10,6 +10,19 @@ import (
 	"sick-fansubs/internal/middleware"
 )
 
+// UsersDeps groups the user route tree's dependencies. The named fields keep
+// the same-typed strings (origin, public base URL, data dir) from being
+// swapped silently at a call site.
+type UsersDeps struct {
+	DB                *sql.DB
+	Secure            bool
+	TrustedOrigin     string
+	PublicBaseURL     string
+	DataDir           string
+	Sender            mail.Sender
+	VerifySendLimiter *middleware.RateLimiter
+}
+
 // Users registers user endpoints under /api/v1/users/.
 //
 // Routes:
@@ -43,18 +56,25 @@ import (
 // inside the namespace return the JSON 404 problem, never the SPA HTML
 // response.
 //
-// publicBaseURL is the configured canonical public origin used to emit
+// Deps.PublicBaseURL is the configured canonical public origin used to emit
 // absolute thumbnail URLs in the favorites lists and the absolute avatar URLs
 // (avatarUrl) in the staff user list + staff user write responses — the same
 // value the blog/projects routes receive.
 //
-// sender + verifySendLimiter serve the email-change surface: the
-// emailSvc carries the real mailer (the admin-reset
-// authSvc above deliberately keeps the nil-sender guard — break-glass
-// account operations never send mail), and verifySendLimiter is the
-// SHARED verification-send bucket constructed in cmd/api (1/user/30min —
-// the same instance routes.Auth receives for resend).
-func Users(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin string, publicBaseURL string, dataDir string, sender mail.Sender, verifySendLimiter *middleware.RateLimiter) {
+// Deps.Sender and Deps.VerifySendLimiter serve the email-change surface: the
+// emailSvc carries the real mailer (the admin-reset authSvc above
+// deliberately keeps the nil-sender guard — break-glass account operations
+// never send mail), and VerifySendLimiter is the SHARED verification-send
+// bucket constructed in cmd/api (1/user/30min — the same instance routes.Auth
+// receives for resend).
+func Users(mux *http.ServeMux, deps UsersDeps) {
+	db := deps.DB
+	secure := deps.Secure
+	trustedOrigin := deps.TrustedOrigin
+	publicBaseURL := deps.PublicBaseURL
+	dataDir := deps.DataDir
+	sender := deps.Sender
+	verifySendLimiter := deps.VerifySendLimiter
 	// The admin-reset path never sends mail or builds links — the nil
 	// sender turns an accidental ForgotPassword call on this surface into
 	// an honest 500 (the service guards it), never a logged credential.

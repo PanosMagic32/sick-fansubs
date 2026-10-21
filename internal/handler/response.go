@@ -18,7 +18,7 @@ import (
 // minted for this request. A request that skipped the middleware carries no ID
 // and gets no header — production route wiring always applies it.
 func setRequestIDHeader(w http.ResponseWriter, r *http.Request) {
-	if id := middleware.GetRequestID(r.Context()); id != "" {
+	if id := middleware.RequestIDFrom(r.Context()); id != "" {
 		w.Header().Set("X-Request-ID", id)
 	}
 }
@@ -51,7 +51,7 @@ func writeJSON(w http.ResponseWriter, r *http.Request, status int, v any) {
 
 // writeProblem writes an RFC 9457 Problem Details response.
 func writeProblem(w http.ResponseWriter, r *http.Request, status int, problemType, title string) {
-	problem.Write(w, r, status, middleware.GetRequestID(r.Context()), problemType, title)
+	problem.Write(w, r, status, middleware.RequestIDFrom(r.Context()), problemType, title)
 }
 
 // writeInternalError is the only sanctioned 500 response for JSON endpoints:
@@ -164,7 +164,7 @@ func writeValidationErrors(w http.ResponseWriter, r *http.Request, violations []
 // {field, code} shape for its 413 size-bound outcomes, so the status is a
 // parameter instead of a second writer.
 func writeViolationProblems(w http.ResponseWriter, r *http.Request, status int, violations []Violation, args ...any) {
-	reqID := middleware.GetRequestID(r.Context())
+	reqID := middleware.RequestIDFrom(r.Context())
 
 	fields := make([]string, 0, len(violations))
 	for _, v := range violations {

@@ -160,9 +160,25 @@ type Auth struct {
 	resendLimiter   *middleware.RateLimiter // shared verification-send bucket, 1/30min
 }
 
+// AuthLimiters groups the handler's user-keyed rate-limit buckets by purpose.
+// Named fields keep four same-typed limiters from being swapped silently.
+type AuthLimiters struct {
+	SignInID       *middleware.RateLimiter
+	PasswordChange *middleware.RateLimiter
+	ForgotID       *middleware.RateLimiter
+	Resend         *middleware.RateLimiter
+}
+
 // NewAuth creates an Auth with the given dependencies.
-func NewAuth(auth *auth.Service, secure bool, signInIDLimiter, pwChangeLimiter, forgotIDLimiter, resendLimiter *middleware.RateLimiter) *Auth {
-	return &Auth{auth: auth, secure: secure, signInIDLimiter: signInIDLimiter, pwChangeLimiter: pwChangeLimiter, forgotIDLimiter: forgotIDLimiter, resendLimiter: resendLimiter}
+func NewAuth(auth *auth.Service, secure bool, limiters AuthLimiters) *Auth {
+	return &Auth{
+		auth:            auth,
+		secure:          secure,
+		signInIDLimiter: limiters.SignInID,
+		pwChangeLimiter: limiters.PasswordChange,
+		forgotIDLimiter: limiters.ForgotID,
+		resendLimiter:   limiters.Resend,
+	}
 }
 
 // HandleSignIn authenticates a user and creates a new session.
@@ -177,7 +193,7 @@ func (h *Auth) HandleSignIn(w http.ResponseWriter, r *http.Request) {
 	logger := logging.From(r.Context())
 	// Sign-in-while-authenticated: a valid session means the client state is stale. Reject with
 	// 403 so the frontend can reconcile via session re-bootstrap.
-	if su := middleware.GetSession(r.Context()); su != nil {
+	if su := middleware.SessionFrom(r.Context()); su != nil {
 		writeProblem(w, r, http.StatusForbidden,
 			"/problems/auth/already-authenticated",
 			"Already authenticated")
@@ -261,7 +277,7 @@ func (h *Auth) logAudit(r *http.Request, event, result, userID string) {
 //
 // Cache-Control: no-store. No cookie is modified.
 func (h *Auth) HandleSession(w http.ResponseWriter, r *http.Request) {
-	su := middleware.GetSession(r.Context())
+	su := middleware.SessionFrom(r.Context())
 	if su == nil {
 		writeJSON(w, r, http.StatusOK, sessionBootstrapResponse{
 			Authenticated: false,
@@ -299,7 +315,7 @@ func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 			// audit event keeps the attempt visible in the user's audit
 			// trail (userID when the session middleware resolved it).
 			userID := ""
-			if su := middleware.GetSession(r.Context()); su != nil {
+			if su := middleware.SessionFrom(r.Context()); su != nil {
 				userID = su.UserID
 			}
 			h.logAudit(r, audit.EventSignOut, audit.ResultFailure, userID)
@@ -317,7 +333,7 @@ func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 		// credential; a version-mismatched orphan row has none.
 		if deleted > 0 {
 			userID := ""
-			if su := middleware.GetSession(r.Context()); su != nil {
+			if su := middleware.SessionFrom(r.Context()); su != nil {
 				userID = su.UserID
 			}
 			h.logAudit(r, audit.EventSignOut, audit.ResultSuccess, userID)
@@ -340,7 +356,7 @@ func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 // Success: 200 { "authenticated": false } + cleared cookie.
 func (h *Auth) HandleSignOutAll(w http.ResponseWriter, r *http.Request) {
 	logger := logging.From(r.Context())
-	su := middleware.GetSession(r.Context())
+	su := middleware.SessionFrom(r.Context())
 	if su == nil {
 		// The auth chain carries no session requirement, so an unauthenticated
 		// call lands here: there is nothing to revoke, and the idempotent 200

@@ -12,7 +12,7 @@ import (
 // The returned bool is false after the response is written, so the caller
 // must return immediately.
 func requireSession(w http.ResponseWriter, r *http.Request, logDetail string) (*identity.SessionUser, bool) {
-	su := middleware.GetSession(r.Context())
+	su := middleware.SessionFrom(r.Context())
 	if su == nil {
 		writeUnauthorized(w, r, logDetail)
 		return nil, false

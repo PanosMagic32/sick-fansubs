@@ -50,7 +50,7 @@ func TestRequestID_GeneratesID(t *testing.T) {
 	var capturedID string
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			capturedID = GetRequestID(r.Context())
+			capturedID = RequestIDFrom(r.Context())
 		},
 	}
 
@@ -79,7 +79,7 @@ func TestRequestID_ScopesTheRequestLogger(t *testing.T) {
 	var capturedID string
 	inner := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			capturedID = GetRequestID(r.Context())
+			capturedID = RequestIDFrom(r.Context())
 			logging.From(r.Context()).InfoContext(r.Context(), "probe")
 		},
 	}
@@ -128,7 +128,7 @@ func TestRequestID_IgnoresInboundHeader(t *testing.T) {
 	var capturedID string
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			capturedID = GetRequestID(r.Context())
+			capturedID = RequestIDFrom(r.Context())
 		},
 	}
 
@@ -157,7 +157,7 @@ func TestSession_NoCookie(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if su := GetSession(r.Context()); su != nil {
+			if su := SessionFrom(r.Context()); su != nil {
 				t.Error("expected nil session with no cookie")
 			}
 		},
@@ -179,7 +179,7 @@ func TestSession_MalformedCookie(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if su := GetSession(r.Context()); su != nil {
+			if su := SessionFrom(r.Context()); su != nil {
 				t.Error("expected nil session with malformed cookie")
 			}
 		},
@@ -202,7 +202,7 @@ func TestSession_WrongLengthCookie(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if su := GetSession(r.Context()); su != nil {
+			if su := SessionFrom(r.Context()); su != nil {
 				t.Error("expected nil session with wrong-length cookie")
 			}
 		},
@@ -232,7 +232,7 @@ func TestSession_ValidSession(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			su := GetSession(r.Context())
+			su := SessionFrom(r.Context())
 			if su == nil {
 				t.Error("expected non-nil session")
 				return
@@ -281,7 +281,7 @@ func TestSession_ExpiredSession(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if su := GetSession(r.Context()); su != nil {
+			if su := SessionFrom(r.Context()); su != nil {
 				t.Error("expected nil session for expired token")
 			}
 		},
@@ -317,7 +317,7 @@ func TestSession_NotFound(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if su := GetSession(r.Context()); su != nil {
+			if su := SessionFrom(r.Context()); su != nil {
 				t.Error("expected nil session for unknown token")
 			}
 		},
@@ -708,7 +708,7 @@ func TestSession_DuplicateCookiesRejected(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if su := GetSession(r.Context()); su != nil {
+			if su := SessionFrom(r.Context()); su != nil {
 				t.Error("expected nil session for duplicate cookies")
 			}
 		},
@@ -970,7 +970,7 @@ func TestRequestID_ReusesAnExistingContextID(t *testing.T) {
 
 	handler := &testHandler{
 		fn: func(w http.ResponseWriter, r *http.Request) {
-			if got := GetRequestID(r.Context()); got != pinned {
+			if got := RequestIDFrom(r.Context()); got != pinned {
 				t.Errorf("context ID = %q, want the reused %q", got, pinned)
 			}
 		},
