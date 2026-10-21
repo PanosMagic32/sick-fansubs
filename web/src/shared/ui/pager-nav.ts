@@ -152,7 +152,7 @@ export class PagerNav extends LitElement {
           </button>
         </nav>
 
-        <span class="page-status" role="status"
+        <span class="page-status" aria-hidden="true"
           >${pagerPageOf(this.page, pages)}</span
         >
       </div>

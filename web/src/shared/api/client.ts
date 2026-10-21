@@ -92,8 +92,8 @@ export class ApiError extends Error {
 export class ValidationError extends ApiError {
   readonly violations: ValidationProblem["violations"];
 
-  constructor(problem: ValidationProblem) {
-    super(problem);
+  constructor(problem: ValidationProblem, retryAfterSeconds?: number) {
+    super(problem, retryAfterSeconds);
     this.name = "ValidationError";
     this.violations = problem.violations;
   }
@@ -319,10 +319,13 @@ async function handleResponse<T>(
     // {file, tooLarge}). The Array.isArray guard doubles as the
     // malformed-response defense.
     if (Array.isArray(raw?.violations)) {
-      throw new ValidationError({
-        ...problem,
-        violations: raw.violations as Violation[],
-      });
+      throw new ValidationError(
+        {
+          ...problem,
+          violations: raw.violations as Violation[],
+        },
+        retryAfter,
+      );
     }
 
     throw new ApiError(problem, retryAfter);

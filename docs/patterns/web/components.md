@@ -107,7 +107,9 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
     Status text lives in a live region that is mounted before its text changes. A region that mounts
     together with its text at initial render is accepted for initial-load empty/loading states;
     status text that changes after an action must live in a region that persists across the change
-    (the push-settings shape). Headings, lists, landmarks, and `fieldset`/`legend` groups reflect the
+    (the push-settings shape, and `<pager-status>` for a page turn: the pager itself unmounts while
+    the next page loads, so its visible caption is aria-hidden and the persistent hidden region
+    announces). Headings, lists, landmarks, and `fieldset`/`legend` groups reflect the
     real structure.
 12. **The catalog is the only copy source.** Every user-facing string comes from
     `shared/catalog/el.ts` (Greek); an anglicism rendered as-is carries `lang="en"` — a

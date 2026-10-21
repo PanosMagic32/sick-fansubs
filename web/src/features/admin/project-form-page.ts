@@ -116,6 +116,10 @@ export class ProjectFormPage extends ContentFormBase<
     this._slug = row.slug;
   }
 
+  protected _resetKindFields(): void {
+    this._slug = "";
+  }
+
   /** The form's heading — visible in the ready state, sr-only in every
    * non-ready state so a heading landmark always exists. */
   private get _formTitle(): string {

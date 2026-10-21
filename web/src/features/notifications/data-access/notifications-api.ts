@@ -65,6 +65,20 @@ export function isDraftActivity(
   return item.kind === "draft_activity";
 }
 
+/** True for every kind this client can render. A wire kind outside the
+ * union is dropped whole rather than rendered through a guessed template. */
+export function isKnownNotificationItem(item: NotificationItem): boolean {
+  return (
+    isComment(item) ||
+    isHeart(item) ||
+    isCommentRemoved(item) ||
+    isContentUpdated(item) ||
+    isNewContent(item) ||
+    isDraftActivity(item) ||
+    isAccountEvent(item)
+  );
+}
+
 /** True for the five account audit events — the LEDGER half of the feed.
  * The complement is a user_notifications row. Both halves are deletable:
  * an event row is deleted, a visible ledger row is dismissed for the

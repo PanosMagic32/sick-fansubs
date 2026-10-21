@@ -40,6 +40,9 @@ export class AppFooter extends LitElement {
     super.connectedCallback();
     this.setAttribute("role", "contentinfo");
     this._readVersion();
+    // A reconnect starts a fresh probe: the previous result is stale until
+    // this one answers.
+    this.health = "loading";
     this._checkHealth(++this._healthProbe);
   }
 

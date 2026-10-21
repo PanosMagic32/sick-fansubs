@@ -57,6 +57,7 @@ import styles from "./search-page.css?inline";
 
 import { requestSignal } from "@shared/api/request-signal.js";
 import "@shared/ui/pager-nav.js";
+import "@shared/ui/pager-status.js";
 
 type PageStatus = "idle" | "loading" | "error" | "success";
 
@@ -441,6 +442,11 @@ export class SearchPage extends LitElement {
   render() {
     return html`
       <h1>${el.titles.search}</h1>
+      <pager-status
+        .page=${this.paging.page}
+        .total=${this.total}
+        .limit=${this.paging.limit}
+      ></pager-status>
 
       <form class="search-form" role="search" @submit=${this._onSubmit}>
         <div class="search-row">

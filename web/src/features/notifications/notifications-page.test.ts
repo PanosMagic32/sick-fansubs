@@ -65,9 +65,6 @@ function mockSession(
   return mockSessionContext({ status, user: { role } });
 }
 
-/** Install the suite's fetch double through the shared descriptor capture —
- * every install pairs with `restoreMockFetch()` in afterEach. */
-
 const LIST_BODY = {
   items: [
     {
@@ -1216,6 +1213,10 @@ describe("notifications-page", () => {
     await new Promise((r) => setTimeout(r, 10));
 
     expect(navigations).toEqual([]);
+    // The late 204 must not flip a row of a list that is gone.
+    const items = (page as unknown as { items: Array<{ read: boolean }> })
+      .items;
+    expect(items[0]?.read).toBe(false);
   });
 
   test("a click on a redirected page marks read but skips the navigation", async () => {

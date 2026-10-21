@@ -232,6 +232,7 @@ describe("media-upload", () => {
 
     expect(widget.isUploading()).toBe(false);
     expect(statusText(widget)).toBe(el.admin.uploadStatusNone);
+    expect(widget.shadowRoot?.querySelector("img.media-preview")).toBeNull();
     widget.remove();
   });
 

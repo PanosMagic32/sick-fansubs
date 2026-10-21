@@ -136,6 +136,10 @@ export abstract class ContentFormBase<
    * slug) — the base owns the fields every content row shares. */
   protected _applyKindFields(_row: TRow): void {}
 
+  /** Clears the kind's extra row fields when the route id changes — the
+   * counterpart of `_applyKindFields`. */
+  protected _resetKindFields(): void {}
+
   // ── Lifecycle ─────────────────────────────────────────────────────────
 
   connectedCallback() {
@@ -190,8 +194,16 @@ export abstract class ContentFormBase<
     this._error = "";
     this._success = "";
     this.errorMessage = "";
+    this._pending = false;
+    this._pendingAction = null;
     this.status = "loading";
     this._pendingRowLoad = null;
+    this._resetKindFields();
+    // The widgets survive an id change only when the form stays rendered;
+    // clear their values so a previous row's upload or download rows can
+    // never be submitted for the new one.
+    this._downloadWidget()?.reset();
+    this._mediaWidget()?.reset();
   }
 
   /** In edit mode the route carries a row id; create mode renders the empty

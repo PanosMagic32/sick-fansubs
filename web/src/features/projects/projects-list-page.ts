@@ -31,6 +31,7 @@ import { el } from "@shared/catalog/el.js";
 import "@shared/ui/loading-spinner.js";
 import "@shared/ui/error-banner.js";
 import "@shared/ui/pager-nav.js";
+import "@shared/ui/pager-status.js";
 import "@shared/ui/content-card.js";
 
 import { getProjects } from "./data-access/projects-api.js";
@@ -155,6 +156,11 @@ export class ProjectsListPage extends LitElement {
       <h1 class="sr-only">
         <span lang="en">${el.projects.projectsTitle}</span>
       </h1>
+      <pager-status
+        .page=${this.paging.page}
+        .total=${this.total}
+        .limit=${this.paging.limit}
+      ></pager-status>
       ${this._stateTemplate()}
     `;
   }

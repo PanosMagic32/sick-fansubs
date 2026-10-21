@@ -592,6 +592,7 @@ describe("blog-form-page", () => {
           ...POST_RESPONSE,
           id,
           title: id === "p2" ? "Second Post" : "New Post",
+          subtitle: id === "p2" ? "Second subtitle" : "First subtitle",
         },
       });
     });
@@ -602,7 +603,11 @@ describe("blog-form-page", () => {
     const title = () =>
       (page.shadowRoot?.querySelector("#content-title") as HTMLInputElement)
         .value;
+    const subtitle = () =>
+      (page.shadowRoot?.querySelector("#content-subtitle") as HTMLInputElement)
+        .value;
     expect(title()).toBe("New Post");
+    expect(subtitle()).toBe("First subtitle");
 
     // The router reuses the same element tag when the route id changes, so
     // the row latch must be keyed to the id, not the element's lifetime.
@@ -613,6 +618,9 @@ describe("blog-form-page", () => {
     await page.updateComplete;
 
     expect(title()).toBe("Second Post");
+    // The kind's own row field is reset too (the subclass hook), not just
+    // the fields the base owns.
+    expect(subtitle()).toBe("Second subtitle");
     expect(calls.length).toBe(2);
     expect(calls[1]).toEndWith("/p2");
     page.remove();

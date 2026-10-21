@@ -37,6 +37,7 @@ import formStyles from "@shared/ui/forms.css?inline";
 import "@shared/ui/loading-spinner.js";
 import "@shared/ui/error-banner.js";
 import "@shared/ui/pager-nav.js";
+import "@shared/ui/pager-status.js";
 import "@shared/ui/content-card.js";
 import { icons } from "@shared/ui/icons.js";
 import "./admin-tabs.js";
@@ -367,6 +368,12 @@ export abstract class AdminListBase extends AdminStaffPageBase {
             >${this.createLabel}</a
           >
         </header>
+
+        <pager-status
+          .page=${this._paging.page}
+          .total=${this.total}
+          .limit=${this._paging.limit}
+        ></pager-status>
 
         <fieldset class="admin-filters">
           <legend class="sr-only">${el.admin.filtersLabel}</legend>

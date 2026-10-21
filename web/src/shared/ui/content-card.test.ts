@@ -304,10 +304,16 @@ describe("content-card", () => {
     expect(badge?.textContent?.trim()).toBe(el.blog.latestBadge);
     expect(badge?.getAttribute("data-tone")).toBe("latest");
     // The hero's subtitle is its own muted line BELOW the title and ABOVE
-    // the description — never inline in the title line.
+    // the description — never inline in the title line. The rule resets the
+    // UA paragraph margin (pinned at the source below).
     expect(topline.querySelector(".subtitle")).toBeNull();
     const subtitle = root(card).querySelector(".body .subtitle");
     expect(subtitle?.textContent).toBe("Υπότιτλος");
+    const subRule =
+      cardStyles.match(
+        /:host\(\[shape="hero"\]\) \.subtitle \{([^}]*)\}/s,
+      )?.[1] ?? "";
+    expect(subRule).toContain("margin: 0;");
     const description = root(card).querySelector(".body .description");
     expect(
       subtitle!.compareDocumentPosition(description as Node) &

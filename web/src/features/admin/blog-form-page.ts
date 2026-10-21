@@ -110,6 +110,10 @@ export class BlogFormPage extends ContentFormBase<
     this._subtitle = row.subtitle;
   }
 
+  protected _resetKindFields(): void {
+    this._subtitle = "";
+  }
+
   protected _writeBody(status: ContentStatus): BlogPostWrite | null {
     const uploaded = this._mediaWidget()?.getValue()?.path ?? null;
     // The uploaded path wins; otherwise the loaded post's stored path (the
@@ -249,6 +253,7 @@ export class BlogFormPage extends ContentFormBase<
           <label class="field">
             <span>${el.admin.subtitleLabel}</span>
             <input
+              id="content-subtitle"
               type="text"
               .value=${this._subtitle}
               @input=${(e: Event) => {

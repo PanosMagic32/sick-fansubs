@@ -96,6 +96,7 @@ export function mapSubmitError<F extends string>(
         (Object.keys(fields).length === 0
           ? problemMessage("/problems/validation")
           : ""),
+      retryAfterSeconds: err.retryAfterSeconds,
     };
   }
 

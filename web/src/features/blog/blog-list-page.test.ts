@@ -26,12 +26,6 @@ const statsStyles = await readSheet(
   new URL("../../shared/ui/content-stats.css", import.meta.url),
 );
 
-/**
- * Fetch-level router: the page under test talks to the real transport +
- * real blog-api module; only fetch is stubbed, so the test covers the
- * whole client stack (component → endpoint → transport → fetch).
- */
-
 interface Post {
   id: string;
   title: string;
@@ -247,6 +241,12 @@ describe("blog-list-page", () => {
     // The position line reads the URL's ordinal and the loaded row total.
     expect(
       pagerRoot(page).querySelector(".page-status")?.textContent?.trim(),
+    ).toBe(pagerPageOf(2, 2));
+    // The persistent live region carries the same sentence: the pager itself
+    // unmounts during a load, so this element is what announces the turn.
+    const live = root(page).querySelector("pager-status");
+    expect(
+      live?.shadowRoot?.querySelector('[role="status"]')?.textContent?.trim(),
     ).toBe(pagerPageOf(2, 2));
     // Previous is now enabled (hasNextPage=false disables Next).
     const buttons = pagerButtons(page);

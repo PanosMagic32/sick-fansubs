@@ -31,6 +31,7 @@ import "@shared/ui/content-card.js";
 import "@shared/ui/error-banner.js";
 import "@shared/ui/loading-spinner.js";
 import "@shared/ui/pager-nav.js";
+import "@shared/ui/pager-status.js";
 
 import { listFavorites, removeFavorite } from "../data-access/favorites-api.js";
 import type { FavoriteItem, FavoriteKind } from "../data-access/types.js";
@@ -289,6 +290,12 @@ export class AccountFavoritesSection implements ReactiveController {
           `,
         )}
       </fieldset>
+
+      <pager-status
+        .page=${this.favPaging.page}
+        .total=${this._favTotal}
+        .limit=${this.favPaging.limit}
+      ></pager-status>
 
       ${
         this._favStatus === "loading"

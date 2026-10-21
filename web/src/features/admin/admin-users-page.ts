@@ -47,6 +47,7 @@ import avatarStyles from "@shared/ui/avatar.css?inline";
 import "@shared/ui/loading-spinner.js";
 import "@shared/ui/error-banner.js";
 import "@shared/ui/pager-nav.js";
+import "@shared/ui/pager-status.js";
 import type { SessionState } from "@features/auth/data-access/session.js";
 
 import "./ui/admin-tabs.js";
@@ -310,6 +311,12 @@ export class AdminUsersPage extends AdminStaffPageBase {
         <header class="admin-header">
           <h1>${el.admin.usersTitle}</h1>
         </header>
+
+        <pager-status
+          .page=${this.paging.page}
+          .total=${this.total}
+          .limit=${this.paging.limit}
+        ></pager-status>
 
         <div
           class="users-filters"

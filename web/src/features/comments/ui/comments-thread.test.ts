@@ -59,10 +59,6 @@ function mockSession(
   });
 }
 
-/** The shared happy-dom history shim (test-utils, graduated from the
- * notifications-page probe) — the thread's sort and focus flows both
- * write the URL. */
-
 function author(overrides: Partial<CommentItem["author"]> = {}) {
   return {
     id: "u1",

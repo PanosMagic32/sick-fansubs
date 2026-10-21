@@ -86,9 +86,10 @@ export class MediaUpload extends LitElement {
     this._uploadAbort = null;
     // An aborted upload's finally block deliberately does not touch the
     // state; clear it here so a re-added widget never reads as uploading
-    // and never shows a revoked preview URL.
+    // and never shows a stale preview. The confirmed value survives — it is
+    // what the form submits.
     this._pending = false;
-    this._previewURL = this._value?.url ?? null;
+    this._previewURL = null;
     this._revokeLocal();
     super.disconnectedCallback();
   }

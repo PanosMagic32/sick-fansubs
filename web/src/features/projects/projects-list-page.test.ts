@@ -22,12 +22,6 @@ const listStyles = await readSheet(
   new URL("./projects-list-page.css", import.meta.url),
 );
 
-/**
- * Fetch-level router: the page under test talks to the real transport +
- * real projects-api module; only fetch is stubbed, so the test covers the
- * whole client stack (component → endpoint → transport → fetch).
- */
-
 interface Project {
   id: string;
   title: string;

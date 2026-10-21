@@ -41,12 +41,12 @@ import { icons } from "@shared/ui/icons.js";
 
 import {
   deleteNotification,
-  isAccountEvent,
   isComment,
   isCommentRemoved,
   isContentUpdated,
   isDraftActivity,
   isHeart,
+  isKnownNotificationItem,
   isNewContent,
   markNotificationRead,
 } from "../data-access/notifications-api.js";
@@ -218,11 +218,13 @@ export class NotificationItemsSection implements ReactiveController {
    * that costs one extra count fetch — accepted: one code path, not two). */
   private async _onDelete(item: NotificationItem) {
     if (this._deletingIds.has(item.id)) return;
+    const generation = this._host._listGeneration;
     this._deletingIds.add(item.id);
     this._host._readError = "";
     this.refresh();
     try {
       await deleteNotification(item.id);
+      if (!this._ownsList(generation)) return;
       this._host._removeItem(item.id);
       this._host._dispatchChanged();
     } catch (err) {
@@ -280,7 +282,7 @@ export class NotificationItemsSection implements ReactiveController {
   /** The line + time skeleton every user_notifications kind shares. The
    * per-kind body (actor/verb/title order, the heart sentence, the
    * actorless removal sentence) is the only part that varies. */
-  private _lineTemplate(item: NotificationItem, body: TemplateResult | string) {
+  private _lineTemplate(item: NotificationItem, body: TemplateResult) {
     return html`
       <span class="notification-text">${body}</span>
       <span class="notification-meta">
@@ -423,16 +425,9 @@ export class NotificationItemsSection implements ReactiveController {
     // A kind this client cannot word is dropped as a WHOLE row — an empty
     // clickable row is no better than a wrong sentence, and the service
     // worker raises no notification for it either.
-    const known =
-      isComment(item) ||
-      isHeart(item) ||
-      isCommentRemoved(item) ||
-      isContentUpdated(item) ||
-      isNewContent(item) ||
-      isDraftActivity(item) ||
-      isAccountEvent(item);
+    const known = isKnownNotificationItem(item);
     if (!known) {
-      this._unknownItemTemplate(item);
+      this._warnUnknownKind(item);
       return nothing;
     }
     // The draft_activity body is built before the literal so its refusal of
@@ -470,9 +465,7 @@ export class NotificationItemsSection implements ReactiveController {
                     ? this._contentItemTemplate(item)
                     : isDraftActivity(item)
                       ? draftBody
-                      : isAccountEvent(item)
-                        ? this._accountItemTemplate(item)
-                        : this._unknownItemTemplate(item)
+                      : this._accountItemTemplate(item)
           }
         </button>
         <button
@@ -489,15 +482,13 @@ export class NotificationItemsSection implements ReactiveController {
     `;
   }
 
-  /** An item line the client does not know. Dropping it is the same refusal
-   * the draft template makes, and the same one the service worker makes: an
-   * unknown kind never renders a wrong sentence. */
-  private _unknownItemTemplate(item: NotificationItem) {
+  /** Warn once for a wire kind this client cannot word — the row is
+   * dropped, never guessed. */
+  private _warnUnknownKind(item: NotificationItem) {
     console.warn(
       "notifications: unknown item kind",
       (item as { kind?: unknown }).kind,
     );
-    return nothing;
   }
 
   /** The item-scoped state is plain now — every mutation asks for a render. */

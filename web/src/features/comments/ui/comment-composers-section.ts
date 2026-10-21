@@ -38,7 +38,7 @@ import type { CommentItem, CommentKind } from "../data-access/types.js";
  */
 export interface CommentComposersHost extends ReactiveControllerHost {
   /** The host element's connection state — an awaited write must not mutate
-   * a thread that has been torn down. */
+   * a thread that has been torn down or moved to another content pair. */
   readonly isConnected: boolean;
   kind: CommentKind;
   contentId: string;
@@ -149,6 +149,8 @@ export class CommentComposersSection implements ReactiveController {
   private _submitComment = async () => {
     const body = this._body.trim();
     if (!body || this._submitting) return;
+    const kind = this._host.kind;
+    const contentId = this._host.contentId;
     this._submitting = true;
     this._composerError = "";
     this.refresh();
@@ -161,7 +163,7 @@ export class CommentComposersSection implements ReactiveController {
       // The thread may have been torn down (or moved to another content
       // pair) while the create was in flight; its response must not rewrite
       // the URL or fire reads for a page that is gone.
-      if (!this._host.isConnected) return;
+      if (!this._ownsContent(kind, contentId)) return;
       this._body = "";
       this._replyTargetId = "";
       this.refresh();
@@ -184,6 +186,15 @@ export class CommentComposersSection implements ReactiveController {
     this.refresh();
   }
 
+  /** True while the awaited write still belongs to the mounted content pair. */
+  private _ownsContent(kind: CommentKind, contentId: string): boolean {
+    return (
+      this._host.isConnected &&
+      this._host.kind === kind &&
+      this._host.contentId === contentId
+    );
+  }
+
   private _onReplyInput = (e: Event) => {
     this._replyBody = (e.target as HTMLTextAreaElement).value;
     this.refresh();
@@ -194,6 +205,8 @@ export class CommentComposersSection implements ReactiveController {
     const body = this._replyBody.trim();
     const parentId = this._replyTargetId;
     if (!body || !parentId || this._replySubmitting) return;
+    const kind = this._host.kind;
+    const contentId = this._host.contentId;
     this._replySubmitting = true;
     this._replyError = "";
     this.refresh();
@@ -204,7 +217,7 @@ export class CommentComposersSection implements ReactiveController {
         parentId,
         body,
       );
-      if (!this._host.isConnected) return;
+      if (!this._ownsContent(kind, contentId)) return;
       this._replyTargetId = "";
       this.refresh();
       this._host._jumpTo(res.focusId);
@@ -241,6 +254,8 @@ export class CommentComposersSection implements ReactiveController {
   private _submitEdit = async () => {
     const body = this._editBody.trim();
     if (!body || !this._editId || this._editSubmitting) return;
+    const kind = this._host.kind;
+    const contentId = this._host.contentId;
     this._editSubmitting = true;
     this._editError = "";
     this.refresh();
@@ -251,7 +266,7 @@ export class CommentComposersSection implements ReactiveController {
         this._editId,
         body,
       );
-      if (!this._host.isConnected) return;
+      if (!this._ownsContent(kind, contentId)) return;
       // The server returns the refreshed item; only the edited fields are
       // consumed here (the local item keeps its own window/cursor state).
       this._host._patchComment(this._editId, (c) => ({

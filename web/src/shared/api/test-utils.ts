@@ -134,19 +134,20 @@ export function restoreMockFetch(): void {
   fetchInstalled = false;
 }
 
-/**
- * The JSON-over-fetch double every UI suite needs: install a fetch impl that
- * routes `(url, init)` through the handler, records the requested URLs, and
- * answers a mock Response (problem+json for error statuses unless the
- * handler supplies headers). Returns the recorded URLs so a test can assert
- * the request sequence. Pair with restoreMockFetch() in afterEach.
- */
+/** The handler's answer shape for `stubJsonFetch`. */
 export interface JsonFetchResult {
   status: number;
   body: unknown;
   headers?: Record<string, string>;
 }
 
+/**
+ * The JSON-over-fetch double every UI suite needs: install a fetch impl that
+ * routes `(url, method, init)` through the handler, records the requested
+ * URLs, and answers a mock Response (problem+json for error statuses unless
+ * the handler supplies headers). Returns the recorded URLs so a test can
+ * assert the request sequence. Pair with restoreMockFetch() in afterEach.
+ */
 export function stubJsonFetch(
   handler: (
     url: string,
@@ -160,7 +161,7 @@ export function stubJsonFetch(
     urls.push(url);
     const res = await handler(url, init?.method ?? "GET", init);
     return mockResponse({
-      ok: res.status < 400,
+      ok: res.status >= 200 && res.status < 300,
       status: res.status,
       headers:
         res.status >= 400

@@ -47,12 +47,14 @@ import {
 import "@shared/ui/loading-spinner.js";
 import "@shared/ui/error-banner.js";
 import "@shared/ui/pager-nav.js";
+import "@shared/ui/pager-status.js";
 
 import styles from "./notifications-page.css?inline";
 import {
   clearReadNotifications,
   deleteAllNotifications,
   isAccountEvent,
+  isKnownNotificationItem,
   listNotifications,
   markAllNotificationsRead,
 } from "./data-access/notifications-api.js";
@@ -214,7 +216,9 @@ export class NotificationsPage extends LitElement {
         { signal: requestSignal(controller) },
       );
       if (controller.signal.aborted) return;
-      this.items = page.items;
+      // A kind this client cannot word is dropped from the list (the server
+      // contract defines the union; this is forward-compatibility defense).
+      this.items = page.items.filter(isKnownNotificationItem);
       this._listGeneration++;
       this.hasNext = page.pageInfo.hasNextPage;
       this._endCursor = page.pageInfo.endCursor;
@@ -389,6 +393,12 @@ export class NotificationsPage extends LitElement {
               : ""
           }
         </header>
+
+        <pager-status
+          .page=${this.paging.page}
+          .total=${this.total}
+          .limit=${this.paging.limit}
+        ></pager-status>
 
         ${
           this._readError

@@ -27,6 +27,7 @@ import "@shared/ui/error-banner.js";
 import "@shared/ui/loading-spinner.js";
 
 import { resendVerification } from "../data-access/auth-api.js";
+import type { SessionContext } from "../data-access/session.js";
 import {
   changeEmail,
   fetchCurrentUserProfile,
@@ -49,7 +50,7 @@ export interface AccountProfileSectionHost extends ReactiveControllerHost {
   readonly shadowRoot: ShadowRoot | null;
   /** The session context — the email change revalidates a 401/403 so a
    * genuinely dead session or stale CSRF token heals. */
-  readonly sessionContext?: { revalidate(): void | Promise<void> };
+  readonly sessionContext?: SessionContext;
 }
 
 /** Input ids for the email-change widget — shared by both focus calls. */
