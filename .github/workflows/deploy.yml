@@ -58,7 +58,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           # Keep in step with the oven/bun tag in the Dockerfile.
-          bun-version: "1.4.3"
+          bun-version: "1.4.4"
       - name: Go build/vet/format
         run: |
           go build ./...

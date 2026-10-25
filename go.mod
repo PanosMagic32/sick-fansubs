@@ -7,12 +7,12 @@ require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
-	modernc.org/sqlite v1.60.1
+	modernc.org/sqlite v1.61.0
 )
 
 require (
 	filippo.io/hpke v0.4.0 // indirect
-	github.com/bmatcuk/doublestar/v4 v4.10.3 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.10.4 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
