@@ -51,7 +51,11 @@ if [ -z "$newest" ]; then
 	exit 1
 fi
 
-mega-put "$newest" /sick-fansubs-backups/
+# MEGAcmd starts the long-lived mega-cmd-server on first use, and the daemon
+# inherits the invoking process's open descriptors. The caller holds the host
+# lock on fd 9 (lock.sh), so closing it for the push keeps the daemon from
+# holding the deploy/backup lock after the trigger exits.
+mega-put "$newest" /sick-fansubs-backups/ 9>&-
 printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >.last-push.tmp
 mv .last-push.tmp .last-push
 echo "pushed $newest to /sick-fansubs-backups/"

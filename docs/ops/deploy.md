@@ -144,7 +144,9 @@ tag push ─▶ test job (Go + web) ─▶ build job (5 images → ghcr) ─▶ 
   the previous pair.
 - **All backup/deploy triggers serialize on `~/sick-fansubs/.lock`.** `flock` (util-linux) is a VPS
   dependency; a deploy waits for a running cron backup and vice versa, and a killed process
-  releases the lock. The scripts fail closed when `flock` is missing.
+  releases the lock. The scripts fail closed when `flock` is missing. A long-lived daemon started
+  inside a trigger can inherit the lock descriptor and keep the lock after the script exits;
+  `lslocks | grep sick-fansubs` names the holder — see the MEGAcmd gotcha in [backup.md](backup.md).
 - **`SICK_LOCK_HELD` is a reserved environment variable.** The lock helper exports it so a nested
   `backup-now.sh` does not re-lock; never export it by hand — a trigger launched with it set skips
   the mutual exclusion. The advisory lock file is owned by `sick-deploy`, and a signal during the

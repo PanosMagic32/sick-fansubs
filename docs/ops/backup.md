@@ -156,6 +156,14 @@ publish` means the unit was renamed but the directory could not be made crash-du
 - **Cron runs with a minimal `PATH`.** The example crontab line works when MEGAcmd's `mega-put`
   sits in `/usr/bin` (the Debian package's location); otherwise prepend a `PATH=/…:/usr/bin:/bin`
   assignment to the line. `mega-put.sh` fails with a clear message when the command is missing.
+- **A daemon started while the lock is held must not inherit the lock descriptor.** `mega-put`
+  starts the long-lived `mega-cmd-server`, which inherits the invoking shell's open descriptors —
+  including the host lock fd that `lock.sh` opens. A server born inside a trigger would keep the
+  deploy/backup lock after the script exits, and every later trigger would wait on it. `mega-put.sh`
+  closes fd 9 for the push command (`9>&-`); keep that redirection on any MEGAcmd invocation made
+  while the lock is held. Diagnose with `lslocks | grep sick-fansubs`: the daemon holds with
+  `WRITE`, waiting triggers show `WRITE*`. Kill the stale waiting triggers first, then the daemon
+  PID, so a new daemon cannot be started under the lock by a queued run.
 - **A pre-migrate unit carries a prefix history,** because the deploy backup runs before the
   deploy's migration. A daily or shutdown unit carries the exact history. The restore path accepts
   both; the validation rules are [sqlite.md](../patterns/go/sqlite.md)'s.
