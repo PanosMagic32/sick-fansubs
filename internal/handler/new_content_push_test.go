@@ -24,9 +24,10 @@ import (
 // into published only.
 
 // setupNewContentSeam seeds the recipient matrix (adm1 = the admin actor,
-// mod2 = moderator default-on, uon = user with an explicit ON row, uoff =
-// user default-off), a real media file, and the four content-write
-// handlers with the recording notifier.
+// mod2 = moderator default-on, uon = user with an explicit ON row, uplain =
+// user with no row (default ON), uoff = user with an explicit OFF row), a
+// real media file, and the four content-write handlers with the recording
+// notifier.
 func setupNewContentSeam(t *testing.T, notify push.Notifier) (*sql.DB, func(method, path, body, ifMatch string) int) {
 	t.Helper()
 	dir := testDataDir(t)
@@ -44,13 +45,14 @@ func setupNewContentSeam(t *testing.T, notify push.Notifier) (*sql.DB, func(meth
 		{ID: "adm1", Username: "Adm", Role: "admin"},
 		{ID: "mod2", Username: "Mod2", Role: "moderator"},
 		{ID: "uon", Username: "Uon"},
+		{ID: "uplain", Username: "Uplain"},
 		{ID: "uoff", Username: "Uoff"},
 	} {
 		storetest.InsertUser(t, db, u)
 	}
 	if _, err := db.Exec(`INSERT INTO notification_preferences (user_id, kind, push_enabled, updated_at_ms)
-		 VALUES ('uon', 'new_content', 1, 1500)`); err != nil {
-		t.Fatalf("seed preference: %v", err)
+		 VALUES ('uon', 'new_content', 1, 1500), ('uoff', 'new_content', 0, 1500)`); err != nil {
+		t.Fatalf("seed preferences: %v", err)
 	}
 
 	mediaDir := filepath.Join(dir, "media", "images", "ab")
@@ -105,12 +107,13 @@ func newContentProjectBody(status, title string) string {
 }
 
 // assertNewContentSeamEvents pins one batch of new_content seam events:
-// exactly the two opted-in recipients (mod2 default-on + uon explicit-on;
-// the actor adm1 and the default-off uoff receive nothing).
+// exactly the three opted-in recipients (mod2 and uplain by the default,
+// uon explicit-on; the actor adm1 and the explicit-off uoff receive
+// nothing).
 func assertNewContentSeamEvents(t *testing.T, events []push.Event, contentKind string) {
 	t.Helper()
-	if len(events) != 2 {
-		t.Fatalf("events: got %d, want 2", len(events))
+	if len(events) != 3 {
+		t.Fatalf("events: got %d, want 3", len(events))
 	}
 	recipients := map[string]bool{}
 	for _, ev := range events {
@@ -120,8 +123,8 @@ func assertNewContentSeamEvents(t *testing.T, events []push.Event, contentKind s
 			t.Errorf("event shape: got %+v", ev)
 		}
 	}
-	if !recipients["mod2"] || !recipients["uon"] || recipients["adm1"] || recipients["uoff"] {
-		t.Errorf("recipients: got %v, want exactly mod2 + uon", recipients)
+	if !recipients["mod2"] || !recipients["uon"] || !recipients["uplain"] || recipients["adm1"] || recipients["uoff"] {
+		t.Errorf("recipients: got %v, want exactly mod2 + uon + uplain", recipients)
 	}
 }
 
@@ -141,8 +144,8 @@ func TestBlogCreateFansOutNewContent(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM user_notifications WHERE kind = 'new_content'`).Scan(&n); err != nil {
 		t.Fatalf("count rows: %v", err)
 	}
-	if n != 2 {
-		t.Errorf("new_content rows: got %d, want 2", n)
+	if n != 3 {
+		t.Errorf("new_content rows: got %d, want 3", n)
 	}
 }
 
@@ -227,8 +230,8 @@ func TestBlogUpdatePublishFansOutNewContent(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM user_notifications WHERE kind = 'new_content'`).Scan(&n); err != nil {
 		t.Fatalf("count rows: %v", err)
 	}
-	if n != 2 {
-		t.Errorf("new_content rows: got %d, want 2", n)
+	if n != 3 {
+		t.Errorf("new_content rows: got %d, want 3", n)
 	}
 }
 

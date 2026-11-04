@@ -21,11 +21,12 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
    hands values down). Features reach each other only through the recorded capability edges: the
    session context (`@features/auth/data-access/session.js`, open to every feature), the detail
    pages' `favorite-toggle`/`follow-toggle` and favorites `listFavoriters` data-access (auth),
-   `comments-section` (comments), and the account page's `push-settings` (notifications).
-   `web/src/architecture.test.ts` guards the list; a
-   new edge gets an entry there and a sentence here. `core/` imports features only under its own
-   recorded exceptions (element registration in `index.ts`, the session-aware shell and header;
-   test files may import the elements they exercise, e.g. `baseline.test.ts`'s style enumeration).
+   `comments-section` (comments), the account page's `push-settings`, and the session provider's
+   sign-out push release (notifications). `web/src/architecture.test.ts` guards both lists; a new
+   edge gets an entry there and a sentence here. `core/` imports features only under its own
+   recorded exceptions (page-module and session-provider registration in `index.ts`, the
+   session-aware shell and header, and the shell's global `<push-lifecycle>`; test files may import
+   the elements they exercise, e.g. `baseline.test.ts`'s style enumeration).
 3. **A component is a custom element.** Every element registers with `@customElement("<kebab-case-name>")` and
    extends `LitElement`. Prefer `@property` for anything the owner sets, `@state` for private
    state; the public properties are the component's API and a component never writes its own public
@@ -99,9 +100,12 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
     Icon-only controls carry a catalog accessible name (`aria-label`), and a control whose action is
     not obvious from the glyph also carries `title` with the SAME string (the row actions do; the
     header, pager, and toggle icons rely on the accessible name alone). The glyph carries
-    `aria-hidden="true"` by construction (`icons.ts`). Icon targets are at least 2rem (36px at the
-    root font size) by house ruling — above the WCAG 2.5.8 minimum, below MDN's 44px
-    recommendation, matching the row density of the row actions.
+    `aria-hidden="true"` by construction (`icons.ts`). An icon-only LINK whose name needs a language
+    scope is named by visually hidden text instead (the footer's brand links use an `sr-only`
+    `lang="en"` label); `aria-label` cannot carry that scope. Every anchor with `target="_blank"`
+    appends `el.nav.opensInNewTab` in a second `sr-only` span (Greek, outside any `lang="en"` scope).
+    Icon targets are at least 2rem (36px at the root font size) by house ruling — above the WCAG
+    2.5.8 minimum, below MDN's 44px recommendation, matching the row density of the row actions.
     Elements with naming prohibitions (`code`, `span`, `div`…) never carry `aria-label` — use
     visually hidden text (`.sr-only`). Data tables carry a `<caption>` (visually hidden is fine).
     Status text lives in a live region that is mounted before its text changes. A region that mounts

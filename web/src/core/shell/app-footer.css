@@ -46,19 +46,72 @@
     gap: 0.6rem;
 }
 
+/* Center zone: the community icon row sits above the support line, so the
+   icons render on every route without widening the footer. */
 .footer-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sf-text-muted);
+}
+
+.footer-social {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* 2.5rem round targets (above the 2rem house floor): a comfortable touch
+   box at every width, while each glyph stays 1.5rem. */
+.footer-social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    color: var(--sf-text-muted);
+    transition:
+        color 0.15s,
+        background-color 0.15s;
+}
+
+.footer-social svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Brand tones come from the shell's theme-aware token pairs (the about
+   page uses the same values for its community rows). */
+.footer-social a.social-facebook {
+    color: var(--sf-brand-facebook);
+}
+.footer-social a.social-discord {
+    color: var(--sf-brand-discord);
+}
+.footer-social a.social-github {
+    color: var(--sf-brand-github);
+}
+
+.footer-social a:hover,
+.footer-social a:focus-visible {
+    background: var(--sf-accent-tint);
+}
+
+.footer-support {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     color: var(--sf-text-muted);
 }
 
-.footer-center a {
+.footer-support a {
     color: var(--sf-accent-light);
     text-decoration: none;
 }
 
-.footer-center a:hover {
+.footer-support a:hover {
     text-decoration: underline;
 }
 
@@ -79,7 +132,7 @@
    copyright + version stack; the status stays vertically centered via the
    host's align-items. */
 @media (max-width: 700px) {
-    .footer-center {
+    .footer-support {
         flex-direction: column;
         justify-content: center;
         gap: 0.5rem;

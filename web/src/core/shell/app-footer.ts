@@ -2,7 +2,8 @@ import { html, LitElement, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
 import { copyrightNotice, el } from "@shared/catalog/el.js";
-import { BUY_ME_A_COFFEE_URL } from "@shared/config/links.js";
+import { BUY_ME_A_COFFEE_URL, COMMUNITY_LINKS } from "@shared/config/links.js";
+import { brandIcons } from "@shared/ui/icons.js";
 
 import styles from "./app-footer.css?inline";
 import sharedStyles from "@core/styles/baseline.css?inline";
@@ -10,16 +11,27 @@ import controlStyles from "@shared/ui/controls.css?inline";
 
 type HealthStatus = "loading" | "online" | "offline";
 
+/**
+ * Community links from the shared ordered list. The labels are deliberate
+ * English brand names; each anchor renders its label in a `lang="en"`
+ * sr-only span plus the shared new-tab suffix, matching the header's
+ * external-link pattern.
+ */
+const SOCIAL_LINKS = COMMUNITY_LINKS.map((link) => ({
+  ...link,
+  icon: brandIcons[link.tone],
+}));
+
 /** The health probe's own deadline: it is not an API call, so it carries no
  * shared client timeout — a hung probe must not pin the footer's loading
  * label. */
 const HEALTH_PROBE_TIMEOUT_MS = 5_000;
 
 /**
- * Application footer — status, support line, and copyright+version zones.
- * The status probes /health/ready directly (the recorded transport
- * exception — core/shell/AGENTS.md): Online means the application can
- * serve.
+ * Application footer — status, community links, support line, and
+ * copyright+version zones. The status probes /health/ready directly (the
+ * recorded transport exception — core/shell/AGENTS.md): Online means the
+ * application can serve.
  */
 @customElement("app-footer")
 export class AppFooter extends LitElement {
@@ -109,18 +121,42 @@ export class AppFooter extends LitElement {
         </span>
       </div>
 
-      <!-- Donation support line: footer variant B, centered between the
-           status and the copyright. Inline row on desktop; on mobile the
-           zone stacks text → divider → link (see app-footer.css). The
-           label is an anglicism — lang="en". -->
+      <!-- Community destinations: one icon row above the support line, so
+           the icons render on every route without competing with the
+           product navigation in the header. The nav landmark names the
+           group; each link's accessible name is the sr-only brand label. -->
       <div class="footer-center">
-        <span class="support-text"
-          >${el.donation.supportText} <span aria-hidden="true">❤</span></span
-        >
-        <span class="support-divider" aria-hidden="true"></span>
-        <a href=${BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener noreferrer"
-          ><span lang="en">${el.about.donateLabel}</span></a
-        >
+        <nav class="footer-social" aria-label=${el.ui.communityLinks}>
+          ${SOCIAL_LINKS.map(
+            (link) =>
+              html`<a
+                class="social-${link.tone}"
+                href=${link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                >${link.icon}<span class="sr-only" lang="en">${link.label}</span
+                ><span class="sr-only">${el.nav.opensInNewTab}</span></a
+              >`,
+          )}
+        </nav>
+
+        <!-- Donation support line: footer variant B, centered under the
+             community row. Inline row on desktop; on mobile the support
+             line stacks text → divider → link (see app-footer.css). The
+             label is an anglicism — lang="en". -->
+        <div class="footer-support">
+          <span class="support-text"
+            >${el.donation.supportText} <span aria-hidden="true">❤</span></span
+          >
+          <span class="support-divider" aria-hidden="true"></span>
+          <a
+            href=${BUY_ME_A_COFFEE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            ><span lang="en">${el.about.donateLabel}</span
+            ><span class="sr-only">${el.nav.opensInNewTab}</span></a
+          >
+        </div>
       </div>
 
       <div class="footer-right">

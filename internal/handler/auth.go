@@ -21,26 +21,19 @@ import (
 
 const (
 	// sessionMaxAge is the sf_session cookie lifetime in seconds, derived from
-	// the service-owned SessionLifetime (7 days). The service
-	// package owns the value — the handler only converts units for the cookie.
-	sessionMaxAge = int(auth.SessionLifetime / time.Second)
+	// the identity-owned idle lifetime (30 days). The middleware renews the
+	// cookie on activity; this value is the fresh-sign-in ceiling.
+	sessionMaxAge = int(identity.SessionLifetime / time.Second)
 )
 
-// setSessionCookie writes the sf_session cookie to the response.
+// setSessionCookie writes the sf_session cookie.
 //
 // HttpOnly, SameSite=Lax, Path=/, host-only (no Domain),
-// 7-day Max-Age. The secure parameter controls the Secure attribute (false
-// for local HTTP dev, true for production).
+// 30-day Max-Age. The secure parameter controls the Secure attribute (false
+// for local HTTP dev, true for production). The attribute contract lives in
+// middleware.SetSessionCookie so renewal and sign-in cannot drift.
 func setSessionCookie(w http.ResponseWriter, value string, secure bool) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     middleware.CookieName,
-		Value:    value,
-		Path:     "/",
-		MaxAge:   sessionMaxAge,
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	})
+	middleware.SetSessionCookie(w, value, secure, sessionMaxAge)
 }
 
 // maxAuthBodySize is the maximum request body size for auth endpoints (4 KiB).
@@ -276,7 +269,8 @@ func (h *Auth) logAudit(r *http.Request, event, result, userID string) {
 // Authenticated:    200 { "authenticated": true,  "csrfToken": "...", "user": {...} }
 // Unauthenticated:  200 { "authenticated": false, "user": null }
 //
-// Cache-Control: no-store. No cookie is modified.
+// Cache-Control: no-store. The handler writes no cookie; the session
+// middleware may reissue the sf_session cookie when it renews the session.
 func (h *Auth) HandleSession(w http.ResponseWriter, r *http.Request) {
 	su := middleware.SessionFrom(r.Context())
 	if su == nil {

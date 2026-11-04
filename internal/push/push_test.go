@@ -226,10 +226,10 @@ func TestDeliverSendsNewContentTTL(t *testing.T) {
 }
 
 // TestDeliverDraftActivityDefaultsOff pins the kind-specific default:
-// the SAME moderator account receives a heart (the
-// audience kinds default ON for moderator+) but NOT a draft_activity event
-// while no preference row exists — the staff-only notice is opt-in at every
-// role. The explicit opt-in then flips it, and the other kinds keep working.
+// the SAME moderator account receives a heart (audience kinds default ON for
+// every role) but NOT a draft_activity event while no preference row exists —
+// the staff-only notice is opt-in at every role. The explicit opt-in then
+// flips it, and the other kinds keep working.
 func TestDeliverDraftActivityDefaultsOff(t *testing.T) {
 	t.Parallel()
 	db := pushFixture(t)
@@ -265,20 +265,11 @@ func TestDeliverSendsWithHeaders(t *testing.T) {
 	fake, srv := newFakePushService(t, http.StatusCreated)
 	sender := newTestSender(t, db)
 
-	// A regular user defaults OFF — no delivery without an explicit opt-in.
+	// A regular user's audience kinds default ON once subscribed.
 	subscribeTo(t, db, "u1", srv.URL)
 	sender.deliver(t.Context(), heartEvent("u1"))
-	if n := fake.count(); n != 0 {
-		t.Fatalf("default-off user must not receive pushes, got %d requests", n)
-	}
-
-	// Opt in, then the same event delivers once.
-	if err := store.SetNotificationPreference(t.Context(), db, "u1", "heart", true, 2000); err != nil {
-		t.Fatalf("opt in: %v", err)
-	}
-	sender.deliver(t.Context(), heartEvent("u1"))
 	if n := fake.count(); n != 1 {
-		t.Fatalf("opted-in user must receive one push, got %d", n)
+		t.Fatalf("default-on user must receive one push, got %d", n)
 	}
 	req := fake.last()
 	if !strings.HasPrefix(req.authorization, "vapid ") {

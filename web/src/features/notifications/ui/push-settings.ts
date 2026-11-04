@@ -22,11 +22,11 @@
  * Permission UX: NEVER requested on load — only a user gesture opens the
  * flow. The confirm surface is the NATIVE <dialog>: showModal() supplies the
  * focus trap, focus restore, Escape handling, and the inert backdrop, with an
- * open-attribute fallback for a DOM without the method. The worker's
- * `pushsubscriptionchange` relay (handled by the subscriptions section)
- * resubscribes best-effort while the permission stands, and iOS push works
- * only on installed PWAs, so the hint renders while the app runs in the
- * browser.
+ * open-attribute fallback for a DOM without the method. The global
+ * `<push-lifecycle>` owns the worker's `pushsubscriptionchange` relay and
+ * the background reconcile; this section follows its `sf-push-reconciled`
+ * event. iOS push works only on installed PWAs, so the hint renders while
+ * the app runs in the browser.
  */
 
 import { consume } from "@lit/context";

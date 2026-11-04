@@ -15,9 +15,7 @@ import { customElement } from "lit/decorators.js";
 import { el } from "@shared/catalog/el.js";
 import {
   BUY_ME_A_COFFEE_URL,
-  DISCORD_URL,
-  FACEBOOK_URL,
-  GITHUB_URL,
+  COMMUNITY_LINKS,
   TRACKER_URL,
 } from "@shared/config/links.js";
 
@@ -36,33 +34,19 @@ interface AboutLink {
   labelLang?: "en";
 }
 
-// Copy (catalog) and URLs (config) paired here in the catalog's group order;
-// each tone maps to a `.tone-*` class (colors live in the sheet).
+// Copy (catalog) and URLs (config) paired here; the community rows derive
+// their order, labels, URLs, and tones from the shared COMMUNITY_LINKS list,
+// so the footer cannot drift. Each tone maps to a `.tone-*` class (colors
+// live in the sheet).
 const LINKS: AboutLink[] = [
-  {
-    prefix: el.about.facebookPrefix,
-    label: el.about.facebookLabel,
-    suffix: el.about.facebookSuffix,
-    url: FACEBOOK_URL,
-    tone: "facebook",
-    labelLang: "en",
-  },
-  {
-    prefix: el.about.discordPrefix,
-    label: el.about.discordLabel,
-    suffix: el.about.discordSuffix,
-    url: DISCORD_URL,
-    tone: "discord",
-    labelLang: "en",
-  },
-  {
-    prefix: el.about.githubPrefix,
-    label: el.about.githubLabel,
-    suffix: el.about.githubSuffix,
-    url: GITHUB_URL,
-    tone: "github",
-    labelLang: "en",
-  },
+  ...COMMUNITY_LINKS.map((link) => ({
+    prefix: el.about[`${link.tone}Prefix`],
+    label: link.label,
+    suffix: el.about[`${link.tone}Suffix`],
+    url: link.url,
+    tone: link.tone,
+    labelLang: "en" as const,
+  })),
   {
     prefix: el.about.trackerPrefix,
     label: el.about.trackerLabel,
@@ -123,7 +107,7 @@ export class AboutPage extends LitElement {
                       link.labelLang === "en"
                         ? html`<span lang="en">${link.label}</span>`
                         : link.label
-                    }</a
+                    }<span class="sr-only">${el.nav.opensInNewTab}</span></a
                   >${link.suffix}</span
                 >
               </li>

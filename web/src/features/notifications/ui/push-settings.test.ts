@@ -3,7 +3,7 @@
  * section; an unavailable environment STATES it), the double-permission
  * subscribe flow (dialog → browser prompt → subscribe → store), the denied
  * state, the off switch, the per-kind toggles, the failure + retry path,
- * and the pushsubscriptionchange resubscribe relay.
+ * and the global reconcile event that replaces a stale local row.
  *
  * Browser APIs (serviceWorker/PushManager/Notification) are stubbed per
  * test through `stubProperty` — happy-dom provides none of them — and every
@@ -25,6 +25,10 @@ import {
 } from "@shared/api/test-utils.js";
 
 import "@features/auth/data-access/session.js";
+import {
+  PUSH_OWNER_KEY,
+  PUSH_RECONCILED_EVENT,
+} from "../data-access/push-subscription.js";
 import "./push-settings.js";
 import { type PushSettings } from "./push-settings.js";
 
@@ -282,6 +286,7 @@ afterEach(() => {
   for (let i = restoreStubs.length - 1; i >= 0; i--) restoreStubs[i]!();
   restoreStubs.length = 0;
   restoreMockFetch();
+  localStorage.removeItem(PUSH_OWNER_KEY);
 });
 
 /** All requests of one method the active fetch double saw. */
@@ -393,19 +398,6 @@ describe("push-settings", () => {
     // No control set: nothing to press in an environment that cannot push.
     expect(root(el).querySelector(".push-actions")).toBeNull();
     expect(root(el).querySelector(".push-kinds")).toBeNull();
-
-    // A same-origin relay message must not throw in an environment without
-    // the Notification API (the listener reads it only behind a guard).
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        origin: location.origin,
-        data: { type: "sf-push-subscription-change" },
-      }),
-    );
-    await settle(el);
-    expect(text(el, ".push-unavailable")).toBe(
-      catalog.notifications.pushUnavailable,
-    );
   });
 
   test("states the unavailable line when no service-worker registration exists", async () => {
@@ -461,8 +453,18 @@ describe("push-settings", () => {
     const posts = requests("POST");
     expect(posts).toHaveLength(1);
     const posted = JSON.parse((posts[0]?.[1]?.body as string) ?? "null");
-    expect(Object.keys(posted).sort()).toEqual(["endpoint", "keys"]);
+    // The browser's expirationTime must not reach the strict endpoint; the
+    // explicit opt-in adds the takeover flag.
+    expect(Object.keys(posted).sort()).toEqual([
+      "endpoint",
+      "keys",
+      "takeover",
+    ]);
     expect(Object.keys(posted.keys).sort()).toEqual(["auth", "p256dh"]);
+    expect(posted.takeover).toBe(true);
+    // The explicit opt-in records this device for this account, so the
+    // global lifecycle may heal it later.
+    expect(localStorage.getItem(PUSH_OWNER_KEY)).toBe("u1");
     // The enable button is gone (off switch now).
     expect(root(el).querySelector(".push-on")).toBeNull();
     expect(root(el).querySelector(".push-off")).not.toBeNull();
@@ -497,8 +499,10 @@ describe("push-settings", () => {
     const deleteCalls = requests("DELETE");
     expect(deleteCalls).toHaveLength(1);
     expect(deleteCalls[0]?.[0] as string).toContain("/push-subscriptions/s1");
-    // The local registration was unsubscribed.
+    // The local registration was unsubscribed, and the opt-in marker is
+    // gone so the global lifecycle must not recreate it.
     expect(subscribeFn).not.toHaveBeenCalled();
+    expect(localStorage.getItem(PUSH_OWNER_KEY)).toBeNull();
     // Back to the enable state.
     expect(root(el).querySelector(".push-off")).toBeNull();
     expect(root(el).querySelector(".push-on")).not.toBeNull();
@@ -1517,7 +1521,10 @@ describe("push-settings", () => {
     expect(root(el).querySelectorAll(".push-device-row")).toHaveLength(1);
   });
 
-  test("resubscribes when the worker relays pushsubscriptionchange", async () => {
+  test("a global reconcile event replaces a stale local row", async () => {
+    // The global lifecycle was subscribed with this device plugged in; its
+    // healed row must become the DELETE target, or the off switch removes a
+    // row the browser no longer uses.
     const endpoint = "https://push.example.com/current";
     stubPushEnvironment({
       permission: "granted",
@@ -1526,63 +1533,24 @@ describe("push-settings", () => {
         { id: "s1", endpoint, createdAt: "2026-09-13T12:00:00.000Z" },
       ],
     });
-    const el = mount();
-    (el as unknown as { session: unknown }).session = mockSession();
-    await settle(el);
+    const el = await mountAuthenticated();
 
     window.dispatchEvent(
-      new MessageEvent("message", {
-        origin: location.origin,
-        data: { type: "sf-push-subscription-change" },
+      new CustomEvent(PUSH_RECONCILED_EVENT, {
+        detail: {
+          id: "s2",
+          endpoint: "https://push.example.com/rotated",
+        },
       }),
     );
     await settle(el);
 
-    const posts = requests("POST");
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.[0] as string).toContain("/push-subscriptions");
-  });
-
-  test("relay resubscribes even when the rotated local subscription left no server match", async () => {
-    // After a push-service rotation the local registration is GONE — the
-    // endpoint match yields nothing and the enable button shows. The
-    // relay must still heal the subscription (the rotation scenario).
-    stubPushEnvironment({ permission: "granted" });
-    const el = mount();
-    (el as unknown as { session: unknown }).session = mockSession();
-    await settle(el);
-    expect(root(el).querySelector(".push-on")).not.toBeNull();
-
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        origin: location.origin,
-        data: { type: "sf-push-subscription-change" },
-      }),
-    );
+    (root(el).querySelector(".push-off") as HTMLButtonElement).click();
     await settle(el);
 
-    const posts = requests("POST");
-    expect(posts).toHaveLength(1);
-    // The fresh row landed — the off switch replaced the enable button.
-    expect(root(el).querySelector(".push-off")).not.toBeNull();
-  });
-
-  test("ignores the relay message from a foreign origin", async () => {
-    stubPushEnvironment({ permission: "granted" });
-    const el = mount();
-    (el as unknown as { session: unknown }).session = mockSession();
-    await settle(el);
-
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        origin: "https://evil.example",
-        data: { type: "sf-push-subscription-change" },
-      }),
-    );
-    await settle(el);
-
-    const posts = requests("POST");
-    expect(posts).toHaveLength(0);
+    const deletes = requests("DELETE");
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0]?.[0] as string).toContain("/push-subscriptions/s2");
   });
 
   test("states the iOS install hint in a browser session on iOS", async () => {
@@ -1700,7 +1668,7 @@ describe("push-settings", () => {
     expect(Notification.requestPermission).not.toHaveBeenCalled();
   });
 
-  test("a test press in flight gates the off/test/save controls; the relay stays quiet", async () => {
+  test("a test press in flight gates the off/test/save controls", async () => {
     const endpoint = "https://push.example.com/current";
     stubPushEnvironment(
       subscribedOptions({
@@ -1769,16 +1737,6 @@ describe("push-settings", () => {
       root(el).querySelector<HTMLInputElement>(".push-kind input")!.disabled,
     ).toBe(false);
 
-    // The worker relay must not slip a resubscribe past the in-flight press.
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        origin: location.origin,
-        data: { type: "sf-push-subscription-change" },
-      }),
-    );
-    await settle(el);
-    expect(requests("POST")).toHaveLength(1);
-
     resolveTest!(
       mockResponse({
         ok: true,
@@ -1793,48 +1751,5 @@ describe("push-settings", () => {
     );
     await settle(el);
     expect(root(el).querySelector(".push-test")).not.toBeNull();
-  });
-
-  test("the relay ignores a message while the permission is denied", async () => {
-    stubPushEnvironment({ permission: "denied" });
-    const el = mount();
-    (el as unknown as { session: unknown }).session = mockSession();
-    await settle(el);
-    // The denied state proves the section loaded (not a failed-load blank).
-    expect(text(el, ".push-denied")).toBe(catalog.notifications.pushDenied);
-
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        origin: location.origin,
-        data: { type: "sf-push-subscription-change" },
-      }),
-    );
-    await settle(el);
-
-    expect(requests("POST")).toHaveLength(0);
-  });
-
-  test("two relay messages in quick succession issue one resubscribe", async () => {
-    stubPushEnvironment({ permission: "granted" });
-    const el = mount();
-    (el as unknown as { session: unknown }).session = mockSession();
-    await settle(el);
-    expect(root(el).querySelector(".push-on")).not.toBeNull();
-
-    // The first message marks the relay in flight synchronously, so the
-    // second must not start a parallel subscribe.
-    const relay = () =>
-      window.dispatchEvent(
-        new MessageEvent("message", {
-          origin: location.origin,
-          data: { type: "sf-push-subscription-change" },
-        }),
-      );
-    relay();
-    relay();
-    await settle(el);
-
-    expect(requests("POST")).toHaveLength(1);
-    expect(root(el).querySelector(".push-off")).not.toBeNull();
   });
 });

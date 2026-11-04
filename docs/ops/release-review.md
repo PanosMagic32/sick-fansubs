@@ -6,9 +6,10 @@ The whole-application review that runs before every stable release: the agent le
 the research-first and batch protocols, the ripple-ascending pass order, the findings model, and
 the owner gates that close it.
 
-This is a process review, not a diff review. Every change already passes its own adversarial review;
-this one targets cross-cutting drift that accumulated between slices, plus quality axes the slice
-reviews never covered — accessibility, SEO, infrastructure, and ripple effects.
+This is a process review, not a diff review. Every change already passes its own adversarial review
+under [reviews.md](../patterns/reviews.md); this one targets cross-cutting drift that accumulated
+between slices, plus quality axes the slice reviews never covered — accessibility, SEO,
+infrastructure, and ripple effects.
 
 ## Rules
 
@@ -29,7 +30,8 @@ reviews never covered — accessibility, SEO, infrastructure, and ripple effects
 6. **Three review lines per batch.** Standards: the documented repo rules, with the Fowler smell
    baseline as a fallback — documented rules override the baseline, and a smell is a judgment call,
    never a hard violation. Spec: accepted behavior against the wire contract and feature docs. Lens:
-   the checklist of the lens the batch header names.
+   the checklist of the lens the batch header names. The per-slice protocol, including the shared
+   context pack and the parallel spawn sequence, is [reviews.md](../patterns/reviews.md).
 7. **Findings carry a severity** — `blocker`, `major`, `minor`, or `nit` (table below). A `blocker`
    is fixed immediately on discovery; it never waits for the pass gate.
 8. **Owner gates.** A pass closes by owner ruling on its written summary; the ruling needs no
@@ -258,6 +260,7 @@ Pause after batch 4.3. Pass summary: release review, pass 4, next batch 4.4.
 ## Pointers
 
 - Index: [../README.md](../README.md)
+- Per-slice review protocol: [../patterns/reviews.md](../patterns/reviews.md)
 - SQLite rules the platform checkpoint reviews against:
   [../patterns/go/sqlite.md](../patterns/go/sqlite.md)
 - Wire contract: [../api/openapi.yaml](../api/openapi.yaml)

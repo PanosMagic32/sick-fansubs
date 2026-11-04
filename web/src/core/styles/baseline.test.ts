@@ -22,6 +22,7 @@ import "@features/auth/sign-in-page.js";
 import "@features/auth/register-page.js";
 import "@features/auth/account-page.js";
 import "@features/notifications/ui/push-settings.js";
+import "@features/notifications/ui/push-lifecycle.js";
 import "@shared/pwa/install-control.js";
 import "@shared/ui/loading-spinner.js";
 import "@shared/ui/error-banner.js";
@@ -37,6 +38,7 @@ const COMPONENTS = [
   "register-page",
   "account-page",
   "push-settings",
+  "push-lifecycle",
   "install-control",
   "loading-spinner",
   "error-banner",

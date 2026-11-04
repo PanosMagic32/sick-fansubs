@@ -11,9 +11,8 @@ import (
 // preference toggles.
 //
 // Preferences follow the "absence = default" model: a missing row means the
-// caller's role default (moderator+ on, everyone else off — the handler
-// derives it from the session role); only an explicit user toggle writes a
-// row. Every function here is a single statement or a tiny transaction —
+// kind default (audience kinds ON for every role, draft_activity OFF for
+// every role); only an explicit user toggle writes a row. Every function here is a single statement or a tiny transaction —
 // one row's worth of work, no cross-table invariants.
 
 // NotificationEvent is the fan-out event a comment write returns to its
@@ -64,57 +63,78 @@ type PushSubscriptionKeys struct {
 // returns the stored row id. A resubscribe for the same endpoint updates
 // the key material and updated_at_ms in place (the row id is unchanged —
 // the minted id is only consumed by a fresh insert); an endpoint owned by
-// ANOTHER user is reassigned (deleted there, inserted here — the device's
-// newest login owns the endpoint).
+// ANOTHER user is reassigned (deleted there, inserted here). Only an
+// explicit opt-in may use this form; the background heal path calls
+// [UpsertPushSubscriptionNoTakeover].
 //
 // label is the classifier-derived device name (empty stores SQL NULL). The
 // upsert PRESERVES an existing label and only fills a NULL one: a rename is
 // the user's own data, and the browser's rotation healing must not overwrite
 // it.
 func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64) (storedID string, err error) {
+	return upsertPushSubscription(ctx, db, id, userID, endpoint, p256dh, auth, label, createdAtMS, true)
+}
+
+// UpsertPushSubscriptionNoTakeover is [UpsertPushSubscription] without the
+// cross-account reassignment: a fresh endpoint or the caller's own row is
+// written, while an endpoint already owned by another account answers
+// ErrPushEndpointOwned without touching that row. Background reconciliation
+// uses this form, so a stale tab writing with a newer session cookie cannot
+// move another account's device.
+func UpsertPushSubscriptionNoTakeover(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64) (storedID string, err error) {
+	return upsertPushSubscription(ctx, db, id, userID, endpoint, p256dh, auth, label, createdAtMS, false)
+}
+
+func upsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64, allowTakeover bool) (storedID string, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return "", fmt.Errorf("store: begin push subscription upsert: %w", err)
 	}
 	defer rollbackTx(tx, &err)
 
-	// Reassign before the insert so the UNIQUE endpoint can never collide
-	// with another user's row inside this transaction.
-	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id <> ?`,
-		endpoint, userID); err != nil {
-		return "", fmt.Errorf("store: reassign push subscription: %w", err)
+	if allowTakeover {
+		// Reassign before the insert so the UNIQUE endpoint can never collide
+		// with another user's row inside this transaction.
+		if _, err := tx.ExecContext(ctx,
+			`DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id <> ?`,
+			endpoint, userID); err != nil {
+			return "", fmt.Errorf("store: reassign push subscription: %w", err)
+		}
 	}
 
-	if _, err := tx.ExecContext(ctx, `
+	// The write is the ownership guard: a foreign endpoint's DO UPDATE is
+	// skipped by its WHERE clause and RETURNING yields no row. The strict
+	// form therefore never needs a read-then-write check.
+	err = tx.QueryRowContext(ctx, `
 		INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, label, created_at_ms, updated_at_ms)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(endpoint) DO UPDATE SET
 			p256dh = excluded.p256dh,
 			auth = excluded.auth,
 			label = COALESCE(push_subscriptions.label, excluded.label),
-			updated_at_ms = excluded.updated_at_ms`,
-		id, userID, endpoint, p256dh, auth, nullableString(label), createdAtMS, createdAtMS); err != nil {
-		if IsUniqueViolation(err) {
-			// A primary-key collision on the handler-minted id; the caller
-			// re-mints and retries. The endpoint's own UNIQUE conflict is
-			// absorbed by ON CONFLICT above.
-			return "", fmt.Errorf("%w: %v", ErrDuplicate, err)
-		}
-		if isForeignKeyViolation(err) {
-			// A user deleted between the session lookup and this insert —
-			// the client's dead session heals through its own 401 paths.
-			return "", ErrNotFound
-		}
+			updated_at_ms = excluded.updated_at_ms
+		WHERE push_subscriptions.user_id = excluded.user_id
+		RETURNING id`,
+		id, userID, endpoint, p256dh, auth, nullableString(label), createdAtMS, createdAtMS).Scan(&storedID)
+	switch {
+	case errors.Is(err, sql.ErrNoRows) && !allowTakeover:
+		return "", ErrPushEndpointOwned
+	case errors.Is(err, sql.ErrNoRows):
+		return "", fmt.Errorf("store: upsert push subscription: no stored row")
+	case err != nil && IsUniqueViolation(err):
+		// A primary-key collision on the handler-minted id; the caller
+		// re-mints and retries. The endpoint's own UNIQUE conflict is
+		// absorbed by ON CONFLICT above.
+		return "", fmt.Errorf("%w: %v", ErrDuplicate, err)
+	case err != nil && isForeignKeyViolation(err):
+		// A user deleted between the session lookup and this insert —
+		// the client's dead session heals through its own 401 paths.
+		return "", ErrNotFound
+	case err != nil:
 		return "", fmt.Errorf("store: upsert push subscription: %w", err)
 	}
-
-	if err := tx.QueryRowContext(ctx,
-		`SELECT id FROM push_subscriptions WHERE endpoint = ?`, endpoint).Scan(&storedID); err != nil {
-		return "", fmt.Errorf("store: read push subscription id: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return "", fmt.Errorf("store: commit push subscription upsert: %w", err)
+	if commitErr := tx.Commit(); commitErr != nil {
+		return "", fmt.Errorf("store: commit push subscription upsert: %w", commitErr)
 	}
 	return storedID, nil
 }
@@ -226,8 +246,8 @@ type NotificationPreference struct {
 
 // EffectiveNotificationPreferences returns the effective push toggle for
 // every kind in kinds, in the caller's order. A missing row means the kind's
-// DEFAULT (defaultOn — the handler derives it from the session role AND the
-// kind: the draft notice is opt-in for everyone).
+// DEFAULT (defaultOn — the handler derives it from the kind: audience kinds
+// are ON for every role, the draft notice is opt-in for everyone).
 func EffectiveNotificationPreferences(ctx context.Context, db *sql.DB, userID string, kinds []string, defaultOn func(kind string) bool) ([]NotificationPreference, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT kind, push_enabled
@@ -265,8 +285,8 @@ func EffectiveNotificationPreferences(ctx context.Context, db *sql.DB, userID st
 }
 
 // EffectivePushEnabled returns the effective push toggle for one kind —
-// the stored row or the role default (defaultOn — the sender derives it
-// from the recipient's role). The sender's single-kind companion to
+// the stored row or the kind default (defaultOn — the sender derives it
+// from the kind). The sender's single-kind companion to
 // EffectiveNotificationPreferences (the handler's list read).
 func EffectivePushEnabled(ctx context.Context, db *sql.DB, userID, kind string, defaultOn bool) (bool, error) {
 	var stored sql.NullBool
@@ -283,7 +303,7 @@ func EffectivePushEnabled(ctx context.Context, db *sql.DB, userID, kind string, 
 }
 
 // SetNotificationPreference writes one explicit per-kind toggle (a row is an
-// override; absence stays the role default).
+// override; absence stays the kind default).
 // The kind CHECK is the store-side guard — the handler validates against
 // the known-kinds list first, so a CHECK failure here is a programming
 // error, surfaced as an ordinary error (500).

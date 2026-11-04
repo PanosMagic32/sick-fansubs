@@ -1,0 +1,65 @@
+/* Global push prompt — the slim strip under the header, matching the offline
+   strip's width and stacking so the two never collide. Tokens inherit from
+   the shell. */
+
+:host {
+    display: block;
+    width: calc(100% - 2 * clamp(12px, 3vw, 24px));
+    max-width: 80rem;
+    margin: 12px auto 0;
+}
+
+/* Only the persistent live region is present while the device is healthy;
+   display: contents keeps it out of the shell's flex layout. */
+:host([data-live-only]) {
+    display: contents;
+}
+
+.push-heal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    padding: 0.7rem 1rem;
+    background: var(--sf-surface);
+    border: 1px solid var(--sf-accent);
+    border-radius: 16px;
+    font-size: 0.9rem;
+    color: var(--sf-text);
+}
+
+.push-heal-copy {
+    flex: 1 1 16rem;
+    margin: 0;
+}
+
+.push-heal-error {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--sf-error);
+}
+
+.push-heal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Keep the pending label at full contrast: the shared aria-disabled opacity
+   drops the primary label below AA. The pending copy and the not-allowed
+   cursor still carry the state. */
+.push-heal-actions .button[aria-disabled="true"] {
+    opacity: 1;
+}
+
+/* The phone band: the actions take their own row and share it evenly, so a
+   long Greek label never squeezes the copy into a narrow column. */
+@media (max-width: 640px) {
+    .push-heal-actions {
+        width: 100%;
+    }
+
+    .push-heal-actions .button {
+        flex: 1 1 auto;
+    }
+}

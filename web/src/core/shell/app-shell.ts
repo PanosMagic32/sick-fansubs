@@ -14,6 +14,7 @@ import {
   sessionContext,
   type SessionContext,
 } from "@features/auth/data-access/session.js";
+import "@features/notifications/ui/push-lifecycle.js";
 import { el } from "@shared/catalog/el.js";
 
 import "./donation-banner.js";
@@ -370,6 +371,10 @@ export class AppShell extends LitElement {
       <!-- Offline banner: every route, right under the header; the element
            hides itself while online. -->
       <offline-banner></offline-banner>
+
+      <!-- Push lifecycle: every route. It renders nothing while healthy and
+           owns the global rotation relay and the lost-subscription prompt. -->
+      <push-lifecycle></push-lifecycle>
 
       <!-- Donation banner: HOME route only — it earns its keep on the
            landing page; the footer support line covers every page

@@ -376,7 +376,7 @@ var schemaSpec = map[string]tableSpec{
 	// Web push channel (migration 0014):
 	// per-device subscription rows (endpoint UNIQUE — resubscribe = new
 	// endpoint, one row per device per user) and per-user per-kind preference
-	// toggles (absence = the role default, a row = an explicit override).
+	// toggles (absence = the kind default, a row = an explicit override).
 	"push_subscriptions": {
 		columns: map[string]columnSpec{
 			"id":       {"TEXT", true, true},

@@ -261,6 +261,9 @@ describe("app-header", () => {
     expect(trackerLink?.getAttribute("href")).toBe(TRACKER_URL);
     expect(trackerLink?.getAttribute("target")).toBe("_blank");
     expect(trackerLink?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(trackerLink?.querySelector(".sr-only")?.textContent).toBe(
+      catalog.nav.opensInNewTab,
+    );
 
     el.remove();
   });
@@ -338,18 +341,55 @@ describe("app-header", () => {
     el.remove();
   });
 
-  test("account link falls back to /sign-in while bootstrap is initializing", async () => {
+  test("the account chip reports initializing without a sign-in link", async () => {
     const el = renderHeader();
     (el as any).session = { state: { status: "initializing" } };
     await el.updateComplete;
 
+    // Bootstrap unresolved: the chip is a status control, never a /sign-in
+    // link (a deploy/outage must not read as a logout). It stays focusable
+    // so the retry transition does not drop keyboard focus.
+    expect(el.shadowRoot?.querySelector("a.account-link")).toBeNull();
     const account = el.shadowRoot?.querySelector(
-      ".header-right a.account-link",
+      ".header-right button.account-link.session-status",
+    ) as HTMLButtonElement;
+    expect(account.disabled).toBe(false);
+    expect(account.getAttribute("aria-disabled")).toBe("true");
+    expect(account.getAttribute("aria-busy")).toBe("true");
+    expect(
+      el.shadowRoot?.querySelector('[role="status"]')?.textContent?.trim(),
+    ).toBe(catalog.ui.loading);
+    expect(account.getAttribute("aria-label")).toBe(catalog.ui.loading);
+    expect(account.querySelector(".link-text")?.textContent?.trim()).toBe(
+      catalog.ui.loading,
     );
-    expect(account?.getAttribute("href")).toBe("/sign-in");
-    expect(account?.querySelector(".link-text")?.textContent?.trim()).toBe(
-      "Λογαριασμός",
-    );
+
+    el.remove();
+  });
+
+  test("the error chip retries the bootstrap instead of linking to sign-in", async () => {
+    const el = renderHeader();
+    let retried = 0;
+    (el as any).session = {
+      state: { status: "error", message: "down" },
+      retryBootstrap: () => {
+        retried += 1;
+        return Promise.resolve();
+      },
+    };
+    await el.updateComplete;
+
+    expect(el.shadowRoot?.querySelector("a.account-link")).toBeNull();
+    const account = el.shadowRoot?.querySelector(
+      ".header-right button.account-link.session-status",
+    ) as HTMLButtonElement;
+    expect(account.disabled).toBe(false);
+    expect(account.getAttribute("aria-label")).toBe(catalog.ui.retry);
+    expect(
+      el.shadowRoot?.querySelector('[role="status"]')?.textContent?.trim(),
+    ).toBe(catalog.ui.serverConnectionFailed);
+    account.click();
+    expect(retried).toBe(1);
 
     el.remove();
   });

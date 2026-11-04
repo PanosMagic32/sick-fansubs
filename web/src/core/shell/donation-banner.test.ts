@@ -52,9 +52,17 @@ describe("donation-banner", () => {
     expect(link?.querySelector('span[lang="en"]')?.textContent?.trim()).toBe(
       el.about.donateLabel,
     );
+    // The external anchor announces its new tab to assistive tech, with a
+    // separator so the cue does not glue onto the link name.
+    expect(link?.querySelector(".sr-only")?.textContent?.trim()).toBe(
+      el.nav.opensInNewTab,
+    );
+    expect(link?.textContent?.replace(/\s+/g, " ")).toContain(
+      `${el.about.donateLabel} ${el.nav.opensInNewTab}`,
+    );
   });
 
-  test("hosts the shared install control on the right", async () => {
+  test("hosts the shared install control in the banner", async () => {
     const banner = await renderBanner();
 
     const control = root(banner).querySelector("install-control");
@@ -76,11 +84,23 @@ describe("donation-banner", () => {
     // Slim: the banner padding stays under the header's presence.
     expect(styles).toMatch(/padding: 0\.45rem 1rem/);
     // The sentence and the donation link form the left group, the install
-    // control sits on the right. Its auto left margin is the whole
-    // mechanism, so a refactor must not drop it.
-    const control =
-      styles.match(/\.banner install-control \{([^}]*)\}/)?.[1] ?? "";
-    expect(control).toContain("margin-left: auto");
+    // BUTTON sits on the right. Its auto left margin is the whole
+    // mechanism, scoped to the button branch so the longer iOS instruction
+    // does not inherit it.
+    const button =
+      styles.match(
+        /\.banner install-control\[data-branch="button"\] \{([^}]*)\}/,
+      )?.[1] ?? "";
+    expect(button).toContain("margin-left: auto");
+    expect(styles).not.toMatch(/\.banner install-control \{/);
+    // The iOS instruction takes its own centered line under the row.
+    const ios =
+      styles.match(
+        /\.banner install-control\[data-branch="ios"\] \{([^}]*)\}/,
+      )?.[1] ?? "";
+    expect(ios).toContain("flex-basis: 100%");
+    expect(ios).toContain("justify-content: center");
+    expect(ios).toContain("text-align: center");
     // The pill clears the WCAG 2.5.8 24px target minimum.
     const pillRule = styles.match(/\.banner a \{([^}]*)\}/)?.[1] ?? "";
     expect(pillRule).toContain("min-height: 1.5rem");

@@ -10,11 +10,11 @@ import (
 
 // TestSetSessionCookie_AttributeContract pins the one cookie contract end to
 // end: HttpOnly, SameSite=Lax, Path=/, host-only, the literal Max-Age, and
-// Secure following its parameter. The literal 604800 (seven days in seconds)
-// is deliberate: it pins the value the service's SessionLifetime must keep.
+// Secure following its parameter. The literal 2592000 (30 days in seconds)
+// is deliberate: it pins the value the identity idle lifetime must keep.
 func TestSetSessionCookie_AttributeContract(t *testing.T) {
 	t.Parallel()
-	const wantMaxAge = 604800
+	const wantMaxAge = 2592000
 
 	tests := []struct {
 		name   string

@@ -204,6 +204,10 @@ const CROSS_FEATURE_EDGES: Array<{ from: string; specifier: string }> = [
     from: "features/auth/account-page.ts",
     specifier: "@features/notifications/ui/push-settings.js",
   },
+  {
+    from: "features/auth/data-access/session.ts",
+    specifier: "@features/notifications/data-access/push-subscription.js",
+  },
 ];
 
 /** Resolve a relative import specifier against the importing file's
@@ -280,6 +284,85 @@ guard({
     text: 'import "@features/auth/data-access/session.js";',
   },
   minScanned: 50,
+});
+
+/** Core may reach into a feature only through the recorded chrome edges. The
+    entry point registers every page by side effect (and the session provider);
+    the shell and its header are the session-aware chrome (components.md
+    rule 2). */
+const CORE_FEATURE_EDGES: Array<{ from: string; specifier: string }> = [
+  {
+    from: "core/index.ts",
+    specifier: "@features/auth/data-access/session.js",
+  },
+  {
+    from: "core/shell/app-header.ts",
+    specifier: "@features/auth/data-access/session.js",
+  },
+  {
+    from: "core/shell/app-header.ts",
+    specifier: "@features/auth/data-access/profile-api.js",
+  },
+  {
+    from: "core/shell/app-header.ts",
+    specifier: "@features/notifications/data-access/notifications-api.js",
+  },
+  {
+    from: "core/shell/app-header.ts",
+    specifier: "@features/notifications/notifications-page.js",
+  },
+  {
+    from: "core/shell/app-shell.ts",
+    specifier: "@features/auth/data-access/session.js",
+  },
+  {
+    from: "core/shell/app-shell.ts",
+    specifier: "@features/notifications/ui/push-lifecycle.js",
+  },
+];
+
+function isPageRegistration(specifier: string): boolean {
+  return /^@features\/[a-z-]+\/[a-z0-9-]+-page\.js$/.test(specifier);
+}
+
+function coreFeatureFindings(path: string, text: string): string[] {
+  const code = stripSourceComments(text);
+  const findings: string[] = [];
+  for (const match of code.matchAll(
+    /(?:from\s+|import\s*\(?\s*)["']([^"']+)["']/g,
+  )) {
+    const specifier = match[1] ?? "";
+    // The entry point registers every page module by side effect; every
+    // other feature import there still needs a recorded edge.
+    if (path === "core/index.ts" && isPageRegistration(specifier)) continue;
+    const target = crossFeatureTarget(path, specifier);
+    if (target === null) continue;
+    const recorded = CORE_FEATURE_EDGES.some(
+      (edge) =>
+        edge.from === path &&
+        crossFeatureTarget(path, edge.specifier) === target,
+    );
+    if (!recorded) {
+      findings.push(`${path}: unrecorded core→feature import ${specifier}`);
+    }
+  }
+  return findings;
+}
+
+guard({
+  name: "core imports features only under the recorded exceptions",
+  files: "core/**/*.ts",
+  scanned: (path) => !path.endsWith(".test.ts"),
+  check: coreFeatureFindings,
+  bad: {
+    path: "core/shell/app-footer.ts",
+    text: 'import "@features/notifications/ui/push-lifecycle.js";',
+  },
+  clean: {
+    path: "core/shell/app-shell.ts",
+    text: 'import "@features/notifications/ui/push-lifecycle.js";',
+  },
+  minScanned: 5,
 });
 
 // ── CSS hygiene ───────────────────────────────────────────────────────

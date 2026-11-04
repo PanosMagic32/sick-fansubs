@@ -34,6 +34,11 @@ var (
 	// {slug, alreadyTaken}.
 	ErrSlugTaken = errors.New("store: slug taken")
 
+	// ErrPushEndpointOwned reports a subscription write that would reassign
+	// an endpoint another account already owns; the caller did not ask for
+	// an explicit takeover — a 409.
+	ErrPushEndpointOwned = errors.New("store: push endpoint owned by another user")
+
 	// ErrNotAuthor reports a comment write by someone other than its author;
 	// a 403.
 	ErrNotAuthor = errors.New("store: comment author mismatch")

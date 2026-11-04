@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"sick-fansubs/internal/database"
 	"sick-fansubs/internal/identity"
@@ -257,6 +258,150 @@ func TestSession_ValidSession(t *testing.T) {
 		if c.Name == "sf_session" && c.Value == "" {
 			t.Error("valid session cookie was incorrectly cleared")
 		}
+	}
+}
+
+func TestSession_RenewsInsideWindow(t *testing.T) {
+	t.Parallel()
+	db := openMiddlewareDB(t)
+
+	mustCreateTestUser(t, db, "user01", "renewuser", "renew@example.com")
+	_, encodedToken, digest := mustCreateTestToken(t)
+	now := time.Now().UnixMilli()
+	created := now - (24 * time.Hour).Milliseconds()
+	expires := now + time.Hour.Milliseconds()
+	if err := store.CreateSession(t.Context(), db, store.CreateSessionParams{
+		ID:          "sess_renew",
+		UserID:      "user01",
+		TokenDigest: digest,
+		CSRF:        make([]byte, 32),
+		AuthVersion: 1,
+		CreatedAtMS: created,
+		ExpiresAtMS: expires,
+	}); err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+
+	handler := &testHandler{
+		fn: func(w http.ResponseWriter, r *http.Request) {
+			if SessionFrom(r.Context()) == nil {
+				t.Error("expected a renewed session to authenticate")
+			}
+		},
+	}
+
+	mw := Session(db, false)(handler)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: encodedToken})
+	rec := httptest.NewRecorder()
+	mw.ServeHTTP(rec, req)
+
+	var renewed int64
+	if err := db.QueryRow(`SELECT expires_at_ms FROM sessions WHERE id = ?`, "sess_renew").Scan(&renewed); err != nil {
+		t.Fatalf("read renewed expiry: %v", err)
+	}
+	if renewed <= expires {
+		t.Errorf("expires_at_ms: got %d, want > %d", renewed, expires)
+	}
+	if capMS := created + identity.SessionMaxLifetime.Milliseconds(); renewed > capMS {
+		t.Errorf("expires_at_ms: got %d, past the absolute cap %d", renewed, capMS)
+	}
+
+	var cookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == CookieName {
+			cookie = c
+		}
+	}
+	if cookie == nil {
+		t.Fatal("renewal must reissue the session cookie")
+	}
+	if cookie.MaxAge <= 7*24*3600 {
+		t.Errorf("renewed Max-Age = %d, want a fresh idle window", cookie.MaxAge)
+	}
+}
+
+func TestSession_RenewalStopsAtAbsoluteCap(t *testing.T) {
+	t.Parallel()
+	db := openMiddlewareDB(t)
+
+	mustCreateTestUser(t, db, "user01", "capuser", "cap@example.com")
+	_, encodedToken, digest := mustCreateTestToken(t)
+	now := time.Now().UnixMilli()
+	created := now - (84 * 24 * time.Hour).Milliseconds()
+	// The absolute cap is exactly this session's current expiry: six days
+	// remain, but renewal has nowhere to go.
+	expires := created + identity.SessionMaxLifetime.Milliseconds()
+	if err := store.CreateSession(t.Context(), db, store.CreateSessionParams{
+		ID:          "sess_cap",
+		UserID:      "user01",
+		TokenDigest: digest,
+		CSRF:        make([]byte, 32),
+		AuthVersion: 1,
+		CreatedAtMS: created,
+		ExpiresAtMS: expires,
+	}); err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+
+	mw := Session(db, false)(&testHandler{})
+	req := httptest.NewRequest("GET", "/", nil)
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: encodedToken})
+	rec := httptest.NewRecorder()
+	mw.ServeHTTP(rec, req)
+
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == CookieName {
+			t.Errorf("capped session must not reissue the cookie, got Max-Age %d", c.MaxAge)
+		}
+	}
+	var stored int64
+	if err := db.QueryRow(`SELECT expires_at_ms FROM sessions WHERE id = ?`, "sess_cap").Scan(&stored); err != nil {
+		t.Fatalf("read expiry: %v", err)
+	}
+	if stored != expires {
+		t.Errorf("expires_at_ms: got %d, want the capped %d", stored, expires)
+	}
+}
+
+func TestSession_NoRenewalOutsideWindow(t *testing.T) {
+	t.Parallel()
+	db := openMiddlewareDB(t)
+
+	mustCreateTestUser(t, db, "user01", "windowuser", "window@example.com")
+	_, encodedToken, digest := mustCreateTestToken(t)
+	now := time.Now().UnixMilli()
+	created := now - (24 * time.Hour).Milliseconds()
+	expires := now + (20 * 24 * time.Hour).Milliseconds()
+	if err := store.CreateSession(t.Context(), db, store.CreateSessionParams{
+		ID:          "sess_window",
+		UserID:      "user01",
+		TokenDigest: digest,
+		CSRF:        make([]byte, 32),
+		AuthVersion: 1,
+		CreatedAtMS: created,
+		ExpiresAtMS: expires,
+	}); err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+
+	mw := Session(db, false)(&testHandler{})
+	req := httptest.NewRequest("GET", "/", nil)
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: encodedToken})
+	rec := httptest.NewRecorder()
+	mw.ServeHTTP(rec, req)
+
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == CookieName {
+			t.Errorf("session outside the renewal window must not reissue the cookie, got Max-Age %d", c.MaxAge)
+		}
+	}
+	var stored int64
+	if err := db.QueryRow(`SELECT expires_at_ms FROM sessions WHERE id = ?`, "sess_window").Scan(&stored); err != nil {
+		t.Fatalf("read expiry: %v", err)
+	}
+	if stored != expires {
+		t.Errorf("expires_at_ms: got %d, want the unchanged %d", stored, expires)
 	}
 }
 

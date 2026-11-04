@@ -60,11 +60,11 @@ records live in git history, never in the tree.
 11. **Commands live in the Makefile.** `make help` lists the run/build/test targets; deploy runs through GH Actions SSH on version tags. Navigation docs point at the Makefile instead of restating commands.
 12. **Every agent session — and every spawned sub-agent — chats in the `caveman` skill's style (default level `full`).** Load the `caveman` skill FIRST, before any other skill or tool call, and keep its style for the whole session. The owner does not need to repeat this per prompt, and sub-agents inherit it without being told. Persisted files — code, comments, commits, docs, tickets — stay normal prose.
 13. **Run `make go-fix` before every commit.** `go fix` applies toolchain modernizations (for example `slices`/`maps` helpers, `wg.Go`, range-over-int) — review its diff like any other change, keep `make check` green afterwards, and fold the result into the same commit as the work it modernizes.
-14. **Adversarial reviewers spawn IN PARALLEL, never one at a time.** Spec, Standards, and every other review lens run side by side with disjoint, read-only scopes — sequential spawning wastes the owner's time. The only ordering constraint is between review passes whose fixes invalidate each other, not between reviewers of one diff.
+14. **Adversarial reviewers spawn IN PARALLEL, never one at a time.** Spec, Standards, and every other review lens run side by side with disjoint, read-only scopes — sequential spawning wastes the owner's time. The only ordering constraint is between review passes whose fixes invalidate each other, not between reviewers of one diff. The lens table, the shared context pack, and the parallel spawn sequence live in [`docs/patterns/reviews.md`](docs/patterns/reviews.md).
 15. **Every code scope has a feature doc, and the guard stays green.** A scope is a Go package, a command, or a web scope; each carries an `AGENTS.md`, and `make docs-lint` (which runs inside `make check`) enforces scope docs, index reachability, link integrity, and the absolute decision-citation check.
 16. **Comments state intent, never history.** A comment explains a constraint or a non-obvious mechanism; it never restates the code, narrates review history, or cites a decision number (see [`docs/patterns/docs-conventions.md`](docs/patterns/docs-conventions.md)).
 17. **Stay on the newest released toolchain and the newest official guidance — backend and frontend.** The Go pin in `go.mod` (read it there; never bake a version into a doc) tracks the newest released Go: bump it when a newer release lands, and refresh the pattern docs in the same commit. A superseded idiom is never kept as current advice, and new code is never written against an older release. Docs describe the pinned toolchain and name an introducing release only as the historical fact of when a feature arrived; they never bake a version in. The same rule governs the web tree — newest released Lit/Vite/TypeScript and the newest official guidance — and its pattern docs state it there when the web slice lands. The Go side lives in [`docs/patterns/go/toolchain.md`](docs/patterns/go/toolchain.md).
-18. **Reviews are read-only; reviewers do not run the gates.** A review pass or adversarial reviewer reads and reports — it runs `make check` or any build, test, lint, or format command only when the owner asks. An agent tasked with implementing or fixing code runs the gates its change needs.
+18. **Reviews are read-only; reviewers do not run the gates.** A review pass or adversarial reviewer reads and reports — it runs `make check` or any build, test, lint, or format command only when the owner asks. An agent tasked with implementing or fixing code runs the gates its change needs. The main agent runs the gates before spawning reviewers and again after fixes; the reviewers' tool discipline and the shared context pack are in [`docs/patterns/reviews.md`](docs/patterns/reviews.md).
 19. **Go and Bun dependency updates are owner-gated.** Never run a dependency-update command on your own initiative — `go get -u ./...`, `go get <module>@latest`, `go mod tidy` as an update pass, `bun update`, `bun add <package>@latest`, or an equivalent — against `go.mod`/`go.sum` or `package.json`/`bun.lock`. Whenever work is initiated (a session, a pass, a batch, or a slice), ask the owner once whether to run the update commands first, naming the command and the manifest it would touch; run them only on the owner's word. A bump is validated by `make check` and is never logged in docs (rule 17).
 
 ## Document Map by Task
@@ -75,14 +75,15 @@ environment), the system map ([`docs/architecture.md`](docs/architecture.md)), a
 [`docs/api/openapi.yaml`](docs/api/openapi.yaml) (the wire contract). Git history
 holds the retired planning documents and decision records.
 
-| Task                                                      | Read                                             |
-| --------------------------------------------------------- | ------------------------------------------------ |
-| Go rules: structure, errors, logging, SQL                 | [`docs/patterns/go/`](docs/patterns/go/)         |
-| Web rules: components, CSS, testing                       | [`docs/patterns/web/`](docs/patterns/web/)       |
-| API and data requirements                                 | [`docs/api/openapi.yaml`](docs/api/openapi.yaml) |
-| System shape: context, containers, flows, deploy topology | [`docs/architecture.md`](docs/architecture.md)   |
-| Deployment, backup, restore                               | [`docs/ops/`](docs/ops/)                         |
-| A scope's contracts                                       | its `AGENTS.md` — see Package Navigation below   |
+| Task                                                      | Read                                                   |
+| --------------------------------------------------------- | ------------------------------------------------------ |
+| Go rules: structure, errors, logging, SQL                 | [`docs/patterns/go/`](docs/patterns/go/)               |
+| Web rules: components, CSS, testing                       | [`docs/patterns/web/`](docs/patterns/web/)             |
+| API and data requirements                                 | [`docs/api/openapi.yaml`](docs/api/openapi.yaml)       |
+| System shape: context, containers, flows, deploy topology | [`docs/architecture.md`](docs/architecture.md)         |
+| Deployment, backup, restore                               | [`docs/ops/`](docs/ops/)                               |
+| Adversarial review of a slice or branch                   | [`docs/patterns/reviews.md`](docs/patterns/reviews.md) |
+| A scope's contracts                                       | its `AGENTS.md` — see Package Navigation below         |
 
 ## Package Navigation
 

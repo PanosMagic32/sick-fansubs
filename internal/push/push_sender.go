@@ -126,12 +126,10 @@ func (s *Sender) deliver(logCtx context.Context, ev Event) {
 		logging.From(logCtx).DebugContext(logCtx, "push recipient not active", "kind", ev.Kind)
 		return
 	}
-	// The kind default is the handler's one source, identity.CanModerateContent:
-	// moderator+ default ON for the audience kinds, BUT the draft notice is
-	// opt-in for EVERY role. The default only applies when no preference row
-	// exists; a draft event always carries one (its recipient query requires
-	// it), so this arm is the guarded fallback after a row vanishes.
-	defaultOn := identity.CanModerateContent(u.Role) && ev.Kind != "draft_activity"
+	// Every audience kind defaults ON for every role after an explicit push
+	// opt-in; only the staff-only draft notice is opt-in per kind. The default
+	// applies when no preference row exists.
+	defaultOn := ev.Kind != "draft_activity"
 	enabled, err := store.EffectivePushEnabled(ctx, s.db, ev.RecipientID, ev.Kind, defaultOn)
 	if err != nil {
 		logging.From(logCtx).ErrorContext(logCtx, "push preference lookup failed", "error", err)

@@ -11,9 +11,9 @@
 .banner {
     display: flex;
     align-items: center;
-    /* Centered while the install control renders nothing; the visible
-       control's auto left margin pushes it right and leaves the left
-       group at the start. */
+    /* Centered while the install control renders nothing; the install
+       BUTTON's auto left margin pushes it right and leaves the left group
+       at the start. The iOS instruction keeps the centered flow below. */
     justify-content: center;
     flex-wrap: wrap;
     gap: 0.75rem;
@@ -25,12 +25,24 @@
     color: var(--sf-text);
 }
 
-.banner install-control {
+/* Only the install BUTTON belongs at the right edge. Its auto left margin
+   leaves the donation group at the start. */
+.banner install-control[data-branch="button"] {
     margin-left: auto;
 }
 
-/* Left group: the donation sentence plus the donation link — the install
-   control (shared/pwa/install-control) sits on the right. */
+/* The iOS instruction is a sentence, not a control: it spans its own
+   centered line under the donation row. An auto left margin would
+   right-align it once it wraps. */
+.banner install-control[data-branch="ios"] {
+    flex-basis: 100%;
+    justify-content: center;
+    text-align: center;
+}
+
+/* Left group: the donation sentence plus the donation link. The install
+   BUTTON (shared/pwa/install-control) sits on the right; its iOS
+   instruction branch takes the centered full-width line below. */
 .banner-left {
     display: flex;
     align-items: center;

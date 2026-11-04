@@ -1133,6 +1133,7 @@ describe("SPA page-change announcement", () => {
         "div", // .bg
         "app-header",
         "offline-banner",
+        "push-lifecycle",
         "main",
         "app-footer",
       ]);
@@ -1142,7 +1143,9 @@ describe("SPA page-change announcement", () => {
       // Belt and braces: the count is the cheap check, this one names the
       // nodes that must never live inside the header.
       expect(
-        header.querySelector("offline-banner, main, app-footer"),
+        header.querySelector(
+          "offline-banner, push-lifecycle, main, app-footer",
+        ),
       ).toBeNull();
       expect(shell.shadowRoot!.querySelector("main")!.parentNode).toBe(
         shell.shadowRoot,

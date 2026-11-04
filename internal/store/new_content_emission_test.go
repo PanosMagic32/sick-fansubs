@@ -14,11 +14,11 @@ import (
 // consumes the rows).
 
 // newContentFixture seeds the recipient matrix: adm (the publisher, admin),
-// adm2 (a second admin), sa (super-admin), mod (moderator) — all role
-// default-ON; u-on (user with an explicit ON row), u-off (user with an
-// explicit OFF row), u-plain (user, no row — default OFF), mod-off
-// (moderator with an explicit OFF row). Every opted-in recipient except
-// the actor should receive a new_content row.
+// adm2 (a second admin), sa (super-admin), mod (moderator), u-on (user with
+// an explicit ON row), u-off (user with an explicit OFF row), u-plain (user,
+// no row — default ON), mod-off (moderator with an explicit OFF row). Every
+// active user except the actor and the explicit OFF rows should receive a
+// new_content row.
 func newContentFixture(t *testing.T) *sql.DB {
 	t.Helper()
 	db := openStoreDB(t)
@@ -50,12 +50,13 @@ func newContentFixture(t *testing.T) *sql.DB {
 	return db
 }
 
-// optedInRecipients is the matrix's expected recipient set: every
-// moderator+ user without an explicit OFF row plus every explicit ON row —
-// the actor excluded. The set itself is derived from identity.RoleWeight, so
-// the fixture pins the SQL gate against the model (the canary precedent).
+// optedInRecipients is the matrix's expected recipient set: every active
+// user without an explicit OFF row — the actor excluded. The default is ON
+// for every role, so the plain user and every staff role are included.
 func optedInRecipients() map[string]bool {
-	return map[string]bool{"adm2": true, "sa": true, "mod": true, "u-on": true}
+	return map[string]bool{
+		"adm2": true, "sa": true, "mod": true, "u-on": true, "u-plain": true,
+	}
 }
 
 // assertNewContentEvents pins the event shapes for one publish batch.
@@ -114,10 +115,9 @@ func assertNewContentRows(t *testing.T, db *sql.DB, wantRecipients map[string]bo
 }
 
 // TestCreateBlogPost_PublishedBroadcasts pins the create-as-published
-// matrix: the default-on roles (moderator, admin, super-admin) and the
-// explicit ON user receive; the actor, the default-off user, and both
-// explicit OFF rows receive nothing. The SQL gate's role half is thereby
-// pinned against identity.RoleWeight via the fixture's expected set.
+// matrix: every active user with no row (including a plain user) and the
+// explicit ON user receive; the actor and both explicit OFF rows receive
+// nothing.
 func TestCreateBlogPost_PublishedBroadcasts(t *testing.T) {
 	t.Parallel()
 
@@ -298,8 +298,9 @@ func TestNewContentBroadcastSkipsSuspended(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create published: %v", err)
 	}
-	assertNewContentEvents(t, events, map[string]bool{"sa": true, "mod": true, "u-on": true}, "blog-posts", "b1", "Νέα Ανάρτηση", "adm")
-	assertNewContentRows(t, db, map[string]bool{"sa": true, "mod": true, "u-on": true}, "b1", "adm")
+	want := map[string]bool{"sa": true, "mod": true, "u-on": true, "u-plain": true}
+	assertNewContentEvents(t, events, want, "blog-posts", "b1", "Νέα Ανάρτηση", "adm")
+	assertNewContentRows(t, db, want, "b1", "adm")
 }
 
 // TestUpdateBlogPost_ArchivedTransitionLegs pins the two archived legs of
@@ -367,12 +368,10 @@ func TestUpdateBlogPost_ArchivedTransitionLegs(t *testing.T) {
 	assertNewContentRows(t, db, optedInRecipients(), "a1", "adm")
 }
 
-// TestNewContentBroadcastRoleDefaultsMirrorModel pins the SQL role gate
-// against identity.RoleWeight for EVERY accepted role: a user with no
-// preference row receives the broadcast exactly when
-// RoleWeight(role) >= RoleWeight(RoleModerator) — the draft-gate canary
-// precedent (TestStaffBlogPostDraftVisibility).
-func TestNewContentBroadcastRoleDefaultsMirrorModel(t *testing.T) {
+// TestNewContentBroadcastDefaultsOnForEveryRole pins the per-kind default:
+// a user with no preference row receives the broadcast at every accepted
+// role, including a plain user.
+func TestNewContentBroadcastDefaultsOnForEveryRole(t *testing.T) {
 	t.Parallel()
 
 	db := openStoreDB(t)
@@ -417,9 +416,8 @@ func TestNewContentBroadcastRoleDefaultsMirrorModel(t *testing.T) {
 	}
 
 	for _, role := range roles {
-		want := identity.RoleWeight(role) >= identity.RoleWeight(identity.RoleModerator)
-		if got["u"+role] != want {
-			t.Errorf("role %q: got recipient %v, want %v (RoleWeight mirror)", role, got["u"+role], want)
+		if !got["u"+role] {
+			t.Errorf("role %q: got recipient %v, want default ON", role, got["u"+role])
 		}
 	}
 	if got["actor"] {

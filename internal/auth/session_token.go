@@ -110,7 +110,7 @@ func (s *Service) createSessionAfterSignIn(ctx context.Context, u *identity.User
 				CSRF:               m.rawCSRF,
 				ClientLabel:        clientLabel,
 				CreatedAtMS:        m.nowMS,
-				ExpiresAtMS:        m.nowMS + SessionLifetime.Milliseconds(),
+				ExpiresAtMS:        m.nowMS + identity.SessionLifetime.Milliseconds(),
 			})
 		} else {
 			err = store.CreateSession(ctx, s.db, store.CreateSessionParams{
@@ -121,7 +121,7 @@ func (s *Service) createSessionAfterSignIn(ctx context.Context, u *identity.User
 				AuthVersion: u.AuthVersion,
 				ClientLabel: clientLabel,
 				CreatedAtMS: m.nowMS,
-				ExpiresAtMS: m.nowMS + SessionLifetime.Milliseconds(),
+				ExpiresAtMS: m.nowMS + identity.SessionLifetime.Milliseconds(),
 			})
 		}
 		if err != nil {

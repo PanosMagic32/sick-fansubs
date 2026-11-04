@@ -42,10 +42,13 @@ const (
 )
 
 // pushSubscriptionRequest is the POST body — the browser's
-// PushSubscription JSON shape (endpoint + keys).
+// PushSubscription JSON shape (endpoint + keys) plus the explicit-takeover
+// switch. Takeover is false for the background heal path; only the user's
+// own enable action sets it. It is an intent marker, not proof of consent.
 type pushSubscriptionRequest struct {
 	Endpoint string          `json:"endpoint"`
 	Keys     pushKeysRequest `json:"keys"`
+	Takeover bool            `json:"takeover"`
 }
 
 type pushKeysRequest struct {
@@ -87,10 +90,12 @@ type pushSubscriptionItemDTO struct {
 // store/resubscribe one device subscription. 201 + {"id"}; the id is the
 // stored row (the minted id on a fresh insert, the existing row's id on a
 // same-endpoint resubscribe). An endpoint owned by another user is
-// reassigned by the store. The row's device label is captured from THIS
-// request's User-Agent through the sessions classifier (the raw header is
-// never stored); a resubscribe keeps an existing label and only fills a
-// missing one, so a rename survives the browser's rotation healing.
+// reassigned ONLY when the body sets takeover:true (the explicit opt-in
+// paths); the background heal path omits it and gets a 409 conflict
+// instead. The row's device label is captured from THIS request's
+// User-Agent through the sessions classifier (the raw header is never
+// stored); a resubscribe keeps an existing label and only fills a missing
+// one, so a rename survives the browser's rotation healing.
 func PushSubscriptionCreate(db *sql.DB, now func() time.Time) http.HandlerFunc {
 	if now == nil {
 		now = time.Now
@@ -114,12 +119,16 @@ func PushSubscriptionCreate(db *sql.DB, now func() time.Time) http.HandlerFunc {
 		// persistence must agree on the value (the send path uses the
 		// stored copy verbatim).
 		endpoint := strings.TrimSpace(req.Endpoint)
+		upsert := store.UpsertPushSubscriptionNoTakeover
+		if req.Takeover {
+			upsert = store.UpsertPushSubscription
+		}
 		storedID, err := mintRetry(func() (string, error) {
 			newID, err := id.New()
 			if err != nil {
 				return "", fmt.Errorf("%w: %v", errIDMint, err)
 			}
-			return store.UpsertPushSubscription(r.Context(), db, newID, su.UserID,
+			return upsert(r.Context(), db, newID, su.UserID,
 				endpoint, req.Keys.P256dh, req.Keys.Auth, auth.ClientLabel(r.UserAgent()), now().UnixMilli())
 		})
 		if errors.Is(err, errIDMint) {

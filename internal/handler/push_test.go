@@ -196,6 +196,54 @@ func TestPushSubscriptionCreateAndList(t *testing.T) {
 	}
 }
 
+func TestPushSubscriptionCreateTakeover(t *testing.T) {
+	db, mux := setupPushHandlers(t)
+	const endpoint = "https://push.example.com/takeover"
+	keys := `{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}`
+	body := func(takeover bool) string {
+		flag := ""
+		if takeover {
+			flag = `,"takeover":true`
+		}
+		return `{"endpoint":"` + endpoint + `","keys":` + keys + flag + `}`
+	}
+
+	// The first account owns the device through an explicit opt-in.
+	if rec := servePush(mux, pushAuthedReq("POST", "/api/v1/push-subscriptions", "viewer", body(true))); rec.Code != http.StatusCreated {
+		t.Fatalf("seed create: status = %d, want 201 (body %s)", rec.Code, rec.Body.String())
+	}
+
+	// The background heal form (no takeover flag) must not move it.
+	rec := servePush(mux, pushAuthedReq("POST", "/api/v1/push-subscriptions", "plain", body(false)))
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("foreign endpoint without takeover: status = %d, want 409 (body %s)", rec.Code, rec.Body.String())
+	}
+	var problem struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &problem); err != nil || problem.Type != "/problems/conflict" {
+		t.Errorf("conflict problem = %+v (err %v), want /problems/conflict", problem, err)
+	}
+	assertPushOwner(t, db, endpoint, "viewer")
+
+	// The user's own enable action sends takeover:true and may reassign it.
+	if rec := servePush(mux, pushAuthedReq("POST", "/api/v1/push-subscriptions", "plain", body(true))); rec.Code != http.StatusCreated {
+		t.Fatalf("explicit takeover: status = %d, want 201 (body %s)", rec.Code, rec.Body.String())
+	}
+	assertPushOwner(t, db, endpoint, "plain")
+}
+
+func assertPushOwner(t *testing.T, db *sql.DB, endpoint, want string) {
+	t.Helper()
+	var owner string
+	if err := db.QueryRow(`SELECT user_id FROM push_subscriptions WHERE endpoint = ?`, endpoint).Scan(&owner); err != nil {
+		t.Fatalf("read endpoint owner: %v", err)
+	}
+	if owner != want {
+		t.Errorf("endpoint owner = %q, want %q", owner, want)
+	}
+}
+
 func TestPushSubscriptionCreateValidation(t *testing.T) {
 	_, mux := setupPushHandlers(t)
 
@@ -375,23 +423,23 @@ func TestNotificationPreferencesRead(t *testing.T) {
 		return body.Preferences
 	}
 
-	// A regular user defaults OFF on every kind it is offered, and the
-	// staff-only draft notice is not offered at all.
+	// A regular user defaults ON on every kind it is offered once push is
+	// enabled, and the staff-only draft notice is not offered at all.
 	rec := servePush(mux, pushAuthedReq("GET", "/api/v1/notification-preferences", "plain", ""))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("plain read: status = %d", rec.Code)
 	}
 	for _, p := range decode(rec) {
-		if p.PushEnabled {
-			t.Errorf("plain user %s: want default off", p.Kind)
+		if !p.PushEnabled {
+			t.Errorf("plain user %s: want default on", p.Kind)
 		}
 		if p.Kind == "draft_activity" {
 			t.Error("plain user must not be offered the staff-only kind")
 		}
 	}
 
-	// A moderator defaults ON on every kind EXCEPT the draft notice, which is
-	// opt-in at every role.
+	// A moderator also defaults ON on every audience kind; the draft notice
+	// remains opt-in at every role.
 	rec = servePush(mux, pushAuthedReq("GET", "/api/v1/notification-preferences", "viewer", ""))
 	sawDraft := false
 	for _, p := range decode(rec) {

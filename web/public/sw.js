@@ -232,13 +232,15 @@ self.addEventListener("notificationclick", (event) => {
 
 // pushsubscriptionchange: best-effort supplement, never the
 // mechanism — tell open pages the push service rotated the subscription;
-// the page-side module resubscribes (the CSRF path lives there).
-self.addEventListener("pushsubscriptionchange", () => {
-  self.clients.matchAll({ type: "window" }).then((clients) => {
-    for (const client of clients) {
-      client.postMessage({ type: "sf-push-subscription-change" });
-    }
-  });
+// the page-side lifecycle reconciles (the CSRF path lives there).
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then((clients) => {
+      for (const client of clients) {
+        client.postMessage({ type: "sf-push-subscription-change" });
+      }
+    }),
+  );
 });
 
 self.addEventListener("fetch", (event) => {

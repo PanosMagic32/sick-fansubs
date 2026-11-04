@@ -66,7 +66,7 @@ func pushKindsFor(role string) []string {
 }
 
 // notificationPreferencesDTO is the GET envelope — every known kind with
-// its EFFECTIVE toggle (row else role default).
+// its EFFECTIVE toggle (row else kind default).
 type notificationPreferencesDTO struct {
 	Preferences []notificationPreferenceDTO `json:"preferences"`
 }
@@ -94,9 +94,7 @@ func NotificationPreferencesGet(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		kinds := pushKindsFor(su.Role)
-		prefs, err := store.EffectiveNotificationPreferences(r.Context(), db, su.UserID, kinds, func(kind string) bool {
-			return roleDefaultsPushOn(su.Role, kind)
-		})
+		prefs, err := store.EffectiveNotificationPreferences(r.Context(), db, su.UserID, kinds, defaultPushOn)
 		if err != nil {
 			writeInternalError(w, r, "notification preferences read failed", "error", err)
 			return
@@ -148,17 +146,13 @@ func NotificationPreferenceSet(db *sql.DB, now func() time.Time) http.HandlerFun
 	}
 }
 
-// roleDefaultsPushOn reports a kind's default when no preference row exists:
-// the audience kinds default
-// ON for moderator+ and OFF for everyone else, while the staff-only draft
-// notice defaults OFF at EVERY role — opt-in, never a role default. The
-// audience floor is `identity.CanModerateContent`, the one model predicate
-// the handler and the sender's post-commit default both read.
-func roleDefaultsPushOn(role, kind string) bool {
-	if kind == notificationKindDraftActivity {
-		return false
-	}
-	return identity.CanModerateContent(role)
+// defaultPushOn reports a kind's default when no preference row exists:
+// every audience kind is ON for every role once the user has a push
+// subscription, while the staff-only draft notice is opt-in at EVERY role.
+// Role gating of the draft kind happens in pushKindsFor and the write handler,
+// not here — a below-floor session never sees the toggle.
+func defaultPushOn(kind string) bool {
+	return kind != notificationKindDraftActivity
 }
 
 // pushTestEndpointDTO is one endpoint's outcome in the self-test report.

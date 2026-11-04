@@ -174,6 +174,9 @@ export interface PushSubscriptionCreate {
     p256dh: string;
     auth: string;
   };
+  /** Explicit user opt-in: permits reassigning this endpoint from another
+   * account. Absent on the background heal path. */
+  takeover?: boolean;
 }
 
 /** The seven shipped notification kinds. */

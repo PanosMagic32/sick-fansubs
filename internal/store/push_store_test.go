@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"sync"
 	"testing"
 )
 
@@ -72,8 +73,8 @@ func TestUpsertPushSubscription(t *testing.T) {
 		t.Errorf("null label fill: got %q, want %q", label, "Firefox · Linux")
 	}
 
-	// A different user subscribing the same endpoint REASSIGNS it (the
-	// device's newest login owns it) — with the NEW user's label.
+	// A different user subscribing the same endpoint through the TAKEOVER
+	// form reassigns it — with the NEW user's label.
 	id, err = UpsertPushSubscription(ctx, db, "s2", "u2", fakeEndpointA, fakeP256dh, fakeAuth, "Chrome · Windows", 3000)
 	if err != nil {
 		t.Fatalf("reassign: %v", err)
@@ -99,6 +100,110 @@ func TestUpsertPushSubscription(t *testing.T) {
 	// A deleted user's insert maps to ErrNotFound (the FK).
 	if _, err := UpsertPushSubscription(ctx, db, "s3", "ghost", fakeEndpointB, fakeP256dh, fakeAuth, "", 4000); !errors.Is(err, ErrNotFound) {
 		t.Errorf("deleted user: got %v, want ErrNotFound", err)
+	}
+}
+
+// TestUpsertPushSubscriptionNoTakeover_RefusesForeignEndpoint pins the
+// background-heal contract: a write that did not ask for an explicit
+// takeover may not move another account's endpoint, and the conditional
+// write leaves that row untouched.
+func TestUpsertPushSubscriptionNoTakeover_RefusesForeignEndpoint(t *testing.T) {
+	t.Parallel()
+	db := openStoreDB(t)
+	ctx := t.Context()
+	mustCreateUser(t, db, "u1", "alice", "alice", "alice@example.com")
+	mustCreateUser(t, db, "u2", "bob", "bob", "bob@example.com")
+
+	if _, err := UpsertPushSubscription(ctx, db, "s1", "u1", fakeEndpointA, fakeP256dh, fakeAuth, "Chrome · Android", 1000); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	_, err := UpsertPushSubscriptionNoTakeover(ctx, db, "s2", "u2", fakeEndpointA, "BBBB", "CCCC", "Firefox · Linux", 2000)
+	if !errors.Is(err, ErrPushEndpointOwned) {
+		t.Fatalf("foreign endpoint: err = %v, want ErrPushEndpointOwned", err)
+	}
+
+	var owner, p256dh, label string
+	var updatedAt int64
+	if err := db.QueryRow(`SELECT user_id, p256dh, COALESCE(label, ''), updated_at_ms FROM push_subscriptions WHERE endpoint = ?`, fakeEndpointA).
+		Scan(&owner, &p256dh, &label, &updatedAt); err != nil {
+		t.Fatalf("read row after refusal: %v", err)
+	}
+	if owner != "u1" || p256dh != fakeP256dh || label != "Chrome · Android" || updatedAt != 1000 {
+		t.Errorf("row after refusal = {%q %q %q %d}, want the untouched u1 row", owner, p256dh, label, updatedAt)
+	}
+
+	// The same-owner resubscribe and a fresh endpoint still pass the strict
+	// form — the refusal is only about claiming another account's row.
+	if id, err := UpsertPushSubscriptionNoTakeover(ctx, db, "s-new", "u1", fakeEndpointA, "BBBB", "CCCC", "", 3000); err != nil || id != "s1" {
+		t.Errorf("own resubscribe = (%q, %v), want (\"s1\", nil)", id, err)
+	}
+	if id, err := UpsertPushSubscriptionNoTakeover(ctx, db, "s3", "u2", fakeEndpointB, fakeP256dh, fakeAuth, "", 4000); err != nil || id != "s3" {
+		t.Errorf("fresh endpoint = (%q, %v), want (\"s3\", nil)", id, err)
+	}
+}
+
+// TestUpsertPushSubscriptionNoTakeover_ConcurrentClaim pins the
+// serialization the strict form relies on: two accounts racing for the same
+// fresh endpoint produce one owner and one refusal, never two claimers — and
+// the stored key material is the winner's.
+func TestUpsertPushSubscriptionNoTakeover_ConcurrentClaim(t *testing.T) {
+	t.Parallel()
+	db := openStoreDB(t)
+	ctx := t.Context()
+	mustCreateUser(t, db, "u1", "alice", "alice", "alice@example.com")
+	mustCreateUser(t, db, "u2", "bob", "bob", "bob@example.com")
+
+	type attempt struct {
+		id, userID, p256dh, auth string
+	}
+	attempts := []attempt{
+		{"s1", "u1", "AAAA", "BBBB"},
+		{"s2", "u2", "CCCC", "DDDD"},
+	}
+	type result struct {
+		attempt attempt
+		err     error
+	}
+	results := make(chan result, len(attempts))
+	var wg sync.WaitGroup
+	for _, a := range attempts {
+		wg.Go(func() {
+			_, err := UpsertPushSubscriptionNoTakeover(ctx, db, a.id, a.userID, fakeEndpointA, a.p256dh, a.auth, "", 1000)
+			results <- result{attempt: a, err: err}
+		})
+	}
+	wg.Wait()
+	close(results)
+
+	winner := attempt{}
+	refused := 0
+	for res := range results {
+		switch {
+		case res.err == nil:
+			if winner.userID != "" {
+				t.Fatalf("both accounts claimed the endpoint: %q and %q", winner.userID, res.attempt.userID)
+			}
+			winner = res.attempt
+		case errors.Is(res.err, ErrPushEndpointOwned):
+			refused++
+		default:
+			t.Fatalf("unexpected error: %v", res.err)
+		}
+	}
+	if winner.userID == "" || refused != 1 {
+		t.Fatalf("winner = %+v, refused = %d; want one claim and one refusal", winner, refused)
+	}
+
+	var owner, p256dh, auth string
+	var rows int
+	if err := db.QueryRow(`SELECT user_id, p256dh, auth, COUNT(*) FROM push_subscriptions WHERE endpoint = ?`, fakeEndpointA).
+		Scan(&owner, &p256dh, &auth, &rows); err != nil {
+		t.Fatalf("read endpoint: %v", err)
+	}
+	if rows != 1 || owner != winner.userID || p256dh != winner.p256dh || auth != winner.auth {
+		t.Errorf("stored row = {%q %q %q, %d rows}, want the winner's {%q %q %q, one row}",
+			owner, p256dh, auth, rows, winner.userID, winner.p256dh, winner.auth)
 	}
 }
 

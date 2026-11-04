@@ -24,6 +24,7 @@ How to write and structure any of these: [patterns/docs-conventions.md](patterns
 | Doc                                                          | Covers                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | [patterns/docs-conventions.md](patterns/docs-conventions.md) | Documentation structure, skeletons, links, the docs guard                 |
+| [patterns/reviews.md](patterns/reviews.md)                   | Per-slice adversarial review: parallel lenses, shared context, read-only  |
 | [patterns/go/structure.md](patterns/go/structure.md)         | Package layout, naming, imports, interfaces, statements                   |
 | [patterns/go/comments.md](patterns/go/comments.md)           | Doc comments, package comments, in-body comments                          |
 | [patterns/go/testing.md](patterns/go/testing.md)             | Test names, tables, failure messages, fixtures                            |

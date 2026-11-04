@@ -228,15 +228,24 @@ func TestUpdateBlogPost_ContentUpdatedMatrix(t *testing.T) {
 	}
 
 	// 3. draft → published (first publish): NO content_updated events —
-	// the first publication is the new_content broadcast (all
-	// fixture users are role user default-off, so the broadcast lands zero
-	// rows here; the opted-in legs live in the new_content matrix).
+	// the first publication is the new_content broadcast, which now defaults
+	// ON for every role and reaches the three non-editor fixture users.
 	events, err = update("d1", 1, "published", "u1", "Draft Now Live")
 	if err != nil {
 		t.Fatalf("publish edit: %v", err)
 	}
-	if len(events) != 0 {
-		t.Errorf("publish events: got %d, want 0 (no opted-in recipients in this fixture)", len(events))
+	if len(events) != 3 {
+		t.Fatalf("publish events: got %d, want 3 new_content broadcasts", len(events))
+	}
+	broadcast := map[string]bool{}
+	for _, ev := range events {
+		if ev.Kind != "new_content" {
+			t.Errorf("publish event kind = %q, want new_content", ev.Kind)
+		}
+		broadcast[ev.RecipientID] = true
+	}
+	if !broadcast["u2"] || !broadcast["u3"] || !broadcast["u4"] || broadcast["u1"] {
+		t.Errorf("publish broadcast recipients: got %v, want u2 + u3 + u4", broadcast)
 	}
 
 	// 4. draft → draft: silent.

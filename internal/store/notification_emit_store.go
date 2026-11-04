@@ -138,8 +138,8 @@ const (
 //     alone would let a plain user through for a row with no creator (the
 //     weight CASE's ELSE -1 arm) if such a user ever held a preference row;
 //   - a recipient must have opted in — an explicit push_enabled = 1 row for
-//     this kind, NO role default (the new_content broadcast's
-//     mirror image, which defaults staff ON);
+//     this kind, NO role default (the new_content broadcast's mirror image,
+//     which defaults ON for every role);
 //   - the ACTOR is excluded (self-suppression, the follower fan-out
 //     precedent), so an editor never gets a notice for their own write;
 //   - a suspended recipient is skipped (the active-recipient rule).
@@ -203,20 +203,18 @@ func notifyDraftActivityTx(ctx context.Context, tx *sql.Tx, actorID, action stri
 
 // staffRoleClause is the SQL spelling of the staff floor
 // (identity.RoleWeight(role) >= RoleWeight(RoleModerator); SQL cannot call Go)
-// for the queries that range over users: the new_content broadcast reads it as
-// its default-ON set (pinned against the model by
-// TestNewContentBroadcastRoleDefaultsMirrorModel) and the draft-activity
-// notice as its audience floor (pinned by the emission matrix) — one
-// home for the role set, so a floor change cannot drift between them.
+// for the draft-activity notice's audience floor (pinned by the emission
+// matrix). The new_content broadcast has no role floor: every active user
+// defaults ON once they have a push subscription.
 const staffRoleClause = `(u.role IN ('moderator', 'admin', 'super-admin'))`
 
 // notifyNewContentTx inserts one user_notifications row per opted-in
 // recipient of the 'new_content' broadcast and returns the per-recipient
 // fan-out events, all inside the CALLER'S transaction.
-// The recipient set is every user whose EFFECTIVE new_content preference is
-// ON — an explicit push_enabled = 1 row, or the role default when no row
-// exists (moderator+ on) — minus the actor
-// (the creator/updater never gets their own publish).
+// The recipient set is every active user whose EFFECTIVE new_content
+// preference is ON — an explicit push_enabled = 1 row, or the default when
+// no row exists (ON for every role) — minus the actor (the creator/updater
+// never gets their own publish).
 //
 // The preference gates BOTH the in-app row and push for this broadcast
 // kind: there is no follow relationship to lean on, so the recipient set is
@@ -236,12 +234,9 @@ func notifyNewContentTx(ctx context.Context, tx *sql.Tx, actorID string, k Conte
 				SELECT 1 FROM notification_preferences np
 				WHERE np.user_id = u.id AND np.kind = 'new_content' AND np.push_enabled = 1
 			)
-			OR (
-				NOT EXISTS (
-					SELECT 1 FROM notification_preferences np
-					WHERE np.user_id = u.id AND np.kind = 'new_content'
-				)
-				AND `+staffRoleClause+`
+			OR NOT EXISTS (
+				SELECT 1 FROM notification_preferences np
+				WHERE np.user_id = u.id AND np.kind = 'new_content'
 			)
 		  )
 		ORDER BY u.id`, actorID)

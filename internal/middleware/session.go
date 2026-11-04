@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"sick-fansubs/internal/identity"
+	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/problem"
 	"sick-fansubs/internal/store"
 )
@@ -24,6 +26,11 @@ const CookieName = "sf_session"
 // SHA-256 digest, and looks up the session via store.SessionByDigest
 // (which enforces auth_version matching). If the session is valid and not
 // expired, the user is attached to the context via SetSession.
+//
+// A live session within identity.SessionRenewBefore of expiry is renewed:
+// the row's expires_at_ms slides forward, capped at the session's absolute
+// lifetime, and the cookie is reissued with the new remaining Max-Age. This
+// keeps active users signed in without a SQLite write on every request.
 //
 // Missing, malformed, expired, revoked, or unknown session tokens result
 // in an unauthenticated request — the next handler receives a context
@@ -43,19 +50,27 @@ func Session(db *sql.DB, secure bool) func(http.Handler) http.Handler {
 			// rather than choosing the first value.
 			// Treating it as unauthenticated keeps the outcome generic —
 			// the client sees the same result as an unknown session.
-			if len(cookies) != 1 {
+			if len(cookies) == 0 {
+				logSessionReject(r, "no_cookie")
+				next.ServeHTTP(w, r)
+				return
+			}
+			if len(cookies) > 1 {
+				logSessionReject(r, "duplicate_cookie", "cookieCount", len(cookies))
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			digest, ok := SessionDigestValue(cookies[0].Value)
 			if !ok {
+				logSessionReject(r, "malformed_cookie")
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			su, err := store.SessionByDigest(r.Context(), db, digest)
 			if errors.Is(err, store.ErrNotFound) {
+				logSessionReject(r, "not_found_or_revoked")
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -66,15 +81,95 @@ func Session(db *sql.DB, secure bool) func(http.Handler) http.Handler {
 
 			now := time.Now().UnixMilli()
 			if su.IsExpired(now) {
+				logSessionReject(r, "expired")
 				ClearSessionCookie(w, secure)
 				next.ServeHTTP(w, r)
 				return
 			}
 
+			renewSession(w, r, db, su, cookies[0].Value, secure, now)
+
 			ctx := SetSession(r.Context(), su)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// logSessionReject records WHY a request resolved as anonymous. Normal
+// anonymous traffic (no cookie, malformed input, unknown or revoked
+// credentials) is Debug; a duplicate cookie is Warn (cookie tossing / a
+// cookie set at an older path or domain); expired credentials are Info
+// because they explain a user-visible logout. Cookie values and digests
+// never enter the log.
+func logSessionReject(r *http.Request, reason string, attrs ...any) {
+	logger := logging.From(r.Context()).With("sessionReject", reason)
+	switch reason {
+	case "duplicate_cookie":
+		logger.WarnContext(r.Context(), "session rejected", attrs...)
+	case "expired":
+		logger.InfoContext(r.Context(), "session rejected", attrs...)
+	default:
+		logger.DebugContext(r.Context(), "session rejected", attrs...)
+	}
+}
+
+// renewSession slides a live session's expiry when it is inside the renewal
+// window, reissues the cookie on a successful write, and never moves the
+// expiry past the absolute cap. A renewal write failure is logged and the
+// request continues on the current (still valid) expiry — renewal is an
+// enhancement, not a gate.
+func renewSession(
+	w http.ResponseWriter,
+	r *http.Request,
+	db *sql.DB,
+	su *identity.SessionUser,
+	cookieValue string,
+	secure bool,
+	nowMS int64,
+) {
+	if su.ExpiresAtMS-nowMS >= identity.SessionRenewBefore.Milliseconds() {
+		return
+	}
+
+	renewedUntil := nowMS + identity.SessionLifetime.Milliseconds()
+	absoluteCap := su.CreatedAtMS + identity.SessionMaxLifetime.Milliseconds()
+	if renewedUntil > absoluteCap {
+		renewedUntil = absoluteCap
+	}
+	if renewedUntil <= su.ExpiresAtMS {
+		return
+	}
+
+	renewed, err := store.RenewSession(r.Context(), db, su.SessionID, su.ExpiresAtMS, renewedUntil)
+	if err != nil {
+		logging.From(r.Context()).WarnContext(r.Context(), "session renewal failed", "error", err)
+		return
+	}
+	if !renewed {
+		// A concurrent request won the CAS; its cookie is already correct.
+		return
+	}
+
+	su.ExpiresAtMS = renewedUntil
+	// The stored instants are milliseconds; the cookie carries seconds.
+	maxAge := max(int((renewedUntil-nowMS)/1000), 1)
+	SetSessionCookie(w, cookieValue, secure, maxAge)
+	logging.From(r.Context()).DebugContext(r.Context(), "session renewed", "expiresAtMs", renewedUntil)
+}
+
+// SetSessionCookie writes the sf_session cookie with the shared attribute
+// contract (host-only, Path=/, HttpOnly, SameSite=Lax, Secure in production).
+// maxAge is in seconds; a negative value deletes the cookie.
+func SetSessionCookie(w http.ResponseWriter, value string, secure bool, maxAge int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     CookieName,
+		Value:    value,
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
 
 // SessionDigest runs the one ambiguity gate shared by session resolution and
@@ -134,13 +229,5 @@ func SessionDigestValue(value string) (digest []byte, ok bool) {
 // enforce downgrade protection: a Secure=false deletion cannot clear a
 // Secure=true cookie.
 func ClearSessionCookie(w http.ResponseWriter, secure bool) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     CookieName,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	})
+	SetSessionCookie(w, "", secure, -1)
 }

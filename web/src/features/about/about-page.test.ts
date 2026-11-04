@@ -122,9 +122,15 @@ describe("about-page", () => {
     ]);
 
     for (const [i, anchor] of anchors.entries()) {
-      expect(anchor.textContent?.trim()).toBe(LABELS[i]!);
+      expect(anchor.textContent?.replace(el.nav.opensInNewTab, "").trim()).toBe(
+        LABELS[i]!,
+      );
       expect(anchor.getAttribute("target")).toBe("_blank");
       expect(anchor.getAttribute("rel")).toBe("noopener noreferrer");
+      // Every external link announces the new tab to assistive tech.
+      expect(anchor.querySelector(".sr-only")?.textContent?.trim()).toBe(
+        el.nav.opensInNewTab,
+      );
       // Every anchor sits INSIDE its Greek sentence, not beside it.
       expect(anchor.parentElement?.classList.contains("link-desc")).toBe(true);
     }
@@ -153,16 +159,24 @@ describe("about-page", () => {
 
     const desc = root(page).querySelector(".link-desc")!;
     const anchor = desc.querySelector("a")!;
-    expect(anchor.textContent?.trim()).toBe(el.about.facebookLabel);
+    expect(anchor.textContent?.replace(el.nav.opensInNewTab, "").trim()).toBe(
+      el.about.facebookLabel,
+    );
+    expect(anchor.querySelector(".sr-only")?.textContent?.trim()).toBe(
+      el.nav.opensInNewTab,
+    );
     // The prefix and suffix are part of the same sentence, so the anchor
-    // cannot split off into a label + detached link.
-    const sentence = desc.textContent ?? "";
+    // cannot split off into a label + detached link. The screen-reader hint
+    // is removed before comparing the visible sentence.
+    const sentence = (desc.textContent ?? "").replace(el.nav.opensInNewTab, "");
     const labelAt = sentence.indexOf(el.about.facebookLabel);
     expect(sentence.slice(0, labelAt)).toBe(el.about.facebookPrefix);
     expect(sentence.slice(labelAt + el.about.facebookLabel.length)).toBe(
       el.about.facebookSuffix,
     );
-    expect(text(root(page), ".link-row")).toBe(
+    expect(
+      text(root(page), ".link-row").replace(el.nav.opensInNewTab, ""),
+    ).toBe(
       `${el.about.facebookPrefix}${el.about.facebookLabel}${el.about.facebookSuffix}`,
     );
   });

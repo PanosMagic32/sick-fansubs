@@ -18,8 +18,8 @@
     white-space: nowrap;
 }
 
-/* The iOS manual path is an instruction, not an action. */
+/* The iOS manual path is an instruction, not an action. Keep it at reading
+   size: it is the only install guidance an iOS visitor gets. */
 .install-hint {
-    font-size: 0.75rem;
-    opacity: 0.85;
+    font-size: 0.8rem;
 }

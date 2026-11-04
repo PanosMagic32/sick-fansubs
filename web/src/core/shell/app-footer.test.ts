@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 
 import { readSheet, stubAbortSignalTimeout } from "@shared/api/test-utils.js";
 import { copyrightNotice, el } from "@shared/catalog/el.js";
-import { BUY_ME_A_COFFEE_URL } from "@shared/config/links.js";
+import { BUY_ME_A_COFFEE_URL, COMMUNITY_LINKS } from "@shared/config/links.js";
 
 import "./app-footer.js";
 import type { AppFooter } from "./app-footer.js";
@@ -181,6 +181,85 @@ describe("app-footer", () => {
     el.remove();
   });
 
+  test("renders the community links from the shared order", async () => {
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response("{}", { status: 200 }),
+      )) as unknown as typeof fetch;
+    const footer = renderFooter();
+
+    await footer.updateComplete;
+    await new Promise((r) => setTimeout(r, 10));
+    await footer.updateComplete;
+
+    const social = footer.shadowRoot?.querySelector(".footer-social");
+    expect(social?.tagName).toBe("NAV");
+    expect(social?.getAttribute("aria-label")).toBe(el.ui.communityLinks);
+
+    const links = [...(social?.querySelectorAll("a") ?? [])];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(
+      COMMUNITY_LINKS.map((link) => link.url),
+    );
+    expect(links.map((a) => a.getAttribute("target"))).toEqual(
+      COMMUNITY_LINKS.map(() => "_blank"),
+    );
+    expect(links.map((a) => a.getAttribute("rel"))).toEqual(
+      COMMUNITY_LINKS.map(() => "noopener noreferrer"),
+    );
+    expect(links.map((a) => a.className)).toEqual(
+      COMMUNITY_LINKS.map((link) => `social-${link.tone}`),
+    );
+    // The brand labels are deliberate anglicisms: each accessible name is
+    // the sr-only label inside lang="en".
+    expect(
+      links.map((a) => a.querySelector('span[lang="en"]')?.textContent?.trim()),
+    ).toEqual(COMMUNITY_LINKS.map((link) => link.label));
+    // The new-tab context is Greek and stays outside the lang="en" scope.
+    expect(
+      links.map((a) =>
+        a.querySelector(".sr-only:not([lang])")?.textContent?.trim(),
+      ),
+    ).toEqual(COMMUNITY_LINKS.map(() => el.nav.opensInNewTab));
+
+    // Every glyph is distinct, hidden from assistive tech, and the hidden
+    // label is the name source (an aria-label or title would override it).
+    const paths = links.map((a) => a.querySelector("path")?.getAttribute("d"));
+    expect(new Set(paths).size).toBe(COMMUNITY_LINKS.length);
+    expect(paths.every((d) => typeof d === "string" && d.length > 0)).toBe(
+      true,
+    );
+    for (const link of links) {
+      const svg = link.querySelector("svg");
+      expect(svg?.getAttribute("aria-hidden")).toBe("true");
+      expect(svg?.querySelector("title")).toBeNull();
+      const label = link.querySelector('.sr-only[lang="en"]');
+      expect(label?.hasAttribute("aria-hidden")).toBe(false);
+      expect(link.hasAttribute("aria-label")).toBe(false);
+      expect(link.hasAttribute("title")).toBe(false);
+    }
+
+    footer.remove();
+  });
+
+  test("the center zone orders the social row above the support line", async () => {
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response("{}", { status: 200 }),
+      )) as unknown as typeof fetch;
+    const footer = renderFooter();
+
+    await footer.updateComplete;
+    await new Promise((r) => setTimeout(r, 10));
+    await footer.updateComplete;
+
+    const center = footer.shadowRoot?.querySelector(".footer-center");
+    expect(
+      [...(center?.children ?? [])].map((child) => child.className),
+    ).toEqual(["footer-social", "footer-support"]);
+
+    footer.remove();
+  });
+
   test("three zones: status left, support center, copyright + version right", async () => {
     globalThis.fetch = (() =>
       Promise.resolve(
@@ -202,7 +281,7 @@ describe("app-footer", () => {
     ]);
 
     // The support line: catalog text + external donation link.
-    const support = footer.shadowRoot?.querySelector(".footer-center");
+    const support = footer.shadowRoot?.querySelector(".footer-support");
     expect(support?.textContent?.replace(/\s+/g, " ").trim()).toContain(
       el.donation.supportText,
     );
@@ -212,6 +291,10 @@ describe("app-footer", () => {
     expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
     expect(link?.querySelector('span[lang="en"]')?.textContent?.trim()).toBe(
       el.about.donateLabel,
+    );
+    // The external anchor announces its new tab to assistive tech.
+    expect(link?.querySelector(".sr-only")?.textContent?.trim()).toBe(
+      el.nav.opensInNewTab,
     );
 
     // Copyright + version sit in the right zone.
@@ -255,23 +338,36 @@ describe("app-footer", () => {
     footer.remove();
   });
 
-  test("mobile footer stacks only its inner zones (CSS contract)", () => {
-    // happy-dom cannot evaluate media queries — pin the source: at the
-    // mobile tier (700px) the INNER sections change direction (support
-    // column with its divider, stacked copyright/version) while the host
-    // itself stays a row with space-between. The band is extracted whole
-    // first, then each rule body — a match can never reach a later rule.
+  test("footer places social links above support and stacks support on mobile (CSS contract)", () => {
+    // happy-dom cannot evaluate media queries — pin the source. The center
+    // zone is a column at every width (social row first, support line
+    // second); only the SUPPORT line stacks at ≤700px, while the host stays
+    // a row with space-between.
+    const center = footerStyles.match(/\.footer-center \{([^}]*)\}/)?.[1] ?? "";
+    expect(center).toContain("flex-direction: column");
+
+    const social = footerStyles.match(/\.footer-social \{([^}]*)\}/)?.[1] ?? "";
+    expect(social).toContain("display: flex");
+
+    // Each social link keeps a 2.5rem round target around a 1.5rem glyph.
+    const socialLink =
+      footerStyles.match(/\.footer-social a \{([^}]*)\}/)?.[1] ?? "";
+    expect(socialLink).toContain("width: 2.5rem");
+    expect(socialLink).toContain("height: 2.5rem");
+    expect(socialLink).toContain("border-radius: 50%");
+    expect(footerStyles).toMatch(/\.footer-social svg \{[^}]*width: 1\.5rem/);
+
     const mobile =
       footerStyles.match(
         /@media \(max-width: 700px\) \{([\s\S]*?)\n\}/s,
       )?.[1] ?? "";
-    const center = mobile.match(/\.footer-center \{([^}]*)\}/)?.[1] ?? "";
-    expect(center).toContain("flex-direction: column");
+    const support = mobile.match(/\.footer-support \{([^}]*)\}/)?.[1] ?? "";
+    expect(support).toContain("flex-direction: column");
     const divider = mobile.match(/\.support-divider \{([^}]*)\}/)?.[1] ?? "";
     expect(divider).toContain("display: block");
     const right = mobile.match(/\.footer-right \{([^}]*)\}/)?.[1] ?? "";
     expect(right).toContain("flex-direction: column");
-    // The divider is hidden in the desktop inline row.
+    // The divider is hidden in the desktop inline support row.
     expect(footerStyles).toMatch(/\.support-divider \{[^}]*display: none/);
   });
 });

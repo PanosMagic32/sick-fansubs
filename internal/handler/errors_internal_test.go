@@ -87,6 +87,7 @@ func TestWriteStoreError_MapsEverySentinel(t *testing.T) {
 		{"invalid parent", store.ErrInvalidParent, want{http.StatusUnprocessableEntity, "/problems/validation", "parentId", "invalidValue", 1}},
 		{"self heart", store.ErrSelfHeart, want{http.StatusUnprocessableEntity, "/problems/validation", "commentId", "invalidValue", 1}},
 		{"slug taken", store.ErrSlugTaken, want{http.StatusUnprocessableEntity, "/problems/validation", "slug", "alreadyTaken", 1}},
+		{"push endpoint owned", store.ErrPushEndpointOwned, want{http.StatusConflict, "/problems/conflict", "", "", 1}},
 		{"unmapped sentinel", store.ErrDuplicate, want{http.StatusInternalServerError, "/problems/internal-error", "", "", 1}},
 		{"non-sentinel", errors.New("database is locked"), want{http.StatusInternalServerError, "/problems/internal-error", "", "", 1}},
 	}

@@ -386,9 +386,9 @@ export class AppHeader extends LitElement {
   /* ── Session-aware account link ── */
 
   /**
-   * Account link target: /account when authenticated, /sign-in otherwise.
-   * The initializing and error states fall back to the anonymous target
-   * (the bootstrap or a retry decides where the user really belongs).
+   * Account link target: /account when authenticated, /sign-in when
+   * anonymous. Initializing and error are NOT anonymous states — the
+   * session chip renders a status control instead of a sign-in link.
    */
   private get _accountHref(): string {
     return this.session?.state.status === "authenticated"
@@ -414,6 +414,31 @@ export class AppHeader extends LitElement {
   /** True when the account link carries the username (authenticated). */
   private get _accountIsAuthenticated(): boolean {
     return this.session?.state.status === "authenticated";
+  }
+
+  /**
+   * Initializing and error are connection states, not signed-out states:
+   * the chip must not offer /sign-in while the bootstrap is unresolved or
+   * failed. An absent context (standalone header) keeps the anonymous link.
+   */
+  private get _accountIsConnecting(): boolean {
+    const status = this.session?.state.status;
+    return status === "initializing" || status === "error";
+  }
+
+  private _onSessionRetry = () => {
+    // The chip stays focusable while the retry is in flight; the click
+    // guard replaces `disabled`, which would drop keyboard focus.
+    if (this.session?.state.status !== "error") return;
+    void this.session.retryBootstrap();
+  };
+
+  /** The persistent live region's text for a connection-state flip. */
+  private _sessionStatusMessage(): string {
+    const status = this.session?.state.status;
+    if (status === "initializing") return el.ui.loading;
+    if (status === "error") return el.ui.serverConnectionFailed;
+    return "";
   }
 
   /** Staff visibility for the admin link (moderator+). */
@@ -478,6 +503,27 @@ export class AppHeader extends LitElement {
         }
       </div>
     `;
+  }
+
+  /**
+   * The connection-state chip: initializing renders a disabled loading
+   * button; error renders a retry button. Both keep the account footprint
+   * and never link to /sign-in — a deploy outage must not read as a logout.
+   */
+  private _sessionStatusTemplate() {
+    const loading = this.session?.state.status === "initializing";
+    const label = loading ? el.ui.loading : el.ui.retry;
+    return html`<button
+      type="button"
+      class="account-link session-status"
+      aria-disabled=${loading ? "true" : nothing}
+      aria-busy=${loading ? "true" : nothing}
+      aria-label=${label}
+      @click=${this._onSessionRetry}
+    >
+      ${this._accountIconTemplate()}
+      <span class="link-text">${label}</span>
+    </button>`;
   }
 
   /**
@@ -601,16 +647,21 @@ export class AppHeader extends LitElement {
               >`
             : nothing
         }
+        <span class="sr-only" role="status"
+          >${this._sessionStatusMessage()}</span
+        >
         ${
           this._accountIsAuthenticated
             ? this._accountMenuTemplate()
-            : html`<a
-                href=${this._accountHref}
-                class="account-link"
-                aria-current=${this._accountActive ? "page" : nothing}
-                >${this._accountIconTemplate()}
-                <span class="link-text">${this._accountLabel}</span></a
-              >`
+            : this._accountIsConnecting
+              ? this._sessionStatusTemplate()
+              : html`<a
+                  href=${this._accountHref}
+                  class="account-link"
+                  aria-current=${this._accountActive ? "page" : nothing}
+                  >${this._accountIconTemplate()}
+                  <span class="link-text">${this._accountLabel}</span></a
+                >`
         }
         <button
           type="button"

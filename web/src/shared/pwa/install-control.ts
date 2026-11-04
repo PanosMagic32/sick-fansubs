@@ -12,10 +12,12 @@
  *   - this browser already allowed notifications (per-device signal).
  *
  * The host carries `hidden` whenever nothing renders, so a host layout can
- * fall back to its single-item shape (donation-banner.css). The hide rule
- * is re-evaluated on the Permissions API's change event, because granting
- * push in the sibling settings section must hide the control without a
- * remount.
+ * fall back to its single-item shape (donation-banner.css). While a branch
+ * renders, the host also carries `data-branch="button" | "ios"` (absent
+ * when hidden), so a host can style the long iOS instruction differently
+ * from the button. The hide rule is re-evaluated on the Permissions API's
+ * change event, because granting push in the sibling settings section must
+ * hide the control without a remount.
  */
 import { html, LitElement, nothing, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -45,7 +47,8 @@ export class InstallControl extends LitElement {
 
   @state() private _available = false;
 
-  /** Which branch renders; mirrored onto the host's `hidden` attribute. */
+  /** Which branch renders; mirrored onto the host's `hidden` and
+   * `data-branch` attributes. */
   @state() private _branch: InstallBranch = "none";
 
   private _unsubscribe?: () => void;
@@ -77,6 +80,11 @@ export class InstallControl extends LitElement {
   protected willUpdate(): void {
     this._branch = this._computeBranch();
     this.toggleAttribute("hidden", this._branch === "none");
+    // Host layouts key on the branch: the donation strip pins only the
+    // button to its right edge and gives the longer iOS instruction its own
+    // centered line.
+    if (this._branch === "none") this.removeAttribute("data-branch");
+    else this.setAttribute("data-branch", this._branch);
   }
 
   private _computeBranch(): InstallBranch {

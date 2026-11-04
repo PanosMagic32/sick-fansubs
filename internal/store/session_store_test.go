@@ -65,6 +65,9 @@ func TestCreateSession_Success(t *testing.T) {
 	if su.IsExpired(5000) {
 		t.Error("session should not be expired at created_at_ms")
 	}
+	if su.CreatedAtMS != 5000 {
+		t.Errorf("CreatedAtMS: got %d, want 5000", su.CreatedAtMS)
+	}
 }
 
 func TestCreateSession_AuthVersionMismatch(t *testing.T) {
@@ -259,6 +262,44 @@ func TestSessionByDigest_Expired(t *testing.T) {
 	}
 	if su.IsExpired(1500) {
 		t.Error("session should not be expired at 1500 (expires at 2000)")
+	}
+}
+
+func TestRenewSession(t *testing.T) {
+	t.Parallel()
+	db := openStoreDB(t)
+	ctx := t.Context()
+
+	mustCreateUser(t, db, "user_01", "Katakuri", "katakuri", "k@example.com")
+
+	digest := make([]byte, 32)
+	csrf := make([]byte, 32)
+	mustCreateSession(t, db, "sess_01", "user_01", digest, csrf, 1, 5000, 8000)
+
+	renewed, err := RenewSession(ctx, db, "sess_01", 8000, 9000)
+	if err != nil {
+		t.Fatalf("RenewSession: %v", err)
+	}
+	if !renewed {
+		t.Fatal("RenewSession: got false, want true")
+	}
+
+	var expires int64
+	if err := db.QueryRowContext(ctx,
+		`SELECT expires_at_ms FROM sessions WHERE id = ?`, "sess_01").Scan(&expires); err != nil {
+		t.Fatalf("read renewed expiry: %v", err)
+	}
+	if expires != 9000 {
+		t.Errorf("expires_at_ms: got %d, want 9000", expires)
+	}
+
+	// A stale current-expiry CAS affects no row (a concurrent renewal won).
+	renewed, err = RenewSession(ctx, db, "sess_01", 8000, 10_000)
+	if err != nil {
+		t.Fatalf("RenewSession stale CAS: %v", err)
+	}
+	if renewed {
+		t.Error("RenewSession stale CAS: got true, want false")
 	}
 }
 

@@ -1,7 +1,8 @@
 /**
  * Web push endpoint functions — the subscription and preference endpoints
- * behind the account-page settings section, built on the shared transport
- * like the other data-access modules. The wire types live in `types.ts`.
+ * behind the account-page settings section and the global push lifecycle,
+ * built on the shared transport like the other data-access modules. The wire
+ * types live in `types.ts`.
  *
  * Wire facts:
  *  - Floor: AUTHENTICATED — the server rejects anonymous with the generic
@@ -23,7 +24,7 @@
  *    every device rejected), and `endpoints` carries one outcome per
  *    attempted row. User-keyed rate limit 5/10 min (429).
  *  - The preferences read returns the EFFECTIVE toggle per kind (the stored
- *    override or the role default — moderator+ on, everyone else off).
+ *    override or the default — every audience kind ON, draft_activity off).
  *    Below-moderator sessions are served a SHORTER list and the PUT for a
  *    withheld kind answers a masked 404, so the client renders exactly the
  *    kinds it is given and never role-checks a kind itself.
@@ -52,7 +53,9 @@ export function listPushSubscriptions(
 }
 
 /** POST /api/v1/push-subscriptions — store/resubscribe one device, 201 +
- * { id } (the stored row id). */
+ * { id } (the stored row id). Only the explicit opt-in carries
+ * `takeover: true`; the background heal omits it and maps a foreign
+ * endpoint's 409 to `not-owner`. */
 export function createPushSubscription(
   body: PushSubscriptionCreate,
   opts?: RequestOptions,

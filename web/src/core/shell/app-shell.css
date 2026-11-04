@@ -39,8 +39,8 @@
        own token: --sf-dot happens to share the value but names the shell's
        dot grid, not a surface. */
     --sf-accent-tint: rgba(51, 101, 204, 0.1);
-    /* The about page's per-service brand tones (border, marker, and the
-       color-mixed row tint). A token pair so the page itself carries no
+    /* Community service tones — the about page's row accents and the
+       footer's social icons. A token pair so both surfaces carry no
        literals; the light theme darkens each tone for a readable marker on
        the light surface. */
     --sf-brand-facebook: #1877f2;

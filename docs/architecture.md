@@ -16,7 +16,9 @@ accounts, and a staff dashboard. One public site on one owner-operated VPS; prod
 
 The application is a single Go binary with the compiled Lit frontend embedded. It speaks JSON under
 `/api/v1`, serves media bytes from its data volume, and keeps state in one SQLite database. Sessions
-are opaque server-side rows carried by an `sf_session` cookie — no browser-stored tokens.
+are opaque server-side rows carried by an `sf_session` cookie — no browser-stored tokens — with a
+30-day idle lifetime renewed on activity and a 90-day absolute cap. Routine deploys keep the rows;
+a restore purges them by design.
 
 ## Containers
 
@@ -73,6 +75,13 @@ VPS
 - **Backup**: the daily unit is created by the same code path production uses, age-encrypted,
   retained as the newest ten locally, and pushed off the VPS by the host script; the deploy path
   takes a pre-deploy unit ([ops/backup.md](ops/backup.md)).
+- **Push subscriptions**: the browser's subscription is stored as a per-user, per-device row; the
+  shell's global lifecycle reconciles it on authenticated bootstrap and wake-ups, gated by a
+  per-device owner marker, and prompts instead of silently recreating a lost subscription. Sign-out
+  releases the device's ownership (server row delete, local unsubscribe, marker clear) before the
+  session ends, so a shared browser cannot deliver the previous account's notifications to the
+  next one. The worker relays a push-service rotation to open pages
+  ([web/src/features/notifications/AGENTS.md](../web/src/features/notifications/AGENTS.md)).
 - **Restore**: a fail-closed staged workflow — quarantine, activate, extract media, verify — and the
   application refuses to serve while a restore marker exists ([ops/restore.md](ops/restore.md)).
 

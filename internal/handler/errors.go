@@ -115,6 +115,11 @@ func writeStoreOutcome(w http.ResponseWriter, r *http.Request, err error, op str
 	case errors.Is(err, store.ErrSlugTaken):
 		writeValidationErrors(w, r, []Violation{{Field: "slug", Code: "alreadyTaken"}})
 		return http.StatusUnprocessableEntity
+	case errors.Is(err, store.ErrPushEndpointOwned):
+		// The problem body stays generic; the conflict log carries the
+		// operation and the store's cause so the refusal is diagnosable.
+		writeConflict(w, r, op+": push endpoint owned by another account: "+err.Error())
+		return http.StatusConflict
 	}
 	writeInternalError(w, r, op+" failed", args...)
 	return http.StatusInternalServerError

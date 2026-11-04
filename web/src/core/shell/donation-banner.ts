@@ -32,7 +32,8 @@ export class DonationBanner extends LitElement {
             target="_blank"
             rel="noopener noreferrer"
             ><span aria-hidden="true">☕</span>
-            <span lang="en">${el.about.donateLabel}</span></a
+            <span lang="en">${el.about.donateLabel}</span>
+            <span class="sr-only">${el.nav.opensInNewTab}</span></a
           >
         </div>
         <install-control></install-control>

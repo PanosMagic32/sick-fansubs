@@ -23,10 +23,6 @@ import (
 	"sick-fansubs/internal/store"
 )
 
-// SessionLifetime is the absolute session lifetime (seven days).
-// Exported because the HTTP layer derives the cookie Max-Age (seconds) from it.
-const SessionLifetime = 7 * 24 * time.Hour
-
 // Temp password generation: 16 characters from an
 // unambiguous alphabet — the visually confusable 0/O/1/l/I are excluded so
 // the operator can read it out or type it without ambiguity. It satisfies the
@@ -257,7 +253,7 @@ func (s *Service) Register(ctx context.Context, username, email, password, userA
 		TokenDigest:   m.digest,
 		CSRF:          m.rawCSRF,
 		ClientLabel:   ClientLabel(userAgent),
-		ExpiresAtMS:   m.nowMS + SessionLifetime.Milliseconds(),
+		ExpiresAtMS:   m.nowMS + identity.SessionLifetime.Milliseconds(),
 	})
 	if errors.Is(err, store.ErrDuplicate) {
 		// ErrDuplicate here means either the username/email was claimed by a

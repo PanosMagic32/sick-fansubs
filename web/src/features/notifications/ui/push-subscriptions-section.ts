@@ -2,12 +2,14 @@
  * Push subscriptions section of <push-settings> — this device's capability
  * section: the subscribe button and its double-permission flow (our own confirm
  * dialog first, then the browser prompt), the off switch that deletes the
- * server row and unsubscribes locally, the self-test press, and the worker
- * relay that silently resubscribes after a push-service rotation.
+ * server row and unsubscribes locally, and the self-test press. The global
+ * `<push-lifecycle>` element owns the worker relay and the background heal;
+ * this section follows its `sf-push-reconciled` event so a rotation on this
+ * route replaces the local row instead of leaving a stale off switch.
  *
  * A reactive section controller: the element owns the shadow-root markup and
  * reads this section's state; the section owns the subscription state, the
- * handlers, and the lifecycle (the window-message listener and the load's
+ * handlers, and the lifecycle (the reconcile-event listener and the load's
  * abort controller). Every state change asks the host for a re-render.
  *
  * The capability is refined once loaded: no service-worker registration
@@ -22,17 +24,22 @@ import { type ReactiveController, type ReactiveControllerHost } from "lit";
 import type { SessionState } from "@features/auth/data-access/session.js";
 import { requestSignal } from "@shared/api/request-signal.js";
 import { el } from "@shared/catalog/el.js";
-import { VAPID_PUBLIC_KEY } from "@shared/config/vapid.js";
 import { mapError } from "@shared/utils/format.js";
 import { isIOS, isStandalone } from "@shared/utils/platform.js";
 
 import {
-  createPushSubscription,
   deletePushSubscription,
   getNotificationPreferences,
   listPushSubscriptions,
   sendTestPush,
 } from "../data-access/push-api.js";
+import {
+  forgetPushOwner,
+  PUSH_RECONCILED_EVENT,
+  rememberPushOwner,
+  type StoredPushSubscription,
+  subscribePush,
+} from "../data-access/push-subscription.js";
 import type {
   NotificationPreference,
   PushSubscriptionItem,
@@ -40,37 +47,7 @@ import type {
 } from "../data-access/types.js";
 import type { PushDevicesSurface } from "./push-devices-section.js";
 
-/** The worker's relay message type (web/public/sw.js — pinned by
- * push-artifacts.test.ts; keep in sync). */
-const SUBSCRIPTION_CHANGE_MESSAGE = "sf-push-subscription-change";
-
 type SectionStatus = "loading" | "ready" | "error";
-
-/** The local device's stored row — id (for DELETE) + endpoint (for
- * matching). The create response carries only {id}; the endpoint comes
- * from the browser's own subscription, never a fabricated createdAt. */
-interface LocalSubscription {
-  id: string;
-  endpoint: string;
-}
-
-/**
- * urlBase64ToUint8Array converts the URL-safe base64 public key to the
- * byte buffer PushManager.subscribe expects (the web-push standard
- * conversion; the value is the committed VAPID_PUBLIC_KEY constant).
- * Returns the underlying ArrayBuffer — a valid BufferSource.
- */
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64);
-  const buffer = new ArrayBuffer(raw.length);
-  const output = new Uint8Array(buffer);
-  for (let i = 0; i < raw.length; i++) {
-    output[i] = raw.charCodeAt(i);
-  }
-  return buffer;
-}
 
 /**
  * Host contract for the subscriptions section: the consumed session's state,
@@ -115,7 +92,7 @@ export class PushSubscriptionsSection implements ReactiveController {
   status: SectionStatus = "loading";
 
   /** The local device's server row (matched by endpoint), if any. */
-  _subscription: LocalSubscription | null = null;
+  _subscription: StoredPushSubscription | null = null;
 
   /** "none" | the in-flight action ("subscribe" | "unsubscribe"). */
   private _pending: "none" | "subscribe" | "unsubscribe" = "none";
@@ -160,10 +137,6 @@ export class PushSubscriptionsSection implements ReactiveController {
   _testPending: "none" | "sending" = "none";
   _testResult: string | null = null;
 
-  /** A relay-triggered resubscribe in flight — it joins `busy` so a second
-   * rotation message cannot start a parallel subscribe. */
-  private _relayPending = false;
-
   private readonly _host: PushSubscriptionsHost;
   private _started = false;
   private _abort: AbortController | null = null;
@@ -178,11 +151,11 @@ export class PushSubscriptionsSection implements ReactiveController {
   }
 
   hostConnected() {
-    window.addEventListener("message", this._onMessage);
+    window.addEventListener(PUSH_RECONCILED_EVENT, this._onReconciled);
   }
 
   hostDisconnected() {
-    window.removeEventListener("message", this._onMessage);
+    window.removeEventListener(PUSH_RECONCILED_EVENT, this._onReconciled);
     this._abort?.abort();
     this._refreshAbort?.abort();
   }
@@ -205,7 +178,6 @@ export class PushSubscriptionsSection implements ReactiveController {
     return (
       this._pending !== "none" ||
       this._testPending !== "none" ||
-      this._relayPending ||
       this._host.preferences.savePending ||
       this._host.devices.pending
     );
@@ -221,33 +193,23 @@ export class PushSubscriptionsSection implements ReactiveController {
     this._host.requestUpdate();
   }
 
-  /* ── Worker relay (best-effort resubscribe) ─────────────────────── */
+  /* ── Global reconcile ───────────────────────────────────────────── */
 
-  private _onMessage = (event: MessageEvent) => {
-    // Trust only our own origin's messages (a third-party iframe must not
-    // trigger POSTs).
-    if (event.origin !== location.origin) return;
+  /** The global lifecycle healed the local row — replace a stale match so
+   * the off switch cannot DELETE a row the browser no longer uses. */
+  private _onReconciled = (event: Event) => {
+    const row = (event as CustomEvent<StoredPushSubscription>).detail;
+    if (!row) return;
     if (
-      event.data?.type === SUBSCRIPTION_CHANGE_MESSAGE &&
-      !this.busy &&
-      typeof Notification !== "undefined" &&
-      Notification.permission === "granted"
+      this._subscription?.id === row.id &&
+      this._subscription.endpoint === row.endpoint
     ) {
-      // The push service rotated the subscription — the local match is now
-      // stale, so resubscribe REGARDLESS of _subscription (the exact
-      // scenario the relay exists for). The in-flight flag joins `busy` so
-      // two rotation messages cannot start two subscribes.
-      this._relayPending = true;
-      this.refresh();
-      void this._subscribe()
-        .catch(() => {
-          /* best-effort — the next visit retries */
-        })
-        .finally(() => {
-          this._relayPending = false;
-          this.refresh();
-        });
+      return;
     }
+    this._subscription = row;
+    this._testResult = null;
+    this.refresh();
+    this._host.devices.reload();
   };
 
   /* ── Data ───────────────────────────────────────────────────────── */
@@ -327,7 +289,7 @@ export class PushSubscriptionsSection implements ReactiveController {
   private async _matchLocalSubscription(
     registration: ServiceWorkerRegistration,
     rows: PushSubscriptionItem[],
-  ): Promise<LocalSubscription | null> {
+  ): Promise<StoredPushSubscription | null> {
     try {
       const current = await registration.pushManager.getSubscription();
       if (!current) return null;
@@ -403,28 +365,32 @@ export class PushSubscriptionsSection implements ReactiveController {
   }
 
   private async _subscribe() {
-    // getRegistration, not `serviceWorker.ready`: a missing registration
-    // must FAIL the flow (ready would hang forever — dev has no SW).
-    const registration = await navigator.serviceWorker.getRegistration();
-    if (!registration) {
-      throw new Error("no service worker registration");
+    const state = this._host.sessionState;
+    if (state?.status !== "authenticated") {
+      throw new Error("not authenticated");
     }
-    const sub = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
-    // The browser's toJSON() also carries expirationTime (null) — the
-    // strict-JSON endpoint rejects unknown fields, so send exactly the
-    // accepted shape.
-    const { endpoint, keys } = sub.toJSON() as {
-      endpoint: string;
-      keys: { p256dh: string; auth: string };
-    };
-    const { id } = await createPushSubscription({ endpoint, keys });
-    this._subscription = { id, endpoint };
+    const row = await subscribePush();
+    // The permission prompt can outlive the session it started under. The
+    // marker belongs to the account still signed in after the request, and
+    // a switched account must not inherit this device's opt-in.
+    const current = this._host.sessionState;
+    if (
+      current?.status !== "authenticated" ||
+      current.user.id !== state.user.id
+    ) {
+      throw new Error("session changed during subscribe");
+    }
+    rememberPushOwner(current.user.id);
+    this._subscription = row;
     this.refresh();
-    // A new row exists — the device list must show it.
+    // A new row exists — the device list must show it, and the global
+    // lifecycle clears its prompt when it follows the same event.
     this._host.devices.reload();
+    window.dispatchEvent(
+      new CustomEvent<StoredPushSubscription>(PUSH_RECONCILED_EVENT, {
+        detail: row,
+      }),
+    );
   }
 
   _onDisableClick = async () => {
@@ -436,13 +402,22 @@ export class PushSubscriptionsSection implements ReactiveController {
     this.refresh();
     try {
       await deletePushSubscription(this._subscription.id);
-      const registration = await navigator.serviceWorker.getRegistration();
-      const current = await registration?.pushManager.getSubscription();
-      await current?.unsubscribe();
+      // The server row is gone: clear the marker and the local row before the
+      // browser call, so a failed `unsubscribe()` cannot let the next
+      // reconcile heal the row back against the user's explicit opt-out.
+      forgetPushOwner();
       this._subscription = null;
       this._testResult = null;
       // The row is gone server-side — the device list must drop it too.
       this._host.devices.reload();
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        const current = await registration?.pushManager.getSubscription();
+        await current?.unsubscribe();
+      } catch {
+        // Local cleanup is best-effort; the deleted server row is the
+        // durable half of the opt-out.
+      }
     } catch (err) {
       this._error = mapError(err);
     } finally {

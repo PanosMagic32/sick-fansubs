@@ -103,7 +103,7 @@ func CreateSession(ctx context.Context, db *sql.DB, p CreateSessionParams) error
 // Returns ErrNotFound if no session matches the digest, if the session's
 // auth_version no longer matches the user's, or if the account is not active.
 func SessionByDigest(ctx context.Context, db *sql.DB, digest []byte) (*identity.SessionUser, error) {
-	const q = `SELECT s.id, s.user_id, s.csrf_token, s.expires_at_ms,
+	const q = `SELECT s.id, s.user_id, s.csrf_token, s.created_at_ms, s.expires_at_ms,
 		u.username, u.role, u.must_change_password
 	FROM sessions s
 	JOIN users u ON s.user_id = u.id
@@ -112,7 +112,7 @@ func SessionByDigest(ctx context.Context, db *sql.DB, digest []byte) (*identity.
 
 	var su identity.SessionUser
 	err := db.QueryRowContext(ctx, q, digest).Scan(
-		&su.SessionID, &su.UserID, &su.CSRF, &su.ExpiresAtMS,
+		&su.SessionID, &su.UserID, &su.CSRF, &su.CreatedAtMS, &su.ExpiresAtMS,
 		&su.Username, &su.Role, &su.MustChangePassword,
 	)
 	if err != nil {
@@ -123,6 +123,27 @@ func SessionByDigest(ctx context.Context, db *sql.DB, digest []byte) (*identity.
 	}
 
 	return &su, nil
+}
+
+// RenewSession extends a live session's idle expiry. The current-expiry CAS
+// makes concurrent renewals harmless: the first request wins, the others
+// affect no row and keep their existing (still valid) cookie.
+//
+// Returns true when this call moved the expiry. The caller owns the policy
+// bounds (idle lifetime and absolute cap); the store only persists the
+// result.
+func RenewSession(ctx context.Context, db *sql.DB, sessionID string, currentExpiresAtMS, newExpiresAtMS int64) (bool, error) {
+	res, err := db.ExecContext(ctx,
+		`UPDATE sessions SET expires_at_ms = ? WHERE id = ? AND expires_at_ms = ?`,
+		newExpiresAtMS, sessionID, currentExpiresAtMS)
+	if err != nil {
+		return false, fmt.Errorf("store: renew session: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("store: renew session rows affected: %w", err)
+	}
+	return n == 1, nil
 }
 
 // DeleteSessionByDigest removes a single session row by token digest.

@@ -67,6 +67,8 @@ describe("install-control", () => {
     expect(root(control).querySelector(".install")).toBeNull();
     expect(root(control).querySelector(".install-hint")).toBeNull();
     expect(control.hasAttribute("hidden")).toBe(true);
+    // No branch → no host layout hook.
+    expect(control.hasAttribute("data-branch")).toBe(false);
   });
 
   test("renders the install button once the browser offers a prompt, and replays it once", async () => {
@@ -79,6 +81,7 @@ describe("install-control", () => {
     expect(button?.textContent?.trim()).toBe(el.install.button);
     expect(button?.type).toBe("button");
     expect(control.hasAttribute("hidden")).toBe(false);
+    expect(control.getAttribute("data-branch")).toBe("button");
 
     button!.click();
     await control.updateComplete;
@@ -88,6 +91,7 @@ describe("install-control", () => {
     // browser decides to fire a fresh one.
     expect(root(control).querySelector(".install")).toBeNull();
     expect(control.hasAttribute("hidden")).toBe(true);
+    expect(control.hasAttribute("data-branch")).toBe(false);
   });
 
   test("hides the control after appinstalled", async () => {
@@ -172,6 +176,8 @@ describe("install-control", () => {
     // The manual path is an instruction, never a dead button.
     expect(root(control).querySelector(".install")).toBeNull();
     expect(control.hasAttribute("hidden")).toBe(false);
+    // The host layouts center this branch instead of pinning it right.
+    expect(control.getAttribute("data-branch")).toBe("ios");
   });
 
   test("iOS in standalone mode shows neither branch", async () => {

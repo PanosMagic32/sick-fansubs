@@ -12,6 +12,7 @@ import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 
 import { clearCSRFToken, getCSRFToken } from "@shared/api/client.js";
 import { ApiError } from "@shared/api/client.js";
+import { API_REQUEST_TIMEOUT_MS } from "@shared/api/request-signal.js";
 import { mockFetchImpl, restoreMockFetch } from "@shared/api/test-utils.js";
 
 import "./session.js"; // registers <session-provider>
@@ -160,6 +161,75 @@ describe("bootstrap", () => {
     expect(s.status).toBe("error");
     // Error message is Greek (not the NetworkError's English message).
     expect((s as { message: string }).message).toContain("Αποτυχία");
+  });
+
+  test("a focus after a bootstrap error retries and can authenticate", async () => {
+    let calls = 0;
+    mockFetchImpl(async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new TypeError("Failed to fetch");
+      }
+      const body = {
+        authenticated: true,
+        csrfToken: "retry_tok",
+        user: { id: "1", username: "alice", role: "user" },
+        mustChangePassword: false,
+      };
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      } as unknown as Response;
+    });
+
+    const p = await setup();
+    expect(p.getState().status).toBe("error");
+
+    // Focus is the user's natural retry gesture; it must not require a reload.
+    window.dispatchEvent(new Event("focus"));
+    await new Promise((r) => setTimeout(r, 20));
+    await p.updateComplete;
+
+    expect(p.getState().status).toBe("authenticated");
+  });
+
+  test("a stalled bootstrap hits the client deadline", async () => {
+    const originalTimeout = AbortSignal.timeout;
+    const timeoutController = new AbortController();
+    const captured = { ms: null as number | null };
+    AbortSignal.timeout = ((ms: number) => {
+      captured.ms = ms;
+      return timeoutController.signal;
+    }) as unknown as typeof AbortSignal.timeout;
+
+    try {
+      mockFetchImpl(
+        async (_input: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => {
+              reject(
+                new DOMException("The operation was aborted", "AbortError"),
+              );
+            });
+          }),
+      );
+
+      const p = await setup();
+      expect(p.getState().status).toBe("initializing");
+      expect(captured.ms).toBe(API_REQUEST_TIMEOUT_MS);
+
+      // The deadline aborts the composed signal; the state must become the
+      // retryable error, not stay in initializing.
+      timeoutController.abort();
+      await new Promise((r) => setTimeout(r, 20));
+      await p.updateComplete;
+      expect(p.getState().status).toBe("error");
+    } finally {
+      AbortSignal.timeout = originalTimeout;
+    }
   });
 
   test("starts in initializing before bootstrap completes", () => {

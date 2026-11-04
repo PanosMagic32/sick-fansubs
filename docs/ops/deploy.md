@@ -36,7 +36,9 @@ Backup and restore have their own docs.
    cron and Mega scripts read; `migrate` and `backup` run only through their profiles
    (`docker compose --profile migrate run --rm migrate`). Migrations are an explicit maintenance
    step, never run by the app process, and the app only performs the strict read-only compatibility
-   check at startup — the mechanics are [sqlite.md](../patterns/go/sqlite.md)'s.
+   check at startup — the mechanics are [sqlite.md](../patterns/go/sqlite.md)'s. A routine deploy
+   preserves the volume's sessions and push rows; only a staged restore deletes sessions and rolls
+   push rows back to the backup instant.
 5. **Configuration is environment variables; secrets are Compose file secrets.** Non-secret config
    (ports, `DATA_DIR`, `APP_ENV`, `PUBLIC_BASE_URL`, `TRUSTED_ORIGIN`, SMTP relay settings) rides
    `environment`; `SMTP_API_KEY` and `VAPID_PRIVATE_KEY` mount from `/run/secrets` for uid 1000

@@ -21,11 +21,13 @@ info:
     session bootstrap — a missing, malformed, or mismatched token is a 403.
     Safe methods never require it, and an unauthenticated unsafe request
     (for example sign-in, register, forgot-password, or reset-password) is
-    protected by the trusted origin alone. An expired session has the
-    clearing sf_session cookie written before its handler runs, and the
-    operations whose handler clears the cookie — sign-out, sign-out-all,
-    password change, reset-password, and session revoke — declare it on
-    their own response.
+    protected by the trusted origin alone. Sessions have a 30-day idle
+    lifetime: a request inside the final 7 days renews the row and reissues
+    the sf_session cookie, capped at 90 days from session creation. An
+    expired session has the clearing sf_session cookie written before its
+    handler runs, and the operations whose handler clears the cookie —
+    sign-out, sign-out-all, password change, reset-password, and session
+    revoke — declare it on their own response.
 
     Asset delivery — GET /media/images/{file} — is intentionally outside this
     document. The serving route returns bytes with plain-text errors and
@@ -60,7 +62,9 @@ paths:
             Set-Cookie:
               description: >-
                 Opaque sf_session cookie: HttpOnly; SameSite=Lax; Path=/;
-                host-only; Max-Age 7 days; Secure in production.
+                host-only; Max-Age 30 days, renewed on activity inside the
+                final 7 days and capped at 90 days from creation; Secure in
+                production.
               schema:
                 type: string
             X-Request-ID:
@@ -95,11 +99,21 @@ paths:
         Reports whether the request carries a valid session. Never returns 401 —
         an absent, malformed, or expired session produces the unauthenticated
         envelope. When authenticated, csrfToken and user are always present. A
-        session-store failure answers the masked 500.
+        session-store failure answers the masked 500. An eligible authenticated
+        session is renewed by the session middleware, which reissues the
+        sf_session cookie on this response.
       responses:
         "200":
           description: Current authentication state.
           headers:
+            Set-Cookie:
+              description: >-
+                Reissues sf_session when an eligible authenticated session is
+                renewed: HttpOnly; SameSite=Lax; Path=/; host-only; Max-Age
+                30 days, capped at 90 days from creation; Secure in
+                production.
+              schema:
+                type: string
             X-Request-ID:
               $ref: "#/components/headers/RequestID"
             Cache-Control:
@@ -197,7 +211,9 @@ paths:
             Set-Cookie:
               description: >-
                 Opaque sf_session cookie: HttpOnly; SameSite=Lax; Path=/;
-                host-only; Max-Age 7 days; Secure in production.
+                host-only; Max-Age 30 days, renewed on activity inside the
+                final 7 days and capped at 90 days from creation; Secure in
+                production.
               schema:
                 type: string
             X-Request-ID:
@@ -2955,12 +2971,15 @@ paths:
         keys). 201 + the stored row id — the id is the existing row's id
         when the same endpoint resubscribes (the key material and
         updatedAt refresh in place). An endpoint owned by ANOTHER user is
-        reassigned (the device's newest login owns it). The row's device
-        label is captured from THIS request's User-Agent through the session
-        list's closed-vocabulary classifier — the raw header is never
-        stored; a resubscribe keeps an existing label and only fills a
-        missing one, so a user's rename survives the browser's rotation
-        healing. The endpoint must
+        reassigned only when the body sets takeover:true; the explicit
+        enable path (the account settings and the global prompt) sends it.
+        A request without it — the background browser-heal path — answers
+        409 /problems/conflict and leaves the foreign row untouched, so a
+        stale tab cannot move another account's device. The 409 body carries
+        no owner id, endpoint, or key material: only the status says the
+        endpoint belongs to another account. `takeover` is an intent marker
+        that separates the explicit action from the background heal; it is
+        not proof of consent or an authorization boundary. The endpoint must
         be an absolute https URL; p256dh/auth must be URL-safe base64
         decoding to exactly 65 and 16 bytes (the RFC 8291 shapes) —
         violations are 422 {field, code}. Unknown body fields are 400;
@@ -2990,6 +3009,8 @@ paths:
           $ref: "#/components/responses/InvalidCredentials"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
         "415":
@@ -3133,13 +3154,12 @@ paths:
         EFFECTIVE push toggle: the stored override row, or the kind's
         default when no row exists. For heart, comment_reply, comment,
         content_updated, new_content, and comment_removed that default is
-        moderator+ ON and everyone else OFF; the
-        staff-only draft_activity is opt-in at EVERY role and is omitted
-        from the list entirely below the moderator floor,
-        where a write for it is the masked 404 — a below-floor session
-        never sees a toggle that could not fire. The in-app feed is always
-        on and unaffected. Floor: authenticated (401 unauthenticated). No
-        query parameters are accepted.
+        ON for EVERY role; the staff-only draft_activity is opt-in at
+        EVERY role and is omitted from the list entirely below the
+        moderator floor, where a write for it is the masked 404 — a
+        below-floor session never sees a toggle that could not fire. The
+        in-app feed is always on and unaffected. Floor: authenticated (401
+        unauthenticated). No query parameters are accepted.
       responses:
         "200":
           description: The effective per-kind toggles.
@@ -3186,7 +3206,7 @@ paths:
       summary: Write one explicit push toggle (authenticated)
       description: >-
         Stores an explicit per-kind push toggle (204) — a stored row
-        overrides the role default from then on. Repeats overwrite
+        overrides the kind default from then on. Repeats overwrite
         (last-write-wins; boolean toggles carry no ETag). Below the
         moderator floor the staff-only draft_activity answers the masked 404
         — the same 404 an unknown kind gets. Requires the trusted origin
@@ -4660,7 +4680,9 @@ components:
         expiresAt:
           type: string
           format: date-time
-          description: Absolute expiry instant — the sign-in instant plus seven days.
+          description: >-
+            Current idle expiry — the latest renewal, capped at 90 days from
+            the sign-in instant.
         current:
           type: boolean
           description: True for the session making this request.
@@ -7068,7 +7090,9 @@ components:
         The browser's PushSubscription JSON body: the push-service endpoint
         and the RFC 8291 key material. p256dh/auth must be URL-safe base64
         decoding to exactly 65 and 16
-        bytes.
+        bytes. takeover marks an explicit user opt-in and is the only form
+        allowed to reassign an endpoint owned by another account; the
+        browser's background heal path omits it.
       additionalProperties: false
       required:
         - endpoint
@@ -7094,6 +7118,14 @@ components:
               type: string
               maxLength: 512
               description: URL-safe base64 decoding to the 16-byte authentication secret.
+        takeover:
+          type: boolean
+          default: false
+          description: >-
+            Set only by the shipped explicit enable path. It permits
+            reassigning this endpoint from another account; absent or false,
+            a foreign endpoint answers 409 and the row is left untouched. An
+            intent marker, not an authorization control.
     PushSubscriptionCreated:
       type: object
       description: The create response — the stored row id.
@@ -7237,7 +7269,7 @@ components:
       description: >-
         The effective per-kind push toggles for every kind the caller's ROLE
         can hold: the six audience kinds (with the stored override or the
-        role default — moderator+ on, everyone else off), plus the
+        default — ON for every role), plus the
         staff-only draft_activity for a moderator-and-above session, which
         is opt-in at every role and omitted below the
         floor.
@@ -7271,9 +7303,8 @@ components:
           type: boolean
           description: >-
             The effective value: the stored row, or the KIND's default when
-            no row exists — moderator+ true and everyone else false for the
-            six audience kinds, and false at every role for the staff-only
-            draft_activity.
+            no row exists — true for the six audience kinds at every role,
+            and false at every role for the staff-only draft_activity.
     NotificationPreferenceUpdate:
       type: object
       description: The PUT body — one explicit toggle.
@@ -7564,7 +7595,9 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
     Conflict:
-      description: 409 duplicate race — problem type /problems/conflict.
+      description: >-
+        409 state conflict — problem type /problems/conflict (a duplicate
+        race, or an endpoint another account already owns).
       headers:
         X-Request-ID:
           $ref: "#/components/headers/RequestID"

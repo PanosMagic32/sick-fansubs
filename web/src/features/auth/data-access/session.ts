@@ -27,6 +27,9 @@ import { customElement } from "lit/decorators.js";
 
 import { el } from "@shared/catalog/el.js";
 import * as api from "@shared/api/client.js";
+import { API_REQUEST_TIMEOUT_MS } from "@shared/api/request-signal.js";
+
+import { releasePushOwnership } from "@features/notifications/data-access/push-subscription.js";
 
 import type { PublicUser } from "./types.js";
 import * as authApi from "./auth-api.js";
@@ -98,6 +101,12 @@ export const sessionContext = createContext<SessionContext>(Symbol("session"));
 const INITIAL: SessionState = { status: "initializing" };
 const ANONYMOUS: SessionState = { status: "anonymous" };
 
+// Bootstrap retries after a network/5xx failure. The first retry is quick so
+// a deploy window heals without a reload; the cap keeps a genuinely down
+// server from turning every tab into a request loop.
+const BOOTSTRAP_RETRY_BASE_MS = 2_000;
+const BOOTSTRAP_RETRY_MAX_MS = 30_000;
+
 // ── Provider element ────────────────────────────────────────────────
 
 @customElement("session-provider")
@@ -115,6 +124,12 @@ export class SessionProvider extends LitElement {
   /** AbortController for the current bootstrap request (cancelled on disconnect). */
   private _bootstrapAbort: AbortController | null = null;
 
+  /** Scheduled bootstrap retry after an error state (null = none). */
+  private _retryTimer: number | null = null;
+
+  /** Next retry delay; doubles on each failed bootstrap up to the cap. */
+  private _retryDelayMs = BOOTSTRAP_RETRY_BASE_MS;
+
   // ── Lifecycle ──────────────────────────────────────────────────
 
   connectedCallback() {
@@ -125,6 +140,7 @@ export class SessionProvider extends LitElement {
     // re-added (e.g. re-parented), and a stale latch would leave
     // revalidate silently dead after the reconnect.
     this._disconnected = false;
+    this._retryDelayMs = BOOTSTRAP_RETRY_BASE_MS;
 
     // Register the 401 callback so that any API call returning 401
     // automatically transitions the session to anonymous (no refresh loop).
@@ -160,6 +176,7 @@ export class SessionProvider extends LitElement {
     // disconnected element.
     this._bootstrapAbort?.abort();
     this._bootstrapAbort = null;
+    this._clearBootstrapRetry();
     window.removeEventListener("focus", this._onWindowFocus);
     document.removeEventListener("visibilitychange", this._onVisibilityChange);
     api.clearOnUnauthenticated();
@@ -203,13 +220,20 @@ export class SessionProvider extends LitElement {
   private _disconnected = false;
 
   private _onWindowFocus = () => {
+    if (this._ctx.state.status === "error") {
+      void this._retryBootstrap();
+      return;
+    }
     void this._revalidate();
   };
 
   private _onVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      void this._revalidate();
+    if (document.visibilityState !== "visible") return;
+    if (this._ctx.state.status === "error") {
+      void this._retryBootstrap();
+      return;
     }
+    void this._revalidate();
   };
 
   /**
@@ -263,19 +287,44 @@ export class SessionProvider extends LitElement {
 
   // ── Bootstrap ──────────────────────────────────────────────────
 
+  private _scheduleBootstrapRetry() {
+    if (this._retryTimer !== null || this._disconnected) return;
+    const delay = this._retryDelayMs;
+    this._retryDelayMs = Math.min(delay * 2, BOOTSTRAP_RETRY_MAX_MS);
+    this._retryTimer = window.setTimeout(() => {
+      this._retryTimer = null;
+      if (this._disconnected || !this.isConnected) return;
+      if (this._ctx.state.status !== "error") return;
+      void this._bootstrap();
+    }, delay);
+  }
+
+  private _clearBootstrapRetry() {
+    if (this._retryTimer === null) return;
+    window.clearTimeout(this._retryTimer);
+    this._retryTimer = null;
+  }
+
   private async _bootstrap() {
     // Cancel any previous in-flight bootstrap.
     this._bootstrapAbort?.abort();
-    this._bootstrapAbort = new AbortController();
+    const controller = new AbortController();
+    this._bootstrapAbort = controller;
 
     const gen = ++this._generation;
-    const signal = this._bootstrapAbort.signal;
+    // The page owns cancellation; the deadline guards a hung request. The
+    // controller signal alone would leave a stalled bootstrap in
+    // initializing forever.
+    const signal = AbortSignal.any([
+      controller.signal,
+      AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),
+    ]);
 
     try {
       const result = await authApi.bootstrapSession({ signal });
 
       // Aborted or superseded — discard.
-      if (gen !== this._generation || signal.aborted) return;
+      if (gen !== this._generation || controller.signal.aborted) return;
 
       if (result.authenticated) {
         // When authenticated, csrfToken and user are always present.
@@ -284,8 +333,11 @@ export class SessionProvider extends LitElement {
             status: "error",
             message: el.ui.invalidServerResponse,
           });
+          this._scheduleBootstrapRetry();
           return;
         }
+        this._clearBootstrapRetry();
+        this._retryDelayMs = BOOTSTRAP_RETRY_BASE_MS;
         api.setCSRFToken(result.csrfToken);
         this._setState({
           status: "authenticated",
@@ -293,16 +345,20 @@ export class SessionProvider extends LitElement {
           mustChangePassword: result.mustChangePassword,
         });
       } else {
+        this._clearBootstrapRetry();
+        this._retryDelayMs = BOOTSTRAP_RETRY_BASE_MS;
         api.clearCSRFToken();
         this._setState(ANONYMOUS);
       }
     } catch (err) {
-      if (gen !== this._generation || signal.aborted) return;
+      if (gen !== this._generation || controller.signal.aborted) return;
 
-      // 401 from bootstrap is unusual (bootstrap always
-      // returns 200). If it happens, treat it as unauthenticated rather than
-      // an error — the session cookie was likely invalid.
+      // 401 from bootstrap is unusual (bootstrap always returns 200). If it
+      // happens, treat it as unauthenticated rather than an error — the
+      // session cookie was likely invalid.
       if (err instanceof api.ApiError && err.status === 401) {
+        this._clearBootstrapRetry();
+        this._retryDelayMs = BOOTSTRAP_RETRY_BASE_MS;
         api.clearCSRFToken();
         this._setState(ANONYMOUS);
         return;
@@ -315,10 +371,13 @@ export class SessionProvider extends LitElement {
         status: "error",
         message: `${el.ui.serverConnectionFailed}${detail}`,
       });
+      this._scheduleBootstrapRetry();
     }
   }
 
   private async _retryBootstrap() {
+    this._clearBootstrapRetry();
+    this._retryDelayMs = BOOTSTRAP_RETRY_BASE_MS;
     this._setState(INITIAL);
     await this._bootstrap();
   }
@@ -330,8 +389,9 @@ export class SessionProvider extends LitElement {
   // is passed — a stalled connection aborts (~15s) instead of freezing
   // the form until the server's 30s WriteTimeout gives up. The resulting
   // AbortError maps to the generic network banner in the pages' shared
-  // submit-error mapper. Bootstrap is the deliberate exception: it passes
-  // its own disconnect-abort signal, no client timeout.
+  // submit-error mapper. Bootstrap composes its own disconnect controller
+  // with the shared client deadline (a stalled bootstrap must reach the
+  // retry path, not sit in initializing forever).
 
   /**
    * The one action skeleton: bump the generation, run the call, apply the
@@ -392,9 +452,27 @@ export class SessionProvider extends LitElement {
     );
   }
 
+  /**
+   * Signing out releases this browser's push ownership while the session is
+   * still valid: the server row is deleted and the local subscription is
+   * unsubscribed, so the next account on a shared browser cannot receive
+   * the previous account's notifications. Cleanup is best-effort and never
+   * blocks the sign-out itself.
+   */
+  private async _releasePush(): Promise<void> {
+    try {
+      await releasePushOwnership();
+    } catch {
+      /* best-effort — sign-out must proceed */
+    }
+  }
+
   private _signOut() {
     return this._runAction(
-      () => authApi.signOut(),
+      async () => {
+        await this._releasePush();
+        return authApi.signOut();
+      },
       () => {
         api.clearCSRFToken();
         this._setState(ANONYMOUS);
@@ -404,7 +482,10 @@ export class SessionProvider extends LitElement {
 
   private _signOutAll() {
     return this._runAction(
-      () => authApi.signOutAll(),
+      async () => {
+        await this._releasePush();
+        return authApi.signOutAll();
+      },
       () => {
         api.clearCSRFToken();
         this._setState(ANONYMOUS);
@@ -417,7 +498,14 @@ export class SessionProvider extends LitElement {
     // current password, not on session expiry. We suppress the global
     // 401→anonymous transition so the user can retry.
     return this._runAction(
-      () => authApi.changePassword({ currentPassword, newPassword }),
+      async () => {
+        const result = await authApi.changePassword({
+          currentPassword,
+          newPassword,
+        });
+        await this._releasePush();
+        return result;
+      },
       () => {
         api.clearCSRFToken();
         this._setState(ANONYMOUS);

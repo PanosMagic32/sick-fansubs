@@ -41,6 +41,8 @@ const ui = {
   invalidServerResponse: "Ο διακομιστής επέστρεψε μη έγκυρη απάντηση.",
   toggleTheme: "Εναλλαγή θέματος",
   menu: "Μενού",
+  // The footer's social-link group label (the nav landmark's accessible name).
+  communityLinks: "Σύνδεσμοι κοινότητας",
   sessions: "Συσκευές",
   // Pagination + card affordances: the shared pager-nav and content-card
   // pieces reuse one set of labels.
@@ -399,7 +401,7 @@ const about = {
   discordSuffix: ".",
   githubPrefix:
     "Είσαι προγραμματιστής ή έχεις κάποια ιδέα που μπορεί να κάνει τη σελίδα μας καλύτερη; Μπορείς να βρεις το αποθετήριο της σελίδας στο ",
-  githubLabel: "Github",
+  githubLabel: "GitHub",
   githubSuffix: ".",
   trackerPrefix:
     "Αν θέλεις να δεις όλη τη δουλειά της ομάδας μας, μπορείς να την βρεις και στον ",
@@ -824,6 +826,12 @@ const notifications = {
   pushDenied:
     "Οι ειδοποιήσεις είναι μπλοκαρισμένες για αυτό το πρόγραμμα περιήγησης. Άλλαξέ το από τις ρυθμίσεις του.",
   pushFailure: "Αποτυχία ενεργοποίησης. Δοκίμασε ξανά.",
+  // The global shell prompt: shown when this browser lost a subscription it
+  // previously enabled. The enable control reuses pushEnable; the dismiss
+  // control clears the per-device owner marker.
+  pushHealBody:
+    "Οι ειδοποιήσεις σταμάτησαν σε αυτή τη συσκευή. Ενεργοποίησέ τες ξανά για να συνεχίσεις να τις λαμβάνεις.",
+  pushHealDismiss: "Όχι τώρα",
   // The unavailable state: shown
   // in place of the whole control set when the environment cannot push —
   // an unsupported browser, or no service-worker registration (which is

@@ -208,4 +208,16 @@ describe("push service worker", () => {
       'postMessage({ type: "sf-push-subscription-change" })',
     );
   });
+
+  test("keeps the relay alive with event.waitUntil", async () => {
+    const sw = await readSw();
+    const start = sw.indexOf('self.addEventListener("pushsubscriptionchange"');
+    const next = sw.indexOf("\nself.addEventListener(", start + 1);
+    const handler = sw.slice(start, next === -1 ? undefined : next);
+    // Bound to this listener: another handler's waitUntil must not satisfy
+    // the pin. The worker may be terminated once the listener returns, so
+    // the relay must extend the event's lifetime or the message is dropped.
+    expect(handler).toContain("event.waitUntil(");
+    expect(handler).toContain("sf-push-subscription-change");
+  });
 });
