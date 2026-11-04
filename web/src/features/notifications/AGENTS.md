@@ -66,10 +66,12 @@ Notifications feed: the data-access modules, the `/notifications` page, the push
   slim prompt under the header with an explicit enable control. The enable
   press requests permission, re-checks the session, calls `subscribePush`,
   records the marker, and announces the new row through
-  `sf-push-reconciled`. A denied permission suppresses the prompt but still
-  announces `pushDenied` in the persistent status region, with the
-  browser-settings hint; dismissing the prompt clears the marker so later
-  boots do not ask again.
+  `sf-push-reconciled`. The visible prompt copy is `aria-hidden`; the
+  persistent status region carries the single accessible copy (the
+  `<pager-status>` precedent), so a virtual cursor does not hear it twice. A
+  denied permission suppresses the prompt but still announces `pushDenied`
+  in that region, with the browser-settings hint; dismissing the prompt
+  clears the marker so later boots do not ask again.
 - **The global lifecycle owns the relay; the account settings section
   listens for `sf-push-reconciled`** and replaces its local row, so an off
   switch can never DELETE a row the browser no longer uses. The worker wraps its

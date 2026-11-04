@@ -318,7 +318,12 @@ describe("push-lifecycle", () => {
     expect(prompt?.getAttribute("aria-label")).toBe(
       catalog.notifications.pushTitle,
     );
-    expect(prompt?.querySelector(".push-heal-copy")?.textContent?.trim()).toBe(
+    const copy = prompt?.querySelector(".push-heal-copy");
+    expect(copy?.textContent?.trim()).toBe(catalog.notifications.pushHealBody);
+    // The persistent live region is the accessible copy; the visible copy is
+    // hidden from the accessibility tree so a virtual cursor reads it once.
+    expect(copy?.getAttribute("aria-hidden")).toBe("true");
+    expect(root(el).querySelector('[role="status"]')?.textContent?.trim()).toBe(
       catalog.notifications.pushHealBody,
     );
     expect(posts()).toHaveLength(0);

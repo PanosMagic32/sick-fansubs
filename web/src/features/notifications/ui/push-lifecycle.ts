@@ -315,7 +315,11 @@ export class PushLifecycle extends LitElement {
               class="push-heal"
               aria-label=${el.notifications.pushTitle}
             >
-              <p class="push-heal-copy">${el.notifications.pushHealBody}</p>
+              <!-- The persistent status region above is the accessible copy,
+                   so a virtual cursor reads the prompt once. -->
+              <p class="push-heal-copy" aria-hidden="true">
+                ${el.notifications.pushHealBody}
+              </p>
               ${
                 this._error
                   ? html`<p class="push-heal-error" role="alert">
