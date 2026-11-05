@@ -46,9 +46,10 @@ runs the shipped scripts (`backup-now.sh`, `daily-backup.sh`, `disk-check.sh`, `
 6. **The off-VPS leg is a write-only push.** `mega-put.sh` uploads the newest folder to
    `/sick-fansubs-backups/` on the dedicated backup-only Mega account. A failed push leaves the
    local unit published and exits non-zero; the recovery point is the time since the last
-   successful push. On success the script stamps `.last-push` in `~/sick-fansubs` with the UTC time —
-   that stamp is the readable form of the RPO (the `backups/` directory is container-owned, the
-   operator's home is what the script can write).
+   successful push. On success the script stamps `.last-push` in `~/sick-fansubs` with the UTC time
+   and the pushed folder — that stamp is the readable form of the RPO (the `backups/` directory is
+   container-owned, the operator's home is what the script can write). The push is bounded by
+   `MEGA_PUT_TIMEOUT` (20 minutes by default) so a hung MEGAcmd cannot hold the host lock forever.
 7. **Status is a glance, not a monitor.** `make backup-status` (local) or
    `docker compose --profile backup run --rm backup -status` (VPS) prints the newest published
    folder and its age; a missing `BACKUP_DIR` says so instead of reading as "no backups yet". Check
@@ -87,7 +88,10 @@ cron ─▶ daily-backup.sh ─▶ backup-now.sh (disk-check ─▶ stop app ─
 One-time bring-up, once per VPS lifetime:
 
 1. **age keypair** — on your own machine, never the VPS: `age-keygen -o sick-backups.key.txt`, and
-   store the private key with your other secrets. Losing it makes every backup unreadable.
+   store the private key with your other secrets. Losing it makes every backup unreadable. Verify
+   the public half matches before trusting the first unit: `age-keygen -y sick-backups.key.txt`
+   must equal the `AGE_RECIPIENT` written to `backup.env`. On rotation, keep the old private keys
+   for old units and record the recipient fingerprint with the unit.
 2. **`backup.env`** — on the VPS, `printf 'AGE_RECIPIENT=age1...\n' > backup.env && chmod 600
 backup.env` (the public key). The Compose `backup` service reads it as an optional `env_file`;
    without it the stack still starts but every backup fails closed, and deploys block on the

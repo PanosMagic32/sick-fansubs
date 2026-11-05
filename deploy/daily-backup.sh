@@ -30,8 +30,27 @@ fi
 
 # A restart failure must not swallow the already-published unit: record it,
 # still attempt the push, and exit non-zero reporting both.
+wait_app_healthy() {
+	i=0
+	while [ "$i" -lt 60 ]; do
+		status=$(docker compose ps --format '{{.Health}}' app) || {
+			echo "docker compose ps failed — see the compose error above" >&2
+			return 1
+		}
+		status=$(printf '%s\n' "$status" | head -n 1)
+		[ "$status" = "healthy" ] && return 0
+		i=$((i + 1))
+		sleep 2
+	done
+	echo "app did not become healthy within 120s" >&2
+	return 1
+}
+
 app_ok=1
 docker compose up -d || app_ok=0
+if [ "$app_ok" -eq 1 ] && ! wait_app_healthy; then
+	app_ok=0
+fi
 
 push_ok=1
 if ! sh mega-put.sh; then

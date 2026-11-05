@@ -226,7 +226,10 @@ fmt: go-fmt ## Format all code (Go only; frontend formatting is IDE-handled)
 
 lint: go-lint web-lint ## Run all lint checks (Go + frontend)
 
-check: go-vet go-fmt-check docs-lint workflow-lint web-typecheck web-test go-test ## Full CI check (lint + test)
+deploy-lint: ## Shell-syntax check the VPS deploy scripts
+	@sh -n deploy/*.sh
+
+check: go-vet go-fmt-check docs-lint workflow-lint deploy-lint web-typecheck web-build web-test go-test ## Full CI check (lint + build + test)
 
 check-all: go-vet go-fmt-check docs-lint workflow-lint web-typecheck web-test go-test-all ## Full CI check including integration tests
 

@@ -115,7 +115,8 @@ func readTableList(ctx context.Context, db *sql.DB) (map[string]tableInfo, error
 // verifyTableColumns checks one table's columns against the spec using
 // PRAGMA table_xinfo (cid, name, type, notnull, dflt_value, pk, hidden).
 func verifyTableColumns(ctx context.Context, db *sql.DB, table string, spec tableSpec) error {
-	rows, err := db.QueryContext(ctx, fmt.Sprintf("PRAGMA table_xinfo('%s')", table))
+	rows, err := db.QueryContext(ctx,
+		`SELECT cid, name, type, "notnull", dflt_value, pk, hidden FROM pragma_table_xinfo(?)`, table)
 	if err != nil {
 		return fmt.Errorf("schema: table %q: query table_xinfo: %w", table, err)
 	}
@@ -175,7 +176,8 @@ type foundIndex struct {
 // auto-indexes (PK and UNIQUE constraints) match by origin + uniqueness +
 // column set because their generated names are not part of the contract.
 func verifyIndexes(ctx context.Context, db *sql.DB, table string, spec tableSpec) error {
-	rows, err := db.QueryContext(ctx, fmt.Sprintf("PRAGMA index_list('%s')", table))
+	rows, err := db.QueryContext(ctx,
+		`SELECT seq, name, "unique", origin, partial FROM pragma_index_list(?)`, table)
 	if err != nil {
 		return fmt.Errorf("schema: table %q: query index_list: %w", table, err)
 	}
@@ -244,7 +246,8 @@ func verifyIndexes(ctx context.Context, db *sql.DB, table string, spec tableSpec
 // " DESC" suffix on descending columns (SQLite's index_xinfo desc flag) so
 // direction drift fails verification.
 func readIndexColumns(ctx context.Context, db *sql.DB, index string) ([]string, error) {
-	rows, err := db.QueryContext(ctx, fmt.Sprintf("PRAGMA index_xinfo('%s')", index))
+	rows, err := db.QueryContext(ctx,
+		`SELECT seqno, cid, name, "desc", coll, "key" FROM pragma_index_xinfo(?)`, index)
 	if err != nil {
 		return nil, fmt.Errorf("schema: index %q: query index_xinfo: %w", index, err)
 	}

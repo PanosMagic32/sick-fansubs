@@ -32,11 +32,33 @@ fails. The unit's shape and the backup triggers are [backup.md](backup.md)'s.
      ghcr.io/panosmagic32/sick-fansubs-restore:latest -backup /unit/sick-fansubs.db
    ```
 
-4. **After it exits 0: start, smoke, then clean.** `docker compose up -d`, check readiness and one
-   sign-in, and remove the retained `.quarantine-<millis>` rollback set once the restored stack is
-   verified. Start the tag paired with the restore image you ran — activation applies that image's
-   migration set. After a staged restore that recovers a failed deploy, that is the NEW tag
+   The command holds `.restore.lock` in the data directory for its whole run. A second invocation
+   while the first is live fails with "another restore is already running"; the marker remains the
+   crash-recovery record, not a liveness lock.
+
+4. **After it exits 0: rebuild search, start, smoke, then clean.** While the app is still stopped,
+   run the rebuildsearch image at the same tag as the restore image against the data volume:
+
+   ```sh
+   docker run --rm \
+     -v sick-fansubs_sick-data:/app/data \
+     -e DATA_DIR=/app/data \
+     ghcr.io/panosmagic32/sick-fansubs-rebuildsearch:<tag>
+   ```
+
+   Then `docker compose up -d`, check readiness and one sign-in, and remove the retained
+   `.quarantine-<millis>` rollback set once the restored stack is verified. The directory lives in
+   the data volume, so remove it with a volume one-off:
+
+   ```sh
+   docker run --rm -v sick-fansubs_sick-data:/app/data alpine \
+     sh -c 'ls -d /app/data/.quarantine-* && rm -rf /app/data/.quarantine-*'
+   ```
+
+   Start the tag paired with the restore image you ran — activation applies that image's migration
+   set. After a staged restore that recovers a failed deploy, that is the NEW tag
    (re-run the deploy), never the previous tag a rollback restored.
+
 5. **A media extraction failure after activation keeps the activated database and the marker.**
    The app stays fail-closed and prints a re-run instruction; fix the cause and re-run the same
    command. Extraction is idempotent and the run resumes.

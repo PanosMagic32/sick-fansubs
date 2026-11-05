@@ -91,6 +91,14 @@ func run(logger *slog.Logger, out io.Writer, backupPath string, acknowledge bool
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
+	// A second command must not resume a restore that is still running. The
+	// marker handles crash recovery; this lock handles liveness.
+	releaseLock, err := acquireRestoreLock(cfg.DataDir)
+	if err != nil {
+		return err
+	}
+	defer releaseLock()
+
 	// The database package builds file: URIs from the backup path
 	// (docs/patterns/go/sqlite.md), which requires an absolute path — a
 	// relative one errors with a cryptic "invalid uri authority". Absolutize

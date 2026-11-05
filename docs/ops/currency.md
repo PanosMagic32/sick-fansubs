@@ -22,8 +22,9 @@ doc owns the process that notices when they fall behind and the rules for bumpin
    (`bun outdated`) and bumped by hand.
 3. **A weekly report records drift and vulnerabilities.**
    [`.github/workflows/currency.yml`](../../.github/workflows/currency.yml) runs `go list -m -u
-all`, `govulncheck ./...`, and `bun outdated` every Monday. A security finding is triaged
-   immediately; ordinary drift queues for the next release. The report is a signal, not a merge.
+all`, `govulncheck ./...`, `bun outdated`, and `bun audit` every Monday. A security finding is
+   triaged immediately; ordinary drift queues for the next release. The report is a signal, not a
+   merge.
 4. **The VPS tooling is checked on the same cadence.** On the VPS: `docker version`, `docker
 compose version`, `apt list --upgradable`, and a look at each Dockerfile base image's upstream
    tag. Patch-level host upgrades are routine; a Docker Engine or Compose major bump is a planned
@@ -34,8 +35,8 @@ compose version`, `apt list --upgradable`, and a look at each Dockerfile base im
    (the root `AGENTS.md` rule 17 refresh procedure) in one commit.
 6. **`govulncheck` and the web audit live here.** `govulncheck` runs in the weekly workflow;
    `make deps-report` is the local drift list (Go modules + `bun outdated`) and runs no
-   vulnerability scan. The web advisory scan is added once the pinned Bun's audit command surface
-   is confirmed — until then `bun outdated` is the web signal.
+   vulnerability scan. The pinned Bun's `bun audit` surface is confirmed and runs in the same
+   weekly workflow; `bun outdated` remains the drift signal.
 
 ## Pattern
 
@@ -49,7 +50,7 @@ VPS check (same cadence) ─▶ docker/compose/apt/base images ─▶ planned bu
 
 - Local drift report: `make deps-report`.
 - Go vulnerability scan: `go run golang.org/x/vuln/cmd/govulncheck@latest ./...`.
-- Web drift: `cd web && bun outdated`.
+- Web drift and advisories: `cd web && bun outdated && bun audit`.
 - VPS: `docker version && docker compose version && apt list --upgradable`.
 
 ## Gotchas

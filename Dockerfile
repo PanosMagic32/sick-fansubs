@@ -6,10 +6,9 @@
 # │  Stage 3 (runtime):  Alpine + binary → serve        │
 # └─────────────────────────────────────────────────────┘
 #
-# BUILD WITH --target prod! The DEFAULT target is the LAST stage — which is
-# "dev" (hot-reload with air). A target-less `docker build` ships the dev
-# image: toolchain-sized (~280M) and air writes /app/tmp, which fails when
-# the container runs as non-root (v2 flight incident 2026-08-17).
+# The DEFAULT target is the LAST stage — production. Keep `prod` last: a
+# target-less `docker build` must never ship the toolchain-sized dev image
+# (hot-reload with air, which also writes /app/tmp and fails as non-root).
 # docker build --target prod --build-arg APP_VERSION=<bare-semver> -t sick-fansubs:<tag> .
 
 # ── Stage 1: Build Lit frontend ──────────────────────
@@ -39,6 +38,12 @@ COPY . .
 COPY --from=frontend /src/dist/ cmd/api/web/dist/
 RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${APP_VERSION}" -o main ./cmd/api/
 
+# ── Development stage (hot-reload with Air) ──────────
+FROM backend AS dev
+RUN go install github.com/air-verse/air@latest
+EXPOSE 8080
+CMD ["air", "-c", ".air.toml"]
+
 # ── Stage 3: Runtime ─────────────────────────────────
 FROM alpine:3.24 AS prod
 WORKDIR /app
@@ -63,9 +68,3 @@ ENV PORT=8080
 ENV DATA_DIR=/app/data
 
 CMD ["./main"]
-
-# ── Development stage (hot-reload with Air) ──────────
-FROM backend AS dev
-RUN go install github.com/air-verse/air@latest
-EXPOSE 8080
-CMD ["air", "-c", ".air.toml"]

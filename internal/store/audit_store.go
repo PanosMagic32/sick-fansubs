@@ -28,8 +28,13 @@ type AuditWriter struct {
 	Now func() time.Time
 }
 
-// Write persists one audit record.
+// Write persists one audit record. The insert is detached from the request
+// cancellation: an audited operation that committed must not lose its ledger
+// row when the client disconnects before the response is written.
 func (w *AuditWriter) Write(ctx context.Context, rec audit.Record) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+
 	eventID, err := id.New()
 	if err != nil {
 		return fmt.Errorf("store: audit event id: %w", err)

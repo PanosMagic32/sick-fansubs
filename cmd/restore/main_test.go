@@ -110,6 +110,25 @@ func markerPresent(t *testing.T, dataDir string) bool {
 // added), restore, and the observable outcomes — sessions gone, the
 // pre-backup media file restored from the tar, the post-backup file left
 // alone (extraction is additive), quarantine retained, summary printed.
+func TestAcquireRestoreLock_RefusesConcurrentRun(t *testing.T) {
+	dir := t.TempDir()
+	release, err := acquireRestoreLock(dir)
+	if err != nil {
+		t.Fatalf("first lock: %v", err)
+	}
+
+	if _, err := acquireRestoreLock(dir); err == nil {
+		t.Fatal("second lock succeeded; want a concurrent-run refusal")
+	}
+
+	release()
+	releaseAgain, err := acquireRestoreLock(dir)
+	if err != nil {
+		t.Fatalf("lock after release: %v", err)
+	}
+	releaseAgain()
+}
+
 func TestRun_RestoresBackupUnitAndMedia(t *testing.T) {
 	dir := testDataDir(t)
 	t.Setenv("DATA_DIR", dir)

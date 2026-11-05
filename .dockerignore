@@ -4,7 +4,11 @@
 .vscode
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
+backup.env
 main
 tmp
 dist
@@ -17,6 +21,13 @@ backups/
 .scratch/
 restore-unit
 drill-enc
+sick-drill
+sick-fansubs.db*
+*.age
+*.key
+*.tar
+*.tar.gz
+*.previous
 node_modules
 web/node_modules
 web/dist

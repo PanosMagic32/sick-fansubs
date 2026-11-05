@@ -20,12 +20,6 @@ on:
 permissions:
   contents: read
 
-# One deploy at a time: two tags pushed back to back must not race on the
-# VPS's single-writer migrate window.
-concurrency:
-  group: deploy
-  cancel-in-progress: false
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -54,7 +48,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@v7
         with:
-          go-version: "1.27.3"
+          go-version-file: go.mod
       - uses: oven-sh/setup-bun@v2
         with:
           # Keep in step with the oven/bun tag in the Dockerfile.
@@ -68,13 +62,16 @@ jobs:
         run: go run ./cmd/docslint
       - name: Workflow lint (make workflow-lint)
         run: go tool actionlint -shellcheck=
+      - name: Deploy script syntax
+        run: sh -n deploy/*.sh
       - name: Go tests
         run: go test ./internal/... ./cmd/... -count=1
-      - name: Web install/typecheck/tests
+      - name: Web install/typecheck/build/tests
         working-directory: web
         run: |
           bun install --frozen-lockfile
           bunx tsc --noEmit
+          bun run build
           bun test
 
   build:
@@ -84,7 +81,7 @@ jobs:
       contents: read
       packages: write
     # Degraded-cache headroom: with the gha cache backend down (ignore-error
-    # turns misses into rebuilds), five cold builds (modernc x4 + xcaddy) can
+    # turns misses into rebuilds), six cold builds (modernc x4 + xcaddy) can
     # approach 40 min.
     timeout-minutes: 60
     steps:
@@ -110,7 +107,7 @@ jobs:
           push: true
           # The gha cache backend + the Dockerfiles' cache mounts turn the
           # four modernc.org/sqlite compiles from minutes to seconds on a
-          # hit. One SHARED scope across the five sequential builds: the
+          # hit. One SHARED scope across the six sequential builds: the
           # cache keys are content-addressed, so sharing cannot cross-
           # contaminate, and modernc compiles once instead of four times.
           # ignore-error keeps the cache a pure optimization — a backend
@@ -155,6 +152,18 @@ jobs:
           tags: |
             ghcr.io/panosmagic32/sick-fansubs-restore:latest
             ghcr.io/panosmagic32/sick-fansubs-restore:${{ github.ref_name }}
+      - name: Build + push the rebuildsearch image (post-restore FTS backfill)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.rebuildsearch
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha,scope=sick-buildcache,ignore-error=true
+          cache-to: type=gha,scope=sick-buildcache,mode=max,ignore-error=true
+          tags: |
+            ghcr.io/panosmagic32/sick-fansubs-rebuildsearch:latest
+            ghcr.io/panosmagic32/sick-fansubs-rebuildsearch:${{ github.ref_name }}
       - name: Build + push the caddy image (Dockerfile.caddy — the Cloudflare DNS module; stock caddy lacks it)
         uses: docker/build-push-action@v7
         with:
@@ -171,6 +180,13 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # One deploy at a time: two tags pushed back to back must not race on the
+    # VPS's single-writer migrate window. Only the deploy job joins the group;
+    # test/build runs for every tag, and a queued deploy is never dropped by a
+    # test/build run.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
     # The owner-gated production deploy: this environment carries the owner
     # as a required reviewer, so the run pauses here before touching the VPS.
     environment: deploy-approval

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -150,6 +151,28 @@ func TestAuditWriter_PersistsRecord(t *testing.T) {
 	}
 	if createdAtMS != fixed.UnixMilli() {
 		t.Errorf("created_at_ms: got %d, want %d (the injected clock)", createdAtMS, fixed.UnixMilli())
+	}
+}
+
+func TestAuditWriter_SurvivesCanceledRequestContext(t *testing.T) {
+	db := openStoreDB(t)
+	w := &AuditWriter{DB: db}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := w.Write(ctx, audit.Record{
+		Event:  audit.EventRoleChanged,
+		Result: audit.ResultSuccess,
+	}); err != nil {
+		t.Fatalf("Write with canceled context: %v", err)
+	}
+
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_events`).Scan(&count); err != nil {
+		t.Fatalf("count audit rows: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("audit rows = %d, want 1 (the write must be detached from request cancellation)", count)
 	}
 }
 

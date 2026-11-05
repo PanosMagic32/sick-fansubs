@@ -26,6 +26,10 @@
 					delete token
 				}
 				request>headers>Referer delete
+				request>headers>Cookie delete
+				request>headers>X-CSRF-Token delete
+				request>headers>Authorization delete
+				resp_headers>Set-Cookie delete
 			}
 		}
 	}
@@ -76,6 +80,10 @@ sickfansubs.com {
 					delete token
 				}
 				request>headers>Referer delete
+				request>headers>Cookie delete
+				request>headers>X-CSRF-Token delete
+				request>headers>Authorization delete
+				resp_headers>Set-Cookie delete
 			}
 		}
 	}

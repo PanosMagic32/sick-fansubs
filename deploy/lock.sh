@@ -2,8 +2,8 @@
 # Serialize the backup and deploy triggers on one host lock.
 #
 # Sourced by the top-level scripts (deploy.sh, daily-backup.sh,
-# down.sh) after they cd to ~/sick-fansubs; backup-now.sh sources it too when
-# invoked directly. The lock guards the single-writer window: a cron backup,
+# down.sh, disk-cleanup.sh, mega-put.sh) after they cd to ~/sick-fansubs;
+# backup-now.sh sources it too when invoked directly. The lock guards the single-writer window: a cron backup,
 # a shutdown, and a deploy must never interleave their stop/migrate/up steps.
 #
 # A nested caller (deploy.sh -> backup-now.sh) exports SICK_LOCK_HELD=1

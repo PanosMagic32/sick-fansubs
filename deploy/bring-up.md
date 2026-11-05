@@ -16,7 +16,10 @@
 
 - **Local machine:** docker (+ buildx for `--platform` below) + this repo
   checkout, SSH access to the VPS.
-- **VPS:** Docker + Compose, ufw active, host port 443 free. ✓
+- **VPS:** Docker + Compose v2.24 or newer (`env_file.required`, `ps --format '{{.Health}}'`),
+  `curl`, `flock`, ufw active, host port 443 free. ✓
+- **VPS clock:** `sudo timedatectl set-timezone Europe/Berlin` — the cron and backup docs assume
+  this host timezone (03:00 Berlin = 04:00 Athens). Verify with `timedatectl`. ✓
 - **Cloudflare:** apex `sickfansubs.com` proxied with Full (strict); **"Always
   Use HTTPS" enabled** (Edge Certificates — plaintext HTTP is redirected at the
   edge and never reaches origin port 443); Zone:DNS:Edit API token created. No
@@ -120,25 +123,43 @@ The app REFUSES to start in production without it (fail-closed).
    and on again. Treat a rotation as a user-visible event, not a silent
    maintenance step.
 
+## 1a. Deployment account and CI
+
+The tag workflow deploys as a dedicated account. Record and verify each item once:
+
+- Create `sick-deploy`, give it Docker access, and make its home the stack directory owner. The
+  account must be able to run `docker compose` without sudo.
+- Authorize the CI deploy public key in `~sick-deploy/.ssh/authorized_keys`, restricted with
+  `from=` and `restrict`. Keep the private half only in the GitHub `DEPLOY_KEY` secret.
+- Record the VPS host-key fingerprint (the `[host]:port` known_hosts form when the port is not 22)
+  in the `DEPLOY_HOST_KEY` secret.
+- GitHub repository variables: `DEPLOY_PORT`, `DEPLOY_USER`, `PUBLIC_BASE_URL`. Repository secrets:
+  `DEPLOY_HOST`, `DEPLOY_KEY`, `DEPLOY_HOST_KEY`. The `deploy-approval` environment carries the
+  owner as required reviewer; keep the deploy secrets environment-scoped where GitHub supports it.
+- Confirm the account can run the host-side scripts (`flock`, `timeout`, `curl`, `mega-put`) and
+  that `~/sick-fansubs` is traversable by the container uid 1000.
+
 ## 2. Build the images (LOCAL machine)
 
 ```sh
 DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --target prod \
   --build-arg APP_VERSION=<version> -t ghcr.io/panosmagic32/sick-fansubs:<version> .
 DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -f Dockerfile.migrate -t ghcr.io/panosmagic32/sick-fansubs-migrate:latest .
+DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -f Dockerfile.rebuildsearch -t ghcr.io/panosmagic32/sick-fansubs-rebuildsearch:latest .
 docker build --platform linux/amd64 -f Dockerfile.caddy -t ghcr.io/panosmagic32/sick-fansubs-caddy:latest .
 docker save ghcr.io/panosmagic32/sick-fansubs:<version> | gzip > sick-fansubs-<version>.tar.gz
 docker save ghcr.io/panosmagic32/sick-fansubs-migrate:latest | gzip > sick-fansubs-migrate.tar.gz
+docker save ghcr.io/panosmagic32/sick-fansubs-rebuildsearch:latest | gzip > sick-fansubs-rebuildsearch.tar.gz
 docker save ghcr.io/panosmagic32/sick-fansubs-caddy:latest | gzip > sick-fansubs-caddy.tar.gz
-scp sick-fansubs-<version>.tar.gz sick-fansubs-migrate.tar.gz sick-fansubs-caddy.tar.gz <alias>:~/sick-fansubs/
+scp sick-fansubs-<version>.tar.gz sick-fansubs-migrate.tar.gz sick-fansubs-rebuildsearch.tar.gz sick-fansubs-caddy.tar.gz <alias>:~/sick-fansubs/
 ```
 
 **Tag every fallback image with the ghcr.io reference compose resolves** — the app at
 `ghcr.io/panosmagic32/sick-fansubs:${TAG}`, the auxiliaries at `:${AUX_TAG:-latest}`. A locally
 loaded bare name never matches compose's reference and the stack tries to pull.
 
-**REMEMBER `--target prod`** — the Dockerfile's default target is the dev/air
-stage. `APP_VERSION` is the BARE semver (no `v`
+**REMEMBER `--target prod`** — production is the Dockerfile's last stage, and the
+build contract stays explicit. `APP_VERSION` is the BARE semver (no `v`
 prefix — the footer adds it). `--platform linux/amd64` keeps the build correct
 even on an ARM workstation (no-op on amd64 hosts). The caddy image is
 **custom-built** — the stock `caddy:2-alpine` lacks `dns.providers.cloudflare`
@@ -150,12 +171,14 @@ and dies at config load with `module not registered`.
 cd ~/sick-fansubs
 gzip -dc sick-fansubs-<version>.tar.gz | docker load
 gzip -dc sick-fansubs-migrate.tar.gz | docker load
+gzip -dc sick-fansubs-rebuildsearch.tar.gz | docker load
 gzip -dc sick-fansubs-caddy.tar.gz | docker load
 ```
 
-**Precondition for the offline path:** the three fallback images above must be loaded under the
-exact ghcr.io references compose resolves (app `:${TAG}`, migrate and caddy
-`:${AUX_TAG:-latest}`). The backup and restore images are not built here — build them with their
+**Precondition for the offline path:** the fallback images above must be loaded under the exact
+ghcr.io references compose resolves (app `:${TAG}`, migrate and caddy `:${AUX_TAG:-latest}`). On an
+existing VPS, read `AUX_TAG` from `.env` first — a hardcoded `:latest` is correct only before the
+first successful deploy. The backup and restore images are not built here — build them with their
 Dockerfiles when the registry is unavailable.
 
 ## 4. Firewall: restrict 443 to Cloudflare edge IPs
@@ -272,8 +295,10 @@ API token) — give the first curl a few seconds.
 
 ## 7. Acceptance checks
 
-1. **Automatic TLS** — `curl -sI https://sickfansubs.com/` returns 200 with
-   `server: Caddy`; `docker compose logs caddy` shows
+1. **Automatic TLS** — `curl -sI --resolve sickfansubs.com:443:127.0.0.1
+https://sickfansubs.com/` returns 200 with `server: Caddy` at the origin;
+   the public `curl -sI https://sickfansubs.com/` is the Cloudflare edge
+   check (its `Server` header is rewritten); `docker compose logs caddy` shows
    `certificate obtained successfully` (the cert Cloudflare's Full-strict pull
    validated — that 200 itself is the proof; the cert Cloudflare presents to
    browsers is its own edge cert, so `curl -v` is not evidence about the
@@ -285,8 +310,8 @@ API token) — give the first curl a few seconds.
    curl -sk --max-time 8 -o /dev/null -w '%{http_code}\n' https://<vps-ip>:443/health/live
    ```
 
-   Must print **nothing** and exit with a timeout (exit code 28) — the DROP
-   rule silently discards. If it prints any HTTP status code (200, 404, …) the
+   `curl -w` prints `000` when no HTTP response arrives, so accept exit code
+   28 **and** `000` together. Any real status code (200, 404, …) means the
    gate is broken. From the VPS itself a connect + cert error is _expected_
    (that path is served by Docker's proxy, not the firewall) — it is not
    evidence either way.
@@ -299,7 +324,7 @@ API token) — give the first curl a few seconds.
 5. **Secrets** — `.env` is mode 600 and never left the VPS. The token appears
    only in the caddy container's env and `docker compose config` output on
    your owner-only host (expected by design — never paste either). Image
-   layers hold no secrets: `docker history sick-fansubs:<version> | grep -i
+   layers hold no secrets: `docker history ghcr.io/panosmagic32/sick-fansubs:<version> | grep -i
 token` prints nothing.
 6. **Data survives** — register an account → `docker compose up -d
 --force-recreate app` → sign in with it again.
@@ -316,13 +341,14 @@ token` prints nothing.
   the workflow tests, builds, deploys, health-gates, and probes the public
   edge. Never hand-edit a script on the VPS: every deploy ships the current
   files.
-- **Version pairing:** the workflow publishes migrate/backup/restore/caddy under `:latest` and the
-  version tag; the compose stack pins caddy/migrate/backup through `${AUX_TAG:-latest}` (written
-  beside `TAG` and reset on rollback by `deploy.sh`). Restore has no compose service — the
-  break-glass one-off rides `:latest`. The manual offline path rides the `:latest` default.
-- **Secret rotation:** edit the `SMTP_API_KEY` line in `.env`,
-  then `docker compose up -d` — Compose recreates the container and
-  re-mounts the secret. No image rebuild, no repo change, no CI. The
-  Cloudflare token's rotation order is deploy.md rule 5's.
+- **Version pairing:** the workflow publishes migrate/backup/restore/rebuildsearch/caddy under
+  `:latest` and the version tag; the compose stack pins caddy/migrate/backup through
+  `${AUX_TAG:-latest}` (written beside `TAG` and reset on rollback by `deploy.sh`). Restore and
+  rebuildsearch have no compose service — their one-offs use the same tag; the manual offline path
+  must load the aux images under the `AUX_TAG` value compose will resolve.
+- **Secret rotation:** edit the `SMTP_API_KEY` or `VAPID_PRIVATE_KEY` line in `.env`, then
+  `docker compose up -d --force-recreate app` — the app reads secrets only at startup, and compose
+  does not recreate the service when only a secret source changes. No image rebuild, no repo
+  change, no CI. The Cloudflare token's rotation order is deploy.md rule 5's.
 - **Full teardown:** `docker compose down -v` destroys the volumes — only with
   owner sign-off.
