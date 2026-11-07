@@ -103,6 +103,40 @@ func TestUpsertPushSubscription(t *testing.T) {
 	}
 }
 
+func TestUpsertPushSubscriptionForSession_RejectsRevokedSession(t *testing.T) {
+	t.Parallel()
+	db := openStoreDB(t)
+	ctx := t.Context()
+	mustCreateUser(t, db, "u1", "alice", "alice", "alice@example.com")
+	mustCreateUser(t, db, "u2", "bob", "bob", "bob@example.com")
+
+	digest, csrf := make([]byte, 32), make([]byte, 32)
+	digest[0] = 1
+	mustCreateSession(t, db, "sess1", "u1", digest, csrf, 1, 1000, 5000)
+
+	// A live session writes normally.
+	if _, err := UpsertPushSubscriptionForSession(ctx, db, "s1", "u1", "sess1", fakeEndpointA, fakeP256dh, fakeAuth, "", 1000); err != nil {
+		t.Fatalf("live session upsert: %v", err)
+	}
+
+	// An expired/revoked session must not write a row.
+	if _, err := UpsertPushSubscriptionForSession(ctx, db, "s2", "u1", "sess1", fakeEndpointB, fakeP256dh, fakeAuth, "", 6000); !errors.Is(err, ErrNotFound) {
+		t.Errorf("expired session: got %v, want ErrNotFound", err)
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM push_subscriptions WHERE endpoint = ?`, fakeEndpointB).Scan(&n); err != nil {
+		t.Fatalf("count rows: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("expired session wrote %d rows, want 0", n)
+	}
+
+	// A session owned by another user must not write for this user.
+	if _, err := UpsertPushSubscriptionForSession(ctx, db, "s3", "u2", "sess1", fakeEndpointB, fakeP256dh, fakeAuth, "", 1000); !errors.Is(err, ErrNotFound) {
+		t.Errorf("foreign session: got %v, want ErrNotFound", err)
+	}
+}
+
 // TestUpsertPushSubscriptionNoTakeover_RefusesForeignEndpoint pins the
 // background-heal contract: a write that did not ask for an explicit
 // takeover may not move another account's endpoint, and the conditional

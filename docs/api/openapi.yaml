@@ -245,10 +245,11 @@ paths:
       operationId: changePassword
       summary: Change password (revokes all sessions)
       description: >-
-        Verifies the current password and replaces it. Increments auth_version
-        and deletes all sessions atomically; the cookie is cleared and the user
-        must sign in again. Wrong current password returns the same generic 401
-        as sign-in. Body hard-limit 4 KiB (413 beyond).
+        Verifies the current password and replaces it. Increments auth_version,
+        deletes all sessions, and drops the account's push subscriptions
+        atomically; the cookie is cleared and the user must sign in again.
+        Wrong current password returns the same generic 401 as sign-in. Body
+        hard-limit 4 KiB (413 beyond).
       requestBody:
         required: true
         content:
@@ -257,7 +258,7 @@ paths:
               $ref: "#/components/schemas/PasswordChangeRequest"
       responses:
         "200":
-          description: Password changed — all sessions revoked, cookie cleared.
+          description: Password changed — all sessions revoked, push subscriptions dropped, cookie cleared.
           headers:
             Set-Cookie:
               description: >-
@@ -340,9 +341,9 @@ paths:
       summary: Consume a reset token and set a new password
       description: >-
         Consumes a single-use reset token and replaces the password. All
-        sessions for the account are revoked (auth_version bump) and the
-        cookie is cleared when the current session belongs to the reset
-        account. Allowed regardless of session state (CSRF applies when a
+        sessions for the account are revoked (auth_version bump), the
+        account's push subscriptions are dropped, and the cookie is cleared
+        when the current session belongs to the reset account. Allowed regardless of session state (CSRF applies when a
         session exists). A bad, expired, already-used, or suspended-account
         token answers the generic 422 /problems/auth/reset-token-invalid —
         no distinction (the token is the identity). Password-policy
@@ -358,7 +359,7 @@ paths:
               $ref: "#/components/schemas/ResetPasswordRequest"
       responses:
         "204":
-          description: Password changed — every session revoked, cookie cleared when applicable.
+          description: Password changed — every session revoked, push subscriptions dropped, cookie cleared when applicable.
           headers:
             Set-Cookie:
               description: >-
@@ -559,8 +560,8 @@ paths:
       description: >-
         The admin manual reset: generates a 16-character temp password,
         replaces the verifier, sets the forced-change flag, bumps
-        auth_version, and deletes the target's sessions and any in-flight
-        reset links atomically. The
+        auth_version, and deletes the target's sessions, push subscriptions,
+        and any in-flight reset links atomically. The
         plaintext returns ONCE (no-store) for out-of-band handover. Floor:
         admin+ with peer protection — admins may reset moderators and users
         only; super-admins may reset anyone including themselves. A blocked
@@ -571,7 +572,7 @@ paths:
         - $ref: "#/components/parameters/UserID"
       responses:
         "200":
-          description: Reset applied — temp password returned once.
+          description: Reset applied — temp password returned once; sessions and push subscriptions dropped.
           headers:
             X-Request-ID:
               $ref: "#/components/headers/RequestID"

@@ -103,8 +103,9 @@ type ResetPasswordWithTokenParams struct {
 //     (docs/patterns/go/sqlite.md rule 6: purpose-built conditional SQL and
 //     affected-row checks).
 //     3a. On the success path: DELETE the token row (RowsAffected must be 1 —
-//     a consistency assert on top of the CAS), delete all session rows
-//     (cleanup; the bump is the authoritative revocation), COMMIT.
+//     a consistency assert on top of the CAS), delete all session rows and
+//     the account's push subscriptions (cleanup; the bump is the authoritative
+//     revocation, and delivery is account-bound), COMMIT.
 //     3b. On the rejection path (suspended account or version mismatch):
 //     DELETE this token's row and COMMIT that deletion alone — a
 //     rejection still KILLS the link (suspension invalidates in-flight
@@ -197,6 +198,14 @@ func ResetPasswordWithToken(ctx context.Context, db *sql.DB, p ResetPasswordWith
 		`DELETE FROM sessions WHERE user_id = ?`, userID,
 	); err != nil {
 		return fmt.Errorf("store: reset delete sessions: %w", err)
+	}
+
+	// Push delivery is account-bound: the revoked sessions must not leave
+	// rows behind that keep delivering until a dead-endpoint report arrives.
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM push_subscriptions WHERE user_id = ?`, userID,
+	); err != nil {
+		return fmt.Errorf("store: reset delete push subscriptions: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

@@ -7,10 +7,13 @@ import (
 )
 
 // UpdatePasswordAndRevokeSessions atomically updates the password hash,
-// increments auth_version, deletes all sessions for the user, and removes
-// any active reset tokens in a single transaction. Used by password change;
-// the token deletion follows the rule that ANY password change kills
-// in-flight reset links (the new password wins).
+// increments auth_version, deletes all sessions for the user, removes any
+// active reset tokens, and drops the user's push subscriptions in a single
+// transaction. Used by password change; the token deletion follows the rule
+// that ANY password change kills in-flight reset links (the new password
+// wins). Push delivery is account-bound, so a password change stops it on
+// every device rather than leaving rows that can only be reclaimed by a
+// later dead-endpoint report.
 //
 // Returns ErrAuthVersionMismatch if the version no longer matches.
 // Returns ErrNotFound if the user does not exist.
@@ -61,6 +64,14 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 		return fmt.Errorf("store: delete reset tokens: %w", err)
 	}
 
+	// Push subscriptions are account-bound: every session just died, so the
+	// rows that would deliver to those sessions' devices die with them. A
+	// device reopening the app re-registers its still-live browser
+	// subscription through the background reconcile.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM push_subscriptions WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("store: delete push subscriptions: %w", err)
+	}
+
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit: %w", err)
 	}
@@ -69,7 +80,8 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 
 // ResetUserPassword atomically replaces the user's password verifier with
 // the admin-generated temp password, sets the forced-change flag, bumps
-// auth_version, and deletes all of the target's sessions.
+// auth_version, deletes all of the target's sessions, drops the target's
+// push subscriptions, and removes in-flight reset links.
 //
 // Unlike UpdatePasswordAndRevokeSessions there is NO auth_version CAS: the
 // reset is an admin action against an account whose credentials may be
@@ -85,6 +97,8 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 //  2. DELETE all session rows for the target (idempotent).
 //  3. DELETE any reset-token rows for the target (an admin
 //     reset kills in-flight self-reset links).
+//  4. DELETE the target's push subscriptions (the sessions carrying them
+//     are gone; a re-login re-registers a still-live browser subscription).
 //
 // bcrypt runs in the service BEFORE this store call — never inside the
 // write transaction.
@@ -119,6 +133,10 @@ func ResetUserPassword(ctx context.Context, db *sql.DB, userID string, newHash s
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM password_reset_tokens WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("store: reset delete reset tokens: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM push_subscriptions WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("store: reset delete push subscriptions: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

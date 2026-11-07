@@ -317,6 +317,7 @@ func TestResetUserPassword_Success(t *testing.T) {
 	ctx := t.Context()
 
 	mustCreateUser(t, db, "user_01", "Katakuri", "katakuri", "k@example.com")
+	mustCreateUser(t, db, "user_02", "Eleni", "eleni", "e@example.com")
 
 	// Two live sessions before the reset.
 	d1, c1 := make([]byte, 32), make([]byte, 32)
@@ -324,6 +325,15 @@ func TestResetUserPassword_Success(t *testing.T) {
 	d1[0], d2[0] = 1, 2
 	mustCreateSession(t, db, "sess_01", "user_01", d1, c1, 1, 5000, 5000+7*24*3600*1000)
 	mustCreateSession(t, db, "sess_02", "user_01", d2, c2, 1, 5000, 5000+7*24*3600*1000)
+
+	// Push rows are account-bound: the reset drops the target's rows and
+	// leaves another account's row alone.
+	if _, err := UpsertPushSubscription(ctx, db, "push_01", "user_01", "https://push.example.com/a", "p", "a", "", 5000); err != nil {
+		t.Fatalf("seed push subscription: %v", err)
+	}
+	if _, err := UpsertPushSubscription(ctx, db, "push_02", "user_02", "https://push.example.com/b", "p", "a", "", 5000); err != nil {
+		t.Fatalf("seed other push subscription: %v", err)
+	}
 
 	err := ResetUserPassword(ctx, db, "user_01", "$2a$12$...temp-hash...", 2000)
 	if err != nil {
@@ -353,6 +363,21 @@ func TestResetUserPassword_Success(t *testing.T) {
 			t.Errorf("session should be deleted by the reset: %v", err)
 		}
 	}
+
+	subs, err := ListPushSubscriptions(ctx, db, "user_01")
+	if err != nil {
+		t.Fatalf("ListPushSubscriptions: %v", err)
+	}
+	if len(subs) != 0 {
+		t.Errorf("reset must drop the target's push rows, got %d", len(subs))
+	}
+	other, err := ListPushSubscriptions(ctx, db, "user_02")
+	if err != nil {
+		t.Fatalf("ListPushSubscriptions other: %v", err)
+	}
+	if len(other) != 1 {
+		t.Errorf("another account's push row must survive, got %d", len(other))
+	}
 }
 
 func TestResetUserPassword_NotFound(t *testing.T) {
@@ -372,6 +397,7 @@ func TestUpdatePasswordAndRevokeSessions_ClearsForcedFlag(t *testing.T) {
 	ctx := t.Context()
 
 	mustCreateUser(t, db, "user_01", "Katakuri", "katakuri", "k@example.com")
+	mustCreateUser(t, db, "user_02", "Eleni", "eleni", "e@example.com")
 
 	// Set the flag through the reset path (the realistic sequence), then
 	// clear it through the password-change path — the forced change is the
@@ -379,6 +405,12 @@ func TestUpdatePasswordAndRevokeSessions_ClearsForcedFlag(t *testing.T) {
 	// transaction as the verifier swap.
 	if err := ResetUserPassword(ctx, db, "user_01", "$2a$12$...temp...", 2000); err != nil {
 		t.Fatalf("ResetUserPassword: %v", err)
+	}
+	if _, err := UpsertPushSubscription(ctx, db, "push_01", "user_01", "https://push.example.com/a", "p", "a", "", 2500); err != nil {
+		t.Fatalf("seed push subscription: %v", err)
+	}
+	if _, err := UpsertPushSubscription(ctx, db, "push_02", "user_02", "https://push.example.com/b", "p", "a", "", 2500); err != nil {
+		t.Fatalf("seed other push subscription: %v", err)
 	}
 	if err := UpdatePasswordAndRevokeSessions(ctx, db, "user_01", "$2a$12$...final...", 2, 3000); err != nil {
 		t.Fatalf("UpdatePasswordAndRevokeSessions: %v", err)
@@ -396,6 +428,21 @@ func TestUpdatePasswordAndRevokeSessions_ClearsForcedFlag(t *testing.T) {
 	}
 	if u.AuthVersion != 3 {
 		t.Errorf("auth_version: got %d, want 3", u.AuthVersion)
+	}
+
+	subs, err := ListPushSubscriptions(ctx, db, "user_01")
+	if err != nil {
+		t.Fatalf("ListPushSubscriptions: %v", err)
+	}
+	if len(subs) != 0 {
+		t.Errorf("password change must drop the user's push rows, got %d", len(subs))
+	}
+	otherSubs, err := ListPushSubscriptions(ctx, db, "user_02")
+	if err != nil {
+		t.Fatalf("ListPushSubscriptions other: %v", err)
+	}
+	if len(otherSubs) != 1 {
+		t.Errorf("another account's push row must survive, got %d", len(otherSubs))
 	}
 }
 

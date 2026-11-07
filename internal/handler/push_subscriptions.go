@@ -95,7 +95,9 @@ type pushSubscriptionItemDTO struct {
 // instead. The row's device label is captured from THIS request's
 // User-Agent through the sessions classifier (the raw header is never
 // stored); a resubscribe keeps an existing label and only fills a missing
-// one, so a rename survives the browser's rotation healing.
+// one, so a rename survives the browser's rotation healing. The store
+// re-checks the caller's session inside the write transaction, so a
+// concurrent password change/sign-out cannot leave a row behind.
 func PushSubscriptionCreate(db *sql.DB, now func() time.Time) http.HandlerFunc {
 	if now == nil {
 		now = time.Now
@@ -119,16 +121,16 @@ func PushSubscriptionCreate(db *sql.DB, now func() time.Time) http.HandlerFunc {
 		// persistence must agree on the value (the send path uses the
 		// stored copy verbatim).
 		endpoint := strings.TrimSpace(req.Endpoint)
-		upsert := store.UpsertPushSubscriptionNoTakeover
+		upsert := store.UpsertPushSubscriptionNoTakeoverForSession
 		if req.Takeover {
-			upsert = store.UpsertPushSubscription
+			upsert = store.UpsertPushSubscriptionForSession
 		}
 		storedID, err := mintRetry(func() (string, error) {
 			newID, err := id.New()
 			if err != nil {
 				return "", fmt.Errorf("%w: %v", errIDMint, err)
 			}
-			return upsert(r.Context(), db, newID, su.UserID,
+			return upsert(r.Context(), db, newID, su.UserID, su.SessionID,
 				endpoint, req.Keys.P256dh, req.Keys.Auth, auth.ClientLabel(r.UserAgent()), now().UnixMilli())
 		})
 		if errors.Is(err, errIDMint) {

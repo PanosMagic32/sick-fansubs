@@ -57,8 +57,15 @@ func TestResetPasswordWithToken_Success(t *testing.T) {
 	ctx := t.Context()
 
 	u := insertUser(t, db, "pwuser", "pw@example.com", "active", 3)
+	other := insertUser(t, db, "otheruser", "other@example.com", "active", 1)
 	if err := seedSession(t, db, u, 3); err != nil {
 		t.Fatalf("seed session: %v", err)
+	}
+	if _, err := UpsertPushSubscription(ctx, db, "push_01", u, "https://push.example.com/reset-a", "p", "a", "", nowMS()); err != nil {
+		t.Fatalf("seed push subscription: %v", err)
+	}
+	if _, err := UpsertPushSubscription(ctx, db, "push_02", other, "https://push.example.com/reset-b", "p", "a", "", nowMS()); err != nil {
+		t.Fatalf("seed other push subscription: %v", err)
 	}
 	d := digestOf([]byte("good-token-good-token-good-token-00"))
 	now := nowMS()
@@ -103,6 +110,23 @@ func TestResetPasswordWithToken_Success(t *testing.T) {
 	}
 	if n != 0 {
 		t.Errorf("%d sessions remain, want 0", n)
+	}
+
+	// Push delivery is account-bound: the reset drops the target's rows and
+	// leaves another account's row alone.
+	subs, err := ListPushSubscriptions(ctx, db, u)
+	if err != nil {
+		t.Fatalf("ListPushSubscriptions: %v", err)
+	}
+	if len(subs) != 0 {
+		t.Errorf("reset must drop the target's push rows, got %d", len(subs))
+	}
+	otherSubs, err := ListPushSubscriptions(ctx, db, other)
+	if err != nil {
+		t.Fatalf("ListPushSubscriptions other: %v", err)
+	}
+	if len(otherSubs) != 1 {
+		t.Errorf("another account's push row must survive, got %d", len(otherSubs))
 	}
 }
 
@@ -224,6 +248,9 @@ func TestResetPasswordWithToken_SuspendedAccountRejected(t *testing.T) {
 	if err := CreateResetToken(ctx, db, CreateResetTokenParams{TokenDigest: d, UserID: u, CreatedAtMS: now, ExpiresAtMS: now + 1000}); err != nil {
 		t.Fatalf("CreateResetToken: %v", err)
 	}
+	if _, err := UpsertPushSubscription(ctx, db, "push_susp", u, "https://push.example.com/susp", "p", "a", "", now); err != nil {
+		t.Fatalf("seed push subscription: %v", err)
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte("whatever-123"), bcrypt.MinCost)
 	if err != nil {
 		t.Fatalf("bcrypt: %v", err)
@@ -245,6 +272,15 @@ func TestResetPasswordWithToken_SuspendedAccountRejected(t *testing.T) {
 	}
 	if user.AuthVersion != 5 {
 		t.Errorf("auth_version changed on rejected reset: %d", user.AuthVersion)
+	}
+	// The rejected path commits only the token deletion; the account's push
+	// row must survive because the password was not changed.
+	subs, err := ListPushSubscriptions(ctx, db, u)
+	if err != nil {
+		t.Fatalf("ListPushSubscriptions: %v", err)
+	}
+	if len(subs) != 1 {
+		t.Errorf("rejected reset must keep the push row, got %d", len(subs))
 	}
 }
 

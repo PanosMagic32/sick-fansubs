@@ -46,6 +46,19 @@ func setupPushHandlers(t *testing.T) (*sql.DB, http.Handler) {
 	} {
 		storetest.InsertUser(t, db, u)
 	}
+	for i, userID := range []string{"viewer", "plain"} {
+		if err := store.CreateSession(t.Context(), db, store.CreateSessionParams{
+			ID:          "sess_" + userID,
+			UserID:      userID,
+			TokenDigest: bytes.Repeat([]byte{byte(i + 1)}, 32),
+			CSRF:        bytes.Repeat([]byte{byte(i + 10)}, 32),
+			AuthVersion: 1,
+			CreatedAtMS: 1000,
+			ExpiresAtMS: 60_000,
+		}); err != nil {
+			t.Fatalf("seed session for %s: %v", userID, err)
+		}
+	}
 
 	mux := http.NewServeMux()
 	now := func() time.Time { return time.Unix(5, 0) }
@@ -71,7 +84,7 @@ func pushAuthedReq(method, path, userID, body string) *http.Request {
 			role = "user"
 		}
 		req = req.WithContext(middleware.SetSession(req.Context(), &identity.SessionUser{
-			SessionID: "s1",
+			SessionID: "sess_" + userID,
 			UserID:    userID,
 			Username:  userID,
 			Role:      role,
@@ -193,6 +206,27 @@ func TestPushSubscriptionCreateAndList(t *testing.T) {
 	// No query parameters are accepted (the documented 400).
 	if rec := servePush(mux, pushAuthedReq("GET", "/api/v1/push-subscriptions?limit=1", "viewer", "")); rec.Code != http.StatusBadRequest {
 		t.Errorf("list with a query: status = %d, want 400", rec.Code)
+	}
+}
+
+func TestPushSubscriptionCreate_RevokedSession(t *testing.T) {
+	db, mux := setupPushHandlers(t)
+
+	// The middleware saw a session, but it was revoked before the write
+	// transaction: the store re-check refuses the insert.
+	if _, err := db.Exec(`DELETE FROM sessions WHERE user_id = 'viewer'`); err != nil {
+		t.Fatalf("revoke session: %v", err)
+	}
+	rec := servePush(mux, pushAuthedReq("POST", "/api/v1/push-subscriptions", "viewer", realSubscriptionBody()))
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("revoked-session create: status = %d, want 401 (body %s)", rec.Code, rec.Body.String())
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM push_subscriptions`).Scan(&n); err != nil {
+		t.Fatalf("count rows: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("revoked-session create wrote %d rows, want 0", n)
 	}
 }
 

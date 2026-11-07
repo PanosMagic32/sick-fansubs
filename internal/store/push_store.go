@@ -72,7 +72,20 @@ type PushSubscriptionKeys struct {
 // the user's own data, and the browser's rotation healing must not overwrite
 // it.
 func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64) (storedID string, err error) {
-	return upsertPushSubscription(ctx, db, id, userID, endpoint, p256dh, auth, label, createdAtMS, true)
+	return upsertPushSubscription(ctx, db, id, userID, "", endpoint, p256dh, auth, label, createdAtMS, true)
+}
+
+// UpsertPushSubscriptionForSession is [UpsertPushSubscription] with the
+// caller's session re-checked inside the write transaction. The HTTP request
+// path uses this form: a password change or sign-out can revoke the session
+// between the middleware check and this insert, and the row must not outlive
+// the revocation. A revoked session answers ErrNotFound (the handler maps it
+// to the generic 401).
+func UpsertPushSubscriptionForSession(ctx context.Context, db *sql.DB, id, userID, sessionID, endpoint, p256dh, auth, label string, createdAtMS int64) (storedID string, err error) {
+	if sessionID == "" {
+		return "", fmt.Errorf("store: push subscription session required: %w", ErrNotFound)
+	}
+	return upsertPushSubscription(ctx, db, id, userID, sessionID, endpoint, p256dh, auth, label, createdAtMS, true)
 }
 
 // UpsertPushSubscriptionNoTakeover is [UpsertPushSubscription] without the
@@ -82,15 +95,40 @@ func UpsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoin
 // uses this form, so a stale tab writing with a newer session cookie cannot
 // move another account's device.
 func UpsertPushSubscriptionNoTakeover(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64) (storedID string, err error) {
-	return upsertPushSubscription(ctx, db, id, userID, endpoint, p256dh, auth, label, createdAtMS, false)
+	return upsertPushSubscription(ctx, db, id, userID, "", endpoint, p256dh, auth, label, createdAtMS, false)
 }
 
-func upsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, endpoint, p256dh, auth, label string, createdAtMS int64, allowTakeover bool) (storedID string, err error) {
+// UpsertPushSubscriptionNoTakeoverForSession is
+// [UpsertPushSubscriptionNoTakeover] with the same in-transaction session
+// guard as [UpsertPushSubscriptionForSession]. The background heal path uses
+// this form.
+func UpsertPushSubscriptionNoTakeoverForSession(ctx context.Context, db *sql.DB, id, userID, sessionID, endpoint, p256dh, auth, label string, createdAtMS int64) (storedID string, err error) {
+	if sessionID == "" {
+		return "", fmt.Errorf("store: push subscription session required: %w", ErrNotFound)
+	}
+	return upsertPushSubscription(ctx, db, id, userID, sessionID, endpoint, p256dh, auth, label, createdAtMS, false)
+}
+
+func upsertPushSubscription(ctx context.Context, db *sql.DB, id, userID, sessionID, endpoint, p256dh, auth, label string, createdAtMS int64, allowTakeover bool) (storedID string, err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return "", fmt.Errorf("store: begin push subscription upsert: %w", err)
 	}
 	defer rollbackTx(tx, &err)
+
+	if sessionID != "" {
+		var alive int
+		err := tx.QueryRowContext(ctx,
+			`SELECT 1 FROM sessions WHERE id = ? AND user_id = ? AND expires_at_ms > ?`,
+			sessionID, userID, createdAtMS,
+		).Scan(&alive)
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("store: push subscription session revoked: %w", ErrNotFound)
+		}
+		if err != nil {
+			return "", fmt.Errorf("store: check push subscription session: %w", err)
+		}
+	}
 
 	if allowTakeover {
 		// Reassign before the insert so the UNIQUE endpoint can never collide
