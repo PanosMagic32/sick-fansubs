@@ -14,6 +14,7 @@ Static "Η ομάδα" page at `/about`. No data fetching, no states, no API —
 - URLs, labels, tones, and order come from the shared `COMMUNITY_LINKS` list in `shared/config/links.ts`; the footer's social row derives from the same list, so the two surfaces cannot drift. The sentence prefixes/suffixes stay in `el.about.*`. Per-environment link config is deferred future work.
 - External anchors carry `target="_blank" rel="noopener noreferrer"` and append the shared `el.nav.opensInNewTab` suffix in an `sr-only` span — the app-shell interceptor passes any `target` link through natively.
 - The link text uses `--sf-link-on-tint` and a default underline: the light-theme accent drops below 4.5:1 on the brand tints, and color alone must never be the only cue that a sentence contains a link.
+- The decorative `›` row marker is a real `.link-marker` span with `aria-hidden="true"`, never generated `::before` content — some accessibility APIs expose generated text and it cannot opt out.
 
 ## Authoritative docs
 
