@@ -1,6 +1,6 @@
-/* Search page — single-column merged results under the shell's
-   default 48rem route cap. The result rows are the shared content-card's ROW
-   shape; this sheet owns only the form, the list spacing, and the states. */
+/* Search page — single-column merged results under the wide route's 80rem
+   cap. The result rows are the shared content-card's ROW shape; this sheet
+   owns only the form, the list spacing, and the states. */
 
 .search-form {
     display: flex;

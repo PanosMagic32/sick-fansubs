@@ -137,10 +137,10 @@ function text(root: HTMLElement, selector: string): string {
 }
 
 /** The shared pager-nav's shadow root (rendered by the success state). */
-function pagerRoot(page: BlogListPage): HTMLElement {
+function pagerRoot(page: BlogListPage): ShadowRoot {
   const pager = root(page).querySelector("pager-nav");
   if (!pager) throw new Error("pager-nav not rendered");
-  return pager.shadowRoot as unknown as HTMLElement;
+  return pager.shadowRoot as unknown as ShadowRoot;
 }
 
 /** The pager's chip buttons in DOM order: [Previous, Next]. */
@@ -223,8 +223,8 @@ describe("blog-list-page", () => {
     expect(grid[0]?.headingLevel).toBe(3);
     expect(urls[0]).toBe("/api/v1/blog-posts?limit=10");
     // Page 1: Previous disabled (no marker), Next live.
-    expect(pagerButtons(page)[0]?.disabled).toBe(true);
-    expect(pagerButtons(page)[1]?.disabled).toBe(false);
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("true");
+    expect(pagerButtons(page)[1]?.getAttribute("aria-disabled")).toBe("false");
 
     // Next: the continuation cursor rides the URL — no load-more.
     pagerButtons(page)[1]!.dispatchEvent(new Event("click", { bubbles: true }));
@@ -242,19 +242,53 @@ describe("blog-list-page", () => {
     expect(
       pagerRoot(page).querySelector(".page-status")?.textContent?.trim(),
     ).toBe(pagerPageOf(2, 2));
-    // The persistent live region carries the same sentence: the pager itself
-    // unmounts during a load, so this element is what announces the turn.
+    // The persistent live region carries the same sentence: the pager stays
+    // mounted during a load, and this element announces the turn.
     const live = root(page).querySelector("pager-status");
     expect(
       live?.shadowRoot?.querySelector('[role="status"]')?.textContent?.trim(),
     ).toBe(pagerPageOf(2, 2));
     // Previous is now enabled (hasNextPage=false disables Next).
     const buttons = pagerButtons(page);
-    expect(buttons[0]?.disabled).toBe(false);
-    expect(buttons[1]?.disabled).toBe(true);
+    expect(buttons[0]?.getAttribute("aria-disabled")).toBe("false");
+    expect(buttons[1]?.getAttribute("aria-disabled")).toBe("true");
     // The page-turn chips are arrow-only; the catalog words moved to the
     // accessible name.
     expect(buttons[0]?.getAttribute("aria-label")).toBe(el.ui.prevPage);
+  });
+
+  test("a page turn keeps the pager mounted and the pressed control focused", async () => {
+    let resolveSecond!: (r: { status: number; body: unknown }) => void;
+    stubFetch(async (url) => {
+      if (url.includes("after=")) {
+        return new Promise((resolve) => {
+          resolveSecond = resolve;
+        });
+      }
+      return { status: 200, body: pageBody(posts(10), true, "v1.abc", 22) };
+    });
+
+    const page = await renderPage();
+    const next = pagerButtons(page)[1]!;
+    next.focus();
+    next.dispatchEvent(new Event("click", { bubbles: true }));
+    await page.updateComplete;
+
+    // The pager the press came from is still in the DOM; the busy state is
+    // exposed without a `disabled` attribute that would blur its button.
+    expect(root(page).querySelector("pager-nav")).not.toBeNull();
+    expect(next.getAttribute("aria-disabled")).toBe("true");
+    expect(pagerRoot(page).activeElement).toBe(next);
+
+    resolveSecond({
+      status: 200,
+      body: pageBody(posts(10, 10), true, "v1.def", 22),
+    });
+    await flush(page);
+
+    // Still the same focused control after the new page renders.
+    expect(pagerButtons(page)[1]?.getAttribute("aria-disabled")).toBe("false");
+    expect(pagerRoot(page).activeElement).toBe(pagerButtons(page)[1]!);
   });
 
   test("mounting directly on a cursor page renders grid-only and hides Previous", async () => {
@@ -273,8 +307,8 @@ describe("blog-list-page", () => {
     // Previous must stay DISABLED: a shared/deep-linked URL has no sfPager
     // marker (history.back() would leave the app — same contract as
     // search). Next is disabled too (hasNextPage=false).
-    expect(pagerButtons(page)[0]?.disabled).toBe(true);
-    expect(pagerButtons(page)[1]?.disabled).toBe(true);
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("true");
+    expect(pagerButtons(page)[1]?.getAttribute("aria-disabled")).toBe("true");
   });
 
   test("after a refresh on a cursor page, Previous stays available (the state marker persists)", async () => {
@@ -289,7 +323,7 @@ describe("blog-list-page", () => {
     const page = await renderPage();
     pagerButtons(page)[1]!.dispatchEvent(new Event("click", { bubbles: true }));
     await flush(page);
-    expect(pagerButtons(page)[0]?.disabled).toBe(false); // previous live
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("false"); // previous live
     page.remove();
 
     // "Refresh": a NEW page instance mounts on the same cursor URL.
@@ -297,8 +331,12 @@ describe("blog-list-page", () => {
     // too — Previous must remain enabled.
     const refreshed = await renderPage("?limit=10&after=v1.abc");
     expect(cards(refreshed).every((card) => card.shape === "grid")).toBe(true);
-    expect(pagerButtons(refreshed)[0]?.disabled).toBe(false);
-    expect(pagerButtons(refreshed)[1]?.disabled).toBe(true);
+    expect(pagerButtons(refreshed)[0]?.getAttribute("aria-disabled")).toBe(
+      "false",
+    );
+    expect(pagerButtons(refreshed)[1]?.getAttribute("aria-disabled")).toBe(
+      "true",
+    );
   });
 
   test("changing the page size restarts at the first page with the new size", async () => {

@@ -96,7 +96,6 @@ export class BlogListPage extends LitElement {
     const controller = new AbortController();
     this._abort = controller;
     this.status = "loading";
-    this.total = 0;
 
     try {
       const page = await listBlogPosts(
@@ -162,6 +161,23 @@ export class BlogListPage extends LitElement {
         .limit=${this.paging.limit}
       ></pager-status>
       ${this._stateTemplate()}
+      ${
+        this.items.length > 0 &&
+        (this.status === "loading" || this.status === "success")
+          ? html`<pager-nav
+              ?hasPrevious=${this.paging.hasPrevious}
+              ?hasNext=${this.hasNextPage}
+              ?busy=${this.status === "loading"}
+              .limit=${this.paging.limit}
+              .page=${this.paging.page}
+              .total=${this.total}
+              .limits=${PAGE_SIZES}
+              @sf-pager-prev=${this._onPrevClick}
+              @sf-pager-next=${this._onNextClick}
+              @sf-limit-change=${this._onLimitChange}
+            ></pager-nav>`
+          : ""
+      }
     `;
   }
 
@@ -245,18 +261,6 @@ export class BlogListPage extends LitElement {
           `,
         )}
       </ul>
-
-      <pager-nav
-        ?hasPrevious=${this.paging.hasPrevious}
-        ?hasNext=${this.hasNextPage}
-        .limit=${this.paging.limit}
-        .page=${this.paging.page}
-        .total=${this.total}
-        .limits=${PAGE_SIZES}
-        @sf-pager-prev=${this._onPrevClick}
-        @sf-pager-next=${this._onNextClick}
-        @sf-limit-change=${this._onLimitChange}
-      ></pager-nav>
     `;
   }
 }

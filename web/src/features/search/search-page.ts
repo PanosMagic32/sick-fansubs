@@ -22,11 +22,11 @@
  * UrlCursorPagingController (shared/utils/url-cursor-paging.ts); the page
  * owns its query/type/sort/window params and the load itself.
  *
- * The merged list is single-column under the shell's default 48rem cap;
- * each item is the shared content-card ROW shape (roomy geometry, with the
- * visible type badge as its badge input) and links to its detail route.
- * thumbnailUrl is null-guarded — the API emits null for masked values,
- * never "".
+ * The merged list is single-column under the wide route's 80rem cap (the
+ * /search route carries `wide-route`); each item is the shared content-card
+ * ROW shape (roomy geometry, with the visible type badge as its badge input)
+ * and links to its detail route. thumbnailUrl is null-guarded — the API emits
+ * null for masked values, never "".
  */
 
 import { html, LitElement, nothing, unsafeCSS } from "lit";
@@ -129,6 +129,11 @@ export class SearchPage extends LitElement {
   @state() private total = 0;
   @state() private errorMessage = "";
 
+  /** Text for the persistent result live region. Set after a completed load
+   * (the empty-result outcome is a post-action status, so it cannot be a
+   * region mounted together with its text). */
+  @state() private resultStatus = "";
+
   /** In-flight request controller — aborted on teardown or newer loads. */
   private _abort: AbortController | null = null;
 
@@ -199,11 +204,19 @@ export class SearchPage extends LitElement {
     if (select && select.value !== this.sort) select.value = this.sort;
 
     const root = this.renderRoot as ShadowRoot;
+    // happy-dom's shadow-root activeElement traversal throws when focus points
+    // at a detached node; browsers never do. Treat an unreadable focus as none.
+    let focused: Element | null = null;
+    try {
+      focused = root.activeElement;
+    } catch {
+      focused = null;
+    }
     for (const input of root.querySelectorAll<HTMLInputElement>(
       'input[type="date"]',
     )) {
       const want = input.name === "from" ? this.from : this.to;
-      if (input !== root.activeElement && input.value !== want) {
+      if (input !== focused && input.value !== want) {
         input.value = want;
       }
     }
@@ -339,7 +352,7 @@ export class SearchPage extends LitElement {
     const controller = new AbortController();
     this._abort = controller;
     this.status = "loading";
-    this.total = 0;
+    this.resultStatus = "";
 
     try {
       const page = await searchContent(
@@ -359,6 +372,7 @@ export class SearchPage extends LitElement {
       this.hasNextPage = page.pageInfo.hasNextPage;
       this.endCursor = page.pageInfo.endCursor;
       this.total = page.pageInfo.total;
+      this.resultStatus = page.items.length === 0 ? el.search.empty : "";
       this.status = "success";
       // A page turn starts at the top; popstate-synced loads keep the
       // browser's restored scroll position.
@@ -398,6 +412,17 @@ export class SearchPage extends LitElement {
   private _onRetry = () => {
     this.paging.sync();
   };
+
+  /** True when any refinement differs from its default — the clear (×)
+   * reset must be reachable on an idle page that carries only refinements. */
+  private _hasRefinements(): boolean {
+    return (
+      this.type !== "all" ||
+      this.sort !== "date" ||
+      this.from !== "" ||
+      this.to !== ""
+    );
+  }
 
   /** Clear the query: back to the bare /search URL and the idle state. The
    * field itself is cleared too (it may hold an unsubmitted draft), and focus
@@ -448,6 +473,8 @@ export class SearchPage extends LitElement {
         .limit=${this.paging.limit}
       ></pager-status>
 
+      <p class="sr-only" role="status">${this.resultStatus}</p>
+
       <form class="search-form" role="search" @submit=${this._onSubmit}>
         <div class="search-row">
           <div class="search-input-wrap">
@@ -461,7 +488,7 @@ export class SearchPage extends LitElement {
               @input=${this._onQueryInput}
             />
             ${
-              this.q || !this.draftEmpty
+              this.q || !this.draftEmpty || this._hasRefinements()
                 ? html`
                     <button
                       class="button button--icon button--ghost clear-btn"
@@ -533,6 +560,23 @@ export class SearchPage extends LitElement {
       </form>
 
       ${this._stateTemplate()}
+      ${
+        this.items.length > 0 &&
+        (this.status === "loading" || this.status === "success")
+          ? html`<pager-nav
+              ?hasPrevious=${this.paging.hasPrevious}
+              ?hasNext=${this.hasNextPage}
+              ?busy=${this.status === "loading"}
+              .limit=${this.paging.limit}
+              .page=${this.paging.page}
+              .total=${this.total}
+              .limits=${PAGE_SIZES}
+              @sf-pager-prev=${this._onPrevClick}
+              @sf-pager-next=${this._onNextClick}
+              @sf-limit-change=${this._onLimitChange}
+            ></pager-nav>`
+          : ""
+      }
     `;
   }
 
@@ -542,7 +586,7 @@ export class SearchPage extends LitElement {
     if (this.status === "idle") {
       return html`
         <div class="centered-state state-block">
-          <p class="empty" role="status">${el.search.prompt}</p>
+          <p class="empty">${el.search.prompt}</p>
         </div>
       `;
     }
@@ -570,7 +614,7 @@ export class SearchPage extends LitElement {
     if (this.items.length === 0) {
       return html`
         <div class="centered-state state-block">
-          <p class="empty" role="status">${el.search.empty}</p>
+          <p class="empty">${el.search.empty}</p>
         </div>
       `;
     }
@@ -602,18 +646,6 @@ export class SearchPage extends LitElement {
           `,
         )}
       </ul>
-
-      <pager-nav
-        ?hasPrevious=${this.paging.hasPrevious}
-        ?hasNext=${this.hasNextPage}
-        .limit=${this.paging.limit}
-        .page=${this.paging.page}
-        .total=${this.total}
-        .limits=${PAGE_SIZES}
-        @sf-pager-prev=${this._onPrevClick}
-        @sf-pager-next=${this._onNextClick}
-        @sf-limit-change=${this._onLimitChange}
-      ></pager-nav>
     `;
   }
 }

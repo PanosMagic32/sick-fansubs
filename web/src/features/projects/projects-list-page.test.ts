@@ -216,8 +216,8 @@ describe("projects-list-page", () => {
     expect(rendered[0]?.headingLevel).toBe(2);
     expect(urls[0]).toBe("/api/v1/projects?limit=10");
     // Page 1: Previous disabled (no marker), Next live.
-    expect(pagerButtons(page)[0]?.disabled).toBe(true);
-    expect(pagerButtons(page)[1]?.disabled).toBe(false);
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("true");
+    expect(pagerButtons(page)[1]?.getAttribute("aria-disabled")).toBe("false");
 
     // Next: the continuation cursor rides the URL — no load-more.
     pagerButtons(page)[1]!.dispatchEvent(new Event("click", { bubbles: true }));
@@ -229,8 +229,8 @@ describe("projects-list-page", () => {
     expect(cards(page).length).toBe(2);
     // Previous is now enabled (hasNextPage=false disables Next).
     const buttons = pagerButtons(page);
-    expect(buttons[0]?.disabled).toBe(false);
-    expect(buttons[1]?.disabled).toBe(true);
+    expect(buttons[0]?.getAttribute("aria-disabled")).toBe("false");
+    expect(buttons[1]?.getAttribute("aria-disabled")).toBe("true");
     // The page-turn chips are arrow-only; the catalog words moved to the
     // accessible name.
     expect(buttons[0]?.getAttribute("aria-label")).toBe(el.ui.prevPage);
@@ -250,8 +250,8 @@ describe("projects-list-page", () => {
     // leave the app). Next is disabled too (hasNextPage=false).
     expect(urls[0]).toBe("/api/v1/projects?limit=10&after=pv1.abc");
     expect(cards(page).length).toBe(2);
-    expect(pagerButtons(page)[0]?.disabled).toBe(true);
-    expect(pagerButtons(page)[1]?.disabled).toBe(true);
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("true");
+    expect(pagerButtons(page)[1]?.getAttribute("aria-disabled")).toBe("true");
   });
 
   test("after a refresh on a cursor page, Previous stays available (the state marker persists)", async () => {
@@ -266,15 +266,19 @@ describe("projects-list-page", () => {
     const page = await renderPage();
     pagerButtons(page)[1]!.dispatchEvent(new Event("click", { bubbles: true }));
     await flush(page);
-    expect(pagerButtons(page)[0]?.disabled).toBe(false); // previous live
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("false"); // previous live
     page.remove();
 
     // "Refresh": a NEW page instance mounts on the same cursor URL.
     // Session-history state survives a reload, so the sfPager marker does
     // too — Previous must remain enabled.
     const refreshed = await renderPage("?limit=10&after=pv1.abc");
-    expect(pagerButtons(refreshed)[0]?.disabled).toBe(false);
-    expect(pagerButtons(refreshed)[1]?.disabled).toBe(true);
+    expect(pagerButtons(refreshed)[0]?.getAttribute("aria-disabled")).toBe(
+      "false",
+    );
+    expect(pagerButtons(refreshed)[1]?.getAttribute("aria-disabled")).toBe(
+      "true",
+    );
   });
 
   test("a stale in-flight response never paints after a newer load", async () => {

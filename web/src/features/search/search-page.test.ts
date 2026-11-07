@@ -363,8 +363,8 @@ describe("search-page", () => {
     const page = await renderPage("\?q=test");
     // Page 1: Previous disabled (no marker in this session), Next live.
     expect(pagerButtons(page).length).toBe(2);
-    expect(pagerButtons(page)[0]?.disabled).toBe(true);
-    expect(pagerButtons(page)[1]?.disabled).toBe(false);
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("true");
+    expect(pagerButtons(page)[1]?.getAttribute("aria-disabled")).toBe("false");
 
     // Next: the continuation cursor replaces load-more — it rides the URL.
     pagerButtons(page)[1]!.dispatchEvent(new Event("click", { bubbles: true }));
@@ -379,8 +379,8 @@ describe("search-page", () => {
     // Previous is now enabled (hasNextPage=false disables Next).
     const buttons = pagerButtons(page);
     expect(buttons.length).toBe(2);
-    expect(buttons[0]?.disabled).toBe(false);
-    expect(buttons[1]?.disabled).toBe(true);
+    expect(buttons[0]?.getAttribute("aria-disabled")).toBe("false");
+    expect(buttons[1]?.getAttribute("aria-disabled")).toBe("true");
     // The page-turn chips are arrow-only; the catalog words moved to the
     // accessible name.
     expect(buttons[0]?.getAttribute("aria-label")).toBe(el.ui.prevPage);
@@ -411,8 +411,8 @@ describe("search-page", () => {
     // would leave the app). Next is disabled too (hasNextPage=false).
     const page = await renderPage("\?q=test&after=sv1.abc");
     expect(urls[0]).toBe("/api/v1/search?q=test&limit=10&after=sv1.abc");
-    expect(pagerButtons(page)[0]?.disabled).toBe(true);
-    expect(pagerButtons(page)[1]?.disabled).toBe(true);
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("true");
+    expect(pagerButtons(page)[1]?.getAttribute("aria-disabled")).toBe("true");
     page.remove();
   });
 
@@ -437,15 +437,19 @@ describe("search-page", () => {
     const page = await renderPage("\?q=test");
     pagerButtons(page)[1]!.dispatchEvent(new Event("click", { bubbles: true }));
     await flush(page);
-    expect(pagerButtons(page)[0]?.disabled).toBe(false); // previous live
+    expect(pagerButtons(page)[0]?.getAttribute("aria-disabled")).toBe("false"); // previous live
     page.remove();
 
     // "Refresh": a NEW page instance mounts on the same cursor URL.
     // Session-history state survives a reload, so the sfPager marker does
     // too — Previous must remain enabled.
     const refreshed = await renderPage("\?q=test&limit=10&after=sv1.abc");
-    expect(pagerButtons(refreshed)[0]?.disabled).toBe(false);
-    expect(pagerButtons(refreshed)[1]?.disabled).toBe(true);
+    expect(pagerButtons(refreshed)[0]?.getAttribute("aria-disabled")).toBe(
+      "false",
+    );
+    expect(pagerButtons(refreshed)[1]?.getAttribute("aria-disabled")).toBe(
+      "true",
+    );
   });
 
   test("changing the page size restarts at the first page with the new size", async () => {
@@ -835,6 +839,29 @@ describe("search-page", () => {
     page.remove();
   });
 
+  test("a focused date field is never overwritten by a re-render", async () => {
+    stubFetch(async () => ({ status: 200, body: pageBody([], false, null) }));
+
+    const page = await renderPage("?q=test");
+    const from = root(page).querySelector(
+      'input[name="from"]',
+    ) as HTMLInputElement;
+    from.focus();
+    from.value = "2025-01-02";
+
+    // A refinement re-render applies the URL-sourced (empty) bound — but the
+    // focused field is mid-edit and must keep the typed value.
+    const select = root(page).querySelector(
+      'select[name="sort"]',
+    ) as HTMLSelectElement;
+    select.value = "title";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush(page);
+
+    expect(from.value).toBe("2025-01-02");
+    page.remove();
+  });
+
   test("a refinement picked while idle survives into the next search's every URL builder", async () => {
     const urls: string[] = [];
     stubFetch(async (url) => {
@@ -1023,12 +1050,20 @@ describe("search-page", () => {
     expect(input.value).toBe("draft");
     expect(root(page).querySelector(".clear-btn")).not.toBeNull();
 
-    // Emptying the field removes the × without touching the URL.
+    // Emptying the field keeps the × while a refinement is active: the
+    // documented reset must stay reachable on an idle page that carries
+    // refinements. The draft itself is gone.
     input.value = "";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     await flush(page);
-    expect(root(page).querySelector(".clear-btn")).toBeNull();
+    expect(root(page).querySelector(".clear-btn")).not.toBeNull();
     expect(window.location.search).toBe("?sort=title");
+
+    // The × resets the whole refinement set to the bare /search URL.
+    (root(page).querySelector(".clear-btn") as HTMLButtonElement).click();
+    await flush(page);
+    expect(window.location.search).toBe("");
+    expect(root(page).querySelector(".clear-btn")).toBeNull();
     expect(urls).toEqual([]);
     page.remove();
   });
