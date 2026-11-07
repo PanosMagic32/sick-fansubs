@@ -117,6 +117,9 @@ export class DownloadRows extends LitElement {
     // silently and reach the server as a 422.
     if (this._rows.length <= 1) return;
     this._rows = this._rows.filter((_, idx) => idx !== i);
+    // The focused remove control is gone; land on the row that took its
+    // place (or the previous row), never on another remove control.
+    void this._focusRow(Math.min(i, this._rows.length - 1));
   }
 
   private _move(i: number, dir: -1 | 1) {
@@ -127,6 +130,16 @@ export class DownloadRows extends LitElement {
     if (!moved) return;
     rows.splice(target, 0, moved);
     this._rows = rows;
+    // The DOM reuses the control at the old index for the row that moved
+    // into it; focus follows the row the user moved, not the index.
+    void this._focusRow(target);
+  }
+
+  /** Focus the label input of one row after the list re-renders. */
+  private async _focusRow(index: number) {
+    await this.updateComplete;
+    const rows = this.renderRoot.querySelectorAll(".download-row");
+    rows[index]?.querySelector<HTMLInputElement>(".download-label")?.focus();
   }
 
   private _setLabel(i: number, value: string) {
@@ -150,13 +163,21 @@ export class DownloadRows extends LitElement {
       <div class="download-rows">
         ${this._rows.map(
           (row, i) => html`
-            <div class="download-row" data-solo=${solo ? "true" : nothing}>
+            <div
+              class="download-row"
+              role="group"
+              aria-labelledby="download-row-${i}"
+              data-solo=${solo ? "true" : nothing}
+            >
+              <span id="download-row-${i}" class="sr-only"
+                >${this.rowLabel} ${i + 1}</span
+              >
               <input
                 type="text"
                 class="download-label"
                 .value=${row.label}
                 placeholder=${this.rowPlaceholder}
-                aria-label=${this.rowLabel}
+                aria-label="${this.rowLabel} ${i + 1}"
                 @input=${(e: Event) =>
                   this._setLabel(i, (e.target as HTMLInputElement).value)}
               />
@@ -166,7 +187,7 @@ export class DownloadRows extends LitElement {
                 .value=${row.magnet}
                 placeholder="magnet:?xt=…"
                 lang="en"
-                aria-label=${el.admin.downloadMagnetLabel}
+                aria-label="${el.admin.downloadMagnetLabel} ${i + 1}"
                 @input=${(e: Event) =>
                   this._setLink(
                     i,
@@ -180,7 +201,7 @@ export class DownloadRows extends LitElement {
                 .value=${row.torrent}
                 placeholder="https://…"
                 lang="en"
-                aria-label=${el.admin.downloadTorrentLabel}
+                aria-label="${el.admin.downloadTorrentLabel} ${i + 1}"
                 @input=${(e: Event) =>
                   this._setLink(
                     i,
@@ -196,7 +217,7 @@ export class DownloadRows extends LitElement {
                         type="button"
                         class="button button--icon button--secondary row-button row-up"
                         ?disabled=${i === 0}
-                        aria-label=${el.admin.downloadMoveUp}
+                        aria-label="${el.admin.downloadMoveUp} ${i + 1}"
                         @click=${() => this._move(i, -1)}
                       >
                         ↑
@@ -205,7 +226,7 @@ export class DownloadRows extends LitElement {
                         type="button"
                         class="button button--icon button--secondary row-button row-down"
                         ?disabled=${i === this._rows.length - 1}
-                        aria-label=${el.admin.downloadMoveDown}
+                        aria-label="${el.admin.downloadMoveDown} ${i + 1}"
                         @click=${() => this._move(i, 1)}
                       >
                         ↓
@@ -213,6 +234,7 @@ export class DownloadRows extends LitElement {
                       <button
                         type="button"
                         class="button button--danger button--sm row-button row-remove"
+                        aria-label="${el.admin.downloadRemoveRow} ${i + 1}"
                         @click=${() => this._remove(i)}
                       >
                         ${el.admin.downloadRemoveRow}

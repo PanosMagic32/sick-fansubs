@@ -82,7 +82,8 @@ export class AdminUsersPage extends AdminStaffPageBase {
   @state() private hasNext = false;
 
   /** The loaded page's filtered row count (pageInfo.total) — the pager's
-   * page-count numerator. Reset on every load start/error. */
+   * page-count numerator. Reset when a new list starts and on failure;
+   * retained across a page turn so the mounted pager keeps its count. */
   @state() private total = 0;
   @state() private roleFilter: UserRole | null = null;
   @state() private statusFilter: UserStatus | null = null;
@@ -260,8 +261,16 @@ export class AdminUsersPage extends AdminStaffPageBase {
     scrollOnLoad: boolean,
   ) {
     const controller = this._beginLoad();
-    this.total = 0;
     this.members.resetForLoad();
+    // A page turn keeps the previous rows/total so the mounted pager has an
+    // honest page count while the next page loads. A first load, filter
+    // change, or size change starts a new list and clears them.
+    if (after === null) {
+      this.items = [];
+      this.hasNext = false;
+      this._endCursor = null;
+      this.total = 0;
+    }
 
     try {
       const page = await listStaffUsers(
@@ -284,6 +293,7 @@ export class AdminUsersPage extends AdminStaffPageBase {
       if (scrollOnLoad) window.scrollTo(0, 0);
     } catch (err) {
       this._failLoad(err, controller);
+      if (!controller.signal.aborted) this.total = 0;
     }
   }
 
@@ -421,6 +431,7 @@ export class AdminUsersPage extends AdminStaffPageBase {
           this.status === "error"
             ? html`<div class="state-block">
                 <error-banner
+                  retry
                   .message=${this.errorMessage}
                   @retry=${() => this.paging.sync(false)}
                 ></error-banner>
@@ -447,18 +458,25 @@ export class AdminUsersPage extends AdminStaffPageBase {
                 <ul class="members-list" role="list">
                   ${this.items.map((item) => this.members.template(item))}
                 </ul>
-                <pager-nav
-                  .hasPrevious=${this.paging.hasPrevious}
-                  .hasNext=${this.hasNext}
-                  .limit=${this.paging.limit}
-                  .page=${this.paging.page}
-                  .total=${this.total}
-                  .limits=${PAGE_SIZES}
-                  @sf-pager-prev=${this._onPrev}
-                  @sf-pager-next=${this._onNext}
-                  @sf-limit-change=${this._onLimitChange}
-                ></pager-nav>
               `
+            : ""
+        }
+        ${
+          this.items.length > 0 &&
+          this.total > 0 &&
+          (this.status === "loading" || this.status === "success")
+            ? html`<pager-nav
+                .hasPrevious=${this.paging.hasPrevious}
+                .hasNext=${this.hasNext}
+                ?busy=${this.status === "loading"}
+                .limit=${this.paging.limit}
+                .page=${this.paging.page}
+                .total=${this.total}
+                .limits=${PAGE_SIZES}
+                @sf-pager-prev=${this._onPrev}
+                @sf-pager-next=${this._onNext}
+                @sf-limit-change=${this._onLimitChange}
+              ></pager-nav>`
             : ""
         }
       </section>

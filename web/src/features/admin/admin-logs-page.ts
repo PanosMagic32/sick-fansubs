@@ -520,6 +520,7 @@ export class AdminLogsPage extends AdminStaffPageBase {
         ${
           this.auditStatus === "error"
             ? html`<error-banner
+                retry
                 .message=${this.auditError}
                 @retry=${() => this._loadAudit()}
               ></error-banner>`
@@ -564,6 +565,7 @@ export class AdminLogsPage extends AdminStaffPageBase {
                     // than at page level.
                     this.status === "error"
                       ? html`<error-banner
+                          retry
                           .message=${this.errorMessage}
                           @retry=${() => this._load()}
                         ></error-banner>`

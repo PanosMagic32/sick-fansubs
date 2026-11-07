@@ -22,7 +22,8 @@
  * Concurrency: the edit form submits the If-Match precondition built from
  * the loaded revision. A 412 means someone else edited — the form reloads
  * the fresh row and shows the Greek "changed elsewhere" copy. A 403 (stale
- * CSRF) heals through a silent session revalidate like the favorites heart.
+ * CSRF) revalidates the session and retries the same action once through the
+ * shared base; a second 403 surfaces the problem.
  *
  * The guard, the load, the action machine, and the delete flow are the
  * shared ContentFormBase skeleton; this module owns the project fields, the
@@ -249,6 +250,7 @@ export class ProjectFormPage extends ContentFormBase<
       return html`
         <h1 class="sr-only">${this._formTitle}</h1>
         <error-banner
+          retry
           .message=${this.errorMessage}
           @retry=${() =>
             this._isEdit ? this._loadRow() : (this.status = "ready")}
@@ -301,18 +303,24 @@ export class ProjectFormPage extends ContentFormBase<
 
           ${
             this._isEdit && this._canEditSlug
-              ? html`<label class="field">
-                  <span lang="en">${el.admin.slugLabel}</span>
+              ? html`<div class="field">
+                  <label for="content-slug"
+                    ><span lang="en">${el.admin.slugLabel}</span></label
+                  >
                   <input
+                    id="content-slug"
                     type="text"
+                    aria-describedby="content-slug-hint"
                     .value=${this._slug}
                     @input=${(e: Event) => {
                       this._slug = (e.target as HTMLInputElement).value;
                       this._fieldError = "";
                     }}
                   />
-                  <p class="slug-hint">${el.admin.slugHint}</p>
-                </label>`
+                  <p class="slug-hint" id="content-slug-hint">
+                    ${el.admin.slugHint}
+                  </p>
+                </div>`
               : ""
           }
 

@@ -85,6 +85,37 @@ describe("download-rows", () => {
     expect(widget.getValue().length).toBe(1);
   });
 
+  test("remove and move return focus to the resulting row's label input", async () => {
+    const widget = await render();
+    widget.load([
+      { label: "A", magnetUrl: "magnet:?xt=a", torrentUrl: null },
+      { label: "B", magnetUrl: "magnet:?xt=b", torrentUrl: null },
+      { label: "C", magnetUrl: "magnet:?xt=c", torrentUrl: null },
+    ]);
+    await widget.updateComplete;
+
+    // Remove the middle row: focus lands on the row that takes its place,
+    // never on another remove control (a repeated Enter would delete more).
+    (
+      widget.shadowRoot?.querySelectorAll(".row-remove")[1] as HTMLButtonElement
+    ).click();
+    await widget.updateComplete;
+    await new Promise((r) => setTimeout(r, 0));
+    const focused = widget.shadowRoot?.activeElement as HTMLInputElement | null;
+    expect(focused?.classList.contains("download-label")).toBe(true);
+    expect(focused?.value).toBe("C");
+
+    // Move the first row down: focus follows the MOVED row, not the index.
+    (
+      widget.shadowRoot?.querySelectorAll(".row-down")[0] as HTMLButtonElement
+    ).click();
+    await widget.updateComplete;
+    await new Promise((r) => setTimeout(r, 0));
+    const moved = widget.shadowRoot?.activeElement as HTMLInputElement | null;
+    expect(moved?.value).toBe("A");
+    expect(widget.getValue().map((r) => r.label)).toEqual(["C", "A"]);
+  });
+
   test("load round-trips stored rows and getValue trims + nulls empty links", async () => {
     const widget = await render();
     widget.load([
@@ -191,7 +222,7 @@ describe("download-rows", () => {
     widget.rowLabel = el.admin.downloadResolutionLabel;
     await widget.updateComplete;
     expect(input(widget, ".download-label").getAttribute("aria-label")).toBe(
-      el.admin.downloadResolutionLabel,
+      `${el.admin.downloadResolutionLabel} 1`,
     );
   });
 

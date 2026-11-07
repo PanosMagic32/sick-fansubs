@@ -180,6 +180,20 @@ describe("admin-page", () => {
     expect(page.shadowRoot?.querySelector("pager-nav")).toBeNull();
   });
 
+  test("only admin+ sees the create link", async () => {
+    mockFetchImpl(async () =>
+      mockResponse({ ok: true, status: 200, jsonBody: LIST_RESPONSE }),
+    );
+
+    const moderator = await render("moderator");
+    expect(moderator.shadowRoot?.querySelector(".create-button")).toBeNull();
+    moderator.remove();
+
+    const admin = await render("admin");
+    expect(admin.shadowRoot?.querySelector(".create-button")).not.toBeNull();
+    admin.remove();
+  });
+
   test("a moderator renders the list with status badges and edit links", async () => {
     mockFetchImpl(async () =>
       mockResponse({ ok: true, status: 200, jsonBody: LIST_RESPONSE }),

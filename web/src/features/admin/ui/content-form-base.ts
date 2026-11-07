@@ -7,9 +7,9 @@
  * admin+), latch the first authenticated load, load the row into the form's
  * fields, run one of the four actions (`save`, `publish`, `unpublish`,
  * `archive`) behind an in-flight latch, map a failed write (412 reloads the
- * fresh revision and shows the stale copy, 403 heals a stale CSRF through a
- * silent session revalidate, a validation failure answers on the field
- * line), and delete behind the confirm.
+ * fresh revision and shows the stale copy, 403 revalidates the session once
+ * and retries the same action — a stale CSRF token heals without a second
+ * press; a second 403 surfaces the problem), and delete behind the confirm.
  *
  * The subclass owns what the kind IS: its extra row field (the blog
  * subtitle, the project slug) and its extra form fields, the write body and
@@ -391,6 +391,9 @@ export abstract class ContentFormBase<
     this._fieldError = "";
     this._titleError = "";
     this._error = "";
+    // A new action supersedes the previous result: the success line must
+    // never sit beside a failure from a later attempt.
+    this._success = "";
 
     const title = this._title.trim();
     if (!title) {
@@ -426,27 +429,39 @@ export abstract class ContentFormBase<
     this._pending = true;
     this._pendingAction = action;
     try {
-      await this._save(action, status, body, generation);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 412) {
-        // Someone else edited: reload the fresh row so the form holds the
-        // current revision + values.
-        this._success = "";
-        void this._loadRow();
-        this._error = this._preconditionMessage;
-        return;
-      }
-      if (err instanceof ApiError && err.status === 403) {
-        // A stale CSRF token heals through a silent session revalidate.
-        void this.session?.revalidate();
-      }
-      if (err instanceof ValidationError) {
-        const first = err.violations[0];
-        this._fieldError = first
-          ? violationMessage(first.code)
-          : el.problems["/problems/validation"];
-      } else {
-        this._error = mapError(err);
+      let retried = false;
+      for (;;) {
+        try {
+          await this._save(action, status, body, generation);
+          return;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 403 && !retried) {
+            // A stale in-memory CSRF token after a cross-tab re-sign-in.
+            // Re-sync the session + token, then run the SAME action once
+            // more instead of showing a dead form.
+            retried = true;
+            await this.session?.revalidate();
+            if (!this._allowed() || !this._ownsAction(generation)) return;
+            continue;
+          }
+          if (err instanceof ApiError && err.status === 412) {
+            // Someone else edited: reload the fresh row so the form holds the
+            // current revision + values.
+            this._success = "";
+            void this._loadRow();
+            this._error = this._preconditionMessage;
+            return;
+          }
+          if (err instanceof ValidationError) {
+            const first = err.violations[0];
+            this._fieldError = first
+              ? violationMessage(first.code)
+              : el.problems["/problems/validation"];
+          } else {
+            this._error = mapError(err);
+          }
+          return;
+        }
       }
     } finally {
       this._pending = false;
@@ -459,23 +474,33 @@ export abstract class ContentFormBase<
     if (!window.confirm(el.admin.deleteConfirm)) return;
     this._pending = true;
     this._error = "";
+    this._success = "";
     const generation = this._actionGeneration;
     try {
-      await this._deleteRow(this._rowId, this._row.revision, generation);
-      if (!this._ownsAction(generation)) return;
-      this._success = this._deletedLabel;
-      navigate(this._listPath);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 412) {
-        void this._loadRow();
-        this._error = this._preconditionMessage;
-      } else {
-        // The sibling action path's 403 heal: a stale CSRF token revalidates
-        // the session instead of surfacing a dead form.
-        if (err instanceof ApiError && err.status === 403) {
-          void this.session?.revalidate();
+      let retried = false;
+      for (;;) {
+        try {
+          await this._deleteRow(this._rowId, this._row.revision, generation);
+          if (!this._ownsAction(generation)) return;
+          this._success = this._deletedLabel;
+          navigate(this._listPath);
+          return;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 403 && !retried) {
+            // The action path's stale-CSRF heal, delete edition.
+            retried = true;
+            await this.session?.revalidate();
+            if (!this._allowed() || !this._ownsAction(generation)) return;
+            continue;
+          }
+          if (err instanceof ApiError && err.status === 412) {
+            void this._loadRow();
+            this._error = this._preconditionMessage;
+            return;
+          }
+          this._error = mapError(err);
+          return;
         }
-        this._error = mapError(err);
       }
     } finally {
       this._pending = false;

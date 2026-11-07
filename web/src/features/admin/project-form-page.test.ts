@@ -589,7 +589,50 @@ describe("project-form-page", () => {
     ).toBe(el.admin.staleProject);
   });
 
-  test("delete confirms, sends If-Match, and navigates to /admin/projects", async () => {
+  test("edit→edit navigation reloads the row and resets the slug", async () => {
+    const calls: string[] = [];
+    mockFetchImpl(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      calls.push(url);
+      const id = url.split("/").pop() ?? "";
+      return mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: {
+          ...PROJECT_RESPONSE,
+          id,
+          title: id === "p2" ? "Second Project" : "New Project",
+          slug: id === "p2" ? "second-project" : "new-project",
+        },
+      });
+    });
+
+    const page = await render("p1");
+    const title = () =>
+      (page.shadowRoot?.querySelector("#content-title") as HTMLInputElement)
+        .value;
+    const slug = () =>
+      (page.shadowRoot?.querySelector("#content-slug") as HTMLInputElement)
+        .value;
+    expect(title()).toBe("New Project");
+    expect(slug()).toBe("new-project");
+
+    // The router reuses the tag across /admin/projects/:id, so the row
+    // latch is keyed to the id and the kind's field resets with the load.
+    page.projectId = "p2";
+    page.requestUpdate();
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    expect(title()).toBe("Second Project");
+    expect(slug()).toBe("second-project");
+    expect(calls.length).toBe(2);
+    expect(calls[1]).toEndWith("/p2");
+    page.remove();
+  });
+
+  test("delete confirms, sends If-Match, and navigates to /admin", async () => {
     const nav = listenForNavigation(navCleanups);
     restoreConfirm = stubProperty(
       window,

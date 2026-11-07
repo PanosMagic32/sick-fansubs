@@ -5,7 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
-import { el } from "@shared/catalog/el.js";
+import { el, violationMessage } from "@shared/catalog/el.js";
 import {
   listenForNavigation,
   mockFetchImpl,
@@ -229,6 +229,59 @@ describe("blog-form-page", () => {
       page.shadowRoot?.querySelector('label[for="content-title"]'),
     ).not.toBeNull();
     expect(calls).toBe(0);
+  });
+
+  test("a server 422 shows the mapped violation copy", async () => {
+    mockFetchImpl(async () =>
+      mockResponse({
+        ok: false,
+        status: 422,
+        headers: { "content-type": "application/problem+json" },
+        jsonBody: {
+          type: "/problems/validation",
+          title: "Validation failed",
+          status: 422,
+          violations: [
+            { field: "title", code: "maxLength", message: "too long" },
+          ],
+        },
+      }),
+    );
+
+    const page = await render();
+    fill(page, "input[type=text]", "New Post");
+    const widget = page.shadowRoot?.querySelector("media-upload") as {
+      _value: { path: string; url: string } | null;
+    } | null;
+    if (widget) {
+      widget._value = {
+        path: POST_RESPONSE.thumbnailPath,
+        url: POST_RESPONSE.thumbnailUrl,
+      };
+    }
+    downloadsWidget(page).load([
+      {
+        label: "1080p",
+        magnetUrl: "magnet:?xt=urn:btih:abc",
+        torrentUrl: null,
+      },
+    ]);
+    await page.updateComplete;
+    expect(
+      (page.shadowRoot?.querySelector("#content-title") as HTMLInputElement)
+        .value,
+    ).toBe("New Post");
+
+    submit(page);
+    await settle();
+    await page.updateComplete;
+
+    // The first server violation is mapped through the catalog, never the
+    // wire's raw message/code text.
+    expect(
+      page.shadowRoot?.querySelector(".field-error")?.textContent?.trim(),
+    ).toBe(violationMessage("maxLength"));
+    page.remove();
   });
 
   test("a download row without any link blocks the submit client-side", async () => {
@@ -655,6 +708,148 @@ describe("blog-form-page", () => {
 
     expect(calls).toContain("DELETE");
     expect(nav.path).toBe("/admin");
+  });
+
+  test("a new action clears the previous success line", async () => {
+    let fail = false;
+    mockFetchImpl(async (_input, init) => {
+      if (init?.method === "PUT" && fail) {
+        return mockResponse({
+          ok: false,
+          status: 500,
+          headers: { "Content-Type": "application/problem+json" },
+          jsonBody: {
+            type: "/problems/internal-error",
+            title: "Internal error",
+            status: 500,
+          },
+        });
+      }
+      return mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: { ...POST_RESPONSE, status: "draft" },
+      });
+    });
+
+    const page = await render("p1");
+    await settle();
+    await page.updateComplete;
+
+    submit(page);
+    await settle();
+    await page.updateComplete;
+    expect(
+      page.shadowRoot?.querySelector(".form-success")?.textContent?.trim(),
+    ).toBe(el.admin.saved);
+
+    // A later failure must not leave «Αποθηκεύτηκε» beside the error.
+    fail = true;
+    submit(page);
+    await settle();
+    await page.updateComplete;
+    expect(
+      page.shadowRoot?.querySelector(".form-success")?.textContent?.trim(),
+    ).toBe("");
+    expect(
+      page.shadowRoot?.querySelector(".form-error")?.textContent?.trim(),
+    ).toBe(el.problems["/problems/internal-error"]);
+    page.remove();
+  });
+
+  test("a 403 on save revalidates and retries the same action once", async () => {
+    const nav = listenForNavigation(navCleanups);
+    const session = mockSession("admin");
+    let puts = 0;
+    mockFetchImpl(async (_input, init) => {
+      if (init?.method === "GET") {
+        return mockResponse({
+          ok: true,
+          status: 200,
+          jsonBody: POST_RESPONSE,
+        });
+      }
+      if (init?.method === "PUT") {
+        puts += 1;
+        if (puts === 1) {
+          return mockResponse({
+            ok: false,
+            status: 403,
+            headers: { "Content-Type": "application/problem+json" },
+            jsonBody: {
+              type: "/problems/forbidden",
+              title: "Forbidden",
+              status: 403,
+            },
+          });
+        }
+      }
+      return mockResponse({ ok: true, status: 200, jsonBody: POST_RESPONSE });
+    });
+
+    const page = document.createElement("blog-form-page") as BlogFormPage;
+    page.postId = "p1";
+    (page as any).session = session;
+    document.body.appendChild(page);
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    submit(page);
+    await settle();
+    await page.updateComplete;
+
+    // The stale CSRF token is re-synced once, then the SAME save runs again
+    // and succeeds without a second press.
+    expect(puts).toBe(2);
+    expect(session.revalidate).toHaveBeenCalledTimes(1);
+    expect(nav.path).toBe("/blog/p1");
+  });
+
+  test("a second 403 surfaces the problem instead of retrying forever", async () => {
+    const session = mockSession("admin");
+    let puts = 0;
+    mockFetchImpl(async (_input, init) => {
+      if (init?.method === "GET") {
+        return mockResponse({
+          ok: true,
+          status: 200,
+          jsonBody: POST_RESPONSE,
+        });
+      }
+      if (init?.method === "PUT") {
+        puts += 1;
+        return mockResponse({
+          ok: false,
+          status: 403,
+          headers: { "Content-Type": "application/problem+json" },
+          jsonBody: {
+            type: "/problems/forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+        });
+      }
+      return mockResponse({ ok: true, status: 200, jsonBody: POST_RESPONSE });
+    });
+
+    const page = document.createElement("blog-form-page") as BlogFormPage;
+    page.postId = "p1";
+    (page as any).session = session;
+    document.body.appendChild(page);
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    submit(page);
+    await settle();
+    await page.updateComplete;
+
+    expect(puts).toBe(2);
+    expect(session.revalidate).toHaveBeenCalledTimes(1);
+    expect(
+      page.shadowRoot?.querySelector(".form-error")?.textContent?.trim(),
+    ).toBe(el.problems["/problems/forbidden"]);
   });
 
   test("a 403 on delete revalidates the session", async () => {

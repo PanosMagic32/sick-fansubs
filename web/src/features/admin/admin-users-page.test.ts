@@ -456,6 +456,47 @@ describe("admin-users-page", () => {
     ).not.toBeNull();
   });
 
+  test("a page turn keeps the pager mounted and busy", async () => {
+    let resolveNext!: (r: { status: number; body: unknown }) => void;
+    stubFetch(async (url) => {
+      if (url.includes("after=")) {
+        return new Promise((resolve) => {
+          resolveNext = resolve;
+        });
+      }
+      return {
+        status: 200,
+        body: {
+          items: LIST_BODY.items,
+          pageInfo: { hasNextPage: true, endCursor: "u_next", total: 3 },
+        },
+      };
+    });
+
+    const page = await render("admin");
+    const pager = root(page).querySelector("pager-nav") as HTMLElement;
+    expect(pager).not.toBeNull();
+
+    pager.dispatchEvent(new CustomEvent("sf-pager-next"));
+    await page.updateComplete;
+
+    // The pager stays mounted with the busy state while the next page loads
+    // and the list is a spinner.
+    expect(root(page).querySelector("pager-nav")).not.toBeNull();
+    expect(pager.hasAttribute("busy")).toBe(true);
+
+    resolveNext({
+      status: 200,
+      body: {
+        items: [LIST_BODY.items[1]],
+        pageInfo: { hasNextPage: false, endCursor: null, total: 3 },
+      },
+    });
+    await settle(page);
+
+    expect(pager.hasAttribute("busy")).toBe(false);
+  });
+
   test("an empty result set renders the catalog-backed empty state", async () => {
     stubFetch(async () => ({
       status: 200,

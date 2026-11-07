@@ -17,8 +17,9 @@
  * the loaded revision (the same value the ETag header carries). A 412 means
  * someone else edited — the form reloads the fresh row and shows the Greek
  * "changed elsewhere" copy. A 428 cannot happen from this form (it always
- * sends the header); a 403 (stale CSRF) heals through a silent session
- * revalidate like the favorites heart.
+ * sends the header); a 403 (stale CSRF) revalidates the session and retries
+ * the same action once through the shared base; a second 403 surfaces the
+ * problem.
  *
  * The guard, the load, the action machine, and the delete flow are the
  * shared ContentFormBase skeleton; this module owns the blog fields, the
@@ -217,6 +218,7 @@ export class BlogFormPage extends ContentFormBase<
       return html`
         <h1 class="sr-only">${this._formTitle}</h1>
         <error-banner
+          retry
           .message=${this.errorMessage}
           @retry=${() =>
             this._isEdit ? this._loadRow() : (this.status = "ready")}

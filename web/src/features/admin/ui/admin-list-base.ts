@@ -41,6 +41,7 @@ import "@shared/ui/pager-status.js";
 import "@shared/ui/content-card.js";
 import { icons } from "@shared/ui/icons.js";
 import "./admin-tabs.js";
+import { isContentCreatorRole } from "@shared/utils/roles.js";
 import { AdminStaffPageBase } from "./admin-staff-page-base.js";
 import styles from "./admin-page.css?inline";
 
@@ -298,7 +299,6 @@ export abstract class AdminListBase extends AdminStaffPageBase {
     scrollOnLoad: boolean,
   ) {
     const controller = this._beginLoad();
-    this.total = 0;
 
     try {
       const result = await this.loadPage(
@@ -317,7 +317,9 @@ export abstract class AdminListBase extends AdminStaffPageBase {
       // browser's restored scroll position.
       if (scrollOnLoad) window.scrollTo(0, 0);
     } catch (err) {
+      if (controller.signal.aborted) return;
       this._failLoad(err, controller);
+      this.total = 0;
     }
   }
 
@@ -355,6 +357,14 @@ export abstract class AdminListBase extends AdminStaffPageBase {
     this._paging.setLimit((e as CustomEvent<number>).detail);
   }
 
+  /** Create is admin+ (the form's own guard); a moderator sees no create
+   * link rather than a dead end that lands on the forbidden form. */
+  protected get _canCreate(): boolean {
+    const s = this.session?.state;
+    if (!s || s.status !== "authenticated") return false;
+    return isContentCreatorRole(s.user.role);
+  }
+
   render() {
     return html`
       <section class="admin-page">
@@ -362,11 +372,15 @@ export abstract class AdminListBase extends AdminStaffPageBase {
 
         <header class="admin-header">
           <h1>${el.admin.dashboardTitle}</h1>
-          <a
-            class="button button--secondary create-button"
-            href=${this.createHref}
-            >${this.createLabel}</a
-          >
+          ${
+            this._canCreate
+              ? html`<a
+                  class="button button--secondary create-button"
+                  href=${this.createHref}
+                  >${this.createLabel}</a
+                >`
+              : ""
+          }
         </header>
 
         <pager-status
@@ -426,6 +440,7 @@ export abstract class AdminListBase extends AdminStaffPageBase {
           this.status === "error"
             ? html`<div class="state-block">
                 <error-banner
+                  retry
                   .message=${this.errorMessage}
                   @retry=${() => this._paging.sync(false)}
                 ></error-banner>
@@ -486,18 +501,24 @@ export abstract class AdminListBase extends AdminStaffPageBase {
                     `,
                   )}
                 </ul>
-                <pager-nav
-                  .hasPrevious=${this._paging.hasPrevious}
-                  .hasNext=${this.hasNext}
-                  .limit=${this._paging.limit}
-                  .page=${this._paging.page}
-                  .total=${this.total}
-                  .limits=${PAGE_SIZES}
-                  @sf-pager-prev=${this._onPrev}
-                  @sf-pager-next=${this._onNext}
-                  @sf-limit-change=${this._onLimitChange}
-                ></pager-nav>
               `
+            : ""
+        }
+        ${
+          this.items.length > 0 &&
+          (this.status === "loading" || this.status === "success")
+            ? html`<pager-nav
+                .hasPrevious=${this._paging.hasPrevious}
+                .hasNext=${this.hasNext}
+                ?busy=${this.status === "loading"}
+                .limit=${this._paging.limit}
+                .page=${this._paging.page}
+                .total=${this.total}
+                .limits=${PAGE_SIZES}
+                @sf-pager-prev=${this._onPrev}
+                @sf-pager-next=${this._onNext}
+                @sf-limit-change=${this._onLimitChange}
+              ></pager-nav>`
             : ""
         }
       </section>

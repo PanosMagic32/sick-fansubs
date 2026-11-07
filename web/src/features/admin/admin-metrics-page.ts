@@ -305,6 +305,7 @@ export class AdminMetricsPage extends AdminStaffPageBase {
         ${
           this.status === "error"
             ? html`<error-banner
+                retry
                 .message=${this.errorMessage}
                 @retry=${() => this._load()}
               ></error-banner>`
