@@ -178,6 +178,48 @@ describe("app-shell", () => {
     el.remove();
   });
 
+  test("applies a saved light theme and persists the toggle", async () => {
+    localStorage.setItem("sf-theme", "light");
+    try {
+      const el = renderShell();
+      await el.updateComplete;
+      expect(el.classList.contains("light")).toBe(true);
+
+      const header = el.shadowRoot?.querySelector("app-header") as HTMLElement;
+      header.dispatchEvent(new Event("toggle-theme"));
+      await el.updateComplete;
+
+      expect(el.classList.contains("light")).toBe(false);
+      expect(localStorage.getItem("sf-theme")).toBe("dark");
+      el.remove();
+    } finally {
+      localStorage.removeItem("sf-theme");
+    }
+  });
+
+  test("falls back to the system preference when no theme is stored", async () => {
+    localStorage.removeItem("sf-theme");
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("prefers-color-scheme: light"),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const el = renderShell();
+      await el.updateComplete;
+      expect(el.classList.contains("light")).toBe(true);
+      el.remove();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
   test("renders header and footer", async () => {
     const el = renderShell();
     await el.updateComplete;
@@ -233,7 +275,7 @@ describe("app-shell", () => {
     );
     const primaryHover =
       controlStyles.match(
-        /\.button--primary:hover:not\(:disabled\) \{([^}]*)\}/,
+        /\.button--primary:hover:not\(:disabled\):not\(\[aria-disabled="true"\]\) \{([^}]*)\}/,
       )?.[1] ?? "";
     expect(primaryHover).toContain("var(--sf-accent-strong");
     expect(primaryHover).not.toContain("var(--sf-accent-light");
@@ -271,6 +313,20 @@ describe("app-shell", () => {
     const light = shellStyles.match(/:host\(\.light\) \{([^}]*)\}/s)?.[1] ?? "";
     expect(dark).toContain('--sf-font-mono: "IBM Plex Mono", monospace;');
     expect(light).toContain('--sf-font-mono: "IBM Plex Mono", monospace;');
+  });
+
+  test("the 404 placeholder link and the project badge use their text-safe tokens", () => {
+    const link =
+      shellStyles.match(/\.home-placeholder a \{([^}]*)\}/s)?.[1] ?? "";
+    expect(link).toContain("color: var(--sf-accent-light)");
+    // The search badge's small text clears 4.5:1 on its 10% tint in the
+    // light theme.
+    const light = shellStyles.match(/:host\(\.light\) \{([^}]*)\}/s)?.[1] ?? "";
+    expect(light).toContain("--sf-project: #a33a3a;");
+    // Native controls follow the app's theme, not the OS preference.
+    const host = shellStyles.match(/:host \{([^}]*)\}/s)?.[1] ?? "";
+    expect(host).toContain("color-scheme: dark");
+    expect(light).toContain("color-scheme: light");
   });
 
   test("--sf-bg stays an opaque hex in both themes", () => {
@@ -347,7 +403,7 @@ function dispatchClick(
  */
 async function expectInterceptionLive(): Promise<void> {
   const anchor = document.createElement("a");
-  anchor.setAttribute("href", "/interception-probe");
+  anchor.setAttribute("href", "/about");
   document.body.appendChild(anchor);
 
   const event = dispatchClick(anchor);
@@ -411,6 +467,50 @@ describe("_onLinkClick", () => {
     );
 
     card.remove();
+    shell.remove();
+  });
+
+  test("normalizes a trailing slash before SPA routing", async () => {
+    const shell = renderShell();
+    await shell.updateComplete;
+
+    const anchor = document.createElement("a");
+    anchor.setAttribute("href", "/blog/p1/");
+    document.body.appendChild(anchor);
+
+    const event = dispatchClick(anchor);
+
+    // The allowlist normalizes, so the router must receive the same canonical
+    // slash-free pathname; otherwise the URLPattern misses and the fallback
+    // renders.
+    expect(event.defaultPrevented).toBe(true);
+    expect(window.history.pushState).toHaveBeenCalledWith(
+      expect.anything(),
+      "",
+      "/blog/p1",
+    );
+
+    anchor.remove();
+    shell.remove();
+  });
+
+  test("does not intercept a same-origin server-served path (media object)", async () => {
+    const shell = renderShell();
+    await shell.updateComplete;
+    await expectInterceptionLive();
+
+    const anchor = document.createElement("a");
+    anchor.setAttribute("href", "/media/images/abc.jpg");
+    document.body.appendChild(anchor);
+
+    const event = dispatchClick(anchor);
+
+    // The server owns /media/images/*: a client-side route would render the
+    // fallback instead of letting the browser fetch the image.
+    expect(event.defaultPrevented).toBe(false);
+    expect(window.history.pushState).not.toHaveBeenCalled();
+
+    anchor.remove();
     shell.remove();
   });
 
@@ -801,6 +901,30 @@ describe("_onPopState", () => {
 // ── Programmatic navigation ─────────────────────────────────────────
 
 describe("navigate()", () => {
+  test("a query-string path routes by its pathname", async () => {
+    const shell = renderShell();
+    await shell.updateComplete;
+
+    // Route matching uses the pathname; the query belongs to the page
+    // (the search page's URL-as-truth contract). Happy-dom's route render
+    // for a shadow-root page is not needed to pin the split.
+    const routes = (
+      shell as unknown as {
+        _routes: { goto: (path: string) => void };
+      }
+    )._routes;
+    const gotos: string[] = [];
+    routes.goto = (path: string) => {
+      gotos.push(path);
+    };
+
+    navigate("/search?q=test");
+    await shell.updateComplete;
+
+    expect(gotos).toEqual(["/search"]);
+    shell.remove();
+  });
+
   test("dispatches NAVIGATE_EVENT with the path", () => {
     const nav = { path: null as string | null };
     const listener = ((e: Event) => {

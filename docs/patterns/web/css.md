@@ -31,8 +31,9 @@ be literal, and how layout and responsive rules stay predictable.
    Selectors inside the sheets are written unscoped: shadow DOM isolates each component's copy.
 3. **Never write a raw colour value in a component sheet; every colour is a token.**
    `--sf-bg`, `--sf-surface`, `--sf-border`, `--sf-text` (and `-muted`/`-dim`), `--sf-accent`,
-   `--sf-accent-light`, `--sf-accent-strong`, `--sf-on-accent`, `--sf-error`, `--sf-success`,
-   `--sf-success-strong`, `--sf-warning`, `--sf-project`, `--sf-project-bg`, `--sf-focus-ring`,
+   `--sf-accent-light`, `--sf-accent-strong`, `--sf-on-accent`, `--sf-error`,
+   `--sf-error-strong`, `--sf-success`, `--sf-success-strong`, `--sf-warning`,
+   `--sf-project`, `--sf-project-bg`, `--sf-focus-ring`,
    `--sf-dot`, `--sf-accent-tint`, `--sf-link-on-tint`, and the `--sf-brand-*` tone pairs live in
    `core/shell/app-shell.css`, the
    token home. It declares every token twice (`:host` and `:host(.light)`), so both themes are
@@ -41,6 +42,8 @@ be literal, and how layout and responsive rules stay predictable.
    exceptions exist outside the sheets: `core/index.css` — the global document sheet cannot see the
    shell host's custom properties, so its document-level focus baseline keeps a literal fallback —
    and `web/index.html`'s `theme-color` metas, which the browser reads before any CSS loads. The
+   `*-strong` pair is the small-TEXT value; the base error/success tokens carry borders and tints
+   (3:1), and small text on a tint must use the strong variant to clear 4.5:1. The
    one accepted raw-colour exception INSIDE a sheet — a neutral black drop shadow — is recorded in
    rule 5. Colour literals that are asset data rather than theme colours (the emoticon glyph palette
    in `features/comments/ui/emoticons.ts`) are recorded where they live and stay out of the token
@@ -55,8 +58,9 @@ be literal, and how layout and responsive rules stay predictable.
    The one accepted raw-colour exception inside a sheet: a neutral black overlay used as a drop
    shadow (`rgba(0, 0, 0, 0.2)` and similar) stays literal under rule 3 for now; tokenizing shadows
    is deferred.
-6. **Breakpoints are a closed set.** The accepted ladder is `480px`, `560px`, `640px`/`641px`
-   (the footer pair), `700px`/`700.01px` (the content band and the header's desktop-only boundary),
+6. **Breakpoints are a closed set.** The accepted ladder is `480px`, `560px`, `640px` (the
+   push-lifecycle phone band), `640.99px`/`641px` (the footer pair — the `.99` boundary leaves no
+   fractional-width sliver), `700px`/`700.01px` (the content band and the header's desktop-only boundary),
    `1150px` (the two content lists), `1300px` and `1920.01px` (the header ladder and the wide
    shell). The header keeps its own ladder by design — its elements differ per size — and the
    content widths stay as accepted. A new width needs a recorded reason in the guard's allowlist;

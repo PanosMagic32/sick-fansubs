@@ -30,11 +30,16 @@ afterEach(() => {
 });
 
 describe("offline-banner", () => {
-  test("renders nothing (and takes no space) while the browser reports a connection", async () => {
+  test("keeps the live region mounted while the browser reports a connection", async () => {
     stubOnline(true);
     const banner = await renderBanner();
 
-    expect(banner.hasAttribute("hidden")).toBe(true);
+    // The host stays in the layout: removing it would remove the live region
+    // together with the text it is about to receive.
+    expect(banner.hasAttribute("hidden")).toBe(false);
+    const status = root(banner).querySelector('[role="status"]');
+    expect(status).not.toBeNull();
+    expect(status?.textContent?.trim()).toBe("");
     expect(root(banner).querySelector(".banner")).toBeNull();
   });
 
@@ -42,8 +47,12 @@ describe("offline-banner", () => {
     stubOnline(false);
     const banner = await renderBanner();
 
+    // The persistent live region carries the announcement; the visible
+    // strip is aria-hidden so the sentence is not read twice.
+    const status = root(banner).querySelector('[role="status"]');
+    expect(status?.textContent?.trim()).toBe(el.offline.message);
     const strip = root(banner).querySelector(".banner");
-    expect(strip?.getAttribute("role")).toBe("status");
+    expect(strip?.getAttribute("aria-hidden")).toBe("true");
     expect(strip?.textContent?.trim()).toBe(el.offline.message);
     expect(banner.hasAttribute("hidden")).toBe(false);
     // No dismiss control (ruling): the strip reports, it never asks.
@@ -54,6 +63,9 @@ describe("offline-banner", () => {
     stubOnline(true);
     const banner = await renderBanner();
     expect(root(banner).querySelector(".banner")).toBeNull();
+    // The live region exists (empty) before the transition, so the text
+    // assignment is announced.
+    expect(root(banner).querySelector('[role="status"]')).not.toBeNull();
 
     stubOnline(false);
     window.dispatchEvent(new Event("offline"));
@@ -64,7 +76,9 @@ describe("offline-banner", () => {
     window.dispatchEvent(new Event("online"));
     await banner.updateComplete;
     expect(root(banner).querySelector(".banner")).toBeNull();
-    expect(banner.hasAttribute("hidden")).toBe(true);
+    expect(
+      root(banner).querySelector('[role="status"]')?.textContent?.trim(),
+    ).toBe("");
   });
 
   test("reads the property, not the event kind (a stale event never desyncs the strip)", async () => {
@@ -77,7 +91,9 @@ describe("offline-banner", () => {
     await banner.updateComplete;
 
     expect(root(banner).querySelector(".banner")).toBeNull();
-    expect(banner.hasAttribute("hidden")).toBe(true);
+    expect(
+      root(banner).querySelector('[role="status"]')?.textContent?.trim(),
+    ).toBe("");
   });
 
   test("stops listening once disconnected", async () => {
@@ -110,10 +126,11 @@ describe("offline-banner", () => {
     // Same width as the main content column (the 80rem wide-route cap).
     const host = styles.match(/:host \{([^}]*)\}/)?.[1] ?? "";
     expect(host).toContain("max-width: 80rem");
-    // The author :host display beats the UA [hidden] rule, so the guard is
-    // what actually keeps the strip out of the layout while online.
-    const hidden = styles.match(/:host\(\[hidden\]\) \{([^}]*)\}/)?.[1] ?? "";
-    expect(hidden).toContain("display: none");
+    // The host must not carry a vertical margin while online: the live
+    // region stays mounted and the visible strip owns the top gap.
+    expect(host).not.toContain("margin: 12px");
+    const bannerRule = styles.match(/\.banner \{([^}]*)\}/)?.[1] ?? "";
+    expect(bannerRule).toContain("margin-top: 12px");
     // Slim: it shares the donation strip's height so the two stack evenly
     // on the home route.
     expect(styles).toMatch(/padding: 0\.45rem 1rem/);

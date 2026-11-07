@@ -73,11 +73,8 @@ button.account-link:focus-visible {
     border-radius: 2px;
 }
 
-/* The initializing chip is informational; the error chip stays clickable
-   (its click retries the bootstrap). */
-button.account-link.session-status:disabled {
-    cursor: default;
-}
+/* The connection chip uses aria-disabled plus a click guard, so no
+   :disabled rule belongs here. */
 
 .account-menu {
     position: absolute;

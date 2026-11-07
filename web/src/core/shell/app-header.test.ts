@@ -14,6 +14,8 @@ import { el as catalog } from "@shared/catalog/el.js";
 import { TRACKER_URL } from "@shared/config/links.js";
 import { mapError } from "@shared/utils/format.js";
 
+import { NOTIFICATIONS_CHANGED_EVENT } from "@features/notifications/notifications-page.js";
+
 import type { AppHeader } from "./app-header.js";
 import type { AppShell } from "./app-shell.js";
 import type { SessionProvider } from "@features/auth/data-access/session.js";
@@ -826,6 +828,50 @@ describe("app-header", () => {
       "Ειδοποιήσεις, 3 αδιάβαστες ειδοποιήσεις",
     );
 
+    el.remove();
+  });
+
+  test("the feed's change event refetches the unread badge", async () => {
+    let badgeFetches = 0;
+    let readAll = false;
+    const el = renderHeader();
+    (el as any).session = {
+      state: {
+        status: "authenticated",
+        user: { id: "u1", username: "Katakuri", role: "user" },
+      },
+    };
+    mockFetch((url) => {
+      if (url.includes("/notifications/unread-count")) {
+        badgeFetches += 1;
+        return json({ unread: readAll ? 0 : 2 });
+      }
+      return json({
+        id: "u1",
+        username: "Katakuri",
+        email: "k@example.com",
+        role: "user",
+        emailVerified: true,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        avatarUrl: null,
+      });
+    });
+    await el.updateComplete;
+    await flush();
+    expect(
+      el.shadowRoot?.querySelector(".unread-badge")?.textContent?.trim(),
+    ).toBe("2");
+
+    // The notifications page dispatches this after a read mutation; the
+    // header is the consumer half of the contract.
+    const before = badgeFetches;
+    readAll = true;
+    window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+    await flush();
+    await el.updateComplete;
+
+    expect(badgeFetches).toBeGreaterThan(before);
+    expect(el.shadowRoot?.querySelector(".unread-badge")).toBeNull();
     el.remove();
   });
 

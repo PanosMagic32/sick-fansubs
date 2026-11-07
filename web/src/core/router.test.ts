@@ -17,7 +17,13 @@ import {
   resetHappyDOMURL,
 } from "@shared/api/test-utils.js";
 
-import { fallback, navigate, redirect, routes } from "./router.js";
+import {
+  fallback,
+  isAppRoutePath,
+  navigate,
+  redirect,
+  routes,
+} from "./router.js";
 
 /** Replace history.replaceState with a spy that records the paths. */
 function stubReplaceState() {
@@ -73,6 +79,28 @@ describe("navigate", () => {
     } finally {
       nav.remove();
     }
+  });
+});
+
+describe("isAppRoutePath", () => {
+  test("matches every registered route shape", () => {
+    for (const route of routes) {
+      const sample = route.path.replace(/:[^/]+/g, "sample");
+      expect(isAppRoutePath(sample)).toBe(true);
+    }
+  });
+
+  test("accepts a trailing slash on a route path", () => {
+    expect(isAppRoutePath("/about/")).toBe(true);
+    expect(isAppRoutePath("/blog/p1/")).toBe(true);
+  });
+
+  test("rejects server-served and unknown same-origin paths", () => {
+    expect(isAppRoutePath("/media/images/abc.jpg")).toBe(false);
+    expect(isAppRoutePath("/assets/app.js")).toBe(false);
+    expect(isAppRoutePath("/not-a-route")).toBe(false);
+    // A route's static prefix alone is not a route.
+    expect(isAppRoutePath("/blog")).toBe(false);
   });
 });
 

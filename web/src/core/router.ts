@@ -17,7 +17,7 @@
  */
 
 import { Routes } from "@lit-labs/router";
-import type { RouteConfig } from "@lit-labs/router";
+import type { PathRouteConfig } from "@lit-labs/router";
 import { html } from "lit";
 import type { ReactiveControllerHost } from "lit";
 
@@ -30,7 +30,7 @@ import { el } from "@shared/catalog/el.js";
  * connectedCallback (e.g., sign-in-page redirects when already
  * authenticated) — the routes controller only matches and renders.
  */
-export const routes: RouteConfig[] = [
+export const routes: PathRouteConfig[] = [
   {
     path: "/",
     name: "home",
@@ -210,6 +210,46 @@ export const routes: RouteConfig[] = [
       html`<notifications-page class="full-route"></notifications-page>`,
   },
 ];
+
+// ── Route matching ─────────────────────────────────────────────────
+
+/**
+ * Compile a route pattern into an exact pathname matcher. Route paths use
+ * only static segments and `:name` placeholders, so the translation is a
+ * segment-by-segment escape plus a one-segment wildcard for each param.
+ */
+function compileRoutePath(path: string): RegExp {
+  const source = path
+    .split("/")
+    .map((segment) =>
+      segment.startsWith(":")
+        ? "[^/]+"
+        : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    )
+    .join("/");
+  return new RegExp(`^${source}$`);
+}
+
+const routePathMatchers = routes.map((route) => compileRoutePath(route.path));
+
+/**
+ * Normalize a pathname to the route table's canonical slash-free form. The
+ * root path stays `/`; every deeper trailing slash is dropped.
+ */
+export function normalizeAppPathname(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+}
+
+/**
+ * Whether a pathname is an application route. The shell intercepts only
+ * these: a same-origin link to a server-served resource (for example
+ * `/media/images/...`) must reach the browser natively, not enter the SPA
+ * router and render the fallback.
+ */
+export function isAppRoutePath(pathname: string): boolean {
+  const normalized = normalizeAppPathname(pathname);
+  return routePathMatchers.some((matcher) => matcher.test(normalized));
+}
 
 // ── Fallback (404) ─────────────────────────────────────────────────
 

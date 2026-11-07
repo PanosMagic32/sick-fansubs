@@ -1,6 +1,10 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 
-import { readSheet, stubAbortSignalTimeout } from "@shared/api/test-utils.js";
+import {
+  readSheet,
+  stubAbortSignalTimeout,
+  stubProperty,
+} from "@shared/api/test-utils.js";
 import { copyrightNotice, el } from "@shared/catalog/el.js";
 import { BUY_ME_A_COFFEE_URL, COMMUNITY_LINKS } from "@shared/config/links.js";
 
@@ -113,6 +117,43 @@ describe("app-footer", () => {
     expect(requested).toBe("/health/ready");
 
     footer.remove();
+  });
+
+  test("re-probes on reconnect and when the tab becomes visible", async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      if (calls === 2) return new Response("{}", { status: 200 });
+      throw new Error("down");
+    }) as unknown as typeof fetch;
+    const visibility = stubProperty(document, "visibilityState", "visible");
+    try {
+      const footer = renderFooter();
+      await footer.updateComplete;
+      await new Promise((r) => setTimeout(r, 10));
+      await footer.updateComplete;
+      expect(
+        footer.shadowRoot?.querySelector(".status-dot.offline"),
+      ).not.toBeNull();
+
+      // A reconnect must not leave the footer contradicting the offline
+      // strip that just disappeared.
+      window.dispatchEvent(new Event("online"));
+      await new Promise((r) => setTimeout(r, 10));
+      await footer.updateComplete;
+      expect(
+        footer.shadowRoot?.querySelector(".status-dot.online"),
+      ).not.toBeNull();
+      expect(calls).toBe(2);
+
+      document.dispatchEvent(new Event("visibilitychange"));
+      await new Promise((r) => setTimeout(r, 10));
+      await footer.updateComplete;
+      expect(calls).toBe(3);
+      footer.remove();
+    } finally {
+      visibility();
+    }
   });
 
   test("the probe carries its own deadline; a timeout reads offline", async () => {

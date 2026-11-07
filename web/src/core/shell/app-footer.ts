@@ -56,12 +56,33 @@ export class AppFooter extends LitElement {
     // this one answers.
     this.health = "loading";
     this._checkHealth(++this._healthProbe);
+    // Re-probe when connectivity or visibility changes: the shell keeps the
+    // footer mounted across SPA navigation, so one connect-time probe would
+    // otherwise serve the whole page lifetime and contradict the offline
+    // strip after a reconnect.
+    window.addEventListener("online", this._onReconnect);
+    document.addEventListener("visibilitychange", this._onVisibilityChange);
   }
 
   disconnectedCallback() {
     // Invalidate the in-flight probe: its result belongs to a teardown.
     this._healthProbe++;
+    window.removeEventListener("online", this._onReconnect);
+    document.removeEventListener("visibilitychange", this._onVisibilityChange);
     super.disconnectedCallback();
+  }
+
+  private _onReconnect = () => {
+    this._reprobe();
+  };
+
+  private _onVisibilityChange = () => {
+    if (document.visibilityState === "visible") this._reprobe();
+  };
+
+  private _reprobe() {
+    this.health = "loading";
+    this._checkHealth(++this._healthProbe);
   }
 
   /** Version from the Go server's `<meta name="app-version">` (read once). */

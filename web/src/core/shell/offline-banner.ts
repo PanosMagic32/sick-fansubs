@@ -8,9 +8,9 @@
  * the worker is production-only and its page cache is partial, so the copy
  * states the state without promising that cached pages load.
  *
- * The host carries `hidden` while online: the `:host([hidden])` rule in
- * the stylesheet takes it out of the layout and the accessibility tree
- * (the author `:host` display would otherwise beat the UA sheet).
+ * The live region stays mounted and empty while online, so the text is a
+ * change inside an existing region rather than a region mounted together
+ * with its text. Only the visible strip is conditional.
  */
 import { html, LitElement, nothing, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -44,10 +44,6 @@ export class OfflineBanner extends LitElement {
     super.disconnectedCallback();
   }
 
-  protected willUpdate(): void {
-    this.toggleAttribute("hidden", !this._offline);
-  }
-
   private _reportsOffline(): boolean {
     return !navigator.onLine;
   }
@@ -62,12 +58,24 @@ export class OfflineBanner extends LitElement {
   };
 
   render() {
-    if (!this._offline) return nothing;
-    // role="status" is the ruled markup: a strip that appears mid-session
-    // is announced by assistive tech that tracks live regions, while a page
-    // LOADED offline carries the strip from the first paint and it is
-    // simply part of the reading order there.
-    return html`<div class="banner" role="status">${el.offline.message}</div>`;
+    // The live region persists across the transition and receives its text
+    // when the connection drops — a region mounted together with its text
+    // is not reliably announced. The visible strip is absent while online
+    // and decorative to AT when present, so the sentence is not read twice;
+    // a page LOADED offline carries the sentence in this status region from
+    // the first paint, with the strip visual-only.
+    return html`
+      <p class="sr-only" role="status">
+        ${this._offline ? el.offline.message : ""}
+      </p>
+      ${
+        this._offline
+          ? html`<div class="banner" aria-hidden="true">
+              ${el.offline.message}
+            </div>`
+          : nothing
+      }
+    `;
   }
 }
 

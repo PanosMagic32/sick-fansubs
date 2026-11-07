@@ -454,7 +454,8 @@ guard({
 const BREAKPOINTS = new Set([
   "480px",
   "560px",
-  "640px",
+  "640px", // push-lifecycle phone band
+  "640.99px", // footer mobile boundary: no fractional-width sliver
   "641px",
   "700px",
   "700.01px",

@@ -24,8 +24,9 @@
     }
 }
 
-/* Mobile: edge-to-edge */
-@media (max-width: 640px) {
+/* Mobile: edge-to-edge. The .99 boundary leaves no fractional-width sliver
+   (the header's 700.01 boundary is the same guard). */
+@media (max-width: 640.99px) {
     :host {
         border-top: 1px solid var(--sf-border);
     }

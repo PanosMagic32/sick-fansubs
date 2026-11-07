@@ -7,6 +7,8 @@ import type { Theme } from "@core/shell/types.js";
 import {
   NAVIGATE_EVENT,
   createRoutes,
+  isAppRoutePath,
+  normalizeAppPathname,
   redirect,
   type NavigateEventDetail,
 } from "@core/router.js";
@@ -92,10 +94,10 @@ export class AppShell extends LitElement {
     // Perform the initial route match. The controller itself is created
     // once per element (constructor), so a reconnect never stacks a second
     // routes controller on the host.
-    this._routes.goto(window.location.pathname);
+    this._routes.goto(normalizeAppPathname(window.location.pathname));
 
     // Sync the current path so the header can highlight the active link.
-    this.currentPath = window.location.pathname;
+    this.currentPath = normalizeAppPathname(window.location.pathname);
 
     // Initial load: set the page title from the URL (focus stays put).
     this._setTitle(this.currentPath);
@@ -239,8 +241,8 @@ export class AppShell extends LitElement {
    * readers otherwise get no page-change announcement. Skipped on initial
    * load (connectedCallback) — the document starts at the top.
    */
-  private _focusMain() {
-    this.shadowRoot?.querySelector("main")?.focus();
+  private _focusMain(preventScroll = false) {
+    this.shadowRoot?.querySelector("main")?.focus({ preventScroll });
   }
 
   /* ── SPA navigation ── */
@@ -264,7 +266,9 @@ export class AppShell extends LitElement {
 
     // Let external links, downloads, and new-tab links through.
     if (anchor.target || anchor.hasAttribute("download")) return;
-    if (anchor.rel === "external") return;
+    // relList, not the raw attribute: `rel="external noopener"` is the same
+    // marker as `rel="external"`.
+    if (anchor.relList.contains("external")) return;
 
     // Read the raw href attribute (not .href) so relative and fragment
     // forms stay intact, then resolve it against the document base — this
@@ -290,17 +294,28 @@ export class AppShell extends LitElement {
     if (url.protocol !== "http:" && url.protocol !== "https:") return;
     if (url.origin !== window.location.origin) return;
 
+    // The route table carries the canonical slash-free shape: normalize
+    // before both the allowlist and the router so `/blog/1/` cannot pass
+    // the check and then miss the URLPattern.
+    const pathname = normalizeAppPathname(url.pathname);
+
+    // Only application routes enter the SPA. A same-origin non-route path
+    // (a server-served media object, an asset, a future download link) must
+    // load natively: pushState would show the router's fallback instead of
+    // the bytes the server would have served.
+    if (!isAppRoutePath(pathname)) return;
+
     // Same-pathname links stay native: only the query/hash differs, and a
     // native reload is the established behavior for those.
-    if (url.pathname === window.location.pathname) return;
+    if (pathname === normalizeAppPathname(window.location.pathname)) return;
 
     // SPA navigation: no full-page reload.
     e.preventDefault();
-    const path = url.pathname + url.search + url.hash;
+    const path = pathname + url.search + url.hash;
     window.history.pushState({}, "", path);
-    this._routes.goto(url.pathname);
-    this.currentPath = url.pathname;
-    this._setTitle(url.pathname);
+    this._routes.goto(pathname);
+    this.currentPath = pathname;
+    this._setTitle(pathname);
     this._focusMain();
   };
 
@@ -316,10 +331,13 @@ export class AppShell extends LitElement {
 
   /** Back/forward navigation — re-render the matched route. */
   private _onPopState = () => {
-    this._routes.goto(window.location.pathname);
-    this.currentPath = window.location.pathname;
+    const pathname = normalizeAppPathname(window.location.pathname);
+    this._routes.goto(pathname);
+    this.currentPath = pathname;
     this._setTitle(this.currentPath);
-    this._focusMain();
+    // Back/Forward restores the browser's scroll position; focusing main
+    // must not yank the page to its top.
+    this._focusMain(true);
   };
 
   /** Programmatic navigation via navigate() from core/router.ts. */
@@ -329,8 +347,8 @@ export class AppShell extends LitElement {
     // controller matches PATHNAMES, so split via the shared helper.
     // currentPath/title use window.location, which navigate() already
     // updated.
-    this._routes.goto(splitPath(path).pathname);
-    this.currentPath = window.location.pathname;
+    this._routes.goto(normalizeAppPathname(splitPath(path).pathname));
+    this.currentPath = normalizeAppPathname(window.location.pathname);
     this._setTitle(this.currentPath);
     this._focusMain();
   };
@@ -368,8 +386,8 @@ export class AppShell extends LitElement {
         @toggle-theme=${this._onThemeToggle}
       ></app-header>
 
-      <!-- Offline banner: every route, right under the header; the element
-           hides itself while online. -->
+      <!-- Offline banner: every route, right under the header; the host
+           stays mounted and only its visible strip is conditional. -->
       <offline-banner></offline-banner>
 
       <!-- Push lifecycle: every route. It renders nothing while healthy and

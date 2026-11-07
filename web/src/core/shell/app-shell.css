@@ -1,4 +1,5 @@
 :host {
+    color-scheme: dark;
     --sf-bg: #0d0d12;
     --sf-surface: rgba(13, 13, 18, 0.7);
     /* Card edges need a visible border on both themes. */
@@ -19,6 +20,9 @@
        clears 4.5:1 in both themes. */
     --sf-on-accent: #fff;
     --sf-error: #e05555;
+    /* Small error TEXT on a 15% error tint (the feed's result chips): the
+       base --sf-error clears 3:1 but not 4.5:1 on that tint. */
+    --sf-error-strong: #ff7a7a;
     --sf-success: #3fb86a;
     /* Small success TEXT (chips, status lines, success notes): a brighter
        green keeps ≥4.5:1 on the near-black surface. --sf-success itself
@@ -53,6 +57,7 @@
 }
 
 :host(.light) {
+    color-scheme: light;
     --sf-bg: #f5f3f7;
     --sf-surface: rgba(245, 243, 247, 0.85);
     /* The 0.18 alpha keeps the light-theme border visible. */
@@ -69,6 +74,8 @@
     --sf-accent-strong: #1f4685;
     --sf-on-accent: #fff;
     --sf-error: #c42b2b;
+    /* The light theme's small-text error on the 15% error tint. */
+    --sf-error-strong: #9c1f1f;
     --sf-success: #2a8f4e;
     /* The light theme's --sf-success lands around 3.7:1 as small text; the
        darker variant is the one direction that clears 4.5:1 on the light
@@ -77,7 +84,9 @@
     /* The light theme needs a DARKER amber: the dark theme's #c9993a lands
        around 2:1 on the light surface. */
     --sf-warning: #8a6a1a;
-    --sf-project: #b34141;
+    /* The search-result badge's text: the previous #b34141 missed 4.5:1
+       on its 10% tint at 0.8rem. */
+    --sf-project: #a33a3a;
     --sf-project-bg: rgba(196, 43, 43, 0.1);
     --sf-focus-ring: rgba(51, 101, 204, 0.25);
     --sf-dot: rgba(51, 101, 204, 0.08);
@@ -234,7 +243,7 @@ main > .full-route {
 }
 
 .home-placeholder a {
-    color: var(--sf-accent);
+    color: var(--sf-accent-light);
     text-decoration: none;
 }
 

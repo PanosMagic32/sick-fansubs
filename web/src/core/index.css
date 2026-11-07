@@ -6,6 +6,12 @@
     box-sizing: border-box;
 }
 
+/* The header is sticky (56px at 12px from the top); keyboard focus scrolled
+   to the viewport edge must not land behind it (WCAG 2.2 2.4.11). */
+html {
+    scroll-padding-top: 84px;
+}
+
 /* ── Typography: IBM Plex (self-hosted) ──
    System fonts vary in metrics and broke some layouts. The woff2 files
    are vendored under

@@ -338,12 +338,16 @@ export class AppHeader extends LitElement {
    * page carries its own error surface).
    */
   private async _refreshUnread() {
+    // Abort BEFORE the auth check: a session flip must cancel the previous
+    // account's in-flight read, or its late result can repaint the badge
+    // after the state cleared it.
+    this._unreadAbort?.abort();
+    this._unreadAbort = null;
     const s = this.session?.state;
     if (s?.status !== "authenticated") {
       this._unread = null;
       return;
     }
-    this._unreadAbort?.abort();
     const controller = new AbortController();
     this._unreadAbort = controller;
     try {
@@ -366,9 +370,12 @@ export class AppHeader extends LitElement {
    * authentication; failures fall back to the initial-letter chip.
    */
   private async _refreshAvatar() {
+    // Same ordering as the badge read: the previous account's request dies
+    // before the early return, so it cannot paint a stale avatar.
+    this._profileAbort?.abort();
+    this._profileAbort = null;
     const s = this.session?.state;
     if (s?.status !== "authenticated") return;
-    this._profileAbort?.abort();
     const controller = new AbortController();
     this._profileAbort = controller;
     try {
