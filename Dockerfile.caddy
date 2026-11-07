@@ -15,7 +15,7 @@
 #
 # Built + pushed to ghcr.io by the deploy workflow (the
 # manual docker save/scp channel is closed).
-FROM caddy:2.11.7-builder AS builder
+FROM caddy:2.11.9-builder AS builder
 
 # Cache mounts (BuildKit): the Go module + build caches persist via the
 # workflow's gha cache backend, so a rebuild after layer invalidation
@@ -25,8 +25,8 @@ FROM caddy:2.11.7-builder AS builder
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     xcaddy build \
-    --with github.com/caddy-dns/cloudflare
+    --with github.com/caddy-dns/cloudflare@v0.2.4
 
-FROM caddy:2.11.7-alpine
+FROM caddy:2.11.9-alpine
 
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
