@@ -14,6 +14,7 @@ import {
   createComment,
   deleteComment,
   focusFromLocation,
+  listCommentHearters,
   listComments,
   listReplies,
   removeHeart,
@@ -181,6 +182,28 @@ describe("comments API", () => {
     expect(req.method).toBe("DELETE");
     expect(req.url).toBe("/api/v1/blog-posts/b1/comments/c1");
     expect(req.headers["x-csrf-token"]).toBe("tok");
+  });
+
+  test("listCommentHearters sends the cursor page and no CSRF", async () => {
+    const { req } = mockFetchOnce({
+      ok: true,
+      status: 200,
+      jsonBody: {
+        items: [],
+        pageInfo: { hasNextPage: false, endCursor: null, total: 0 },
+      },
+    });
+
+    await listCommentHearters("blog-posts", "b1", "c1", {
+      limit: 20,
+      after: "cur1",
+    });
+
+    expect(req.method).toBe("GET");
+    expect(req.url).toBe(
+      "/api/v1/blog-posts/b1/comments/c1/hearts?limit=20&after=cur1",
+    );
+    expect(req.headers["x-csrf-token"]).toBeUndefined();
   });
 
   test("setHeart sends PUT with CSRF and removeHeart DELETE with CSRF", async () => {

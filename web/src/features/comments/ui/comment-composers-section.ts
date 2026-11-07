@@ -40,6 +40,9 @@ export interface CommentComposersHost extends ReactiveControllerHost {
   /** The host element's connection state — an awaited write must not mutate
    * a thread that has been torn down or moved to another content pair. */
   readonly isConnected: boolean;
+  /** The thread's shadow root — closing the editor hands focus back to the
+   * thread heading. */
+  readonly shadowRoot: ShadowRoot | null;
   kind: CommentKind;
   contentId: string;
   session?: SessionContext;
@@ -148,7 +151,12 @@ export class CommentComposersSection implements ReactiveController {
   /** Bound: Lit invokes a directly-bound listener with the HOST as `this`. */
   private _submitComment = async () => {
     const body = this._body.trim();
-    if (!body || this._submitting) return;
+    if (!body) {
+      this._composerError = el.violations.required;
+      this.refresh();
+      return;
+    }
+    if (this._submitting) return;
     const kind = this._host.kind;
     const contentId = this._host.contentId;
     this._submitting = true;
@@ -204,7 +212,12 @@ export class CommentComposersSection implements ReactiveController {
   private _submitReply = async () => {
     const body = this._replyBody.trim();
     const parentId = this._replyTargetId;
-    if (!body || !parentId || this._replySubmitting) return;
+    if (!body) {
+      this._replyError = el.violations.required;
+      this.refresh();
+      return;
+    }
+    if (!parentId || this._replySubmitting) return;
     const kind = this._host.kind;
     const contentId = this._host.contentId;
     this._replySubmitting = true;
@@ -238,11 +251,17 @@ export class CommentComposersSection implements ReactiveController {
     this.refresh();
   }
 
-  private _closeEdit = () => {
+  private _closeEdit = async () => {
     this._editId = "";
     this._editBody = "";
     this._editError = "";
     this.refresh();
+    // Cancel removes the focused control with the editor; Save does the
+    // same after patching. Land on the stable thread heading either way.
+    await this._host.updateComplete;
+    this._host.shadowRoot
+      ?.querySelector<HTMLElement>("#comments-heading")
+      ?.focus();
   };
 
   private _onEditInput = (e: Event) => {
@@ -253,7 +272,13 @@ export class CommentComposersSection implements ReactiveController {
   /** Bound for the same reason as `_submitComment`. */
   private _submitEdit = async () => {
     const body = this._editBody.trim();
-    if (!body || !this._editId || this._editSubmitting) return;
+    const editId = this._editId;
+    if (!body) {
+      this._editError = el.violations.required;
+      this.refresh();
+      return;
+    }
+    if (!editId || this._editSubmitting) return;
     const kind = this._host.kind;
     const contentId = this._host.contentId;
     this._editSubmitting = true;
@@ -263,13 +288,17 @@ export class CommentComposersSection implements ReactiveController {
       const res = await updateComment(
         this._host.kind,
         this._host.contentId,
-        this._editId,
+        editId,
         body,
       );
       if (!this._ownsContent(kind, contentId)) return;
+      // Cancel or opening another comment while the PATCH is out changes
+      // the editor; this response belongs only to the editor it started
+      // from.
+      if (this._editId !== editId) return;
       // The server returns the refreshed item; only the edited fields are
       // consumed here (the local item keeps its own window/cursor state).
-      this._host._patchComment(this._editId, (c) => ({
+      this._host._patchComment(editId, (c) => ({
         ...c,
         body: res.body,
         updatedAt: res.updatedAt,

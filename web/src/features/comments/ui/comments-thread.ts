@@ -226,6 +226,10 @@ export class CommentsThread extends LitElement {
         behavior: reduce ? "auto" : "smooth",
         block: "center",
       });
+      // The scroll alone is visual: the deep-link arrival (notification or
+      // post-create jump) must also move focus so keyboard and screen-reader
+      // users land on the target rather than the document body.
+      target.focus({ preventScroll: true });
     }
   }
 
@@ -252,9 +256,10 @@ export class CommentsThread extends LitElement {
    * remount — pushState never fires popstate. Only a CHANGED fragment
    * reloads; plain navigations do nothing. */
   private _onNavigate = () => {
-    const prev = this._focusId;
+    const prevFocus = this._focusId;
+    const prevSort = this._sort;
     this._syncURL();
-    if (this._focusId !== prev) {
+    if (this._focusId !== prevFocus || this._sort !== prevSort) {
       void this._loadFirst({ focus: this._focusId || undefined, scroll: true });
     }
   };
@@ -396,6 +401,15 @@ export class CommentsThread extends LitElement {
   }
 
   _removeComment(id: string) {
+    // A focus fragment can address a top-level comment or one of its replies;
+    // deleting the top-level cascades the reply, so both shapes count.
+    const removesFocused =
+      this._focusId === id ||
+      this._items.some(
+        (top) =>
+          top.id === id &&
+          (top.replies ?? []).some((reply) => reply.id === this._focusId),
+      );
     this._items = this._items
       .filter((top) => top.id !== id)
       .map((top) => {
@@ -416,6 +430,20 @@ export class CommentsThread extends LitElement {
               : Math.max(0, top.replyCount - 1),
         };
       });
+    if (!removesFocused) return;
+    // The deep-link target is gone because the viewer deleted it: clear the
+    // local focus and strip only the fragment, keeping the sort (and any
+    // other query) in the URL. Without this the page would advertise a
+    // target that no longer exists and a reload would show the
+    // deleted-target notice for the viewer's own action.
+    this._focusId = "";
+    this._targetPresent = false;
+    this._pendingScroll = false;
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search,
+    );
   }
 
   /* ── Sort ──────────────────────────────────────────────────────── */
@@ -532,7 +560,7 @@ export class CommentsThread extends LitElement {
     return html`
       <section class="comments">
         <header class="ct-header">
-          <h2 class="ct-title">
+          <h2 class="ct-title" id="comments-heading" tabindex="-1">
             ${el.comments.title}${
               this._count !== null ? ` (${this._count})` : ""
             }

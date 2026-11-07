@@ -25,7 +25,7 @@ import {
 } from "lit";
 
 import { requestSignal } from "@shared/api/request-signal.js";
-import { el, heartersAriaLabel } from "@shared/catalog/el.js";
+import { el, heartersAriaLabel, heartsCountLabel } from "@shared/catalog/el.js";
 import {
   formatRelativeTime,
   initialOf,
@@ -56,6 +56,8 @@ import type { CommentComposersSection } from "./comment-composers-section.js";
  * rendering reads and the list operations it mutates through.
  */
 export interface CommentItemsHost extends ReactiveControllerHost {
+  /** The thread's shadow root — the delete hand-off focuses its heading. */
+  readonly shadowRoot: ShadowRoot | null;
   kind: CommentKind;
   contentId: string;
   session?: SessionContext;
@@ -136,9 +138,12 @@ export class CommentItemsSection implements ReactiveController {
     this.refresh();
   }
 
-  private async _onDelete(c: CommentItem) {
+  private async _onDelete(c: CommentItem, reply = false) {
     if (this._deleting.has(c.id)) return;
-    if (!window.confirm(el.comments.deleteConfirm)) return;
+    const confirmCopy = reply
+      ? el.comments.deleteReplyConfirm
+      : el.comments.deleteConfirm;
+    if (!window.confirm(confirmCopy)) return;
     this._deleting.add(c.id);
     this._actionError = "";
     this.refresh();
@@ -147,6 +152,12 @@ export class CommentItemsSection implements ReactiveController {
       // Hard cascade: a top-level delete drops its replies with it.
       this._host._removeComment(c.id);
       void this._host._loadCount();
+      // The focused delete control is removed with the comment; hand focus
+      // to the section heading so the next Tab starts in the thread.
+      await this._host.updateComplete;
+      this._host.shadowRoot
+        ?.querySelector<HTMLElement>("#comments-heading")
+        ?.focus();
     } catch (err) {
       this._actionError = mapError(err);
       this.refresh();
@@ -301,7 +312,7 @@ export class CommentItemsSection implements ReactiveController {
     >`;
   }
 
-  private _actionsTemplate(c: CommentItem) {
+  private _actionsTemplate(c: CommentItem, reply = false) {
     const pending = this._heartPending.has(c.id);
     const windowOpen = this._heartDesired.has(c.id);
     const heartError = this._heartErrors.get(c.id);
@@ -359,7 +370,8 @@ export class CommentItemsSection implements ReactiveController {
                 <span class="ct-heart-glyph" aria-hidden="true"
                   >${icons.heartFilled}</span
                 >
-                ${c.heartsCount}
+                <span aria-hidden="true">${c.heartsCount}</span>
+                <span class="sr-only">${heartsCountLabel(c.heartsCount)}</span>
               </span>`
         }
         ${
@@ -396,7 +408,7 @@ export class CommentItemsSection implements ReactiveController {
                 aria-label=${deleteLabel}
                 title=${deleteLabel}
                 ?disabled=${deleting}
-                @click=${() => this._onDelete(c)}
+                @click=${() => this._onDelete(c, reply)}
               >
                 ${icons.trash}
               </button>`
@@ -425,7 +437,9 @@ export class CommentItemsSection implements ReactiveController {
       >
       ${
         c.updatedAt > c.createdAt
-          ? html`<span class="ct-edited">· ${el.comments.edited}</span>`
+          ? html`<span class="ct-edited"
+              ><span aria-hidden="true">·</span> ${el.comments.edited}</span
+            >`
           : ""
       }
     `;
@@ -498,12 +512,15 @@ export class CommentItemsSection implements ReactiveController {
       <div
         class="ct-comment ct-reply${this._host.focusId === r.id ? " is-target" : ""}"
         id="comment-${r.id}"
+        role="article"
+        tabindex="-1"
       >
         ${this._avatarTemplate(r.author)}
         <div class="ct-body">
           <p class="ct-meta">${this._metaTemplate(r)}</p>
           <p class="ct-text">${commentBodyTemplate(r.body)}</p>
-          ${this._actionsTemplate(r)} ${this._host.composers.editTemplate(r)}
+          ${this._actionsTemplate(r, true)}
+          ${this._host.composers.editTemplate(r)}
         </div>
       </div>
     `;
@@ -516,6 +533,8 @@ export class CommentItemsSection implements ReactiveController {
       <div
         class="ct-comment${this._host.focusId === c.id ? " is-target" : ""}"
         id="comment-${c.id}"
+        role="article"
+        tabindex="-1"
       >
         ${this._avatarTemplate(c.author)}
         <div class="ct-body">

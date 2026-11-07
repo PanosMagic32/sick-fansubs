@@ -11,7 +11,8 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import { clearCSRFToken, setCSRFToken } from "@shared/api/client.js";
-import { el, heartersAriaLabel } from "@shared/catalog/el.js";
+import { NAVIGATE_EVENT } from "@core/router.js";
+import { el, heartersAriaLabel, heartsCountLabel } from "@shared/catalog/el.js";
 import {
   mockSessionContext,
   readSheet,
@@ -243,6 +244,12 @@ describe("comments-thread", () => {
     // composer shows the sign-in prompt.
     expect(root(thread).querySelector(".ct-hearts")).not.toBeNull();
     expect(root(thread).querySelector(".ct-heart")).toBeNull();
+    // The anonymous count carries an accessible name, not a bare number.
+    expect(text(root(thread), ".ct-hearts .sr-only")).toBe(heartsCountLabel(3));
+    // The edited marker's separator is decorative.
+    expect(
+      reply?.querySelector(".ct-edited span[aria-hidden='true']")?.textContent,
+    ).toBe("·");
     expect(text(root(thread), ".ct-signin-prompt a")).toBe(
       el.comments.signInLink,
     );
@@ -486,6 +493,44 @@ describe("comments-thread", () => {
       "/api/v1/blog-posts/b1/comments?sort=newest&limit=20",
     );
     expect(newest.checked).toBe(true);
+  });
+
+  test("popstate and in-app navigation re-read sort and fragment", async () => {
+    const urls: string[] = [];
+    stubFetch(async (url) => {
+      urls.push(url);
+      if (url.endsWith("/comments/count"))
+        return { status: 200, body: { count: 2 } };
+      return { status: 200, body: LIST_BODY };
+    });
+
+    const thread = await renderThread({ status: "anonymous" });
+    urls.length = 0;
+
+    setHappyDOMURL("https://example.com/blog/b1?sort=oldest#comment-c2");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await settle();
+    await thread.updateComplete;
+
+    expect(urls.filter((u) => !u.endsWith("/count")).at(-1)).toBe(
+      "/api/v1/blog-posts/b1/comments?sort=oldest&limit=20&focus=c2",
+    );
+    expect(root(thread).querySelector("#comment-c2.is-target")).not.toBeNull();
+
+    // An in-app navigation carrying the query/hash follows the same path.
+    setHappyDOMURL("https://example.com/blog/b1?sort=newest#comment-c1");
+    window.dispatchEvent(
+      new CustomEvent(NAVIGATE_EVENT, {
+        detail: { path: "/blog/b1?sort=newest#comment-c1" },
+      }),
+    );
+    await settle();
+    await thread.updateComplete;
+
+    expect(urls.filter((u) => !u.endsWith("/count")).at(-1)).toBe(
+      "/api/v1/blog-posts/b1/comments?sort=newest&limit=20&focus=c1",
+    );
+    expect(root(thread).querySelector("#comment-c1.is-target")).not.toBeNull();
   });
 
   // ── Composer ─────────────────────────────────────────────────────
@@ -1023,6 +1068,55 @@ describe("comments-thread", () => {
 
   // ── Delete ───────────────────────────────────────────────────────
 
+  test("a PATCH that lands after cancel does not patch another comment", async () => {
+    setCSRFToken("tok");
+    let resolvePatch: ((r: { status: number; body: unknown }) => void) | null =
+      null;
+    stubFetch(async (url, method) => {
+      if (url.endsWith("/comments/count"))
+        return { status: 200, body: { count: 3 } };
+      if (method === "PATCH") {
+        return new Promise((resolve) => {
+          resolvePatch = resolve;
+        });
+      }
+      return { status: 200, body: LIST_BODY };
+    });
+
+    const thread = await renderThread();
+    const first = root(thread).querySelector(".ct-comment") as HTMLElement;
+    actionByLabel(first, el.comments.edit)!.click();
+    await thread.updateComplete;
+
+    const editor = root(thread).querySelector(".ct-editor") as HTMLElement;
+    (editor.querySelector("textarea") as HTMLTextAreaElement).value =
+      "Ενημερωμένο κείμενο";
+    (editor.querySelector("textarea") as HTMLTextAreaElement).dispatchEvent(
+      new Event("input"),
+    );
+    (editor.querySelector(".ct-submit") as HTMLButtonElement).click();
+    await settle();
+
+    // Cancel while the PATCH is out: the editor closes, and the response
+    // must not patch the comment (or a later-opened editor).
+    (editor.querySelector(".button--ghost") as HTMLButtonElement).click();
+    await thread.updateComplete;
+    expect(root(thread).querySelector(".ct-editor")).toBeNull();
+
+    resolvePatch!({
+      status: 200,
+      body: commentItem({
+        body: "Λάθος σχόλιο",
+        updatedAt: "2026-08-28T12:00:00.000Z",
+      }),
+    });
+    await settle();
+    await thread.updateComplete;
+
+    expect(text(root(thread), "#comment-c1 .ct-text")).toBe("Πρώτο σχόλιο");
+    expect(root(thread).querySelector(".ct-editor")).toBeNull();
+  });
+
   test("a confirmed author delete removes the comment AND its replies, then refreshes the count", async () => {
     windowCleanups.push(
       stubProperty(
@@ -1063,6 +1157,41 @@ describe("comments-thread", () => {
     expect(text(root(thread), ".ct-title")).toBe("Σχόλια (1)");
   });
 
+  test("deleting the focused comment strips the stale fragment", async () => {
+    windowCleanups.push(
+      stubProperty(
+        window,
+        "confirm",
+        mock(() => true),
+      ),
+    );
+    setCSRFToken("tok");
+    setHappyDOMURL("https://example.com/blog/b1?sort=top#comment-c1");
+    stubFetch(async (url, method) => {
+      if (url.endsWith("/comments/count")) {
+        return { status: 200, body: { count: 1 } };
+      }
+      if (method === "DELETE") return { status: 204, body: "" };
+      return { status: 200, body: LIST_BODY };
+    });
+
+    const thread = await renderThread();
+    expect(thread.focusId).toBe("c1");
+    const firstComment = root(thread).querySelector(
+      ".ct-comment",
+    ) as HTMLElement;
+    actionByLabel(firstComment, el.comments.delete)!.click();
+    await settle();
+    await thread.updateComplete;
+
+    // The URL and the rendered state agree: the deleted target is gone and
+    // no stale fragment survives; the sort query is preserved.
+    expect(window.location.hash).toBe("");
+    expect(window.location.search).toBe("?sort=top");
+    expect(thread.focusId).toBe("");
+    expect(root(thread).querySelector(".ct-deleted-notice")).toBeNull();
+  });
+
   test("a declined delete confirmation sends nothing", async () => {
     windowCleanups.push(
       stubProperty(
@@ -1081,6 +1210,28 @@ describe("comments-thread", () => {
     await renderThread();
 
     expect(methods).not.toContain("DELETE");
+  });
+
+  test("a reply delete uses the reply-specific confirmation", async () => {
+    const confirms: string[] = [];
+    windowCleanups.push(
+      stubProperty(window, "confirm", (message: string) => {
+        confirms.push(message);
+        return false;
+      }),
+    );
+    stubFetch(async (url) => {
+      if (url.endsWith("/comments/count"))
+        return { status: 200, body: { count: 3 } };
+      return { status: 200, body: LIST_BODY };
+    });
+
+    const thread = await renderThread({ session: { role: "moderator" } });
+    const reply = root(thread).querySelector(".ct-reply") as HTMLElement;
+    actionByLabel(reply, el.comments.delete)!.click();
+
+    // A reply has no subtree — the top-level copy would be a lie.
+    expect(confirms).toEqual([el.comments.deleteReplyConfirm]);
   });
 
   test("the delete icon names its pending state while the request is out", async () => {
@@ -1256,6 +1407,59 @@ describe("comments-thread", () => {
     expect(root(thread).querySelector(".ct-more-replies")).toBeNull();
   });
 
+  test("a reply page that lands after a reload is dropped", async () => {
+    let resolveReply: ((r: { status: number; body: unknown }) => void) | null =
+      null;
+    const baseBody = {
+      items: [
+        commentItem({
+          replies: [replyItem("r1"), replyItem("r2"), replyItem("r3")],
+          replyCount: 5,
+          repliesEndCursor: "br1.cur",
+        }),
+      ],
+      pageInfo: { hasNextPage: false, endCursor: null, total: 1 },
+    };
+    stubFetch(async (url) => {
+      if (url.endsWith("/comments/count"))
+        return { status: 200, body: { count: 6 } };
+      if (url.includes("/comments/c1/replies")) {
+        return new Promise((resolve) => {
+          resolveReply = resolve;
+        });
+      }
+      return { status: 200, body: baseBody };
+    });
+
+    const thread = await renderThread({ status: "anonymous" });
+    (
+      root(thread).querySelector(".ct-more-replies") as HTMLButtonElement
+    ).click();
+    await thread.updateComplete;
+
+    // A sort change reloads the thread; the in-flight reply page belongs to
+    // the window that is being replaced.
+    (
+      root(thread).querySelector('input[value="newest"]') as HTMLInputElement
+    ).click();
+    await settle();
+    await thread.updateComplete;
+
+    resolveReply!({
+      status: 200,
+      body: {
+        items: [replyItem("r4"), replyItem("r5")],
+        pageInfo: { hasNextPage: false, endCursor: null, total: 2 },
+      },
+    });
+    await settle();
+    await thread.updateComplete;
+
+    // The stale page never appends onto the fresh window.
+    expect(root(thread).querySelectorAll(".ct-reply").length).toBe(3);
+    expect(root(thread).querySelector("#comment-r4")).toBeNull();
+  });
+
   test("a failed reply append keeps the window and shows the mapped error", async () => {
     stubFetch(async (url) => {
       if (url.endsWith("/comments/count"))
@@ -1318,6 +1522,8 @@ describe("comments-thread", () => {
 
     const target = root(thread).querySelector("#comment-c2");
     expect(target?.classList.contains("is-target")).toBe(true);
+    // The focus target is an article, not an unnamed generic container.
+    expect(target?.getAttribute("role")).toBe("article");
     expect(text(target as HTMLElement, ".ct-target-chip")).toBe(
       el.comments.targetChip,
     );
