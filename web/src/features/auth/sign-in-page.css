@@ -13,7 +13,7 @@
 .reset-success {
     font-size: 0.9rem;
     line-height: 1.5;
-    color: var(--sf-success);
+    color: var(--sf-success-strong);
     margin: 0;
     padding: 0.75rem 1rem;
     border: 1px solid var(--sf-border);

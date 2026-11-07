@@ -966,8 +966,9 @@ describe("forgot-password link and reset banner", () => {
     expect(note?.textContent?.trim()).toBe(el.auth.resetSuccess);
     // Read once, removed immediately — a refresh must not re-show it.
     expect(sessionStorage.getItem(RESET_SUCCESS_STORAGE_KEY)).toBeNull();
-    // The note is a focusable live region — the house status shape.
-    expect(note?.getAttribute("role")).toBe("status");
+    // The note is a focus target, not a live region — focus is the
+    // announcement.
+    expect(note?.getAttribute("role")).toBeNull();
     expect(note?.getAttribute("tabindex")).toBe("-1");
     expect(page.shadowRoot?.activeElement).toBe(note);
   });

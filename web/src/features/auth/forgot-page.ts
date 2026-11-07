@@ -134,7 +134,7 @@ export class ForgotPasswordPage extends LitElement {
       this._pending = false;
     }
     // The form is replaced by the success note — move focus there so the
-    // live region is announced and the keyboard position survives.
+    // note is announced by focus and the keyboard position survives.
     await this.updateComplete;
     if (this._sent) {
       (
@@ -226,9 +226,7 @@ export class ForgotPasswordPage extends LitElement {
       return html`
         <section class="auth-card forgot-page" aria-labelledby="forgot-heading">
           <h1 id="forgot-heading">${el.auth.forgotTitle}</h1>
-          <p class="success-note" role="status" tabindex="-1">
-            ${el.auth.forgotSuccess}
-          </p>
+          <p class="success-note" tabindex="-1">${el.auth.forgotSuccess}</p>
           <p class="footer-link">
             <a href="/sign-in">${el.auth.backToSignIn}</a>
           </p>

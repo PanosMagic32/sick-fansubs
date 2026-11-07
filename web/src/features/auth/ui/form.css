@@ -37,7 +37,7 @@ form {
 }
 
 .footer-link a {
-    color: var(--sf-accent);
+    color: var(--sf-accent-light);
     text-decoration: none;
 }
 

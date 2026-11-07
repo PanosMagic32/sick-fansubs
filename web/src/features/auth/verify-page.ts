@@ -111,7 +111,8 @@ export class VerifyEmailPage extends LitElement {
    */
   protected updated() {
     // The invalid verdict mounts with its text; focus it once it exists so
-    // the terminal state is announced (the house status shape).
+    // focus announces the terminal state (a focused note is not also a
+    // live region).
     if (this._status === "invalid" && !this._invalidFocused) {
       this._invalidFocused = true;
       this.shadowRoot?.querySelector<HTMLElement>(".invalid-note")?.focus();
@@ -193,7 +194,7 @@ export class VerifyEmailPage extends LitElement {
       return html`
         <section class="auth-card verify-page" aria-labelledby="verify-heading">
           ${heading}
-          <p class="invalid-note" role="status" tabindex="-1">
+          <p class="invalid-note" tabindex="-1">
             ${el.auth.verifyTokenInvalid}
           </p>
           <p class="footer-link">

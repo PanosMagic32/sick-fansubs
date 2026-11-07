@@ -27,7 +27,10 @@ import { customElement } from "lit/decorators.js";
 
 import { el } from "@shared/catalog/el.js";
 import * as api from "@shared/api/client.js";
-import { API_REQUEST_TIMEOUT_MS } from "@shared/api/request-signal.js";
+import {
+  API_REQUEST_TIMEOUT_MS,
+  requestSignal,
+} from "@shared/api/request-signal.js";
 
 import { releasePushOwnership } from "@features/notifications/data-access/push-subscription.js";
 
@@ -124,6 +127,10 @@ export class SessionProvider extends LitElement {
   /** AbortController for the current bootstrap request (cancelled on disconnect). */
   private _bootstrapAbort: AbortController | null = null;
 
+  /** AbortController for the in-flight silent revalidate (cancelled on
+   * disconnect). */
+  private _revalidateAbort: AbortController | null = null;
+
   /** Scheduled bootstrap retry after an error state (null = none). */
   private _retryTimer: number | null = null;
 
@@ -141,6 +148,18 @@ export class SessionProvider extends LitElement {
     // revalidate silently dead after the reconnect.
     this._disconnected = false;
     this._retryDelayMs = BOOTSTRAP_RETRY_BASE_MS;
+
+    // A provider re-added while its first bootstrap was still in flight has
+    // no other restart path: disconnect aborted the request, and focus /
+    // visibility only retry an error state. Restart from the aborted
+    // initializing state so the re-parented element does not spin forever.
+    if (
+      this.hasUpdated &&
+      this._ctx.state.status === "initializing" &&
+      this._bootstrapAbort === null
+    ) {
+      void this._bootstrap();
+    }
 
     // Register the 401 callback so that any API call returning 401
     // automatically transitions the session to anonymous (no refresh loop).
@@ -176,6 +195,8 @@ export class SessionProvider extends LitElement {
     // disconnected element.
     this._bootstrapAbort?.abort();
     this._bootstrapAbort = null;
+    this._revalidateAbort?.abort();
+    this._revalidateAbort = null;
     this._clearBootstrapRetry();
     window.removeEventListener("focus", this._onWindowFocus);
     document.removeEventListener("visibilitychange", this._onVisibilityChange);
@@ -253,10 +274,23 @@ export class SessionProvider extends LitElement {
       return;
     }
     this._revalidating = true;
+    this._revalidateAbort?.abort();
+    const controller = new AbortController();
+    this._revalidateAbort = controller;
     try {
       const gen = this._generation;
-      const result = await authApi.bootstrapSession({});
-      if (this._disconnected || gen !== this._generation) return; // superseded
+      // The re-check owns a deadline: a hung focus read must never leave
+      // the dedupe latch set for the rest of the page's life.
+      const result = await authApi.bootstrapSession({
+        signal: requestSignal(controller),
+      });
+      if (
+        this._disconnected ||
+        controller.signal.aborted ||
+        gen !== this._generation
+      ) {
+        return; // superseded
+      }
       if (result.authenticated) {
         // Re-asserting "authenticated" is only valid on top of the SAME
         // state. An action (changePassword, sign-out) may have completed
@@ -264,9 +298,18 @@ export class SessionProvider extends LitElement {
         // further (actions bump at start, not at completion), so without
         // this check a pre-commit server snapshot could resurrect a
         // just-revoked session.
-        if (this._ctx.state.status !== "authenticated") return;
+        const current = this._ctx.state;
+        if (current.status !== "authenticated") return;
         // An authenticated response always carries csrfToken and user.
         if (!result.csrfToken || !result.user) return; // keep current state
+        if (current.user.id !== result.user.id) {
+          // A cross-tab sign-in changed the browser-wide cookie. Mounted
+          // pages still hold the previous account's data and their one-shot
+          // loads never refetch; swap identity only through a full document
+          // reload, never under the old account's UI.
+          this._reloadForIdentityChange();
+          return;
+        }
         api.setCSRFToken(result.csrfToken);
         this._setState({
           status: "authenticated",
@@ -282,7 +325,14 @@ export class SessionProvider extends LitElement {
       // degrade UX (no error banner, no surprise logout).
     } finally {
       this._revalidating = false;
+      if (this._revalidateAbort === controller) this._revalidateAbort = null;
     }
+  }
+
+  /** A cross-tab account switch cannot be applied in place: every mounted
+   * page's per-user load latch would keep the previous account's data. */
+  private _reloadForIdentityChange() {
+    window.location.reload();
   }
 
   // ── Bootstrap ──────────────────────────────────────────────────
@@ -364,9 +414,12 @@ export class SessionProvider extends LitElement {
         return;
       }
 
-      // Preserve the ApiError requestId for debugging.
+      // Keep the support-visible request id; never render the problem type
+      // (a machine path) as page copy.
       const detail =
-        err instanceof api.ApiError ? ` [${err.requestId ?? err.type}]` : "";
+        err instanceof api.ApiError && err.requestId
+          ? ` (${err.requestId})`
+          : "";
       this._setState({
         status: "error",
         message: `${el.ui.serverConnectionFailed}${detail}`,
@@ -503,6 +556,8 @@ export class SessionProvider extends LitElement {
           currentPassword,
           newPassword,
         });
+        // The server already dropped this account's push rows with the
+        // session revocation; local unsubscribe + marker cleanup still run.
         await this._releasePush();
         return result;
       },

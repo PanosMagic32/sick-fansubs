@@ -22,8 +22,10 @@
  * The bell is the shared SVG glyph pair (icons.bell / icons.bellFilled) —
  * same geometry, same box, so the bell never changes size when it flips
  * (the heart pair's contract). Decorative (aria-hidden); the accessible
- * name comes from the catalog aria-label pair
- * (el.follows.followAria/unfollowAria), aria-pressed reports the state.
+ * name is the action the press performs, from the catalog aria-label pair
+ * (el.follows.followAria/unfollowAria). The icon-only control is an action
+ * button, not a pressed-state toggle: the name and the glyph agree, and no
+ * `aria-pressed` is exposed.
  * Follows drive no public counters, so the element dispatches no event.
  */
 
@@ -36,6 +38,7 @@ import {
   type SessionContext,
 } from "@features/auth/data-access/session.js";
 import { ApiError } from "@shared/api/client.js";
+import { requestSignal } from "@shared/api/request-signal.js";
 import { el } from "@shared/catalog/el.js";
 import { mapError } from "@shared/utils/format.js";
 import { icons } from "@shared/ui/icons.js";
@@ -81,10 +84,15 @@ export class FollowToggle extends LitElement {
 
   /** In-flight status request — aborted on teardown or a new pair. */
   private _abort: AbortController | null = null;
+  /** In-flight mutation — aborted on teardown and bounded by the shared
+   * deadline. */
+  private _mutationAbort: AbortController | null = null;
 
   disconnectedCallback() {
     this._abort?.abort();
     this._abort = null;
+    this._mutationAbort?.abort();
+    this._mutationAbort = null;
     super.disconnectedCallback();
   }
 
@@ -120,7 +128,7 @@ export class FollowToggle extends LitElement {
 
     try {
       const res = await followStatus(this.kind, this.contentId, {
-        signal: controller.signal,
+        signal: requestSignal(controller),
       });
       if (controller.signal.aborted) return;
       this._following = res.following;
@@ -136,18 +144,24 @@ export class FollowToggle extends LitElement {
     if (this._pending || !this._isAuthed() || !this._statusLoaded) return;
     this._error = "";
     this._pending = true;
+    this._mutationAbort?.abort();
+    const controller = new AbortController();
+    this._mutationAbort = controller;
     this.requestUpdate();
     const target = !this._following;
     try {
+      const opts = { signal: requestSignal(controller) };
       if (target) {
-        await addFollow(this.kind, this.contentId);
+        await addFollow(this.kind, this.contentId, opts);
       } else {
-        await removeFollow(this.kind, this.contentId);
+        await removeFollow(this.kind, this.contentId, opts);
       }
+      if (controller.signal.aborted) return;
       // Confirmed success only — no event: follows drive no public
       // counters (unlike the favorite heart's count-sync event).
       this._following = target;
     } catch (err) {
+      if (controller.signal.aborted) return;
       this._error = mapError(err);
       // A 403 is the stale-CSRF ambiguity (cross-tab re-sign-in) — the
       // silent revalidate re-syncs session + token so a retry works.
@@ -156,6 +170,7 @@ export class FollowToggle extends LitElement {
       }
     } finally {
       this._pending = false;
+      if (this._mutationAbort === controller) this._mutationAbort = null;
       this.requestUpdate();
     }
   }
@@ -174,7 +189,6 @@ export class FollowToggle extends LitElement {
           extra: "follow-toggle",
         })}
         data-following=${this._following ? "true" : "false"}
-        aria-pressed=${this._following ? "true" : "false"}
         aria-busy=${this._pending ? "true" : "false"}
         aria-label=${
           this._following ? el.follows.unfollowAria : el.follows.followAria

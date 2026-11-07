@@ -27,6 +27,7 @@ import {
   type SessionContext,
 } from "@features/auth/data-access/session.js";
 import { resetPassword } from "@features/auth/data-access/auth-api.js";
+import { ApiError } from "@shared/api/client.js";
 import { redirect } from "@core/router.js";
 import { el, retryAfterMessage } from "@shared/catalog/el.js";
 import sharedStyles from "@core/styles/baseline.css?inline";
@@ -85,6 +86,9 @@ export class ResetPasswordPage extends LitElement {
   /** One-shot: the invalid-token verdict was focused after its first render. */
   private _invalidFocused = false;
 
+  /** Set when a submit asked to wait for the session bootstrap to settle. */
+  private _submitQueued = false;
+
   static styles = [
     unsafeCSS(sharedStyles),
     unsafeCSS(controlStyles),
@@ -117,18 +121,25 @@ export class ResetPasswordPage extends LitElement {
 
   protected updated() {
     // The invalid verdict mounts with its text; focus it once it exists so
-    // the terminal state is announced (the house status shape).
+    // focus announces the terminal state (a focused note is not also a
+    // live region).
     if (!this._token && !this._invalidFocused) {
       this._invalidFocused = true;
       this.shadowRoot?.querySelector<HTMLElement>(".invalid-note")?.focus();
+    }
+    // A submit requested during bootstrap runs once the session state is
+    // known: the CSRF header depends on it.
+    if (this._submitQueued && this.session?.state.status !== "initializing") {
+      this._submitQueued = false;
+      void this._submit();
     }
   }
 
   // ── Event handlers ─────────────────────────────────────────────
 
-  private async _onSubmit(e: Event) {
+  private _onSubmit = async (e: Event) => {
     e.preventDefault();
-    if (this._pending || this._cooldown.left > 0) return;
+    if (this._pending || this._submitQueued || this._cooldown.left > 0) return;
 
     // Client-side checks. The server remains the authority for the
     // password policy; confirmPassword never reaches the wire (the
@@ -150,6 +161,20 @@ export class ResetPasswordPage extends LitElement {
       return;
     }
 
+    // A cold load of an emailed link carries the session cookie but no
+    // in-memory CSRF token until bootstrap resolves; posting earlier would
+    // omit the header the server requires whenever a session exists (403).
+    if (this.session?.state.status === "initializing") {
+      this._submitQueued = true;
+      return;
+    }
+
+    await this._submit();
+  };
+
+  /** Send the reset request — the submit body after the client checks and
+   * the session-settled gate. */
+  private async _submit() {
     this._pending = true;
     let focusAfterError = false;
     try {
@@ -166,7 +191,28 @@ export class ResetPasswordPage extends LitElement {
       await this.session?.revalidate();
       redirect("/sign-in");
     } catch (err) {
+      if (
+        err instanceof ApiError &&
+        err.status === 422 &&
+        err.type === "/problems/auth/reset-token-invalid"
+      ) {
+        // Terminal: the token is bad, expired, or already used. The form
+        // has no path forward, so render the same invalid state as a
+        // missing token (with the forgot-password link).
+        this._token = "";
+        this._password = "";
+        this._confirm = "";
+        this._fieldErrors = {};
+        this._error = "";
+        this._invalidFocused = false;
+        return;
+      }
       this._mapSubmitError(err);
+      // A 403 means the server saw a session the client's in-memory state
+      // did not: re-bootstrap so the retry can succeed.
+      if (err instanceof ApiError && err.status === 403) {
+        void this.session?.retryBootstrap();
+      }
       focusAfterError = true;
     } finally {
       this._pending = false;
@@ -216,9 +262,7 @@ export class ResetPasswordPage extends LitElement {
       return html`
         <section class="auth-card reset-page" aria-labelledby="reset-heading">
           <h1 id="reset-heading">${el.auth.resetTitle}</h1>
-          <p class="invalid-note" role="status" tabindex="-1">
-            ${el.auth.resetTokenInvalid}
-          </p>
+          <p class="invalid-note" tabindex="-1">${el.auth.resetTokenInvalid}</p>
           <p class="footer-link">
             <a href="/auth/forgot">${el.auth.forgotTitle}</a>
           </p>
@@ -240,9 +284,10 @@ export class ResetPasswordPage extends LitElement {
             error: this._fieldErrors.password,
             pending: this._pending,
             autocomplete: "new-password",
-            // maxlength approximates the server's 128-byte bound (Go
-            // counts UTF-8 bytes). Convenience hint only.
-            maxlength: 128,
+            // maxlength approximates the server's 72-byte new-password
+            // bound (Go counts UTF-8 bytes; the register/security forms
+            // carry the same limit). Convenience hint only.
+            maxlength: 72,
             onInput: (v) => this._onFieldInput("password", v),
           })}
           ${formField({
@@ -253,7 +298,7 @@ export class ResetPasswordPage extends LitElement {
             error: this._fieldErrors.confirm,
             pending: this._pending,
             autocomplete: "new-password",
-            maxlength: 128,
+            maxlength: 72,
             onInput: (v) => this._onFieldInput("confirm", v),
           })}
           ${

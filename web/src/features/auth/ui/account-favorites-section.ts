@@ -18,6 +18,7 @@ import {
 } from "lit";
 
 import { NAVIGATE_EVENT } from "@core/router.js";
+import { ApiError } from "@shared/api/client.js";
 import { requestSignal } from "@shared/api/request-signal.js";
 import { el } from "@shared/catalog/el.js";
 import { icons } from "@shared/ui/icons.js";
@@ -33,6 +34,7 @@ import "@shared/ui/loading-spinner.js";
 import "@shared/ui/pager-nav.js";
 import "@shared/ui/pager-status.js";
 
+import type { SessionContext } from "../data-access/session.js";
 import { listFavorites, removeFavorite } from "../data-access/favorites-api.js";
 import type { FavoriteItem, FavoriteKind } from "../data-access/types.js";
 
@@ -40,6 +42,8 @@ import type { FavoriteItem, FavoriteKind } from "../data-access/types.js";
 export interface AccountFavoritesSectionHost extends ReactiveControllerHost {
   /** True while the session state machine reports an authenticated session. */
   readonly authed: boolean;
+  /** The page's session context — a 403 heals through a silent revalidate. */
+  readonly sessionContext?: SessionContext;
 }
 
 export interface AccountFavoritesSectionOptions {
@@ -68,11 +72,14 @@ export class AccountFavoritesSection implements ReactiveController {
   private _favActionError = "";
   /** The id of the card whose remove button is in flight. */
   private _removingId = "";
+  /** In-flight remove request — aborted on teardown. */
+  private _favRemoveAbort: AbortController | null = null;
   /** True while the next page exists (the pager's Next enablement). */
   private _favHasNext = false;
 
   /** The loaded page's filtered row count (pageInfo.total) — the pager's
-   * page-count numerator. Reset on every load start/error. */
+   * page-count numerator. Reset when a new list starts and on failure;
+   * retained across a page turn so the mounted pager keeps its count. */
   private _favTotal = 0;
 
   /** The current page's continuation cursor (non-reactive — Next reads it). */
@@ -133,6 +140,8 @@ export class AccountFavoritesSection implements ReactiveController {
     // disconnected element.
     this._favInFlight?.controller.abort();
     this._favInFlight = null;
+    this._favRemoveAbort?.abort();
+    this._favRemoveAbort = null;
   }
 
   hostUpdated() {
@@ -185,7 +194,14 @@ export class AccountFavoritesSection implements ReactiveController {
     this._favStatus = "loading";
     this._favError = "";
     this._favActionError = "";
-    this._favTotal = 0;
+    // A page turn keeps the previous items/total so the mounted pager has
+    // an honest page count while the next page loads. A first load, tab
+    // switch, or size change starts a new list and clears them.
+    if (after === null) {
+      this._favItems = [];
+      this._favHasNext = false;
+      this._favTotal = 0;
+    }
     this._refresh();
 
     try {
@@ -206,6 +222,8 @@ export class AccountFavoritesSection implements ReactiveController {
     } catch (err) {
       if (controller.signal.aborted) return;
       this._favError = mapError(err);
+      this._favItems = [];
+      this._favHasNext = false;
       this._favTotal = 0;
       this._favStatus = "error";
     } finally {
@@ -233,13 +251,25 @@ export class AccountFavoritesSection implements ReactiveController {
     this._removingId = item.id;
     this._favActionError = "";
     this._refresh();
+    const controller = new AbortController();
+    this._favRemoveAbort = controller;
     try {
-      await removeFavorite(this._favKind, item.id);
+      await removeFavorite(this._favKind, item.id, {
+        signal: requestSignal(controller),
+      });
+      if (controller.signal.aborted) return;
       this.favPaging.sync();
     } catch (err) {
+      if (controller.signal.aborted) return;
       this._favActionError = mapError(err);
+      // A 403 is the stale-CSRF ambiguity (cross-tab re-sign-in) — the
+      // silent revalidate re-syncs session + token so a retry works.
+      if (err instanceof ApiError && err.status === 403) {
+        void this._host.sessionContext?.revalidate();
+      }
     } finally {
       this._removingId = "";
+      if (this._favRemoveAbort === controller) this._favRemoveAbort = null;
     }
     this._refresh();
   }
@@ -263,7 +293,8 @@ export class AccountFavoritesSection implements ReactiveController {
   /**
    * Favorites section states: the tab row, then loading / error+retry /
    * empty / the search-style card list with the shared pager. The pager is
-   * hidden on loading/error/empty — it renders only with items.
+   * hidden on error/empty and stays mounted with `busy` while a page turn
+   * loads; it renders only with items and a known total.
    */
   private _favoritesTemplate() {
     return html`
@@ -346,18 +377,25 @@ export class AccountFavoritesSection implements ReactiveController {
               <ul class="fav-results" role="list">
                 ${this._favItems.map((item) => this._favoriteCardTemplate(item))}
               </ul>
-              <pager-nav
-                ?hasPrevious=${this.favPaging.hasPrevious}
-                ?hasNext=${this._favHasNext}
-                .limit=${this.favPaging.limit}
-                .page=${this.favPaging.page}
-                .total=${this._favTotal}
-                .limits=${PAGE_SIZES}
-                @sf-pager-prev=${this._onFavPrev}
-                @sf-pager-next=${this._onFavNext}
-                @sf-limit-change=${this._onFavLimitChange}
-              ></pager-nav>
             `
+          : ""
+      }
+      ${
+        this._favItems.length > 0 &&
+        this._favTotal > 0 &&
+        (this._favStatus === "loading" || this._favStatus === "success")
+          ? html`<pager-nav
+              ?hasPrevious=${this.favPaging.hasPrevious}
+              ?hasNext=${this._favHasNext}
+              ?busy=${this._favStatus === "loading"}
+              .limit=${this.favPaging.limit}
+              .page=${this.favPaging.page}
+              .total=${this._favTotal}
+              .limits=${PAGE_SIZES}
+              @sf-pager-prev=${this._onFavPrev}
+              @sf-pager-next=${this._onFavNext}
+              @sf-limit-change=${this._onFavLimitChange}
+            ></pager-nav>`
           : ""
       }
     `;

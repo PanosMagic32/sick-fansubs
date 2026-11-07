@@ -34,6 +34,7 @@ import {
   type SessionContext,
 } from "@features/auth/data-access/session.js";
 import { ApiError } from "@shared/api/client.js";
+import { requestSignal } from "@shared/api/request-signal.js";
 import { el } from "@shared/catalog/el.js";
 import { mapError } from "@shared/utils/format.js";
 import { icons } from "@shared/ui/icons.js";
@@ -81,7 +82,7 @@ export class FavoriteToggle extends LitElement {
   /** The desired target while the debounce window is open (null = idle).
    * Not reactive by itself — the window state re-renders via requestUpdate
    * (it only styles the button, the confirmed state stays the source of
-   * truth for aria-pressed). */
+   * truth for the glyph and the action label). */
   private _desired: boolean | null = null;
 
   /** The shared trailing-edge debouncer. */
@@ -93,6 +94,9 @@ export class FavoriteToggle extends LitElement {
 
   /** In-flight status request — aborted on teardown or a new pair. */
   private _abort: AbortController | null = null;
+  /** In-flight mutation — aborted on teardown and bounded by the shared
+   * deadline. */
+  private _mutationAbort: AbortController | null = null;
 
   disconnectedCallback() {
     this._debouncer.cancel();
@@ -100,6 +104,8 @@ export class FavoriteToggle extends LitElement {
     // instance must not inherit a stale is-pending state
     this._abort?.abort();
     this._abort = null;
+    this._mutationAbort?.abort();
+    this._mutationAbort = null;
     super.disconnectedCallback();
   }
 
@@ -140,7 +146,7 @@ export class FavoriteToggle extends LitElement {
 
     try {
       const res = await favoriteStatus(this.kind, this.contentId, {
-        signal: controller.signal,
+        signal: requestSignal(controller),
       });
       if (controller.signal.aborted) return;
       this._favorited = res.favorited;
@@ -181,13 +187,18 @@ export class FavoriteToggle extends LitElement {
       return;
     }
     this._pending = true;
+    this._mutationAbort?.abort();
+    const controller = new AbortController();
+    this._mutationAbort = controller;
     this.requestUpdate();
     try {
+      const opts = { signal: requestSignal(controller) };
       if (target) {
-        await addFavorite(this.kind, this.contentId);
+        await addFavorite(this.kind, this.contentId, opts);
       } else {
-        await removeFavorite(this.kind, this.contentId);
+        await removeFavorite(this.kind, this.contentId, opts);
       }
+      if (controller.signal.aborted) return;
       this._favorited = target;
       // Confirmed success only — the detail pages sync their public count
       // indicator from this event.
@@ -201,6 +212,7 @@ export class FavoriteToggle extends LitElement {
         }),
       );
     } catch (err) {
+      if (controller.signal.aborted) return;
       this._error = mapError(err);
       // A 403 is the stale-CSRF ambiguity (cross-tab re-sign-in) — the
       // silent revalidate re-syncs session + token so a retry works.
@@ -210,6 +222,7 @@ export class FavoriteToggle extends LitElement {
     } finally {
       this._pending = false;
       this._desired = null;
+      if (this._mutationAbort === controller) this._mutationAbort = null;
       this.requestUpdate();
     }
   }
@@ -228,7 +241,6 @@ export class FavoriteToggle extends LitElement {
           extra: `favorite-toggle${busy ? " is-pending" : ""}`,
         })}
         data-favorited=${this._favorited ? "true" : "false"}
-        aria-pressed=${this._favorited ? "true" : "false"}
         aria-busy=${busy ? "true" : "false"}
         aria-label=${
           this._favorited ? el.favorites.removeAria : el.favorites.addAria

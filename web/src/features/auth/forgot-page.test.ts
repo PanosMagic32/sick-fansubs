@@ -123,11 +123,11 @@ describe("forgot-password page", () => {
       page.shadowRoot?.querySelector(".success-note")?.textContent?.trim(),
     ).toBe(el.auth.forgotSuccess);
     expect(page.shadowRoot?.querySelector("form")).toBeNull();
-    // The note is a focusable live region — focus moves to it (the
+    // The note is a focus target, not a live region — focus moves to it (the
     // account-page success pattern), so the result is announced.
     expect(
       page.shadowRoot?.querySelector(".success-note")?.getAttribute("role"),
-    ).toBe("status");
+    ).toBeNull();
     await waitFor(
       () =>
         !!page.shadowRoot?.activeElement?.classList.contains("success-note"),

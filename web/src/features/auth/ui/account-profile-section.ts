@@ -21,7 +21,7 @@ import { requestSignal } from "@shared/api/request-signal.js";
 import { el, retryAfterMessage } from "@shared/catalog/el.js";
 import { AVATAR_CHANGED_EVENT } from "@shared/events.js";
 import { formField } from "@shared/ui/form-field.js";
-import { formatDateOnly, initialOf, mapError } from "@shared/utils/format.js";
+import { formatDateOnly, mapError } from "@shared/utils/format.js";
 import { roleLabel } from "@shared/utils/roles.js";
 import "@shared/ui/error-banner.js";
 import "@shared/ui/loading-spinner.js";
@@ -36,6 +36,7 @@ import {
 import type { UserProfile } from "../data-access/types.js";
 import { REGISTER_SUCCESS_STORAGE_KEY } from "../register-page.js";
 import { VERIFY_SUCCESS_STORAGE_KEY } from "../verify-page.js";
+import { avatarTemplate } from "./account-avatar-template.js";
 import {
   focusFirstInvalid,
   mapSubmitError,
@@ -46,6 +47,10 @@ import {
 export interface AccountProfileSectionHost extends ReactiveControllerHost {
   /** True while the session state machine reports an authenticated session. */
   readonly authed: boolean;
+  /** True while the forced-change gate blocks the profile reads. */
+  readonly changeRequired: boolean;
+  /** True while the profile panel is the mounted one. */
+  readonly profileActive: boolean;
   /** The page's shadow root — the email form focuses its first invalid field. */
   readonly shadowRoot: ShadowRoot | null;
   /** The session context — the email change revalidates a 401/403 so a
@@ -117,33 +122,15 @@ export class AccountProfileSection implements ReactiveController {
    * widget contract, mirrored here). */
   private _avatarLocalURL: string | null = null;
 
+  /** One-shot latch: the storage-transported notices are consumed only when
+   * the profile panel actually mounts (a forced-change landing never
+   * consumes them). */
+  private _noticesConsumed = false;
+
   constructor(host: AccountProfileSectionHost) {
     this._host = host;
     host.addController(this);
     this._verifyCooldown = new RetryCooldownController(host);
-  }
-
-  hostConnected() {
-    // Consume the post-verify success banner: read once, remove
-    // immediately — a refresh must not re-show it (the sign-in-page shape).
-    try {
-      if (sessionStorage.getItem(VERIFY_SUCCESS_STORAGE_KEY)) {
-        sessionStorage.removeItem(VERIFY_SUCCESS_STORAGE_KEY);
-        this._verifySuccess = true;
-      }
-    } catch {
-      // Storage unavailable — no banner, the page still works.
-    }
-    // Consume the post-registration notice: same one-shot shape.
-    try {
-      if (sessionStorage.getItem(REGISTER_SUCCESS_STORAGE_KEY)) {
-        sessionStorage.removeItem(REGISTER_SUCCESS_STORAGE_KEY);
-        this._registerSuccess = true;
-      }
-    } catch {
-      // Storage unavailable — no notice, the page still works.
-    }
-    this._refresh();
   }
 
   hostDisconnected() {
@@ -157,14 +144,50 @@ export class AccountProfileSection implements ReactiveController {
   }
 
   hostUpdated() {
+    this._consumeNotices();
     // Fetch the profile once the session is authenticated. The
     // _profileFetched latch keeps revalidate's re-set of the session state
     // object (which re-renders without a status change) from re-firing the
     // load.
-    if (this._host.authed && !this._profileFetched) {
+    if (
+      this._host.authed &&
+      !this._host.changeRequired &&
+      !this._profileFetched
+    ) {
       this._profileFetched = true;
       void this._loadProfile();
     }
+  }
+
+  /** Consume the post-verify/post-registration notices once the profile
+   * panel is live. Read once, remove immediately — a refresh must not
+   * re-show them (the sign-in-page shape). */
+  private _consumeNotices() {
+    if (
+      this._noticesConsumed ||
+      !this._host.profileActive ||
+      this._host.changeRequired
+    ) {
+      return;
+    }
+    this._noticesConsumed = true;
+    try {
+      if (sessionStorage.getItem(VERIFY_SUCCESS_STORAGE_KEY)) {
+        sessionStorage.removeItem(VERIFY_SUCCESS_STORAGE_KEY);
+        this._verifySuccess = true;
+      }
+    } catch {
+      // Storage unavailable — no banner, the page still works.
+    }
+    try {
+      if (sessionStorage.getItem(REGISTER_SUCCESS_STORAGE_KEY)) {
+        sessionStorage.removeItem(REGISTER_SUCCESS_STORAGE_KEY);
+        this._registerSuccess = true;
+      }
+    } catch {
+      // Storage unavailable — no notice, the page still works.
+    }
+    if (this._verifySuccess || this._registerSuccess) this._refresh();
   }
 
   /** The profile tabpanel's body. */
@@ -181,7 +204,7 @@ export class AccountProfileSection implements ReactiveController {
    * before the redirect lands.
    */
   private async _loadProfile() {
-    if (!this._host.authed) {
+    if (!this._host.authed || this._host.changeRequired) {
       return;
     }
 
@@ -202,6 +225,12 @@ export class AccountProfileSection implements ReactiveController {
       this._profileError = mapError(err);
     }
     this._refresh();
+    if (this._registerSuccess || this._verifySuccess) {
+      await this._host.updateComplete;
+      this._host.shadowRoot
+        ?.querySelector<HTMLElement>(".verify-success[tabindex='-1']")
+        ?.focus();
+    }
   }
 
   /** Retry the profile load after a failure. */
@@ -228,18 +257,38 @@ export class AccountProfileSection implements ReactiveController {
       });
       this._resendError = banner;
       this._verifyCooldown.start(retryAfterSeconds);
+      // A 403 is the stale-CSRF ambiguity (cross-tab re-sign-in) — the
+      // silent revalidate re-syncs session + token so a retry works.
+      if (err instanceof ApiError && err.status === 403) {
+        void this._host.sessionContext?.revalidate();
+      }
     } finally {
       this._resendPending = false;
     }
     this._refresh();
+    if (this._resendSuccess) {
+      await this._host.updateComplete;
+      this._host.shadowRoot
+        ?.querySelector<HTMLElement>(".verify-banner .verify-success")
+        ?.focus();
+    }
   };
 
-  /** Toggle the email-change widget. */
-  private _onToggleEmailForm = () => {
+  /** Toggle the email-change widget. Closing removes the focused cancel
+   * control, so focus returns to the control that reopens the form. */
+  private _onToggleEmailForm = async () => {
+    const wasOpen = this._emailFormOpen;
     this._emailFormOpen = !this._emailFormOpen;
     this._emailChangeError = "";
     this._emailChanged = false;
     this._refresh();
+    // Closing returns to the reopen control; opening moves into the form's
+    // first field instead of leaving focus on the removed button.
+    await this._host.updateComplete;
+    const selector = wasOpen
+      ? ".email-change > button"
+      : `#${EMAIL_FIELD_IDS.email}`;
+    this._host.shadowRoot?.querySelector<HTMLElement>(selector)?.focus();
   };
 
   private _onEmailFieldInput(
@@ -323,6 +372,14 @@ export class AccountProfileSection implements ReactiveController {
       this._emailPending = false;
     }
     this._refresh();
+    if (this._emailChanged) {
+      // The submit control is removed with the form on success; focus the
+      // success note so focus announces it and the position survives.
+      await this._host.updateComplete;
+      this._host.shadowRoot
+        ?.querySelector<HTMLElement>(".email-change .verify-success")
+        ?.focus();
+    }
     // Focus after _emailPending flips false (a disabled input cannot take
     // focus) — the sign-in-page shape.
     if (Object.keys(this._emailFieldErrors).length > 0) {
@@ -392,12 +449,17 @@ export class AccountProfileSection implements ReactiveController {
       } else {
         this._avatarError = mapError(err);
       }
+      // A 403 is the stale-CSRF ambiguity — the silent revalidate re-syncs
+      // session + token so a retry works (the neighbouring actions' heal).
+      if (err instanceof ApiError && err.status === 403) {
+        void this._host.sessionContext?.revalidate();
+      }
     } finally {
       this._avatarPending = false;
     }
     this._refresh();
     // The upload button disappears on success (no chosen file left) — move
-    // focus to the status note so it is announced and the position survives.
+    // focus to the success note so focus announces it and the position survives.
     if (this._avatarSuccess) {
       await this._host.updateComplete;
       (
@@ -438,14 +500,14 @@ export class AccountProfileSection implements ReactiveController {
     return html`
       ${
         this._registerSuccess
-          ? html`<p class="verify-success" role="status">
+          ? html`<p class="verify-success" tabindex="-1">
               ${el.account.registrationSuccess}
             </p>`
           : ""
       }
       ${
         this._verifySuccess
-          ? html`<p class="verify-success" role="status">
+          ? html`<p class="verify-success" tabindex="-1">
               ${el.auth.verifySuccess}
             </p>`
           : ""
@@ -454,14 +516,14 @@ export class AccountProfileSection implements ReactiveController {
         p.emailVerified
           ? ""
           : html`
-              <div class="verify-banner" role="status">
-                <p>
+              <div class="verify-banner">
+                <p role="status">
                   ${el.account.emailUnverifiedLabel}
                   ${el.account.emailUnverifiedHint}
                 </p>
                 ${
                   this._resendSuccess
-                    ? html`<p class="verify-success">
+                    ? html`<p class="verify-success" tabindex="-1">
                         ${el.account.resendSuccess}
                       </p>`
                     : ""
@@ -524,7 +586,7 @@ export class AccountProfileSection implements ReactiveController {
       <div class="email-change">
         ${
           this._emailChanged
-            ? html`<p class="verify-success" role="status">
+            ? html`<p class="verify-success" tabindex="-1">
                 ${el.account.changeEmailSuccess}
               </p>`
             : ""
@@ -614,62 +676,17 @@ export class AccountProfileSection implements ReactiveController {
    * renders in the facts list next to it.
    */
   private _avatarTemplate(p: UserProfile) {
-    return html`
-      <div class="avatar-block">
-        ${
-          this._avatarPreview || p.avatarUrl
-            ? html`<img
-                class="profile-avatar"
-                src=${this._avatarPreview ?? p.avatarUrl}
-                alt=""
-              />`
-            : html`<div class="avatar avatar-initial" aria-hidden="true">
-                ${initialOf(p.username)}
-              </div>`
-        }
-        <div class="avatar-controls">
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            aria-label=${
-              p.avatarUrl ? el.account.avatarReplace : el.account.avatarChoose
-            }
-            ?disabled=${this._avatarPending}
-            @change=${this._onAvatarChoose}
-          />
-          ${
-            this._avatarFile
-              ? html`<button
-                  type="button"
-                  class="button button--secondary button--sm avatar-upload-btn"
-                  ?disabled=${this._avatarPending}
-                  @click=${this._onAvatarUpload}
-                >
-                  ${
-                    this._avatarPending
-                      ? el.account.avatarUploading
-                      : el.account.avatarUpload
-                  }
-                </button>`
-              : ""
-          }
-        </div>
-        ${
-          this._avatarSuccess
-            ? html`<p class="avatar-success" role="status" tabindex="-1">
-                ${el.account.avatarSuccess}
-              </p>`
-            : ""
-        }
-        ${
-          this._avatarError
-            ? html`<p class="avatar-error" role="alert">
-                ${this._avatarError}
-              </p>`
-            : ""
-        }
-      </div>
-    `;
+    return avatarTemplate(
+      {
+        profile: p,
+        preview: this._avatarPreview,
+        pending: this._avatarPending,
+        hasFile: this._avatarFile !== null,
+        success: this._avatarSuccess,
+        error: this._avatarError,
+      },
+      { onChoose: this._onAvatarChoose, onUpload: this._onAvatarUpload },
+    );
   }
 
   /** Request a host re-render after a state change. */

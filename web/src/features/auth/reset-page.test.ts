@@ -84,6 +84,15 @@ afterEach(() => {
 });
 
 describe("reset-password page", () => {
+  test("the new-password inputs carry the server's 72 bound", async () => {
+    const page = await renderWithToken("tok123");
+    for (const id of ["#reset-password", "#reset-confirm"]) {
+      expect(
+        page.shadowRoot?.querySelector(id)?.getAttribute("maxlength"),
+      ).toBe("72");
+    }
+  });
+
   test("reads the token and strips it from the URL, keeping other params", async () => {
     const replaceSpy = spyOn(history, "replaceState");
     setHappyDOMURL("http://localhost:3000/");
@@ -109,9 +118,9 @@ describe("reset-password page", () => {
     expect(page.shadowRoot?.querySelector("form")).toBeNull();
     const note = page.shadowRoot?.querySelector(".invalid-note");
     expect(note?.textContent?.trim()).toBe(el.auth.resetTokenInvalid);
-    // The terminal verdict is a focusable live region — the house status
-    // shape, so the terminal state is announced.
-    expect(note?.getAttribute("role")).toBe("status");
+    // The terminal verdict is a focus target, not a live region — focus is
+    // the announcement.
+    expect(note?.getAttribute("role")).toBeNull();
     expect(note?.getAttribute("tabindex")).toBe("-1");
     expect(page.shadowRoot?.activeElement).toBe(note);
     expect(
@@ -212,7 +221,7 @@ describe("reset-password page", () => {
     replaceSpy.mockRestore();
   });
 
-  test("token-invalid 422 shows the catalog banner", async () => {
+  test("token-invalid 422 becomes the terminal invalid state", async () => {
     mockFetchOnce({
       ok: false,
       status: 422,
@@ -239,12 +248,17 @@ describe("reset-password page", () => {
 
     const form = page.shadowRoot?.querySelector("form") as HTMLFormElement;
     form.dispatchEvent(new Event("submit", { cancelable: true }));
-    await waitFor(() => !!page.shadowRoot?.querySelector("#reset-error"));
+    await waitFor(() => !!page.shadowRoot?.querySelector(".invalid-note"));
 
-    const banner = page.shadowRoot?.querySelector("#reset-error");
+    // The form has no path forward: the same terminal view as a missing
+    // token, with the forgot-password link.
+    expect(page.shadowRoot?.querySelector("form")).toBeNull();
     expect(
-      banner?.shadowRoot?.querySelector(".error")?.textContent?.trim(),
-    ).toBe(el.problems["/problems/auth/reset-token-invalid"]);
+      page.shadowRoot?.querySelector(".invalid-note")?.textContent?.trim(),
+    ).toBe(el.auth.resetTokenInvalid);
+    expect(
+      page.shadowRoot?.querySelector(".footer-link a")?.getAttribute("href"),
+    ).toBe("/auth/forgot");
     expect(sessionStorage.getItem(RESET_SUCCESS_STORAGE_KEY)).toBeNull();
   });
 

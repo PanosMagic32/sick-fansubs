@@ -126,7 +126,7 @@
 .avatar-success {
     margin: 0;
     font-size: 0.8rem;
-    color: var(--sf-success);
+    color: var(--sf-success-strong);
 }
 
 .avatar-error {
@@ -203,8 +203,9 @@
 }
 
 .fav-tab input:checked + span {
-    border-color: var(--sf-accent-light);
-    color: var(--sf-accent-light);
+    background: var(--sf-accent);
+    border-color: var(--sf-accent);
+    color: var(--sf-on-accent);
 }
 
 .fav-tab input:focus-visible + span {
@@ -365,7 +366,7 @@
 .verify-success {
     margin: 0 0 0.75rem;
     font-size: 0.85rem;
-    color: var(--sf-success);
+    color: var(--sf-success-strong);
 }
 
 .email-status {

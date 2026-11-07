@@ -106,7 +106,7 @@ describe("follow-toggle", () => {
     const btn = button(toggle);
 
     expect(req.url).toBe("/api/v1/users/me/follows/blog-posts/b1");
-    expect(btn?.getAttribute("aria-pressed")).toBe("false");
+    expect(btn?.hasAttribute("aria-pressed")).toBe(false);
     expect(btn?.getAttribute("aria-label")).toBe(el.follows.followAria);
     expect(btn?.querySelector("svg")).not.toBeNull();
   });
@@ -121,7 +121,6 @@ describe("follow-toggle", () => {
     const toggle = await render();
     const btn = button(toggle);
 
-    expect(btn?.getAttribute("aria-pressed")).toBe("true");
     expect(btn?.getAttribute("aria-label")).toBe(el.follows.unfollowAria);
   });
 
@@ -182,7 +181,6 @@ describe("follow-toggle", () => {
     await toggle.updateComplete;
 
     expect(calls).toEqual(["GET", "PUT"]);
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("true");
     expect(button(toggle)?.getAttribute("aria-label")).toBe(
       el.follows.unfollowAria,
     );
@@ -210,7 +208,6 @@ describe("follow-toggle", () => {
     await toggle.updateComplete;
 
     expect(calls).toEqual(["GET", "DELETE"]);
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("false");
     expect(button(toggle)?.getAttribute("aria-label")).toBe(
       el.follows.followAria,
     );
@@ -245,7 +242,6 @@ describe("follow-toggle", () => {
     await toggle.updateComplete;
 
     // State unchanged (confirmed updates — no rollback needed), error shown.
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("false");
     const error = toggle.shadowRoot?.querySelector(".follow-error");
     expect(error?.getAttribute("role")).toBe("alert");
     expect(error?.textContent?.trim()).toBe(
@@ -313,7 +309,6 @@ describe("follow-toggle", () => {
 
     const toggle = await render();
 
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("false");
     expect(toggle.shadowRoot?.querySelector(".follow-error")).not.toBeNull();
   });
 

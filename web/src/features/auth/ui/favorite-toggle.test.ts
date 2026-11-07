@@ -104,7 +104,9 @@ describe("favorite-toggle", () => {
     const btn = button(toggle);
 
     expect(req.url).toBe("/api/v1/users/me/favorites/blog-posts/b1");
-    expect(btn?.getAttribute("aria-pressed")).toBe("false");
+    // The icon-only control names the action, not a pressed state: a changing
+    // name plus aria-pressed would announce a contradiction.
+    expect(btn?.hasAttribute("aria-pressed")).toBe(false);
     expect(btn?.getAttribute("aria-label")).toBe(el.favorites.addAria);
     // The outline heart is the shared stroke SVG — same box as
     // the filled state, which is exactly the reported size bug's fix.
@@ -122,7 +124,6 @@ describe("favorite-toggle", () => {
     const toggle = await render();
     const btn = button(toggle);
 
-    expect(btn?.getAttribute("aria-pressed")).toBe("true");
     expect(btn?.getAttribute("aria-label")).toBe(el.favorites.removeAria);
     expect(btn?.querySelector("svg")?.getAttribute("fill")).toBe(
       "currentColor",
@@ -155,7 +156,6 @@ describe("favorite-toggle", () => {
     await toggle.updateComplete;
 
     expect(calls).toEqual(["GET", "PUT"]);
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("true");
   });
 
   test("click removes the favorite (DELETE + flip)", async () => {
@@ -181,7 +181,6 @@ describe("favorite-toggle", () => {
     await toggle.updateComplete;
 
     expect(calls).toEqual(["GET", "DELETE"]);
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("false");
   });
 
   test("failure keeps the state and shows the Greek error inline", async () => {
@@ -214,7 +213,6 @@ describe("favorite-toggle", () => {
     await toggle.updateComplete;
 
     // State unchanged (confirmed updates — no rollback needed), error shown.
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("false");
     const error = toggle.shadowRoot?.querySelector(".favorite-error");
     expect(error?.getAttribute("role")).toBe("alert");
     expect(error?.textContent?.trim()).toBe(
@@ -283,7 +281,6 @@ describe("favorite-toggle", () => {
 
     const toggle = await render();
 
-    expect(button(toggle)?.getAttribute("aria-pressed")).toBe("false");
     expect(toggle.shadowRoot?.querySelector(".favorite-error")).not.toBeNull();
   });
 
@@ -426,7 +423,6 @@ describe("favorite-toggle", () => {
     await toggle.updateComplete;
 
     expect(calls).toEqual(["GET", "PUT"]);
-    expect(btn?.getAttribute("aria-pressed")).toBe("true");
     expect(btn?.getAttribute("aria-busy")).toBe("false");
   });
 
@@ -452,7 +448,6 @@ describe("favorite-toggle", () => {
     await toggle.updateComplete;
 
     expect(calls).toEqual(["GET"]); // the status load only
-    expect(btn?.getAttribute("aria-pressed")).toBe("false");
     expect(btn?.getAttribute("aria-busy")).toBe("false");
   });
 

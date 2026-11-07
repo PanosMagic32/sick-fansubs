@@ -13,6 +13,7 @@ import {
   type ReactiveController,
   type ReactiveControllerHost,
   html,
+  nothing,
 } from "lit";
 
 import { ApiError } from "@shared/api/client.js";
@@ -33,6 +34,8 @@ import type { SessionItem } from "../data-access/types.js";
 export interface AccountSessionsSectionHost extends ReactiveControllerHost {
   /** True while the session state machine reports an authenticated session. */
   readonly authed: boolean;
+  /** True while the forced-change gate blocks the session-list read. */
+  readonly changeRequired: boolean;
   /** The page's session context — sign-out and the stale-CSRF heal use it. */
   readonly sessionContext: SessionContext | undefined;
   /** The page-shared in-flight flag (also used by the security panel). */
@@ -87,7 +90,11 @@ export class AccountSessionsSection implements ReactiveController {
 
   hostUpdated() {
     // Fetch the list once the session is authenticated (the profile latch).
-    if (this._host.authed && !this._sessionsStarted) {
+    if (
+      this._host.authed &&
+      !this._host.changeRequired &&
+      !this._sessionsStarted
+    ) {
       this._sessionsStarted = true;
       void this._loadSessions();
     }
@@ -139,7 +146,7 @@ export class AccountSessionsSection implements ReactiveController {
    * redirects.
    */
   private async _loadSessions() {
-    if (!this._host.authed) {
+    if (!this._host.authed || this._host.changeRequired) {
       return;
     }
 
@@ -304,6 +311,10 @@ export class AccountSessionsSection implements ReactiveController {
    * acted on stays visible.
    */
   private _sessionsTemplate() {
+    // The forced-change gate refuses this read. The page-level notice
+    // explains the state; the panel keeps the sign-out actions and renders
+    // no spinner it can never resolve.
+    if (this._host.changeRequired) return nothing;
     if (this._sessionsStatus === "loading") {
       return html`<div class="state-block">
         <p class="sessions-status" role="status">

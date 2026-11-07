@@ -245,6 +245,57 @@ describe("bootstrap", () => {
 
     provider.remove();
   });
+
+  test("a provider re-added during initializing restarts the bootstrap", async () => {
+    let calls = 0;
+    mockFetchImpl(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls += 1;
+      if (calls === 1) {
+        // Hold the first bootstrap open; disconnect aborts it.
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+          });
+        });
+      }
+      const body = {
+        authenticated: true,
+        csrfToken: "restart_tok",
+        user: { id: "1", username: "alice", role: "user" },
+        mustChangePassword: false,
+      };
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      } as unknown as Response;
+    });
+
+    const provider = document.createElement(
+      "session-provider",
+    ) as SessionProvider;
+    document.body.appendChild(provider);
+    await provider.updateComplete;
+    expect(provider.getState().status).toBe("initializing");
+    expect(calls).toBe(1);
+
+    // Re-parenting during the first bootstrap has no focus/visibility retry
+    // path: the reconnect itself must start a new bootstrap.
+    provider.remove();
+    document.body.appendChild(provider);
+    await provider.updateComplete;
+    await new Promise((r) => setTimeout(r, 20));
+    await provider.updateComplete;
+
+    expect(calls).toBe(2);
+    expect(provider.getState()).toEqual({
+      status: "authenticated",
+      user: { id: "1", username: "alice", role: "user" },
+      mustChangePassword: false,
+    });
+  });
 });
 
 // ── Action tests ────────────────────────────────────────────────────
@@ -579,6 +630,127 @@ describe("revalidate", () => {
     // Cross-tab sign-out is picked up silently: authenticated → anonymous.
     expect(sessionCalls).toBe(2);
     expect(p.getState()).toEqual({ status: "anonymous" });
+  });
+
+  test("reloads instead of swapping to a different account", async () => {
+    let sessionCalls = 0;
+    mockFetchImpl(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : "";
+      if (!url.includes("/auth/session")) {
+        throw new Error("unexpected fetch: " + url);
+      }
+      sessionCalls++;
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () =>
+          sessionCalls === 1
+            ? {
+                authenticated: true,
+                csrfToken: "tok",
+                mustChangePassword: false,
+                user: { id: "1", username: "alice", role: "user" },
+              }
+            : {
+                authenticated: true,
+                csrfToken: "bob_tok",
+                mustChangePassword: false,
+                user: { id: "2", username: "bob", role: "admin" },
+              },
+        text: async function () {
+          return JSON.stringify(await (this as Response).json());
+        },
+      } as unknown as Response;
+    });
+
+    const p = await setup();
+    expect(p.getState()).toEqual({
+      status: "authenticated",
+      user: { id: "1", username: "alice", role: "user" },
+      mustChangePassword: false,
+    });
+
+    let reloads = 0;
+    (
+      p as unknown as { _reloadForIdentityChange: () => void }
+    )._reloadForIdentityChange = () => {
+      reloads++;
+    };
+
+    window.dispatchEvent(new Event("focus"));
+    await flush();
+
+    // The cookie is browser-wide: a different user id is an account switch,
+    // not a state refresh. Mounted pages must not keep showing the old user.
+    expect(sessionCalls).toBe(2);
+    expect(reloads).toBe(1);
+    expect(p.getState()).toEqual({
+      status: "authenticated",
+      user: { id: "1", username: "alice", role: "user" },
+      mustChangePassword: false,
+    });
+    // The different account's token must never replace the old one before
+    // the id check sends the document into a reload.
+    expect(getCSRFToken()).toBe("tok");
+  });
+
+  test("disconnect aborts an in-flight revalidate", async () => {
+    let sessionCalls = 0;
+    let resolveSession!: (r: Response) => void;
+    mockFetchImpl(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : "";
+      if (!url.includes("/auth/session")) {
+        throw new Error("unexpected fetch: " + url);
+      }
+      sessionCalls++;
+      if (sessionCalls > 1) {
+        return new Promise<Response>((resolve) => {
+          resolveSession = resolve;
+        });
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({
+          authenticated: true,
+          csrfToken: "tok",
+          mustChangePassword: false,
+          user: { id: "1", username: "alice", role: "user" },
+        }),
+        text: async () =>
+          JSON.stringify({
+            authenticated: true,
+            csrfToken: "tok",
+            mustChangePassword: false,
+            user: { id: "1", username: "alice", role: "user" },
+          }),
+      } as unknown as Response;
+    });
+
+    const p = await setup();
+    window.dispatchEvent(new Event("focus"));
+    await flush();
+    expect(sessionCalls).toBe(2);
+
+    p.remove();
+    resolveSession({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => ({ authenticated: false, user: null }),
+      text: async () => JSON.stringify({ authenticated: false, user: null }),
+    } as unknown as Response);
+    await flush();
+
+    // The aborted request belongs to a disconnected provider and must not
+    // flip the state it left behind.
+    expect(p.getState()).toEqual({
+      status: "authenticated",
+      user: { id: "1", username: "alice", role: "user" },
+      mustChangePassword: false,
+    });
   });
 
   test("does not stack revalidate requests during a focus storm", async () => {

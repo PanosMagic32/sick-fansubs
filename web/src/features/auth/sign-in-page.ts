@@ -129,7 +129,7 @@ export class SignInPage extends LitElement {
       this._redirect();
     }
     // The reset/verify note mounts with its text; focus it once it exists
-    // so the status region is announced (the hard-load spinner renders first).
+    // so focus announces it (the hard-load spinner renders first).
     if (!this._successNoteFocused) {
       const note =
         this.shadowRoot?.querySelector<HTMLElement>(".reset-success");
@@ -282,11 +282,11 @@ export class SignInPage extends LitElement {
         <form @submit=${this._onSubmit} novalidate>
           ${
             this._verifySuccess
-              ? html`<p class="reset-success" role="status" tabindex="-1">
+              ? html`<p class="reset-success" tabindex="-1">
                   ${el.auth.verifySuccess}
                 </p>`
               : this._resetSuccess
-                ? html`<p class="reset-success" role="status" tabindex="-1">
+                ? html`<p class="reset-success" tabindex="-1">
                     ${el.auth.resetSuccess}
                   </p>`
                 : ""

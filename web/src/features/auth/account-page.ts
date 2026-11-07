@@ -61,6 +61,25 @@ const ACCOUNT_TABS = [
 ] as const;
 type AccountTab = (typeof ACCOUNT_TABS)[number];
 
+/** The tab an incoming URL selects. `tab=posts`/`tab=projects` are the
+ * favorites pager's own params; every other `tab` value opens favorites (the
+ * legacy shape) except the five section names, which deep-link directly. */
+function initialTab(): AccountTab {
+  const raw = new URLSearchParams(window.location.search).get("tab");
+  switch (raw) {
+    case "profile":
+    case "favorites":
+    case "notifications":
+    case "devices":
+    case "security":
+      return raw;
+    case null:
+      return "profile";
+    default:
+      return "favorites";
+  }
+}
+
 @customElement("account-page")
 export class AccountPage extends LitElement {
   // No stacked @state — @consume requests updates itself.
@@ -75,14 +94,15 @@ export class AccountPage extends LitElement {
    * sections are panels of ONE page, not routes (the favorites pager's URL
    * params already carry the nested posts/projects kind).
    *
-   * Deep links carrying the favorites `tab` param open on the favorites
-   * panel (the pager's URLs always include it) — read at construction,
-   * before the first render. */
-  @state() private _activeTab: AccountTab = new URLSearchParams(
-    window.location.search,
-  ).has("tab")
-    ? "favorites"
-    : "profile";
+   * Deep links open the section their `tab` param names; the favorites
+   * pager's posts/projects links keep opening favorites — read at
+   * construction, before the first render. A forced-change session is moved
+   * to security once the session state settles (see `_syncForcedTab`). */
+  @state() private _activeTab: AccountTab = initialTab();
+
+  /** Latches the forced-change hand-off so a later manual tab choice is not
+   * yanked back; cleared when the session leaves the authenticated state. */
+  private _forcedTabLatched = false;
 
   /** The page-shared action banner and in-flight flag (the devices and
    * security panels). The section controllers read and write them through
@@ -126,6 +146,20 @@ export class AccountPage extends LitElement {
     return this.session?.state.status === "authenticated";
   }
 
+  /** True while the profile panel is the mounted one — the profile section
+   * consumes its one-shot notices only then. */
+  get profileActive(): boolean {
+    return this._activeTab === "profile";
+  }
+
+  /** True while the server's forced-change gate blocks every non-exempt
+   * path — the profile and sessions panels must not issue their eager
+   * reads then (they would answer 403). */
+  get changeRequired(): boolean {
+    const s = this.session?.state;
+    return s?.status === "authenticated" && s.mustChangePassword;
+  }
+
   /** The session context the sections act on (sign-out, changePassword). */
   get sessionContext(): SessionContext | undefined {
     return this.session;
@@ -166,7 +200,25 @@ export class AccountPage extends LitElement {
 
   updated(changed: PropertyValues) {
     super.updated(changed);
+    this._syncForcedTab();
     this._guard();
+  }
+
+  /** A forced-change session lands on the security panel (the one surface
+   * the server gate admits) instead of the gated profile tab. The latch
+   * keeps the hand-off one-shot: a deliberate later tab choice stands, and
+   * the next forced-change flag re-arms it. */
+  private _syncForcedTab() {
+    const s = this.session?.state;
+    if (s?.status !== "authenticated") {
+      this._forcedTabLatched = false;
+      return;
+    }
+    if (!s.mustChangePassword || this._forcedTabLatched) return;
+    this._forcedTabLatched = true;
+    if (this._activeTab !== "security" && this._activeTab !== "devices") {
+      this._activeTab = "security";
+    }
   }
 
   /**

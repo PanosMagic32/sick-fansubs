@@ -79,9 +79,9 @@ describe("verify-email page", () => {
 
     const note = page.shadowRoot?.querySelector(".invalid-note");
     expect(note?.textContent?.trim()).toBe(el.auth.verifyTokenInvalid);
-    // The terminal verdict is a focusable live region — the house status
-    // shape, so the terminal state is announced.
-    expect(note?.getAttribute("role")).toBe("status");
+    // The terminal verdict is a focus target, not a live region — focus is
+    // the announcement.
+    expect(note?.getAttribute("role")).toBeNull();
     expect(note?.getAttribute("tabindex")).toBe("-1");
     expect(page.shadowRoot?.activeElement).toBe(note);
     expect(
@@ -141,7 +141,7 @@ describe("verify-email page", () => {
         el.auth.verifyTokenInvalid,
     );
     const note = page.shadowRoot?.querySelector(".invalid-note");
-    expect(note?.getAttribute("role")).toBe("status");
+    expect(note?.getAttribute("role")).toBeNull();
     expect(note?.getAttribute("tabindex")).toBe("-1");
     expect(page.shadowRoot?.activeElement).toBe(note);
     expect(sessionStorage.getItem(VERIFY_SUCCESS_STORAGE_KEY)).toBeNull();

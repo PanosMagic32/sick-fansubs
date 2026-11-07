@@ -425,6 +425,67 @@ describe("account-page", () => {
     expect(notice?.getAttribute("role")).toBe("alert");
   });
 
+  test("a forced-change session lands on security and skips the gated reads", async () => {
+    const calls: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : String(input);
+      calls.push(url);
+      throw new TypeError(`gated read issued: ${url}`);
+    }) as unknown as typeof fetch;
+
+    sessionStorage.setItem("sf-verify-success", "1");
+    const page = render({ mustChangePassword: true });
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    // The one surface the server gate admits, with no 403-producing reads.
+    // The one-shot verify notice stays queued for the profile panel rather
+    // than being consumed by an unmounted panel.
+    expect(sessionStorage.getItem("sf-verify-success")).toBe("1");
+    expect(
+      page.shadowRoot?.querySelector("#account-panel-security"),
+    ).not.toBeNull();
+    expect(page.shadowRoot?.querySelector("#account-panel-profile")).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  test("a forced-change devices deep link keeps sign-out and renders no stalled list", async () => {
+    (window.location as { search: string }).search = "?tab=devices";
+    const calls: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : String(input);
+      calls.push(url);
+      throw new TypeError(`gated read issued: ${url}`);
+    }) as unknown as typeof fetch;
+
+    const page = render({ mustChangePassword: true });
+    await page.updateComplete;
+    await settle();
+    await page.updateComplete;
+
+    expect(
+      page.shadowRoot?.querySelector("#account-panel-devices"),
+    ).not.toBeNull();
+    // The list cannot load behind the forced-change gate; the panel must
+    // not leave a spinner it can never resolve. Sign-out stays available.
+    expect(page.shadowRoot?.querySelector(".sessions-status")).toBeNull();
+    expect(page.shadowRoot?.querySelector(".signout-btn")).not.toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  test("a tab=security deep link addresses the security panel", async () => {
+    (window.location as { search: string }).search = "?tab=security";
+    const page = render();
+    await page.updateComplete;
+    await settle();
+
+    expect(
+      page.shadowRoot?.querySelector("#account-panel-security"),
+    ).not.toBeNull();
+    expect(page.shadowRoot?.querySelector("#account-panel-profile")).toBeNull();
+  });
+
   test("hides the forced-change notice for a normal session", async () => {
     const page = render({ mustChangePassword: false });
     await page.updateComplete;
@@ -794,6 +855,7 @@ describe("account-page", () => {
 
   test("a favorites page turn starts at the top", async () => {
     const scrollCalls: Array<[number, number]> = [];
+    let resolveNext!: (r: Response) => void;
     globalThis.fetch = (async (input: RequestInfo | URL) => {
       const url =
         typeof input === "string"
@@ -802,18 +864,19 @@ describe("account-page", () => {
             ? input.href
             : input.url;
       if (url.includes("/users/me/favorites/")) {
+        if (url.includes("after=")) {
+          // Hold the next page so the mounted pager can be observed busy.
+          return new Promise<Response>((resolve) => {
+            resolveNext = resolve;
+          });
+        }
         return mockResponse({
           ok: true,
           status: 200,
-          jsonBody: url.includes("after=")
-            ? {
-                items: [FAV_ITEM],
-                pageInfo: { hasNextPage: false, endCursor: null, total: 2 },
-              }
-            : {
-                items: [FAV_ITEM],
-                pageInfo: { hasNextPage: true, endCursor: "cur1", total: 2 },
-              },
+          jsonBody: {
+            items: [FAV_ITEM],
+            pageInfo: { hasNextPage: true, endCursor: "cur1", total: 2 },
+          },
         });
       }
       return mockResponse({ ok: true, status: 200, jsonBody: PROFILE_BODY });
@@ -838,12 +901,29 @@ describe("account-page", () => {
     );
     const pager = page.shadowRoot?.querySelector("pager-nav") as HTMLElement;
     pager.dispatchEvent(new CustomEvent("sf-pager-next"));
+    await page.updateComplete;
+
+    // The pager stays mounted and busy while the next page is in flight.
+    expect(page.shadowRoot?.querySelector("pager-nav")).not.toBeNull();
+    expect(pager.hasAttribute("busy")).toBe(true);
+
+    resolveNext(
+      mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: {
+          items: [FAV_ITEM],
+          pageInfo: { hasNextPage: false, endCursor: null, total: 2 },
+        },
+      }),
+    );
     await settle();
     await page.updateComplete;
 
     // The turn loaded the cursor page and reset the scroll; a popstate-synced
     // load keeps the browser's restored position (no call).
     expect(scrollCalls).toEqual([[0, 0]]);
+    expect(pager.hasAttribute("busy")).toBe(false);
   });
 
   test("the first authenticated favorites load keeps the restored scroll position", async () => {
@@ -1948,10 +2028,10 @@ describe("account-page", () => {
     expect(
       page.shadowRoot?.querySelector(".avatar-success")?.textContent?.trim(),
     ).toBe(el.account.avatarSuccess);
-    // The result note is a focusable live region — focus moves to it after
-    // the success render (the forgot-page pattern).
+    // The result note is a focus target, not a live region — focus is the
+    // announcement after the success render (the forgot-page pattern).
     const success = page.shadowRoot?.querySelector(".avatar-success");
-    expect(success?.getAttribute("role")).toBe("status");
+    expect(success?.getAttribute("role")).toBeNull();
     expect(success?.getAttribute("tabindex")).toBe("-1");
     await waitFor(
       () =>
@@ -2271,12 +2351,15 @@ describe("account-page email verification", () => {
       ".email-change button",
     ) as HTMLButtonElement;
     toggle.click();
+    await settle();
     await page.updateComplete;
 
     const form = page.shadowRoot?.querySelector(
       ".email-change form",
     ) as HTMLFormElement;
     expect(form).not.toBeNull();
+    // Opening withdraws the pressed control; focus moves into the form.
+    expect(page.shadowRoot?.activeElement?.id).toBe("account-new-email");
 
     // The recovery warning rides the same hint slot as registration —
     // a wrong NEW address kills self-service reset too.
@@ -2798,6 +2881,34 @@ describe("account-page avatar geometry", () => {
       accountStyles.match(/\.profile-avatar \{([^}]*)\}/s)?.[1] ?? "";
     expect(image).toContain("width: 9rem");
     expect(image).toContain("height: 9rem");
+  });
+});
+
+describe("account-page text tokens", () => {
+  test("small success notes use the text-safe success token", async () => {
+    // The base success token carries borders and tints (3:1); small success
+    // TEXT needs the darker --sf-success-strong pair to clear 4.5:1.
+    const signInStyles = await readSheet(
+      new URL("./sign-in-page.css", import.meta.url),
+    );
+    expect(
+      signInStyles.match(/\.reset-success \{([^}]*)\}/s)?.[1] ?? "",
+    ).toContain("color: var(--sf-success-strong)");
+    expect(
+      accountStyles.match(/\.avatar-success \{([^}]*)\}/s)?.[1] ?? "",
+    ).toContain("color: var(--sf-success-strong)");
+    expect(
+      accountStyles.match(/\.verify-success \{([^}]*)\}/s)?.[1] ?? "",
+    ).toContain("color: var(--sf-success-strong)");
+  });
+
+  test("auth footer links use the link-safe accent token", async () => {
+    const formStyles = await readSheet(
+      new URL("./ui/form.css", import.meta.url),
+    );
+    expect(
+      formStyles.match(/\.footer-link a \{([^}]*)\}/s)?.[1] ?? "",
+    ).toContain("color: var(--sf-accent-light)");
   });
 });
 
