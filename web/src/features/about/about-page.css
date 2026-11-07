@@ -109,9 +109,10 @@
     --row-accent: var(--sf-brand-coffee);
 }
 
-/* Decorative accent marker per row, tinted per service. */
-.link-row::before {
-    content: "›";
+/* Decorative accent marker per row, tinted per service. A real element
+   (aria-hidden) rather than generated content: some accessibility APIs
+   expose ::before text, and generated content cannot opt out. */
+.link-marker {
     color: var(--row-accent);
     font-weight: 700;
     flex-shrink: 0;

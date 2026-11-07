@@ -175,7 +175,7 @@ describe("about-page", () => {
       el.about.facebookSuffix,
     );
     expect(
-      text(root(page), ".link-row").replace(el.nav.opensInNewTab, ""),
+      text(root(page), ".link-desc").replace(el.nav.opensInNewTab, ""),
     ).toBe(
       `${el.about.facebookPrefix}${el.about.facebookLabel}${el.about.facebookSuffix}`,
     );

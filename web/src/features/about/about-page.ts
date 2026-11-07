@@ -98,6 +98,7 @@ export class AboutPage extends LitElement {
           ${LINKS.map(
             (link) => html`
               <li class="link-row tone-${link.tone}">
+                <span class="link-marker" aria-hidden="true">›</span>
                 <span class="link-desc"
                   >${link.prefix}<a
                     href=${link.url}
