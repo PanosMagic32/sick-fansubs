@@ -6652,8 +6652,8 @@ components:
       description: >-
         One account audit event in the unified feed. The `kind`
         discriminator carries the former `event` values unchanged. No request_id or
-        client address — the deferred audit viewer owns the forensic
-        fields. actorUsername is null when the actor has no users row (a
+        client address — the super-admin audit browser at /admin/logs owns the
+        forensic fields. actorUsername is null when the actor has no users row (a
         deleted account or the maintenance pseudo-actor — rendered as a
         system label); targetUsername is null for a deleted target
         (rendered as a placeholder). targetRole is the visibility snapshot

@@ -151,8 +151,8 @@ func TestMediaDelete_ReferencedFileConflicts(t *testing.T) {
 // TestMediaDelete_LegacyReferenceFormsConflict pins the delete guard against
 // every stored form the read path serves: the canonical path, the flat served
 // form, a served form with a wrong subdirectory, same-origin absolute URLs
-// (including an explicit default port and another scheme), and a relative
-// query. Each protects the canonical file — the sweep and the explicit delete
+// (including any port, scheme case, trailing dot, and the www twin), and a
+// relative query. Each protects the canonical file — the sweep and the explicit delete
 // resolve the same target.
 func TestMediaDelete_LegacyReferenceFormsConflict(t *testing.T) {
 	t.Parallel()
