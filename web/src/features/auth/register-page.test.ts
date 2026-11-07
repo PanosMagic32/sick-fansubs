@@ -634,6 +634,43 @@ describe("error handling", () => {
     );
     // Stale client state is reconciled via a session re-bootstrap.
     expect(retrySpy).toHaveBeenCalledTimes(1);
+    await new Promise((r) => setTimeout(r, 10));
+    await page.updateComplete;
+    expect(page.shadowRoot?.activeElement?.id).toBe("register-error");
+  });
+
+  test("keeps the 403 message and focuses the heading when the re-bootstrap fails", async () => {
+    const session = mockSession({
+      register: mock(async () => {
+        throw new ApiError({
+          type: "/problems/auth/already-authenticated",
+          title: "Already authenticated",
+          status: 403,
+        });
+      }),
+    });
+    session.retryBootstrap = async () => {
+      session.state.status = "error";
+      session.state.message = "Σφάλμα σύνδεσης";
+    };
+
+    const page = document.createElement("register-page") as RegisterPage;
+    (page as any).session = session;
+    document.body.appendChild(page);
+    await page.updateComplete;
+
+    await fill(page, "register-username", "testuser");
+    await fill(page, "register-email", "test@example.com");
+    await fill(page, "register-password", "secret-pw");
+    await fill(page, "register-confirm-password", "secret-pw");
+    await submit(page);
+    await new Promise((r) => setTimeout(r, 10));
+    await page.updateComplete;
+
+    expect(page.shadowRoot?.activeElement?.id).toBe("register-heading");
+    expect(bannerText(page, "register-retry-error")).toBe(
+      el.problems["/problems/auth/already-authenticated"],
+    );
   });
 
   test("shows rate-limited message on 429", async () => {

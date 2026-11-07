@@ -129,10 +129,6 @@ func TestAvatarUpload_Success(t *testing.T) {
 	}
 }
 
-// TestAvatarUpload_Validation pins the framing/error contract (mirrors
-// POST /api/v1/media): missing file → 422 file:required, unknown
-// fields → 400, undecodable bytes → 422 file:invalidFormat, oversized
-// source → 413 file:tooLarge.
 // TestAvatarUpload_RateLimited pins the per-user upload bucket: the eleventh
 // request in the window answers 429 with Retry-After before the body is
 // parsed.
@@ -157,6 +153,10 @@ func TestAvatarUpload_RateLimited(t *testing.T) {
 	}
 }
 
+// TestAvatarUpload_Validation pins the framing/error contract (mirrors
+// POST /api/v1/media): missing file → 422 file:required, unknown
+// fields → 400, undecodable bytes → 422 file:invalidFormat, oversized
+// source → 413 file:tooLarge.
 func TestAvatarUpload_Validation(t *testing.T) {
 	t.Parallel()
 

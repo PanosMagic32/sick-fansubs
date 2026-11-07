@@ -275,39 +275,39 @@ func TestLoadTrustedOrigin(t *testing.T) {
 // credentials and reaches stderr, the container log, and the log viewer.
 func TestLoadURLValidationErrorsRedactValues(t *testing.T) {
 	tests := []struct {
-		name     string
-		appEnv   string
-		baseURL  string
-		origin   string
-		wantLeak string
+		name      string
+		appEnv    string
+		baseURL   string
+		origin    string
+		wantLeaks []string
 	}{
 		{
-			name:     "malformed PUBLIC_BASE_URL",
-			appEnv:   EnvDevelopment,
-			baseURL:  "https://user:secret@host:bad",
-			origin:   "",
-			wantLeak: "user:secret",
+			name:      "malformed PUBLIC_BASE_URL",
+			appEnv:    EnvDevelopment,
+			baseURL:   "https://user:secret@host:bad",
+			origin:    "",
+			wantLeaks: []string{"user:secret", "secret"},
 		},
 		{
-			name:     "malformed TRUSTED_ORIGIN",
-			appEnv:   EnvDevelopment,
-			baseURL:  "http://localhost:3000",
-			origin:   "https://user:secret@host:bad",
-			wantLeak: "user:secret",
+			name:      "malformed TRUSTED_ORIGIN",
+			appEnv:    EnvDevelopment,
+			baseURL:   "http://localhost:3000",
+			origin:    "https://user:secret@host:bad",
+			wantLeaks: []string{"user:secret", "secret"},
 		},
 		{
-			name:     "production PUBLIC_BASE_URL scheme",
-			appEnv:   EnvProduction,
-			baseURL:  "http://insecure.example",
-			origin:   "https://sickfansubs.com",
-			wantLeak: "insecure.example",
+			name:      "production PUBLIC_BASE_URL scheme",
+			appEnv:    EnvProduction,
+			baseURL:   "http://insecure.example",
+			origin:    "https://sickfansubs.com",
+			wantLeaks: []string{"insecure.example"},
 		},
 		{
-			name:     "production TRUSTED_ORIGIN scheme",
-			appEnv:   EnvProduction,
-			baseURL:  "https://sickfansubs.com",
-			origin:   "http://insecure.example",
-			wantLeak: "insecure.example",
+			name:      "production TRUSTED_ORIGIN scheme",
+			appEnv:    EnvProduction,
+			baseURL:   "https://sickfansubs.com",
+			origin:    "http://insecure.example",
+			wantLeaks: []string{"insecure.example"},
 		},
 	}
 
@@ -323,10 +323,12 @@ func TestLoadURLValidationErrorsRedactValues(t *testing.T) {
 
 			_, err := Load()
 			if err == nil {
-				t.Fatalf("Load with %s=%q accepted, want an error", tt.name, tt.wantLeak)
+				t.Fatalf("Load with %s accepted, want an error", tt.name)
 			}
-			if strings.Contains(err.Error(), tt.wantLeak) {
-				t.Errorf("error %q echoes the configured value", err)
+			for _, leak := range tt.wantLeaks {
+				if strings.Contains(err.Error(), leak) {
+					t.Errorf("error %q echoes the configured value %q", err, leak)
+				}
 			}
 		})
 	}

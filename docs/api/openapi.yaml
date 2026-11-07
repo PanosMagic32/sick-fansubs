@@ -889,8 +889,10 @@ paths:
         total-pixel bound, or over the 8192 per-axis bound is a 413 with
         violation file:tooLarge; undecodable bytes are a 422 with
         file:invalidFormat; a missing file part is a 422 with file:required.
-        Per-user bucket: 10 uploads per 15 minutes (429 with Retry-After);
-        a process-wide four-slot semaphore bounds concurrent decoding.
+        Per-user bucket: 10 upload requests per 15 minutes — every
+        authenticated attempt counts, including a rejected framing or
+        validation — with 429 and Retry-After when empty; a process-wide
+        four-slot semaphore bounds concurrent spooling and decoding.
       requestBody:
         required: true
         content:
@@ -2466,8 +2468,10 @@ paths:
         2^24 total-pixel bound, or over the 8192 per-axis bound is a 413
         with violation file:tooLarge; undecodable bytes are a 422 with
         file:invalidFormat; a missing file part is a 422 with file:required.
-        Per-user bucket: 10 uploads per 15 minutes (429 with Retry-After);
-        a process-wide four-slot semaphore bounds concurrent decoding.
+        Per-user bucket: 10 upload requests per 15 minutes — every
+        authenticated attempt counts, including a rejected framing or
+        validation — with 429 and Retry-After when empty; a process-wide
+        four-slot semaphore bounds concurrent spooling and decoding.
       requestBody:
         required: true
         content:

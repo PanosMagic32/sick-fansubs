@@ -49,10 +49,11 @@ type UsersDeps struct {
 // ForcePasswordChange → CSRF).
 //
 // CSRF only validates unsafe methods (GETs pass through untouched), so the
-// whole subtree shares one chain. The read/write account operations carry no
+// whole subtree shares one chain. Most read/write account operations carry no
 // rate limit — authenticated per-user operations protected by origin + CSRF.
-// The avatar upload is the exception: its per-user bucket (10 per 15 minutes)
-// answers 429 with Retry-After, like the media upload. The
+// Two writes are exceptions: the avatar upload (10 per 15 minutes) and the
+// email change (the shared verification-send bucket, 1 per 30 minutes); both
+// answer 429 with Retry-After. The
 // forced-change gate applies to the subtree: profile and
 // favorites are protected until a flagged user changes their password — the
 // four exempt auth paths live on the auth chain, not here. Unknown paths

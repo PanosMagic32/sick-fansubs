@@ -170,8 +170,8 @@ func DeleteSessionByDigest(ctx context.Context, db *sql.DB, digest []byte) (int6
 // user's password verifier and create a session row atomically.
 //
 // CurrentAuthVersion must match the user's auth_version at call time: the
-// conditional UPDATE bumps it to CurrentAuthVersion+1 and the session row is
-// stamped with the NEW version.
+// conditional UPDATE CASes on it and does NOT bump it, and the session row is
+// stamped with that same unchanged version.
 type RehashPasswordAndCreateSessionParams struct {
 	UserID             string
 	CurrentAuthVersion int64

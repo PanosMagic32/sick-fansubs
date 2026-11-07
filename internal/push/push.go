@@ -272,10 +272,12 @@ const (
 	serviceOther   = "other"
 )
 
-// ServiceOther is the coarse family for an endpoint outside the known push
-// services. The create endpoint refuses such a value; the self-test withholds
-// its raw response status so a legacy row cannot turn the report into a
-// status oracle for an arbitrary HTTPS host.
+// ServiceOther is the coarse reporting family for an endpoint outside the
+// three named push services. The create endpoint accepts hosts through
+// IsKnownService — including the Windows Push Notification Service, whose
+// rows stay in this family — and the self-test withholds the raw response
+// status for every other row, so the report cannot become a status oracle for
+// an arbitrary HTTPS host.
 const ServiceOther = serviceOther
 
 // IsKnownService reports whether endpoint belongs to one of the push-service

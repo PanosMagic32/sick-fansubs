@@ -131,8 +131,9 @@ func escapedRunes(n int) string {
 
 // escapedMaxBody builds a create body that respects every documented field
 // maximum while using surrogate-pair escapes in every text field, including
-// both links of all 20 download rows. Its wire size is 1,232,400 bytes plus
-// JSON framing — the arithmetic the content bound must cover.
+// both links of all 20 download rows. Its wire size is about 1,228,480 bytes
+// plus JSON framing: the bound's 1,232,400-byte ceiling counts all 2,000 link
+// runes as twelve-byte escapes, but the required magnet prefix is plain ASCII.
 func escapedMaxBody() string {
 	var b strings.Builder
 	b.WriteString(`{"title":"`)
@@ -144,7 +145,7 @@ func escapedMaxBody() string {
 	b.WriteString(`","thumbnailPath":"`)
 	b.WriteString(adminThumb)
 	b.WriteString(`","status":"draft","downloads":[`)
-	link := "magnet:?x=" + escapedRunes(1990)
+	link := "magnet:?x=" + escapedRunes(1990) // 2,000 runes total
 	for i := range 20 {
 		if i > 0 {
 			b.WriteString(",")
@@ -191,6 +192,9 @@ func TestBlogCreate_BodyBound(t *testing.T) {
 	t.Run("escaped maxima fit", func(t *testing.T) {
 		t.Parallel()
 		body := escapedMaxBody()
+		if len(body) < 1_228_000 {
+			t.Fatalf("test body is %d bytes, want the documented maxima with escape expansion", len(body))
+		}
 		if len(body) > 1280*1024 {
 			t.Fatalf("test body is %d bytes, over the bound it is meant to fit", len(body))
 		}

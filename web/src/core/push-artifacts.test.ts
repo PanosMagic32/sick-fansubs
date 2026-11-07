@@ -189,6 +189,11 @@ describe("push service worker", () => {
   test("uses the display contract (icon, per-content dedupe tag, deep-link data)", async () => {
     const sw = await readSw();
     expect(sw).toContain('icon: "/icons/icon-192.png"');
+    // Notifications do not inherit the document language; the Greek title and
+    // body declare their language in the options block.
+    const options = sw.indexOf("showNotification(title, {");
+    expect(options).toBeGreaterThan(-1);
+    expect(sw.slice(options, options + 400)).toContain('lang: "el"');
     // The tag falls back to contentId when the kind carries no commentId
     // (content_updated — repeats replace per content instead).
     expect(sw).toContain(

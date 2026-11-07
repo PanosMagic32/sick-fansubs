@@ -129,13 +129,13 @@ func parseFileWithExt(file string, exts ...string) (id, ext string, ok bool) {
 // (`media/images/<any-two-chars>/<id>.<ext>` — ServedPath drops the segment),
 // a relative form carrying a query, fragment, `.` segment, or percent-encoded
 // bytes (the browser and ServeMux clean and decode it), and an absolute
-// http(s) URL on the configured public host with any default port or scheme.
-// The absolute form compares hostnames, not raw Host values: an explicit
-// `:443` (or a development `http://`) is the same served origin, and ignoring
-// the port can only widen the keep-set, never drop a live reference. Values
-// that cannot name a local file (another hostname, an escaping path, a
-// malformed segment, an unsupported extension) are reported not-ok; callers
-// skip them.
+// http(s) URL on the configured public host with any port, either scheme, a
+// case-insensitive scheme, a trailing-dot hostname, or the host's `www` twin
+// (the edge redirects between the two). The absolute form compares normalized
+// hostnames, not raw Host values, and ignoring the port can only widen the
+// keep-set, never drop a live reference. Values that cannot name a local file
+// (another hostname, an escaping path, a malformed segment, an unsupported
+// extension) are reported not-ok; callers skip them.
 func CanonicalStoragePath(stored, publicBaseURL string) (string, bool) {
 	candidate, ok := localMediaPath(stored, publicBaseURL)
 	if !ok {
@@ -164,21 +164,25 @@ func CanonicalStoragePath(stored, publicBaseURL string) (string, bool) {
 }
 
 // localMediaPath reduces a stored reference to the cleaned, decoded
-// `media/images/...` path the read path serves, or reports not-ok. Absolute
-// URLs must name the configured public hostname; the base path prefix, when
-// present, is stripped like the serving URL does. Relative values lose their
-// query and fragment, then decode and clean exactly as the browser and the
-// router do. The leading slash anchors path.Clean, so `..` can never escape
-// the media tree.
+// `media/images/...` path the read path serves, or reports not-ok. An absolute
+// http(s) URL must name the configured public host (or its `www` twin); the
+// base path prefix, when present, is stripped like the serving URL does.
+// Relative values lose their query and fragment, then decode and clean exactly
+// as the browser and the router do. The leading slash anchors path.Clean, so
+// `..` can never escape the media tree.
 func localMediaPath(stored, publicBaseURL string) (string, bool) {
 	candidate := stored
-	if strings.HasPrefix(candidate, "http://") || strings.HasPrefix(candidate, "https://") {
-		u, err := url.Parse(candidate)
-		if err != nil || u.Host == "" || publicBaseURL == "" {
+	if u, err := url.Parse(candidate); err == nil && u.Scheme != "" && u.Host != "" {
+		switch strings.ToLower(u.Scheme) {
+		case "http", "https":
+		default:
+			return "", false
+		}
+		if publicBaseURL == "" {
 			return "", false
 		}
 		base, err := url.Parse(publicBaseURL)
-		if err != nil || base.Hostname() == "" || !strings.EqualFold(u.Hostname(), base.Hostname()) {
+		if err != nil || base.Hostname() == "" || !sameMediaHost(u.Hostname(), base.Hostname()) {
 			return "", false
 		}
 		candidate = u.Path
@@ -202,6 +206,19 @@ func localMediaPath(stored, publicBaseURL string) (string, bool) {
 		return "", false
 	}
 	return cleaned, true
+}
+
+// sameMediaHost compares two hostnames after lowercasing, trimming one
+// trailing dot, and treating a leading `www.` as optional: the production edge
+// redirects www to the apex (and the reverse alias is possible), so both names
+// address the same served media file.
+func sameMediaHost(a, b string) bool {
+	normalize := func(host string) string {
+		host = strings.ToLower(host)
+		host = strings.TrimSuffix(host, ".")
+		return strings.TrimPrefix(host, "www.")
+	}
+	return normalize(a) == normalize(b)
 }
 
 // isLowerHex reports whether s consists of lowercase hex characters only.

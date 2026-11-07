@@ -13,7 +13,7 @@
  */
 
 import { consume } from "@lit/context";
-import { LitElement, html, unsafeCSS, type PropertyValues } from "lit";
+import { LitElement, html, nothing, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
 import {
@@ -278,6 +278,14 @@ export class SignInPage extends LitElement {
         >
           <h1 id="signin-heading" tabindex="-1">${el.auth.signInTitle}</h1>
           <error-banner .message=${message}></error-banner>
+          ${
+            this._error && this._error !== message
+              ? html`<error-banner
+                  id="signin-retry-error"
+                  .message=${this._error}
+                ></error-banner>`
+              : nothing
+          }
           <button
             type="button"
             class="button button--primary retry-btn"

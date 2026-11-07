@@ -584,6 +584,53 @@ describe("error handling", () => {
     );
     // Stale client state is reconciled via a session re-bootstrap.
     expect(retrySpy).toHaveBeenCalledTimes(1);
+    await new Promise((r) => setTimeout(r, 10));
+    await page.updateComplete;
+    expect(page.shadowRoot?.activeElement?.id).toBe("signin-error");
+  });
+
+  test("keeps the 403 message and focuses the heading when the re-bootstrap fails", async () => {
+    const session = mockSession({
+      signIn: mock(async () => {
+        throw new ApiError({
+          type: "/problems/auth/already-authenticated",
+          title: "Already authenticated",
+          status: 403,
+        });
+      }),
+    });
+    session.retryBootstrap = async () => {
+      session.state.status = "error";
+      session.state.message = "Σφάλμα σύνδεσης";
+    };
+
+    const page = document.createElement("sign-in-page") as SignInPage;
+    (page as any).session = session;
+    document.body.appendChild(page);
+    await page.updateComplete;
+
+    const idInput = page.shadowRoot?.querySelector(
+      "#signin-identifier",
+    ) as HTMLInputElement;
+    const pwInput = page.shadowRoot?.querySelector(
+      "#signin-password",
+    ) as HTMLInputElement;
+    idInput.value = "test";
+    idInput.dispatchEvent(new InputEvent("input"));
+    pwInput.value = "pass";
+    pwInput.dispatchEvent(new InputEvent("input"));
+    await page.updateComplete;
+
+    page.shadowRoot
+      ?.querySelector("form")
+      ?.dispatchEvent(new Event("submit", { cancelable: true }));
+    await new Promise((r) => setTimeout(r, 10));
+    await page.updateComplete;
+
+    expect(page.shadowRoot?.activeElement?.id).toBe("signin-heading");
+    expect(bannerText(page, "signin-retry-error")).toBe(
+      el.problems["/problems/auth/already-authenticated"],
+    );
   });
 
   test("shows generic error on network failure", async () => {

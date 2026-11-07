@@ -271,6 +271,11 @@ describe("admin-logs-page", () => {
     // (the hidden Greek labels give both values an accessible name).
     const objectLines = [...root(page).querySelectorAll(".audit-object-line")];
     expect(objectLines).toHaveLength(2);
+    expect(objectLines[0]?.hasAttribute("lang")).toBe(false);
+    expect(objectLines[0]?.textContent).not.toContain("·");
+    expect(heads.indexOf(el.admin.auditTargetColumn)).toBeLessThan(
+      heads.indexOf(el.admin.auditObjectColumn),
+    );
     expect(objectLines[0]?.textContent).toContain("blog-posts:post-1");
     expect(objectLines[0]?.querySelector(".sr-only")?.textContent?.trim()).toBe(
       `${el.admin.auditContentLabel}:`,

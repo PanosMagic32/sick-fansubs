@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -158,17 +157,24 @@ func TestMediaDelete_ReferencedFileConflicts(t *testing.T) {
 func TestMediaDelete_LegacyReferenceFormsConflict(t *testing.T) {
 	t.Parallel()
 
-	forms := []string{
-		delRelPath,
-		"media/images/" + delID + ".jpg",
-		"media/images/cd/" + delID + ".jpg",
-		delBaseURL + "/media/images/" + delID + ".jpg",
-		"https://sickfansubs.com:443/media/images/" + delID + ".jpg",
-		"http://sickfansubs.com/media/images/" + delID + ".jpg",
-		"media/images/" + delID + ".jpg?v=2",
+	forms := []struct {
+		name   string
+		stored string
+	}{
+		{"canonical", delRelPath},
+		{"flat", "media/images/" + delID + ".jpg"},
+		{"wrong-subdirectory", "media/images/cd/" + delID + ".jpg"},
+		{"absolute", delBaseURL + "/media/images/" + delID + ".jpg"},
+		{"absolute-default-port", "https://sickfansubs.com:443/media/images/" + delID + ".jpg"},
+		{"absolute-http", "http://sickfansubs.com/media/images/" + delID + ".jpg"},
+		{"absolute-uppercase-scheme", "HTTPS://sickfansubs.com/media/images/" + delID + ".jpg"},
+		{"absolute-trailing-dot", "https://sickfansubs.com./media/images/" + delID + ".jpg"},
+		{"absolute-www", "https://www.sickfansubs.com/media/images/" + delID + ".jpg"},
+		{"relative-query", "media/images/" + delID + ".jpg?v=2"},
 	}
-	for i, stored := range forms {
-		t.Run(fmt.Sprintf("form-%d", i), func(t *testing.T) {
+	for _, form := range forms {
+		stored := form.stored
+		t.Run(form.name, func(t *testing.T) {
 			t.Parallel()
 
 			dir := testDataDir(t)
@@ -217,11 +223,16 @@ func TestMediaDelete_LegacyReferenceFormsConflict(t *testing.T) {
 func TestMediaDelete_LegacyJPEGReferenceConflicts(t *testing.T) {
 	t.Parallel()
 
-	for i, stored := range []string{
-		"media/images/" + delID + ".jpeg",
-		delBaseURL + "/media/images/" + delID + ".jpeg",
-	} {
-		t.Run(fmt.Sprintf("form-%d", i), func(t *testing.T) {
+	forms := []struct {
+		name   string
+		stored string
+	}{
+		{"flat-jpeg", "media/images/" + delID + ".jpeg"},
+		{"absolute-jpeg", delBaseURL + "/media/images/" + delID + ".jpeg"},
+	}
+	for _, form := range forms {
+		stored := form.stored
+		t.Run(form.name, func(t *testing.T) {
 			t.Parallel()
 
 			dir := testDataDir(t)
