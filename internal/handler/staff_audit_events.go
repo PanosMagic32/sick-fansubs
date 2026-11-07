@@ -33,20 +33,24 @@ const (
 	maxStaffAuditLimit     = 200
 )
 
-// staffAuditEvent is one ledger row on the wire. The identity fields are
-// omitted when NULL (an unknown actor, an event without a target) rather than
-// sent as empty strings — the store already maps them, and the client renders
-// only what arrived (the staff-user email precedent).
+// staffAuditEvent is one ledger row on the wire. The nullable identity and
+// moderated-object fields (actor, target, target role, content kind/id, and
+// comment id) are omitted when NULL rather than sent as empty strings — the
+// store already maps them, and the client renders only what arrived (the
+// staff-user email precedent).
 type staffAuditEvent struct {
-	ID         string `json:"id"`
-	Event      string `json:"event"`
-	Result     string `json:"result"`
-	ActorID    string `json:"actorId,omitempty"`
-	TargetID   string `json:"targetId,omitempty"`
-	TargetRole string `json:"targetRole,omitempty"`
-	RequestID  string `json:"requestId"`
-	RemoteAddr string `json:"remoteAddr"`
-	CreatedAt  string `json:"createdAt"`
+	ID          string `json:"id"`
+	Event       string `json:"event"`
+	Result      string `json:"result"`
+	ActorID     string `json:"actorId,omitempty"`
+	TargetID    string `json:"targetId,omitempty"`
+	TargetRole  string `json:"targetRole,omitempty"`
+	ContentKind string `json:"contentKind,omitempty"`
+	ContentID   string `json:"contentId,omitempty"`
+	CommentID   string `json:"commentId,omitempty"`
+	RequestID   string `json:"requestId"`
+	RemoteAddr  string `json:"remoteAddr"`
+	CreatedAt   string `json:"createdAt"`
 }
 
 // staffAuditEvents is the GET /api/v1/staff/audit-events response body.
@@ -106,15 +110,18 @@ func StaffAuditEvents(db *sql.DB) http.HandlerFunc {
 		items := make([]staffAuditEvent, 0, len(rows))
 		for _, row := range rows {
 			items = append(items, staffAuditEvent{
-				ID:         row.ID,
-				Event:      row.Event,
-				Result:     row.Result,
-				ActorID:    row.ActorID,
-				TargetID:   row.TargetID,
-				TargetRole: row.TargetRole,
-				RequestID:  row.RequestID,
-				RemoteAddr: row.RemoteAddr,
-				CreatedAt:  formatAPITime(row.CreatedAtMS),
+				ID:          row.ID,
+				Event:       row.Event,
+				Result:      row.Result,
+				ActorID:     row.ActorID,
+				TargetID:    row.TargetID,
+				TargetRole:  row.TargetRole,
+				ContentKind: row.ContentKind,
+				ContentID:   row.ContentID,
+				CommentID:   row.CommentID,
+				RequestID:   row.RequestID,
+				RemoteAddr:  row.RemoteAddr,
+				CreatedAt:   formatAPITime(row.CreatedAtMS),
 			})
 		}
 

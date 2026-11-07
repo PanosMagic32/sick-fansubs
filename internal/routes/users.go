@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"net/http"
+	"time"
 
 	"sick-fansubs/internal/auth"
 	"sick-fansubs/internal/handler"
@@ -48,8 +49,10 @@ type UsersDeps struct {
 // ForcePasswordChange → CSRF).
 //
 // CSRF only validates unsafe methods (GETs pass through untouched), so the
-// whole subtree shares one chain. No rate limit — authenticated per-user
-// operations protected by origin + CSRF. The
+// whole subtree shares one chain. The read/write account operations carry no
+// rate limit — authenticated per-user operations protected by origin + CSRF.
+// The avatar upload is the exception: its per-user bucket (10 per 15 minutes)
+// answers 429 with Retry-After, like the media upload. The
 // forced-change gate applies to the subtree: profile and
 // favorites are protected until a flagged user changes their password — the
 // four exempt auth paths live on the auth chain, not here. Unknown paths
@@ -93,8 +96,10 @@ func Users(mux *http.ServeMux, deps UsersDeps) {
 	usersMux := http.NewServeMux()
 	usersMux.HandleFunc("GET /me", handler.CurrentUserProfile(db, publicBaseURL))
 
-	// Self-service avatar upload.
-	usersMux.HandleFunc("PUT /me/avatar", handler.AvatarUpload(db, dataDir, publicBaseURL, nil))
+	// Self-service avatar upload. The per-user bucket bounds repeated
+	// decode-heavy uploads from one account.
+	avatarLimiter := middleware.NewRateLimiter(10, 15*time.Minute, time.Minute)
+	usersMux.HandleFunc("PUT /me/avatar", handler.AvatarUpload(db, dataDir, publicBaseURL, avatarLimiter, nil))
 
 	// Email change — current-password gated,
 	// shared verification-send bucket, CSRF'd like every mutation on this

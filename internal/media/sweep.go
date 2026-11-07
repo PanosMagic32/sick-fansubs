@@ -3,6 +3,7 @@ package media
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -33,13 +34,16 @@ type SweepStats struct {
 
 // Sweep removes orphaned processed media files.
 //
-// referenced is the set of storage-relative paths every active content row
+// referenced is the set of canonical storage paths every active content row
 // points at (store.ReferencedMediaPaths) — membership means KEEP, regardless
-// of age. Candidates are files under <dataDir>/media/images/ matching the
-// stored grammar exactly (<2hex>/<32hex>.(jpg|png) with the subdirectory
-// equal to id[:2]); anything non-conforming is NEVER touched. A candidate
-// is removed when unreferenced AND older than grace, measured from now.
-// Stale .processing-* temp files (the writeAtomic crash leftovers) in a
+// of age. stillReferenced, when non-nil, re-reads the reference state for one
+// canonical path immediately before removal; a reference that landed after
+// the snapshot keeps the file, and a failed recheck counts as a failure
+// rather than an orphan. Candidates are files under <dataDir>/media/images/
+// matching the stored grammar exactly (<2hex>/<32hex>.(jpg|png) with the
+// subdirectory equal to id[:2]); anything non-conforming is NEVER touched. A
+// candidate is removed when unreferenced AND older than grace, measured from
+// now. Stale .processing-* temp files (the writeAtomic crash leftovers) in a
 // layout directory and older than grace are removed too.
 //
 // # Logging
@@ -53,7 +57,7 @@ type SweepStats struct {
 // A missing media directory (fresh install) is not an error: the sweep
 // reports zero stats. now and grace are parameters for the tests; callers
 // pass time.Now and SweepGrace.
-func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced map[string]struct{}, now time.Time, grace time.Duration) (SweepStats, error) {
+func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced map[string]struct{}, stillReferenced func(context.Context, string) (bool, error), now time.Time, grace time.Duration) (SweepStats, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -129,6 +133,17 @@ func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced 
 		if !stale {
 			return nil
 		}
+		if stillReferenced != nil {
+			keep, err := stillReferenced(ctx, stored)
+			if err != nil {
+				logger.Warn("media orphan reference recheck failed", "file", id, "error", pathFreeError(err))
+				stats.Failed++
+				return nil
+			}
+			if keep {
+				return nil
+			}
+		}
 		if removeLogged(logger, path, id, "media orphan removed", "media orphan removal failed") {
 			stats.Deleted++
 		} else {
@@ -138,7 +153,9 @@ func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced 
 	})
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return stats, err
+			// A *fs.PathError string carries the storage path, which never
+			// reaches a log record (docs/patterns/go/logging.md rule 8).
+			return stats, fmt.Errorf("media: walk images: %w", pathFreeError(err))
 		}
 		// A missing root is a fresh install — not an error — but a canceled
 		// caller still gets its cancellation.
@@ -147,6 +164,16 @@ func Sweep(ctx context.Context, logger *slog.Logger, dataDir string, referenced 
 		}
 	}
 	return stats, nil
+}
+
+// pathFreeError returns the cause of a filesystem error without the
+// *fs.PathError wrapper, whose text embeds the storage path. A cause-less
+// error is returned unchanged.
+func pathFreeError(err error) error {
+	if cause := errors.Unwrap(err); cause != nil {
+		return cause
+	}
+	return err
 }
 
 // staleFile reports whether the file's mtime is older than grace relative

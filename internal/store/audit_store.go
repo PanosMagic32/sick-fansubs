@@ -45,10 +45,11 @@ func (w *AuditWriter) Write(ctx context.Context, rec audit.Record) error {
 	}
 	_, err = w.DB.ExecContext(ctx, `
 		INSERT INTO audit_events
-			(id, event, result, actor_id, target_id, target_role, request_id, remote_addr, created_at_ms)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			(id, event, result, actor_id, target_id, target_role, content_kind, content_id, comment_id, request_id, remote_addr, created_at_ms)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		eventID, rec.Event, rec.Result, nullableString(rec.ActorID), nullableString(rec.TargetID),
-		nullableString(rec.TargetRole), rec.RequestID, rec.RemoteAddr, now().UnixMilli())
+		nullableString(rec.TargetRole), nullableString(rec.ContentKind), nullableString(rec.ContentID),
+		nullableString(rec.CommentID), rec.RequestID, rec.RemoteAddr, now().UnixMilli())
 	if err != nil {
 		return fmt.Errorf("store: insert audit event: %w", err)
 	}
@@ -56,8 +57,8 @@ func (w *AuditWriter) Write(ctx context.Context, rec audit.Record) error {
 }
 
 // AuditEvent is one row of the audit ledger as the super-admin browser reads
-// it. The nullable identity columns surface as empty strings — the read half
-// of the nullableString write pair.
+// it. The nullable identity and moderated-object columns surface as empty
+// strings — the read half of the nullableString write pair.
 type AuditEvent struct {
 	ID          string
 	Event       string
@@ -65,6 +66,9 @@ type AuditEvent struct {
 	ActorID     string
 	TargetID    string
 	TargetRole  string
+	ContentKind string
+	ContentID   string
+	CommentID   string
 	RequestID   string
 	RemoteAddr  string
 	CreatedAtMS int64
@@ -94,7 +98,7 @@ type AuditEventFilter struct {
 // the ordering clause and the argument list stay in one place.
 func ListAuditEvents(ctx context.Context, db *sql.DB, filter AuditEventFilter) ([]AuditEvent, error) {
 	var where strings.Builder
-	where.WriteString(`SELECT id, event, result, actor_id, target_id, target_role, request_id, remote_addr, created_at_ms
+	where.WriteString(`SELECT id, event, result, actor_id, target_id, target_role, content_kind, content_id, comment_id, request_id, remote_addr, created_at_ms
 		FROM audit_events WHERE 1 = 1`)
 	args := make([]any, 0, 2)
 
@@ -115,14 +119,17 @@ func ListAuditEvents(ctx context.Context, db *sql.DB, filter AuditEventFilter) (
 	events := make([]AuditEvent, 0, filter.Limit)
 	for rows.Next() {
 		var e AuditEvent
-		var actorID, targetID, targetRole sql.NullString
+		var actorID, targetID, targetRole, contentKind, contentID, commentID sql.NullString
 		if err := rows.Scan(&e.ID, &e.Event, &e.Result, &actorID, &targetID, &targetRole,
-			&e.RequestID, &e.RemoteAddr, &e.CreatedAtMS); err != nil {
+			&contentKind, &contentID, &commentID, &e.RequestID, &e.RemoteAddr, &e.CreatedAtMS); err != nil {
 			return nil, fmt.Errorf("store: scan audit event: %w", err)
 		}
 		e.ActorID = nullStringValue(actorID)
 		e.TargetID = nullStringValue(targetID)
 		e.TargetRole = nullStringValue(targetRole)
+		e.ContentKind = nullStringValue(contentKind)
+		e.ContentID = nullStringValue(contentID)
+		e.CommentID = nullStringValue(commentID)
 		events = append(events, e)
 	}
 	if err := rows.Err(); err != nil {

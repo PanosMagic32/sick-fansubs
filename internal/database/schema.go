@@ -62,7 +62,7 @@ type tableSpec struct {
 	indexes []indexSpec
 }
 
-// schemaSpec mirrors the embedded migrations (0001–0023). Adding a table,
+// schemaSpec mirrors the embedded migrations (0001–0024). Adding a table,
 // column, or index to a migration file WITHOUT updating this spec makes every
 // migrated database fail verification — exactly the fail-closed behavior
 // docs/patterns/go/sqlite.md requires.
@@ -263,6 +263,10 @@ var schemaSpec = map[string]tableSpec{
 			"request_id":    {"TEXT", true, false},
 			"remote_addr":   {"TEXT", true, false},
 			"created_at_ms": {"INTEGER", true, false},
+			// Migration 0024: the moderated object for comment_deleted rows.
+			"content_kind": {"TEXT", false, false},
+			"content_id":   {"TEXT", false, false},
+			"comment_id":   {"TEXT", false, false},
 		},
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"id"}},

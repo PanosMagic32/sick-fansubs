@@ -52,7 +52,12 @@ export interface SubmitErrorResult<F extends string> {
 export interface MapSubmitErrorOptions<F extends string> {
   /** Classify a 422 violation field as a server-known form field. */
   serverField: (field: string) => field is F;
-  /** Fired for the already-authenticated 403 (stale client session). */
+  /**
+   * Fired for any 403 on these endpoints: the browser may hold a session the
+   * tab's client state has not seen yet (a cross-tab sign-in), which the
+   * shared auth chain answers with the CSRF/forbidden 403 before the handler's
+   * already-authenticated branch can run. The page re-bootstraps to heal.
+   */
   onAlreadyAuthenticated?: () => void;
   /**
    * Page-specific message for one violation (field + code). Return
@@ -125,10 +130,11 @@ export function mapSubmitError<F extends string>(
       retryAfterSeconds = err.retryAfterSeconds;
       banner += " " + retryAfterMessage(err.retryAfterSeconds);
     }
-    // Sign-in/register-while-authenticated means the client-side session
-    // state is stale (e.g. cross-tab sign-in) — the page re-bootstraps to
-    // reconcile.
-    if (err.type === "/problems/auth/already-authenticated") {
+    // A 403 on these endpoints means the client-side session state is stale
+    // (e.g. a cross-tab sign-in): either the handler's already-authenticated
+    // problem or the chain's CSRF/forbidden refusal. The page re-bootstraps
+    // to reconcile instead of stranding the user on a generic Forbidden.
+    if (err.status === 403) {
       opts.onAlreadyAuthenticated?.();
     }
     return { fields: {}, banner, retryAfterSeconds };

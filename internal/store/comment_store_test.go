@@ -616,6 +616,12 @@ func TestCreateCommentReply(t *testing.T) {
 	if _, _, err := CreateCommentReply(ctx, db, BlogContent, "d2", "dc", "u2", "no", "r6", "n6", 8000); !errors.Is(err, ErrNotFound) {
 		t.Errorf("reply on draft content: got %v, want ErrNotFound", err)
 	}
+	// A reply parent on unpublished content is the masked 404 too, not the
+	// depth-1 422: the published gate runs before the depth check.
+	mustCreateComment(t, db, BlogContent, "dc-reply", "u4", "d2", new("dc"), "draft reply", 0, 1100, 1100)
+	if _, _, err := CreateCommentReply(ctx, db, BlogContent, "d2", "dc-reply", "u2", "no", "r7", "n7", 8000); !errors.Is(err, ErrNotFound) {
+		t.Errorf("reply-to-reply on draft content: got %v, want ErrNotFound", err)
+	}
 }
 
 func TestUpdateComment(t *testing.T) {
@@ -773,6 +779,31 @@ func TestDeleteCommentRemovalNotice(t *testing.T) {
 	}
 	if remaining != 2 { // c2 and c3 survive
 		t.Errorf("comments left: got %d, want 2", remaining)
+	}
+}
+
+// TestDeleteCommentRemovalNotice_UnpublishedTitle pins the confidentiality
+// gate: removing a comment on draft content notifies the author without the
+// content's current title.
+func TestDeleteCommentRemovalNotice_UnpublishedTitle(t *testing.T) {
+	t.Parallel()
+	db := openStoreDB(t)
+	ctx := t.Context()
+
+	mustCreateUser(t, db, "u1", "alice", "alice", "alice@example.com")
+	mustCreateUser(t, db, "mod", "moddy", "moddy", "moddy@example.com")
+	mustCreateBlogPost(t, db, BlogPostSummary{ID: "d1", Title: "Secret Draft", ThumbnailURL: "/media/images/x.jpg"}, "draft")
+	mustCreateComment(t, db, BlogContent, "c1", "u1", "d1", nil, "draft comment", 0, 1000, 1000)
+
+	ev, emitted, err := DeleteComment(ctx, db, BlogContent, "c1", "mod", "n-draft", 9000)
+	if err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if !emitted {
+		t.Fatal("a non-author delete must emit the removal notice")
+	}
+	if ev.ContentTitle != "" {
+		t.Errorf("unpublished content title leaked into the notice: %q", ev.ContentTitle)
 	}
 }
 

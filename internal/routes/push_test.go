@@ -211,7 +211,7 @@ func TestPush_RoutesRegistered(t *testing.T) {
 	}
 	p256dh := base64.RawURLEncoding.EncodeToString(key.PublicKey().Bytes())
 	auth := base64.RawURLEncoding.EncodeToString(make([]byte, 16))
-	body := `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + p256dh + `","auth":"` + auth + `"}}`
+	body := `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"` + p256dh + `","auth":"` + auth + `"}}`
 
 	// Anonymous → 401 on every registered path.
 	for _, path := range []string{

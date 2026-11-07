@@ -300,37 +300,29 @@ func (h *Auth) HandleSession(w http.ResponseWriter, r *http.Request) {
 //
 // Success: 200 { "authenticated": false } + cleared cookie.
 func (h *Auth) HandleSignOut(w http.ResponseWriter, r *http.Request) {
-	// Try to delete the session if we can identify it.
-	digest := middleware.SessionDigest(r)
-	if digest != nil {
-		deleted, err := h.auth.SignOut(r.Context(), digest)
-		if err != nil {
-			// The operation was attempted and failed — a failure-result
-			// audit event keeps the attempt visible in the user's audit
-			// trail (userID when the session middleware resolved it).
-			userID := ""
-			if su := middleware.SessionFrom(r.Context()); su != nil {
-				userID = su.UserID
+	// Only a session the middleware resolved is actionable. An expired cookie
+	// is cleared by the middleware and continues anonymously; its stale row is
+	// reclaimed by the cleanup pass, and a replay must not write an actorless
+	// success ledger row.
+	if su := middleware.SessionFrom(r.Context()); su != nil {
+		if digest := middleware.SessionDigest(r); digest != nil {
+			deleted, err := h.auth.SignOut(r.Context(), digest)
+			if err != nil {
+				// The operation was attempted and failed — a failure-result
+				// audit event keeps the attempt visible in the user's audit
+				// trail.
+				h.logAudit(r, audit.EventSignOut, audit.ResultFailure, su.UserID)
+				// Do NOT clear the cookie: the session row still exists server-side,
+				// so the client must keep the credential and retry (clear the
+				// cookie only after the deletion commits).
+				writeInternalError(w, r, "sign-out session delete failed", "error", err)
+				return
 			}
-			h.logAudit(r, audit.EventSignOut, audit.ResultFailure, userID)
-			// Do NOT clear the cookie: the session row still exists server-side,
-			// so the client must keep the credential and retry (clear the
-			// cookie only after the deletion commits).
-			writeInternalError(w, r, "sign-out session delete failed", "error", err)
-			return
-		}
-		// Audit only when a session row was actually deleted. A well-formed
-		// but stale cookie (already revoked/expired session) hits the
-		// idempotent no-session outcome — nothing changed server-side, and
-		// replayed stale cookies must not generate spurious audit records.
-		// userID comes from the session middleware when it resolved the
-		// credential; a version-mismatched orphan row has none.
-		if deleted > 0 {
-			userID := ""
-			if su := middleware.SessionFrom(r.Context()); su != nil {
-				userID = su.UserID
+			// Audit only when a session row was actually deleted: the
+			// idempotent no-session outcome changed nothing server-side.
+			if deleted > 0 {
+				h.logAudit(r, audit.EventSignOut, audit.ResultSuccess, su.UserID)
 			}
-			h.logAudit(r, audit.EventSignOut, audit.ResultSuccess, userID)
 		}
 	}
 

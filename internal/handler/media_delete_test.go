@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,6 +23,7 @@ import (
 const (
 	delID      = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" // subdir "aa"
 	delRelPath = "media/images/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg"
+	delBaseURL = "https://sickfansubs.com"
 )
 
 // setupMediaDelete creates a migrated DB (one row referencing delRelPath),
@@ -61,7 +63,7 @@ func setupMediaDelete(t *testing.T) (*sql.DB, string, http.Handler) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db))
+	mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db, delBaseURL))
 	return db, dir, mux
 }
 
@@ -144,6 +146,120 @@ func TestMediaDelete_ReferencedFileConflicts(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, delRelPath)); err != nil {
 		t.Errorf("referenced file was removed: %v", err)
+	}
+}
+
+// TestMediaDelete_LegacyReferenceFormsConflict pins the delete guard against
+// every stored form the read path serves: the canonical path, the flat served
+// form, a served form with a wrong subdirectory, same-origin absolute URLs
+// (including an explicit default port and another scheme), and a relative
+// query. Each protects the canonical file — the sweep and the explicit delete
+// resolve the same target.
+func TestMediaDelete_LegacyReferenceFormsConflict(t *testing.T) {
+	t.Parallel()
+
+	forms := []string{
+		delRelPath,
+		"media/images/" + delID + ".jpg",
+		"media/images/cd/" + delID + ".jpg",
+		delBaseURL + "/media/images/" + delID + ".jpg",
+		"https://sickfansubs.com:443/media/images/" + delID + ".jpg",
+		"http://sickfansubs.com/media/images/" + delID + ".jpg",
+		"media/images/" + delID + ".jpg?v=2",
+	}
+	for i, stored := range forms {
+		t.Run(fmt.Sprintf("form-%d", i), func(t *testing.T) {
+			t.Parallel()
+
+			dir := testDataDir(t)
+			db, err := database.Open(database.Config{DataDir: dir})
+			if err != nil {
+				t.Fatalf("open test database: %v", err)
+			}
+			if err := database.Apply(db); err != nil {
+				db.Close()
+				t.Fatalf("apply migrations: %v", err)
+			}
+			t.Cleanup(func() { db.Close() })
+
+			if _, err := db.Exec(`INSERT INTO blog_posts
+				(id, title, subtitle, description, thumbnail_url, status, published_at_ms, created_at_ms, updated_at_ms)
+				VALUES ('b1', 'T', '', '', ?, 'published', 1000, 500, 500)`, stored); err != nil {
+				t.Fatalf("seed blog post: %v", err)
+			}
+			full := filepath.Join(dir, delRelPath)
+			if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+				t.Fatalf("mkdir: %v", err)
+			}
+			if err := os.WriteFile(full, []byte("bytes"), 0o644); err != nil {
+				t.Fatalf("write: %v", err)
+			}
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db, delBaseURL))
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, deleteRequest(http.MethodDelete, "/api/v1/media/"+delID+".jpg", identity.RoleAdmin, true))
+
+			if rec.Code != http.StatusConflict {
+				t.Fatalf("stored %q: status = %d, want 409", stored, rec.Code)
+			}
+			if _, err := os.Stat(full); err != nil {
+				t.Errorf("stored %q: referenced file was removed: %v", stored, err)
+			}
+		})
+	}
+}
+
+// TestMediaDelete_LegacyJPEGReferenceConflicts pins the serving parser's
+// `.jpeg` form: a hand-placed file is served, so a stored jpeg reference must
+// protect it from the explicit delete even though the pipeline never writes
+// that extension.
+func TestMediaDelete_LegacyJPEGReferenceConflicts(t *testing.T) {
+	t.Parallel()
+
+	for i, stored := range []string{
+		"media/images/" + delID + ".jpeg",
+		delBaseURL + "/media/images/" + delID + ".jpeg",
+	} {
+		t.Run(fmt.Sprintf("form-%d", i), func(t *testing.T) {
+			t.Parallel()
+
+			dir := testDataDir(t)
+			db, err := database.Open(database.Config{DataDir: dir})
+			if err != nil {
+				t.Fatalf("open test database: %v", err)
+			}
+			if err := database.Apply(db); err != nil {
+				db.Close()
+				t.Fatalf("apply migrations: %v", err)
+			}
+			t.Cleanup(func() { db.Close() })
+
+			if _, err := db.Exec(`INSERT INTO blog_posts
+				(id, title, subtitle, description, thumbnail_url, status, published_at_ms, created_at_ms, updated_at_ms)
+				VALUES ('b1', 'T', '', '', ?, 'published', 1000, 500, 500)`, stored); err != nil {
+				t.Fatalf("seed blog post: %v", err)
+			}
+			full := filepath.Join(dir, media.RelativePath(delID, media.ExtJPEG))
+			if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+				t.Fatalf("mkdir: %v", err)
+			}
+			if err := os.WriteFile(full, []byte("bytes"), 0o644); err != nil {
+				t.Fatalf("write: %v", err)
+			}
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db, delBaseURL))
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, deleteRequest(http.MethodDelete, "/api/v1/media/"+delID+".jpeg", identity.RoleAdmin, true))
+
+			if rec.Code != http.StatusConflict {
+				t.Fatalf("stored %q: status = %d, want 409", stored, rec.Code)
+			}
+			if _, err := os.Stat(full); err != nil {
+				t.Errorf("stored %q: referenced file was removed: %v", stored, err)
+			}
+		})
 	}
 }
 

@@ -145,7 +145,7 @@ func TestStaffAuditEvents_SuperAdmin(t *testing.T) {
 		t.Fatalf("decode raw items: %v", err)
 	}
 	actorOnly := rawItems.Items[1]
-	for _, key := range []string{"actorId", "targetId", "targetRole"} {
+	for _, key := range []string{"actorId", "targetId", "targetRole", "contentKind", "contentId", "commentId"} {
 		if value, present := actorOnly[key]; present {
 			t.Errorf("actor-only row carries %s = %v, want the NULL identity omitted", key, value)
 		}

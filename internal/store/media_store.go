@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -15,10 +14,13 @@ import (
 // several posts, so one file can serve several rows, and deleting on a single
 // row's lifecycle would break the others.
 
-// ReferencedMediaPaths returns the set of storage-relative media paths any
-// active content row or user avatar references; the media orphan sweep treats
-// membership as KEEP. Absolute URLs are harmless set members.
-func ReferencedMediaPaths(ctx context.Context, db *sql.DB) (map[string]struct{}, error) {
+// ReferencedMediaPaths returns the set of canonical storage paths any active
+// content row or user avatar references; the media orphan sweep treats
+// membership as KEEP. canonical maps each raw stored reference to the layout's
+// canonical path (`media/images/<id[:2]>/<id>.<ext>`); references it rejects
+// (another host, a malformed segment) cannot name a local file and are
+// skipped. The store stays URL-free: the caller supplies the layout grammar.
+func ReferencedMediaPaths(ctx context.Context, db *sql.DB, canonical func(string) (string, bool)) (map[string]struct{}, error) {
 	// The content legs sweep the descriptor list, so a new content kind
 	// joins the reference set without touching this function.
 	terms := make([]string, 0, len(allContentKinds)+1)
@@ -39,7 +41,9 @@ func ReferencedMediaPaths(ctx context.Context, db *sql.DB) (map[string]struct{},
 		if err := rows.Scan(&path); err != nil {
 			return nil, fmt.Errorf("store: scan referenced media path: %w", err)
 		}
-		set[path] = struct{}{}
+		if canonicalPath, ok := canonical(path); ok {
+			set[canonicalPath] = struct{}{}
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("store: iterate referenced media paths: %w", err)
@@ -48,26 +52,16 @@ func ReferencedMediaPaths(ctx context.Context, db *sql.DB) (map[string]struct{},
 }
 
 // MediaPathReferenced reports whether any active content row or user avatar
-// references the given storage-relative media path — the explicit-delete
-// guard: a referenced file is never removed.
-func MediaPathReferenced(ctx context.Context, db *sql.DB, path string) (bool, error) {
-	queries := make([]string, 0, len(allContentKinds)+1)
-	for _, k := range allContentKinds {
-		queries = append(queries, `SELECT 1 FROM `+k.table+` WHERE thumbnail_url = ? LIMIT 1`)
+// references the canonical storage path — the explicit-delete guard and the
+// sweep's pre-removal recheck: a referenced file is never removed. The raw
+// columns are canonicalized through the caller's layout grammar, so a legacy
+// flat, wrong-subdirectory, or same-origin absolute reference still protects
+// the canonical file.
+func MediaPathReferenced(ctx context.Context, db *sql.DB, path string, canonical func(string) (string, bool)) (bool, error) {
+	set, err := ReferencedMediaPaths(ctx, db, canonical)
+	if err != nil {
+		return false, err
 	}
-	queries = append(queries, `SELECT 1 FROM users WHERE avatar_url = ? LIMIT 1`)
-
-	for _, q := range queries {
-		var one int
-		err := db.QueryRowContext(ctx, q, path).Scan(&one)
-		switch {
-		case err == nil:
-			return true, nil
-		case errors.Is(err, sql.ErrNoRows):
-			continue
-		default:
-			return false, fmt.Errorf("store: media reference lookup: %w", err)
-		}
-	}
-	return false, nil
+	_, ok := set[path]
+	return ok, nil
 }

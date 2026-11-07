@@ -85,9 +85,9 @@ func generateSessionMaterial() (sessionMaterial, error) {
 }
 
 // createSessionAfterSignIn persists a sign-in session. When a rehash is
-// pending, the verifier update (which bumps auth_version) and the session
-// insert run in ONE store transaction under the new version; otherwise the
-// plain conditional CreateSession is used.
+// pending, the verifier update and the session insert run in ONE store
+// transaction under the unchanged auth_version (a rehash changes only the
+// verifier's cost); otherwise the plain conditional CreateSession is used.
 //
 // clientLabel is the classifier's bounded device label;
 // the empty string stores SQL NULL.

@@ -270,6 +270,68 @@ func TestLoadTrustedOrigin(t *testing.T) {
 	}
 }
 
+// TestLoadURLValidationErrorsRedactValues pins the startup-log contract:
+// a malformed or insecure URL value must not be echoed, because it can carry
+// credentials and reaches stderr, the container log, and the log viewer.
+func TestLoadURLValidationErrorsRedactValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		appEnv   string
+		baseURL  string
+		origin   string
+		wantLeak string
+	}{
+		{
+			name:     "malformed PUBLIC_BASE_URL",
+			appEnv:   EnvDevelopment,
+			baseURL:  "https://user:secret@host:bad",
+			origin:   "",
+			wantLeak: "user:secret",
+		},
+		{
+			name:     "malformed TRUSTED_ORIGIN",
+			appEnv:   EnvDevelopment,
+			baseURL:  "http://localhost:3000",
+			origin:   "https://user:secret@host:bad",
+			wantLeak: "user:secret",
+		},
+		{
+			name:     "production PUBLIC_BASE_URL scheme",
+			appEnv:   EnvProduction,
+			baseURL:  "http://insecure.example",
+			origin:   "https://sickfansubs.com",
+			wantLeak: "insecure.example",
+		},
+		{
+			name:     "production TRUSTED_ORIGIN scheme",
+			appEnv:   EnvProduction,
+			baseURL:  "https://sickfansubs.com",
+			origin:   "http://insecure.example",
+			wantLeak: "insecure.example",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PORT", "")
+			t.Setenv("DATA_DIR", t.TempDir())
+			t.Setenv("APP_ENV", tt.appEnv)
+			t.Setenv("PUBLIC_BASE_URL", tt.baseURL)
+			t.Setenv("TRUSTED_ORIGIN", tt.origin)
+			t.Setenv("SMTP_HOST", "smtp.example.com")
+			t.Setenv("SMTP_FROM", "noreply@example.com")
+
+			_, err := Load()
+			if err == nil {
+				t.Fatalf("Load with %s=%q accepted, want an error", tt.name, tt.wantLeak)
+			}
+			if strings.Contains(err.Error(), tt.wantLeak) {
+				t.Errorf("error %q echoes the configured value", err)
+			}
+		})
+	}
+}
+
 func TestSecureCookies(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

@@ -172,14 +172,19 @@ func EventNames() []string {
 // actor is unknown (sign_in_failure); TargetID is empty for events without a
 // security-relevant target account; TargetRole is the target account's role
 // SNAPSHOT at emission time (set by account-event emitters, empty otherwise).
+// ContentKind/ContentID/CommentID identify the moderated object on events
+// that act on content rather than an account; they stay empty elsewhere.
 type Record struct {
-	Event      string
-	Result     string
-	ActorID    string
-	TargetID   string
-	TargetRole string
-	RequestID  string
-	RemoteAddr string
+	Event       string
+	Result      string
+	ActorID     string
+	TargetID    string
+	TargetRole  string
+	ContentKind string
+	ContentID   string
+	CommentID   string
+	RequestID   string
+	RemoteAddr  string
 }
 
 // Writer persists one audit record. Implementations must not panic and must
@@ -247,6 +252,24 @@ func EventWithTarget(ctx context.Context, event, result, actorID, targetID, targ
 	})
 }
 
+// EventWithCommentTarget is the moderation shape: the account target plus the
+// content kind/id and comment id the action addressed. The comment is
+// hard-deleted by the audited operation, so these identifiers are the only
+// durable pointer to it. See: internal/audit/AGENTS.md
+func EventWithCommentTarget(ctx context.Context, event, result, actorID, targetID, contentKind, contentID, commentID, requestID, remoteAddr string) {
+	emit(ctx, Record{
+		Event:       event,
+		Result:      result,
+		ActorID:     actorID,
+		TargetID:    targetID,
+		ContentKind: contentKind,
+		ContentID:   contentID,
+		CommentID:   commentID,
+		RequestID:   requestID,
+		RemoteAddr:  remoteAddr,
+	})
+}
+
 // emit is the single dual-write path: the slog record first, then the
 // registered writer (nil by default). A writer failure is logged and never
 // propagated — the audit trail must not change the outcome of the audited
@@ -265,6 +288,15 @@ func emit(ctx context.Context, rec Record) {
 	}
 	if rec.TargetRole != "" {
 		attrs = append(attrs, slog.String("targetRole", rec.TargetRole))
+	}
+	if rec.ContentKind != "" {
+		attrs = append(attrs, slog.String("contentKind", rec.ContentKind))
+	}
+	if rec.ContentID != "" {
+		attrs = append(attrs, slog.String("contentId", rec.ContentID))
+	}
+	if rec.CommentID != "" {
+		attrs = append(attrs, slog.String("commentId", rec.CommentID))
 	}
 	// remoteAddr is always present: the durable column is NOT NULL and the
 	// wire carries the field, so an empty value (the break-glass command) is

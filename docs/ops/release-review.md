@@ -177,7 +177,7 @@ dependencies, and the review adds no Go dependencies.
 - **3.4 Staff operations.** User-admin operations, destructive operations, the agreed audit-event
   list, no-op 200 semantics.
 - **3.5 Input validation.** Strict bodies (unknown fields rejected), ID/cursor/ETag parsing,
-  `If-Match` preconditions, body hard limits (auth 4 KiB, content writes 512 KiB, media 10 MB).
+  `If-Match` preconditions, body hard limits (auth 4 KiB, content writes 1.25 MiB, media 10 MB).
 - **3.6 Media pipeline.** Magic-byte detection, hostile inputs (decompression bombs, polyglots),
   path traversal, storage layout, orphan sweep.
 - **3.7 Comments and hearts.** The plain-text contract, the depth-1 rule, cascade deletes,

@@ -43,6 +43,11 @@ var (
 	// a 403.
 	ErrNotAuthor = errors.New("store: comment author mismatch")
 
+	// ErrActorNotPermitted reports a user-administration write whose actor
+	// may no longer act on the target's live role (a promotion raced the
+	// handler's check); a 403.
+	ErrActorNotPermitted = errors.New("store: actor not permitted")
+
 	// ErrInvalidParent reports a reply addressed to a reply; a 422
 	// {parentId, invalidValue} (reply depth is an API rule).
 	ErrInvalidParent = errors.New("store: reply to a reply")

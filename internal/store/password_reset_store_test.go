@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"sick-fansubs/internal/identity"
 )
 
 func TestCreateResetToken_ReplacesExisting(t *testing.T) {
@@ -369,7 +371,7 @@ func TestPasswordChangeAndAdminReset_KillResetTokens(t *testing.T) {
 	if err := CreateResetToken(ctx, db, CreateResetTokenParams{TokenDigest: d, UserID: u, CreatedAtMS: now, ExpiresAtMS: now + 1000}); err != nil {
 		t.Fatalf("re-CreateResetToken: %v", err)
 	}
-	if err := ResetUserPassword(ctx, db, u, string(hash), now); err != nil {
+	if err := ResetUserPassword(ctx, db, identity.RoleSuperAdmin, u, string(hash), now); err != nil {
 		t.Fatalf("ResetUserPassword: %v", err)
 	}
 	if _, err := ResetTokenUserID(ctx, db, d, now); !errors.Is(err, ErrResetTokenInvalid) {
@@ -387,7 +389,7 @@ func TestResetTokensCascadeOnUserDelete(t *testing.T) {
 	if err := CreateResetToken(ctx, db, CreateResetTokenParams{TokenDigest: d, UserID: u, CreatedAtMS: now, ExpiresAtMS: now + 1000}); err != nil {
 		t.Fatalf("CreateResetToken: %v", err)
 	}
-	if err := DeleteUser(ctx, db, u); err != nil {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, u); err != nil {
 		t.Fatalf("DeleteUser: %v", err)
 	}
 	var n int

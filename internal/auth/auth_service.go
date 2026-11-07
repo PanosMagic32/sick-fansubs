@@ -111,12 +111,13 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 	}
 
 	// Decide whether the stored verifier needs a rehash: cost below the target
-	// → rehash at cost 12; cost at or above the target → retain. One further
-	// rule: an over-72-byte credential cannot be rehashed (Go refuses
-	// to hash it), so that sign-in proceeds under the unchanged verifier and
-	// the account relies on the self-service password-change path.
-	// Hash generation is best-effort — if it fails, sign-in proceeds under the
-	// old verifier.
+	// → rehash at cost 12; cost at or above the target → retain. A rehash
+	// rewrites only the verifier — the password is unchanged, so it must not
+	// revoke the account's other sessions. One further rule: an over-72-byte
+	// credential cannot be rehashed (Go refuses to hash it), so that sign-in
+	// proceeds under the unchanged verifier and the account relies on the
+	// self-service password-change path. Hash generation is best-effort — if it
+	// fails, sign-in proceeds under the old verifier.
 	rehashNeeded := false
 	var newHash string
 	// The COMPARISON side of the rehash gate uses the same field as the
@@ -135,9 +136,9 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 		return "", "", identity.PublicUser{}, false, ErrInvalidCredentials
 	}
 
-	// Create session — atomically with the rehash when one is pending, in one
-	// transaction under the new auth_version; splitting the rehash from the
-	// session write would stamp the session with the stale version.
+	// Create session — atomically with the rehash when one is pending. A
+	// rehash keeps the credential (and every other session) valid; the
+	// auth_version guard only rejects a concurrent revocation.
 	sessionTok, csrfTok, err := s.createSessionAfterSignIn(ctx, u, rehashNeeded, newHash, ClientLabel(userAgent))
 	if err != nil {
 		if errors.Is(err, store.ErrAuthVersionMismatch) || errors.Is(err, store.ErrNotFound) {
@@ -290,7 +291,8 @@ func (s *Service) SignOut(ctx context.Context, digest []byte) (int64, error) {
 // SignOutAll revokes every session for a given user.
 //
 // One store transaction bumps the user's auth_version (authoritative
-// revocation) and deletes all session rows (cleanup). A racing sign-in that
+// revocation), deletes all session rows, and deletes the account's push
+// subscriptions. A racing sign-in that
 // commits before the bump is deleted; one that commits after survives under
 // the new version — the "winner" contract. The
 // caller (handler) is responsible for clearing the current request's session

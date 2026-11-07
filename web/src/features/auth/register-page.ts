@@ -111,6 +111,8 @@ export class RegisterPage extends LitElement {
   @state() private _fieldErrors: FieldErrors = {};
   @state() private _error = "";
   @state() private _pending = false;
+  /** The 403 re-bootstrap the focus handoff waits for. */
+  private _authRetry: Promise<void> = Promise.resolve();
   /** 429 Retry-After cooldown — owns the ticking + disconnect cancel. */
   private readonly _cooldown = new RetryCooldownController(this);
 
@@ -207,8 +209,25 @@ export class RegisterPage extends LitElement {
     // Focus after _pending flips false: inputs re-enable on re-render and
     // a disabled input cannot receive focus.
     if (focusAfterError) {
+      // A 403 starts a session re-bootstrap; wait for it to settle before
+      // choosing the focus target (the form may be replaced by the spinner
+      // or the bootstrap-error view).
+      await this._authRetry;
       await this.updateComplete;
-      focusFirstInvalid(this.shadowRoot, FIELD_IDS, this._fieldErrors);
+      const status = this.session?.state.status;
+      if (status === "error") {
+        this.shadowRoot
+          ?.querySelector<HTMLElement>("#register-heading")
+          ?.focus();
+      } else if (status === "anonymous") {
+        if (this._error) {
+          this.shadowRoot
+            ?.querySelector<HTMLElement>("#register-error")
+            ?.focus();
+        } else {
+          focusFirstInvalid(this.shadowRoot, FIELD_IDS, this._fieldErrors);
+        }
+      }
     }
   }
 
@@ -265,7 +284,7 @@ export class RegisterPage extends LitElement {
       serverField: isServerField,
       violation: registerViolationMessage,
       onAlreadyAuthenticated: () => {
-        void this.session?.retryBootstrap();
+        this._authRetry = this.session?.retryBootstrap() ?? Promise.resolve();
       },
     });
     this._fieldErrors = fields;
@@ -303,7 +322,7 @@ export class RegisterPage extends LitElement {
           class="auth-card register-page"
           aria-labelledby="register-heading"
         >
-          <h1 id="register-heading">${el.auth.registerTitle}</h1>
+          <h1 id="register-heading" tabindex="-1">${el.auth.registerTitle}</h1>
           <error-banner .message=${message}></error-banner>
           <button
             type="button"
@@ -387,6 +406,7 @@ export class RegisterPage extends LitElement {
             this._error
               ? html`<error-banner
                   id="register-error"
+                  tabindex="-1"
                   .message=${this._error}
                 ></error-banner>`
               : ""

@@ -105,25 +105,29 @@ func TestAuditWriter_PersistsRecord(t *testing.T) {
 	w := &AuditWriter{DB: db, Now: func() time.Time { return fixed }}
 
 	err := w.Write(t.Context(), audit.Record{
-		Event:      audit.EventRoleChanged,
-		Result:     audit.ResultSuccess,
-		ActorID:    "actor-1",
-		TargetID:   "target-1",
-		TargetRole: "moderator",
-		RequestID:  "req-1",
-		RemoteAddr: "192.0.2.1:1234",
+		Event:       audit.EventCommentDeleted,
+		Result:      audit.ResultSuccess,
+		ActorID:     "actor-1",
+		TargetID:    "target-1",
+		TargetRole:  "moderator",
+		ContentKind: "blog-posts",
+		ContentID:   "b1",
+		CommentID:   "c1",
+		RequestID:   "req-1",
+		RemoteAddr:  "192.0.2.1:1234",
 	})
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
 
 	var (
-		id, event, result, actorID, targetID, targetRole, requestID, remoteAddr string
-		createdAtMS                                                             int64
+		id, event, result, actorID, targetID, targetRole, contentKind, contentID, commentID, requestID, remoteAddr string
+		createdAtMS                                                                                                int64
 	)
 	err = db.QueryRow(`
-		SELECT id, event, result, actor_id, target_id, target_role, request_id, remote_addr, created_at_ms
-		FROM audit_events`).Scan(&id, &event, &result, &actorID, &targetID, &targetRole, &requestID, &remoteAddr, &createdAtMS)
+		SELECT id, event, result, actor_id, target_id, target_role, content_kind, content_id, comment_id, request_id, remote_addr, created_at_ms
+		FROM audit_events`).Scan(&id, &event, &result, &actorID, &targetID, &targetRole,
+		&contentKind, &contentID, &commentID, &requestID, &remoteAddr, &createdAtMS)
 	if err != nil {
 		t.Fatalf("read back: %v", err)
 	}
@@ -137,7 +141,7 @@ func TestAuditWriter_PersistsRecord(t *testing.T) {
 			break
 		}
 	}
-	if event != audit.EventRoleChanged || result != audit.ResultSuccess {
+	if event != audit.EventCommentDeleted || result != audit.ResultSuccess {
 		t.Errorf("event/result: got %q/%q", event, result)
 	}
 	if actorID != "actor-1" || targetID != "target-1" {
@@ -145,6 +149,9 @@ func TestAuditWriter_PersistsRecord(t *testing.T) {
 	}
 	if targetRole != "moderator" {
 		t.Errorf("target_role: got %q, want moderator", targetRole)
+	}
+	if contentKind != "blog-posts" || contentID != "b1" || commentID != "c1" {
+		t.Errorf("moderated object: got %q/%q/%q", contentKind, contentID, commentID)
 	}
 	if requestID != "req-1" || remoteAddr != "192.0.2.1:1234" {
 		t.Errorf("request/remote: got %q/%q", requestID, remoteAddr)

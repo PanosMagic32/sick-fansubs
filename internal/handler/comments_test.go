@@ -1067,6 +1067,37 @@ func TestCommentsDelete_StaffAudit(t *testing.T) {
 	if _, has := lines[0]["targetRole"]; has {
 		t.Errorf("comment_deleted carries no target role snapshot: %v", lines[0])
 	}
+	if lines[0]["contentKind"] != "blog-posts" || lines[0]["contentId"] != "b1" || lines[0]["commentId"] != "c-staff" {
+		t.Errorf("comment_deleted object identifiers: %v", lines[0])
+	}
+
+	// A failed staff moderation still writes the failure ledger row.
+	if _, err := db.Exec(`CREATE TRIGGER fail_comment_delete BEFORE DELETE ON blog_post_comments
+		BEGIN SELECT RAISE(ABORT, 'forced delete failure'); END`); err != nil {
+		t.Fatalf("create failure trigger: %v", err)
+	}
+	seedComment(t, db, "c-fail", "u1", "b1", nil)
+	buf.Reset()
+	rec = serveComments(mux, commentRequest(http.MethodDelete, "/api/v1/blog-posts/b1/comments/c-fail", "", "moderator", "mod", "moddy"))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("forced failure status = %d, want 500", rec.Code)
+	}
+	lines = auditLogLines(t, &buf)
+	if len(lines) != 1 {
+		t.Fatalf("failure audit lines: got %d, want 1", len(lines))
+	}
+	if lines[0]["event"] != "comment_deleted" || lines[0]["result"] != "failure" {
+		t.Errorf("failure audit line: %v", lines[0])
+	}
+	if lines[0]["actorId"] != "mod" || lines[0]["targetId"] != "u1" {
+		t.Errorf("failure audit actor/target: %v", lines[0])
+	}
+	if lines[0]["contentKind"] != "blog-posts" || lines[0]["contentId"] != "b1" || lines[0]["commentId"] != "c-fail" {
+		t.Errorf("failure audit object identifiers: %v", lines[0])
+	}
+	if _, err := db.Exec(`DROP TRIGGER fail_comment_delete`); err != nil {
+		t.Fatalf("drop failure trigger: %v", err)
+	}
 
 	// A staff member deleting their OWN comment emits no audit.
 	seedComment(t, db, "c-own", "mod", "b1", nil)
@@ -1078,8 +1109,8 @@ func TestCommentsDelete_StaffAudit(t *testing.T) {
 	if lines := auditLogLines(t, &buf); len(lines) != 0 {
 		t.Errorf("staff self-delete must not audit, got %v", lines)
 	}
-	// A staff delete that FAILS (unknown comment) emits no audit line — the
-	// success-only contract's negative arm.
+	// An unknown comment is the 404 arm and emits no audit line; an internal
+	// store failure (the trigger case above) does emit a failure row.
 	buf.Reset()
 	rec = serveComments(mux, commentRequest(http.MethodDelete, "/api/v1/blog-posts/b1/comments/missing", "", "moderator", "mod", "moddy"))
 	if rec.Code != http.StatusNotFound {

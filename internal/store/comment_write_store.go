@@ -89,10 +89,11 @@ func CreateCommentReply(ctx context.Context, db *sql.DB, k ContentKind, contentI
 		`SELECT c.user_id, c.parent_id IS NULL, pu.status = 'active', p.title FROM `+k.comments+` c
 		JOIN `+k.table+` p ON p.id = c.`+k.commentFK+`
 		JOIN users pu ON pu.id = c.user_id
-		WHERE c.id = ? AND c.`+k.commentFK+` = ?`,
+		WHERE c.id = ? AND c.`+k.commentFK+` = ?
+			AND p.status = 'published' AND p.published_at_ms IS NOT NULL`,
 		parentID, contentID).Scan(&parentUserID, &parentIsTop, &parentActive, &contentTitle); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Unknown OR foreign — indistinguishable by design.
+			// Unknown, foreign, or unpublished — indistinguishable by design.
 			return NotificationEvent{}, false, ErrNotFound
 		}
 		return NotificationEvent{}, false, fmt.Errorf("store: reply parent lookup: %w", err)
@@ -260,7 +261,9 @@ func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, ac
 
 	// The author plus the content id and title are read BEFORE the delete:
 	// the row is about to vanish, and the polymorphic notification ref needs
-	// all three (the title feeds the push payload).
+	// all three (the title feeds the push payload). The title is carried only
+	// for published content: a moderator's removal on a draft or archived
+	// content must not disclose its current title to the author.
 	var (
 		authorID     string
 		contentID    string
@@ -268,7 +271,9 @@ func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, ac
 		authorActive bool
 	)
 	if err := tx.QueryRowContext(ctx,
-		`SELECT c.user_id, c.`+k.commentFK+`, p.title, au.status = 'active' FROM `+k.comments+` c
+		`SELECT c.user_id, c.`+k.commentFK+`,
+			CASE WHEN p.status = 'published' AND p.published_at_ms IS NOT NULL THEN p.title ELSE '' END,
+			au.status = 'active' FROM `+k.comments+` c
 		JOIN `+k.table+` p ON p.id = c.`+k.commentFK+`
 		JOIN users au ON au.id = c.user_id
 		WHERE c.id = ?`, commentID).Scan(&authorID, &contentID, &contentTitle, &authorActive); err != nil {

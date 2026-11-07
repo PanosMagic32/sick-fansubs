@@ -175,7 +175,8 @@
     word-break: break-all;
 }
 
-.audit-role {
+.audit-role,
+.audit-object-line {
     display: block;
     color: var(--sf-text);
     font-family: inherit;

@@ -96,8 +96,9 @@ describe("push service worker", () => {
     expect(testBranch).toBeLessThan(titleGuard);
     // …and the handler must actually USE both template halves.
     expect(sentenceFor).toContain("return TPL_TEST_BODY;");
+    expect(sw).toContain("? TPL_TEST_TITLE");
     expect(sw).toContain(
-      'data.kind === "test" ? TPL_TEST_TITLE : data.contentTitle',
+      'data.kind === "comment_removed" && !data.contentTitle',
     );
     expect(sw).toContain("showNotification(title, {");
   });
@@ -108,7 +109,11 @@ describe("push service worker", () => {
     // no actorUsername still renders.
     expect(sw).toContain('if (p.kind === "comment_removed")');
     expect(sw).toContain(
-      "return TPL_REMOVED_OPEN + p.contentTitle + TPL_REMOVED_CLOSE;",
+      "const TPL_GENERIC_CONTENT = " + quoted(el.notifications.genericContent),
+    );
+    expect(sw).toContain("(p.contentTitle || TPL_GENERIC_CONTENT)");
+    expect(sw).toContain(
+      'data.kind === "comment_removed" && !data.contentTitle',
     );
     // Its comment is gone: the deep link never carries the fragment, while
     // the payload's commentId still feeds the tag.

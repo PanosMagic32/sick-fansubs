@@ -102,6 +102,9 @@ describe("el catalog", () => {
     expect(el.admin.auditTimeColumn).toBe("timestamp");
     expect(el.admin.auditActorColumn).toBe("Actor (ID)");
     expect(el.admin.auditTargetColumn).toBe("Target (ID)");
+    expect(el.admin.auditObjectColumn).toBe("Object (Kind:ID)");
+    expect(el.admin.auditContentLabel).toBe("Περιεχόμενο");
+    expect(el.admin.auditCommentLabel).toBe("Σχόλιο");
     expect(el.admin.auditRequestColumn).toBe("Request (ID)");
     expect(el.admin.auditAddrColumn).toBe("Address");
     // The remaining register rule messages: same product-decision pin.

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"sick-fansubs/internal/identity"
 	"sick-fansubs/internal/store/storetest"
 )
 
@@ -276,6 +277,11 @@ func TestIncrementAuthVersionAndDeleteSessions_Success(t *testing.T) {
 	d1[0], d2[0] = 1, 2
 	mustCreateSession(t, db, "sess_01", "user_01", d1, c1, 1, 5000, 5000+7*24*3600*1000)
 	mustCreateSession(t, db, "sess_02", "user_01", d2, c2, 1, 5000, 5000+7*24*3600*1000)
+	if _, err := db.Exec(`INSERT INTO push_subscriptions
+		(id, user_id, endpoint, p256dh, auth, created_at_ms, updated_at_ms)
+		VALUES ('sub_01', 'user_01', 'https://push.example/one', 'key', 'auth', 5000, 5000)`); err != nil {
+		t.Fatalf("seed push subscription: %v", err)
+	}
 
 	err := IncrementAuthVersionAndDeleteSessions(ctx, db, "user_01", 2000)
 	if err != nil {
@@ -297,6 +303,14 @@ func TestIncrementAuthVersionAndDeleteSessions_Success(t *testing.T) {
 		if _, err := SessionByDigest(ctx, db, d); !errors.Is(err, ErrNotFound) {
 			t.Errorf("session should be deleted by the bump: %v", err)
 		}
+	}
+	// Push delivery dies with the sessions: the account-bound rows are gone.
+	var subs int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM push_subscriptions WHERE user_id = 'user_01'`).Scan(&subs); err != nil {
+		t.Fatalf("count push subscriptions: %v", err)
+	}
+	if subs != 0 {
+		t.Errorf("push subscriptions after sign-out-all = %d, want 0", subs)
 	}
 }
 
@@ -335,7 +349,7 @@ func TestResetUserPassword_Success(t *testing.T) {
 		t.Fatalf("seed other push subscription: %v", err)
 	}
 
-	err := ResetUserPassword(ctx, db, "user_01", "$2a$12$...temp-hash...", 2000)
+	err := ResetUserPassword(ctx, db, identity.RoleSuperAdmin, "user_01", "$2a$12$...temp-hash...", 2000)
 	if err != nil {
 		t.Fatalf("ResetUserPassword: %v", err)
 	}
@@ -385,7 +399,7 @@ func TestResetUserPassword_NotFound(t *testing.T) {
 	db := openStoreDB(t)
 	ctx := t.Context()
 
-	err := ResetUserPassword(ctx, db, "nonexistent", "$2a$12$...", 2000)
+	err := ResetUserPassword(ctx, db, identity.RoleSuperAdmin, "nonexistent", "$2a$12$...", 2000)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("got %v, want ErrNotFound", err)
 	}
@@ -403,7 +417,7 @@ func TestUpdatePasswordAndRevokeSessions_ClearsForcedFlag(t *testing.T) {
 	// clear it through the password-change path — the forced change is the
 	// gate's way out, and it must clear the flag in the SAME
 	// transaction as the verifier swap.
-	if err := ResetUserPassword(ctx, db, "user_01", "$2a$12$...temp...", 2000); err != nil {
+	if err := ResetUserPassword(ctx, db, identity.RoleSuperAdmin, "user_01", "$2a$12$...temp...", 2000); err != nil {
 		t.Fatalf("ResetUserPassword: %v", err)
 	}
 	if _, err := UpsertPushSubscription(ctx, db, "push_01", "user_01", "https://push.example.com/a", "p", "a", "", 2500); err != nil {

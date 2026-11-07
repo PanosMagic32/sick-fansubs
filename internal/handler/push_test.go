@@ -97,7 +97,7 @@ func pushAuthedReq(method, path, userID, body string) *http.Request {
 func realSubscriptionBody() string {
 	p256dh := validP256dhKey()
 	auth := base64.RawURLEncoding.EncodeToString(make([]byte, 16))
-	return `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + p256dh + `","auth":"` + auth + `"}}`
+	return `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"` + p256dh + `","auth":"` + auth + `"}}`
 }
 
 // validP256dhKey returns a deterministic uncompressed P-256 point: a real key
@@ -168,7 +168,7 @@ func TestPushSubscriptionCreateAndList(t *testing.T) {
 	// A request with no User-Agent stores SQL NULL — an explicit JSON null on
 	// the list, never an empty string.
 	noUA := pushAuthedReq("POST", "/api/v1/push-subscriptions", "viewer",
-		strings.Replace(realSubscriptionBody(), "push.example.com/e", "push.example.com/e2", 1))
+		strings.Replace(realSubscriptionBody(), "fcm.googleapis.com/e", "fcm.googleapis.com/e2", 1))
 	rec = servePush(mux, noUA)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create without UA: status = %d, want 201", rec.Code)
@@ -179,7 +179,7 @@ func TestPushSubscriptionCreateAndList(t *testing.T) {
 	}
 	found := false
 	for _, row := range list.Subscriptions {
-		if row.Endpoint != "https://push.example.com/e2" {
+		if row.Endpoint != "https://fcm.googleapis.com/e2" {
 			continue
 		}
 		found = true
@@ -232,7 +232,7 @@ func TestPushSubscriptionCreate_RevokedSession(t *testing.T) {
 
 func TestPushSubscriptionCreateTakeover(t *testing.T) {
 	db, mux := setupPushHandlers(t)
-	const endpoint = "https://push.example.com/takeover"
+	const endpoint = "https://fcm.googleapis.com/takeover"
 	keys := `{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}`
 	body := func(takeover bool) string {
 		flag := ""
@@ -286,13 +286,19 @@ func TestPushSubscriptionCreateValidation(t *testing.T) {
 		body string
 		code int
 	}{
-		{"unknown field", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"},"extra":1}`, http.StatusBadRequest},
+		{"unknown field", `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"},"extra":1}`, http.StatusBadRequest},
 		{"missing endpoint", `{"keys":{"p256dh":"AAAA","auth":"AAAA"}}`, http.StatusUnprocessableEntity},
-		{"non-https endpoint", `{"endpoint":"http://push.example.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
-		{"wrong p256dh length", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"AAAA","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
-		{"off-curve p256dh", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + base64.RawURLEncoding.EncodeToString(append([]byte{0x04}, make([]byte, 64)...)) + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
-		{"wrong auth length", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"AAAA"}}`, http.StatusUnprocessableEntity},
-		{"non-base64 key", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"!!!","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		{"non-https endpoint", `{"endpoint":"http://fcm.googleapis.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		{"unknown push service", `{"endpoint":"https://push.example.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		{"windows WNS endpoint", `{"endpoint":"https://wns2-sg2p.notify.windows.com/w/?token=abc","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusCreated},
+		{"wrong p256dh length", `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"AAAA","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		{"off-curve p256dh", `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"` + base64.RawURLEncoding.EncodeToString(append([]byte{0x04}, make([]byte, 64)...)) + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		{"wrong auth length", `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"` + validP256dhKey() + `","auth":"AAAA"}}`, http.StatusUnprocessableEntity},
+		{"non-base64 key", `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"!!!","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
+		// The bound counts characters, not bytes: a 504-rune Greek path is
+		// under 512 characters but nearly 1 KB on the wire.
+		{"multi-byte endpoint under the character bound", `{"endpoint":"https://fcm.googleapis.com/` + strings.Repeat("α", 480) + `","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusCreated},
+		{"endpoint over the character bound", `{"endpoint":"https://fcm.googleapis.com/` + strings.Repeat("α", 500) + `","keys":{"p256dh":"` + validP256dhKey() + `","auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`, http.StatusUnprocessableEntity},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -307,7 +313,7 @@ func TestPushSubscriptionCreateValidation(t *testing.T) {
 func TestPushSubscriptionDelete(t *testing.T) {
 	db, mux := setupPushHandlers(t)
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s1", "viewer",
-		"https://push.example.com/e", validP256dhKey(),
+		"https://fcm.googleapis.com/e", validP256dhKey(),
 		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
@@ -339,12 +345,12 @@ func TestPushSubscriptionDelete(t *testing.T) {
 func TestPushSubscriptionRename(t *testing.T) {
 	db, mux := setupPushHandlers(t)
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s1", "viewer",
-		"https://push.example.com/e", validP256dhKey(),
+		"https://fcm.googleapis.com/e", validP256dhKey(),
 		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
 		t.Fatalf("seed own: %v", err)
 	}
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s2", "plain",
-		"https://push.example.com/e2", validP256dhKey(),
+		"https://fcm.googleapis.com/e2", validP256dhKey(),
 		base64.RawURLEncoding.EncodeToString(make([]byte, 16)), "", 1000); err != nil {
 		t.Fatalf("seed foreign: %v", err)
 	}
@@ -677,8 +683,9 @@ func TestPushTestSend(t *testing.T) {
 				{SubscriptionID: "sub-a", Service: "mozilla", Accepted: false, Status: 413},
 				{SubscriptionID: "sub-b", Service: "fcm", Accepted: true, Status: 201},
 				{SubscriptionID: "sub-c", Service: "apple", Accepted: false, Removed: true, Status: 410},
-				// No response ever arrived: the status key must be ABSENT, not 0.
-				{SubscriptionID: "sub-d", Service: "other"},
+				// A legacy row outside the known push services: its raw status
+				// is withheld, so the key is ABSENT, not 0.
+				{SubscriptionID: "sub-d", Service: "other", Status: 413},
 			},
 		}
 		mux := newMux(tester)

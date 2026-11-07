@@ -7,6 +7,7 @@ import (
 
 	"sick-fansubs/internal/id"
 	"sick-fansubs/internal/media"
+	"sick-fansubs/internal/middleware"
 	"sick-fansubs/internal/store"
 )
 
@@ -42,10 +43,11 @@ import (
 // invalidFormat}.
 
 // AvatarUpload returns the handler. publicBaseURL feeds the absolute
-// avatarUrl in the response (the same value every profile-emitting
-// handler receives); now is the injectable clock for the updated_at_ms
-// stamp (nil → time.Now), so tests never depend on the wall clock.
-func AvatarUpload(db *sql.DB, dataDir, publicBaseURL string, now func() time.Time) http.HandlerFunc {
+// avatarUrl in the response (the same value every profile-emitting handler
+// receives); limiter is the per-user upload bucket; now is the injectable
+// clock for the updated_at_ms stamp (nil → time.Now), so tests never depend
+// on the wall clock.
+func AvatarUpload(db *sql.DB, dataDir, publicBaseURL string, limiter *middleware.RateLimiter, now func() time.Time) http.HandlerFunc {
 	if now == nil {
 		now = time.Now
 	}
@@ -54,6 +56,16 @@ func AvatarUpload(db *sql.DB, dataDir, publicBaseURL string, now func() time.Tim
 		if !ok {
 			return
 		}
+		if !allowUserBucket(w, r, limiter, "avatar-upload", su.UserID) {
+			return
+		}
+
+		// Take the work slot before the multipart parse: the slot bounds the
+		// spooled temp file as well as the decode.
+		if !acquireUploadSlot(r.Context()) {
+			return
+		}
+		defer releaseUploadSlot()
 
 		src, ok := readUploadFile(w, r)
 		if !ok {

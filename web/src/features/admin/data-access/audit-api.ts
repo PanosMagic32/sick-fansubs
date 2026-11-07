@@ -56,6 +56,10 @@ export interface StaffAuditEvent {
   actorId?: string;
   targetId?: string;
   targetRole?: string;
+  /** The moderated object on a comment_deleted row. */
+  contentKind?: string;
+  contentId?: string;
+  commentId?: string;
   requestId: string;
   /** The client address, without a port. */
   remoteAddr: string;

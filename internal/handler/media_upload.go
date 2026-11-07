@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"mime"
 	"mime/multipart"
@@ -9,6 +10,7 @@ import (
 	"sick-fansubs/internal/id"
 	"sick-fansubs/internal/identity"
 	"sick-fansubs/internal/media"
+	"sick-fansubs/internal/middleware"
 )
 
 // MediaUpload is the handler for POST /api/v1/media:
@@ -19,8 +21,10 @@ import (
 //
 // The route chain is RequestID → TrustedOrigin → Session →
 // ForcePasswordChange → CSRF (the CSRF middleware validates the
-// X-CSRF-Token HEADER, so the multipart body is untouched by it). No rate
-// limit and no audit event — the upload rulings in internal/handler/AGENTS.md.
+// X-CSRF-Token HEADER, so the multipart body is untouched by it). The
+// per-user upload bucket and the shared decode semaphore bound aggregate
+// work; there is no audit event — the upload rulings in
+// internal/handler/AGENTS.md.
 //
 // Framing: the WHOLE request body is bounded with
 // http.MaxBytesReader (file bound + multipart overhead slack), so the file
@@ -41,9 +45,32 @@ type mediaUploadDTO struct {
 	URL  string `json:"url"`
 }
 
+// uploadWorkSlots bounds the upload work that runs across both endpoints —
+// the multipart spool and the image decode. A single decode may allocate on
+// the order of 64 MiB, and a spooled body becomes a temp file, so the cap
+// keeps an authenticated account from stacking unbounded 10 MB uploads on
+// the single application process. The slot is taken BEFORE the body is
+// parsed, so waiting requests do not spool first and wait after.
+var uploadWorkSlots = make(chan struct{}, 4)
+
+// acquireUploadSlot blocks until a work slot is free or the request is
+// canceled. It reports false only for cancellation; the caller then returns
+// without writing a response.
+func acquireUploadSlot(ctx context.Context) bool {
+	select {
+	case uploadWorkSlots <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+func releaseUploadSlot() { <-uploadWorkSlots }
+
 // MediaUpload returns the upload handler. publicBaseURL feeds the absolute
-// URL field (the same value every media-emitting handler receives).
-func MediaUpload(dataDir, publicBaseURL string) http.HandlerFunc {
+// URL field (the same value every media-emitting handler receives); limiter
+// is the per-user upload bucket.
+func MediaUpload(dataDir, publicBaseURL string, limiter *middleware.RateLimiter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		su, ok := requireSession(w, r, "media upload requires authentication")
 		if !ok {
@@ -53,6 +80,16 @@ func MediaUpload(dataDir, publicBaseURL string) http.HandlerFunc {
 			writeForbidden(w, r, "media upload requires admin role")
 			return
 		}
+		if !allowUserBucket(w, r, limiter, "media-upload", su.UserID) {
+			return
+		}
+
+		// Take the work slot before the multipart parse: the slot bounds the
+		// spooled temp file as well as the decode.
+		if !acquireUploadSlot(r.Context()) {
+			return
+		}
+		defer releaseUploadSlot()
 
 		src, ok := readUploadFile(w, r)
 		if !ok {

@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"sick-fansubs/internal/identity"
 	"sick-fansubs/internal/mail"
 	"sick-fansubs/internal/middleware"
 	"sick-fansubs/internal/store"
@@ -144,7 +145,7 @@ func TestSignIn_SuspendedUser(t *testing.T) {
 
 	// Suspend through the store's own path (bumps auth_version, deletes
 	// sessions).
-	if err := store.SuspendUser(ctx, db, user.ID, time.Now().UnixMilli()); err != nil {
+	if err := store.SuspendUser(ctx, db, identity.RoleSuperAdmin, user.ID, time.Now().UnixMilli()); err != nil {
 		t.Fatalf("SuspendUser: %v", err)
 	}
 
@@ -256,9 +257,8 @@ func TestSignIn_AmbiguousWhitespaceMatchFailsClosed(t *testing.T) {
 }
 
 // TestSignIn_RehashLowCostVerifier pins the atomic rehash+session contract:
-// the rehash bumps auth_version, and the session insert must use the bumped
-// version — against the stale version INSERT…SELECT matches zero rows and a
-// low-cost account fails its first sign-in with a generic 401.
+// a rehash changes only the verifier cost, so auth_version stays put and the
+// new session is created under the unchanged version.
 func TestSignIn_RehashLowCostVerifier(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)
@@ -286,7 +286,7 @@ func TestSignIn_RehashLowCostVerifier(t *testing.T) {
 		t.Errorf("user.ID: got %q, want %q", user.ID, "stored01")
 	}
 
-	// The verifier was rehashed to the target cost and the version bumped…
+	// The verifier was rehashed to the target cost and the version unchanged…
 	u, err := store.UserByID(ctx, db, "stored01")
 	if err != nil {
 		t.Fatalf("UserByID: %v", err)
@@ -298,12 +298,12 @@ func TestSignIn_RehashLowCostVerifier(t *testing.T) {
 	if cost != 12 {
 		t.Errorf("verifier cost after rehash: got %d, want 12", cost)
 	}
-	if u.AuthVersion != 2 {
-		t.Errorf("auth_version after rehash: got %d, want 2", u.AuthVersion)
+	if u.AuthVersion != 1 {
+		t.Errorf("auth_version after rehash: got %d, want 1", u.AuthVersion)
 	}
 
-	// …and the session was created UNDER the new version: the digest resolves
-	// (SessionByDigest enforces version equality in its WHERE clause).
+	// …and the session was created under the unchanged version: the digest
+	// resolves (SessionByDigest enforces version equality in its WHERE clause).
 	digest, ok := middleware.SessionDigestValue(sessionTok)
 	if !ok {
 		t.Fatal("returned session token failed digest validation")
@@ -322,8 +322,8 @@ func TestSignIn_RehashLowCostVerifier(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UserByID after second sign-in: %v", err)
 	}
-	if u.AuthVersion != 2 {
-		t.Errorf("auth_version after no-rehash sign-in: got %d, want 2", u.AuthVersion)
+	if u.AuthVersion != 1 {
+		t.Errorf("auth_version after no-rehash sign-in: got %d, want 1", u.AuthVersion)
 	}
 }
 
@@ -702,7 +702,7 @@ func TestResetPassword_Success(t *testing.T) {
 		t.Fatalf("SignIn before reset: %v", err)
 	}
 
-	temp, err := svc.ResetPassword(ctx, user.ID)
+	temp, err := svc.ResetPassword(ctx, identity.RoleSuperAdmin, user.ID)
 	if err != nil {
 		t.Fatalf("ResetPassword: %v", err)
 	}
@@ -755,7 +755,7 @@ func TestResetPassword_NotFound(t *testing.T) {
 	ctx := t.Context()
 	svc := newTestService(db)
 
-	if _, err := svc.ResetPassword(ctx, "nonexistent"); !errors.Is(err, store.ErrNotFound) {
+	if _, err := svc.ResetPassword(ctx, identity.RoleSuperAdmin, "nonexistent"); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("got %v, want store.ErrNotFound", err)
 	}
 }
@@ -1356,7 +1356,7 @@ func TestForgotPassword_SuspendedTreatedAsUnknown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Register: %v", err)
 	}
-	if err := store.SuspendUser(ctx, db, mustUserID(t, db, "suspended"), time.Now().UnixMilli()); err != nil {
+	if err := store.SuspendUser(ctx, db, identity.RoleSuperAdmin, mustUserID(t, db, "suspended"), time.Now().UnixMilli()); err != nil {
 		t.Fatalf("SuspendUser: %v", err)
 	}
 

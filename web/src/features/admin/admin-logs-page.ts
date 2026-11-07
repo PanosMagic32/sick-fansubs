@@ -459,6 +459,26 @@ export class AdminLogsPage extends AdminStaffPageBase {
               : nothing
           }
         </td>
+        <td class="audit-id audit-object-cell">
+          ${
+            item.contentId
+              ? html`<span class="audit-object-line"
+                    ><span class="sr-only">${el.admin.auditContentLabel}: </span
+                    ><span lang="en">${item.contentKind}</span>:${
+                      item.contentId
+                    }</span
+                  >${
+                    item.commentId
+                      ? html`<span class="audit-object-line"
+                          ><span class="sr-only"
+                            >${el.admin.auditCommentLabel}: </span
+                          >${item.commentId}</span
+                        >`
+                      : nothing
+                  }`
+              : el.admin.auditNone
+          }
+        </td>
         <td class="audit-id">${item.requestId}</td>
         <td class="audit-id">${item.remoteAddr}</td>
       </tr>
@@ -495,6 +515,9 @@ export class AdminLogsPage extends AdminStaffPageBase {
               </th>
               <th scope="col">
                 <span lang="en">${el.admin.auditTargetColumn}</span>
+              </th>
+              <th scope="col">
+                <span lang="en">${el.admin.auditObjectColumn}</span>
               </th>
               <th scope="col">
                 <span lang="en">${el.admin.auditRequestColumn}</span>

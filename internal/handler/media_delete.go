@@ -34,7 +34,7 @@ import (
 // then fail its existence check. Accepted, not worth a lock. No audit event
 // — the audited-event list has no media event; deletion is logged, not
 // audited.
-func MediaDelete(dataDir string, db *sql.DB) http.HandlerFunc {
+func MediaDelete(dataDir string, db *sql.DB, publicBaseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := logging.From(r.Context())
 		su, ok := requireSession(w, r, "media delete requires authentication")
@@ -66,7 +66,10 @@ func MediaDelete(dataDir string, db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		referenced, err := store.MediaPathReferenced(r.Context(), db, rel)
+		canonical := func(ref string) (string, bool) {
+			return media.CanonicalStoragePath(ref, publicBaseURL)
+		}
+		referenced, err := store.MediaPathReferenced(r.Context(), db, rel, canonical)
 		if err != nil {
 			writeInternalError(w, r, "media reference check failed", "error", err)
 			return

@@ -68,16 +68,44 @@ func TestSweep_CanceledContextStopsTheWalk(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := Sweep(ctx, sweepLogger, dataDir, nil, now, SweepGrace)
+	_, err := Sweep(ctx, sweepLogger, dataDir, nil, nil, now, SweepGrace)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Sweep(canceled context) = %v, want context.Canceled", err)
 	}
 
 	// A canceled caller still gets its cancellation when the media root is
 	// missing (fresh install).
-	_, err = Sweep(ctx, sweepLogger, t.TempDir(), nil, now, SweepGrace)
+	_, err = Sweep(ctx, sweepLogger, t.TempDir(), nil, nil, now, SweepGrace)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Sweep(canceled context, missing root) = %v, want context.Canceled", err)
+	}
+}
+
+// TestSweep_WalkErrorCarriesNoStoragePath pins the flattened walk failure: an
+// unreadable image directory aborts the sweep, and neither the returned error
+// nor its text may carry the storage path (logging.md rule 8).
+func TestSweep_WalkErrorCarriesNoStoragePath(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("directory permissions are not enforced for root")
+	}
+
+	dataDir := t.TempDir()
+	root := filepath.Join(dataDir, "media", "images")
+	unreadable := filepath.Join(root, idA[:2])
+	if err := os.MkdirAll(unreadable, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.Chmod(unreadable, 0o000); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(unreadable, 0o755) })
+
+	_, err := Sweep(t.Context(), sweepLogger, dataDir, nil, nil, sweepTestNow, SweepGrace)
+	if err == nil {
+		t.Fatal("Sweep with an unreadable directory returned nil error")
+	}
+	if strings.Contains(err.Error(), root) || strings.Contains(err.Error(), unreadable) {
+		t.Errorf("walk error carries the storage path: %v", err)
 	}
 }
 
@@ -88,7 +116,7 @@ func TestSweep_RemovesUnreferencedStaleFile(t *testing.T) {
 	dataDir := t.TempDir()
 	rel := writeSweepFile(t, now, dataDir, idA, ExtJPG, 2*SweepGrace)
 
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -108,7 +136,7 @@ func TestSweep_KeepsReferencedFileRegardlessOfAge(t *testing.T) {
 	rel := writeSweepFile(t, now, dataDir, idA, ExtJPG, 30*SweepGrace)
 
 	referenced := map[string]struct{}{rel: {}}
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, referenced, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, referenced, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -127,7 +155,7 @@ func TestSweep_KeepsUnreferencedFreshFile(t *testing.T) {
 	dataDir := t.TempDir()
 	rel := writeSweepFile(t, now, dataDir, idA, ExtJPG, SweepGrace/2)
 
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -146,7 +174,7 @@ func TestSweep_GraceBoundaryIsStale(t *testing.T) {
 	dataDir := t.TempDir()
 	rel := writeSweepFile(t, now, dataDir, idA, ExtJPG, SweepGrace)
 
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -172,7 +200,7 @@ func TestSweep_SharedReferenceKeepsFile(t *testing.T) {
 	relC := writeSweepFile(t, now, dataDir, idC, ExtJPG, 30*SweepGrace)
 
 	referenced := map[string]struct{}{relA: {}, relB: {}}
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, referenced, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, referenced, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -220,7 +248,7 @@ func TestSweep_NeverTouchesNonConformingFiles(t *testing.T) {
 		}
 	}
 
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -253,7 +281,7 @@ func TestSweep_RemovesStaleTempKeepsFreshTemp(t *testing.T) {
 		}
 	}
 
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -289,7 +317,7 @@ func TestSweep_NestedTempLeftoverUntouched(t *testing.T) {
 		t.Fatalf("chtimes: %v", err)
 	}
 
-	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -325,7 +353,7 @@ func TestSweep_LogsAssetIdNotStoragePath(t *testing.T) {
 
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
-	if _, err := Sweep(t.Context(), logger, dataDir, nil, now, SweepGrace); err != nil {
+	if _, err := Sweep(t.Context(), logger, dataDir, nil, nil, now, SweepGrace); err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
 
@@ -378,7 +406,7 @@ func TestSweep_LogsRemovalFailureShape(t *testing.T) {
 
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
-	stats, err := Sweep(t.Context(), logger, dataDir, nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), logger, dataDir, nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -397,11 +425,46 @@ func TestSweep_LogsRemovalFailureShape(t *testing.T) {
 	}
 }
 
+// TestSweep_RechecksReferenceBeforeRemoval pins the pre-removal recheck: a
+// content write that lands after the snapshot keeps its file, and a failed
+// recheck counts as a failure instead of deleting.
+func TestSweep_RechecksReferenceBeforeRemoval(t *testing.T) {
+	t.Parallel()
+
+	now := sweepTestNow
+	dataDir := t.TempDir()
+	rel := writeSweepFile(t, now, dataDir, idA, ExtJPG, 2*SweepGrace)
+
+	stillReferenced := func(context.Context, string) (bool, error) { return true, nil }
+	stats, err := Sweep(t.Context(), sweepLogger, dataDir, nil, stillReferenced, now, SweepGrace)
+	if err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	if stats.Deleted != 0 {
+		t.Errorf("Deleted = %d, want 0 (reference appeared after the snapshot)", stats.Deleted)
+	}
+	if !fileExists(t, dataDir, rel) {
+		t.Error("re-referenced file was deleted")
+	}
+
+	errCheck := func(context.Context, string) (bool, error) { return false, errors.New("reference read failed") }
+	stats, err = Sweep(t.Context(), sweepLogger, dataDir, nil, errCheck, now, SweepGrace)
+	if err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	if stats.Failed != 1 || stats.Deleted != 0 {
+		t.Errorf("stats = %+v, want Failed=1 Deleted=0", stats)
+	}
+	if !fileExists(t, dataDir, rel) {
+		t.Error("file was deleted after a failed reference recheck")
+	}
+}
+
 func TestSweep_MissingMediaDirIsNotAnError(t *testing.T) {
 	t.Parallel()
 
 	now := sweepTestNow
-	stats, err := Sweep(t.Context(), sweepLogger, t.TempDir(), nil, now, SweepGrace)
+	stats, err := Sweep(t.Context(), sweepLogger, t.TempDir(), nil, nil, now, SweepGrace)
 	if err != nil {
 		t.Fatalf("Sweep on a fresh data dir: %v", err)
 	}

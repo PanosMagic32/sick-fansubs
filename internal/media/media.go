@@ -14,15 +14,19 @@
 package media
 
 import (
+	"net/url"
+	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
 // Accepted served extensions. The pipeline encodes JPEG (quality 85) or PNG
 // (transparency); WebP is decode-only and never stored.
 const (
-	ExtJPG = "jpg"
-	ExtPNG = "png"
+	ExtJPG  = "jpg"
+	ExtJPEG = "jpeg"
+	ExtPNG  = "png"
 )
 
 // tempPrefix names the atomic-write temp files (writeAtomic). The orphan
@@ -32,8 +36,9 @@ const tempPrefix = ".processing-"
 
 // RelativePath builds the database-facing relative path for a processed
 // image. Callers must have validated id as 32 lowercase hex characters and
-// ext as one of the accepted extensions; the upload handlers validate up
-// front, so this package trusts its callers.
+// ext as one of the accepted extensions (the pipeline writes jpg or png;
+// jpeg is a legacy serving form); the upload handlers validate up front, so
+// this package trusts its callers.
 func RelativePath(id, ext string) string {
 	return filepath.Join("media", "images", id[:2], id+"."+ext)
 }
@@ -78,19 +83,125 @@ func ParseStorageReference(ref string) (id, ext string, ok bool) {
 	if len(parts) != 4 || parts[0] != "media" || parts[1] != "images" || len(parts[2]) != 2 {
 		return "", "", false
 	}
-	file := parts[3]
+	id, ext, ok = parseStorageFile(parts[3])
+	if !ok {
+		return "", "", false
+	}
+	if !isLowerHex(parts[2]) || parts[2] != id[:2] {
+		return "", "", false
+	}
+	return id, ext, true
+}
+
+// parseStorageFile validates one `<32hex>.<ext>` storage filename.
+func parseStorageFile(file string) (id, ext string, ok bool) {
+	return parseFileWithExt(file, ExtJPG, ExtPNG)
+}
+
+// parseCanonicalFile is the serving parser's extension set: the serving
+// handler also accepts a hand-placed .jpeg, so the reference guard must
+// resolve it to a local file rather than treating it as unreferenced. The
+// write gate stays on the stricter parseStorageFile set (the pipeline never
+// writes .jpeg).
+func parseCanonicalFile(file string) (id, ext string, ok bool) {
+	return parseFileWithExt(file, ExtJPG, ExtJPEG, ExtPNG)
+}
+
+func parseFileWithExt(file string, exts ...string) (id, ext string, ok bool) {
 	dot := strings.LastIndexByte(file, '.')
 	if dot <= 0 || dot == len(file)-1 {
 		return "", "", false
 	}
 	id, ext = file[:dot], file[dot+1:]
-	if len(id) != 32 || ext != ExtJPG && ext != ExtPNG {
+	if len(id) != 32 || !isLowerHex(id) {
 		return "", "", false
 	}
-	if !isLowerHex(parts[2]) || !isLowerHex(id) || parts[2] != id[:2] {
-		return "", "", false
+	if slices.Contains(exts, ext) {
+		return id, ext, true
 	}
-	return id, ext, true
+	return "", "", false
+}
+
+// CanonicalStoragePath maps a stored media reference to the canonical
+// storage path `media/images/<id[:2]>/<id>.<ext>`. It accepts every form the
+// read path still serves: the canonical storage form, the flat served form
+// (`media/images/<id>.<ext>`), the served form carrying a subdirectory
+// (`media/images/<any-two-chars>/<id>.<ext>` — ServedPath drops the segment),
+// a relative form carrying a query, fragment, `.` segment, or percent-encoded
+// bytes (the browser and ServeMux clean and decode it), and an absolute
+// http(s) URL on the configured public host with any default port or scheme.
+// The absolute form compares hostnames, not raw Host values: an explicit
+// `:443` (or a development `http://`) is the same served origin, and ignoring
+// the port can only widen the keep-set, never drop a live reference. Values
+// that cannot name a local file (another hostname, an escaping path, a
+// malformed segment, an unsupported extension) are reported not-ok; callers
+// skip them.
+func CanonicalStoragePath(stored, publicBaseURL string) (string, bool) {
+	candidate, ok := localMediaPath(stored, publicBaseURL)
+	if !ok {
+		return "", false
+	}
+	parts := strings.Split(strings.TrimPrefix(candidate, "media/images/"), "/")
+	var file string
+	switch len(parts) {
+	case 1:
+		file = parts[0]
+	case 2:
+		// The read path drops any two-character subdirectory, so every
+		// such form addresses the canonical file.
+		if len(parts[0]) != 2 {
+			return "", false
+		}
+		file = parts[1]
+	default:
+		return "", false
+	}
+	id, ext, ok := parseCanonicalFile(file)
+	if !ok {
+		return "", false
+	}
+	return RelativePath(id, ext), true
+}
+
+// localMediaPath reduces a stored reference to the cleaned, decoded
+// `media/images/...` path the read path serves, or reports not-ok. Absolute
+// URLs must name the configured public hostname; the base path prefix, when
+// present, is stripped like the serving URL does. Relative values lose their
+// query and fragment, then decode and clean exactly as the browser and the
+// router do. The leading slash anchors path.Clean, so `..` can never escape
+// the media tree.
+func localMediaPath(stored, publicBaseURL string) (string, bool) {
+	candidate := stored
+	if strings.HasPrefix(candidate, "http://") || strings.HasPrefix(candidate, "https://") {
+		u, err := url.Parse(candidate)
+		if err != nil || u.Host == "" || publicBaseURL == "" {
+			return "", false
+		}
+		base, err := url.Parse(publicBaseURL)
+		if err != nil || base.Hostname() == "" || !strings.EqualFold(u.Hostname(), base.Hostname()) {
+			return "", false
+		}
+		candidate = u.Path
+		if prefix := strings.TrimRight(base.Path, "/"); prefix != "" && prefix != "/" {
+			if !strings.HasPrefix(candidate, prefix+"/") {
+				return "", false
+			}
+			candidate = strings.TrimPrefix(candidate, prefix)
+		}
+	} else if i := strings.IndexAny(candidate, "?#"); i >= 0 {
+		candidate = candidate[:i]
+	}
+
+	decoded, err := url.PathUnescape(candidate)
+	if err != nil {
+		return "", false
+	}
+	cleaned := path.Clean("/" + strings.TrimPrefix(decoded, "/"))
+	cleaned = strings.TrimPrefix(cleaned, "/")
+	if !strings.HasPrefix(cleaned, "media/images/") {
+		return "", false
+	}
+	return cleaned, true
 }
 
 // isLowerHex reports whether s consists of lowercase hex characters only.

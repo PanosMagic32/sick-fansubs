@@ -123,16 +123,55 @@ func TestBlogCreate_RejectsParsedHelperKey(t *testing.T) {
 	}
 }
 
-// TestBlogCreate_BodyBound pins the 512 KiB content-write bound both ways:
-// a body over it is 413 before decode; a body exactly at it is accepted and
-// validated normally.
+// escapedRunes spells n non-BMP runes as JSON surrogate-pair escapes: twelve
+// wire bytes per decoded rune, the content bound's worst case.
+func escapedRunes(n int) string {
+	return strings.Repeat(`\ud800\udc00`, n)
+}
+
+// escapedMaxBody builds a create body that respects every documented field
+// maximum while using surrogate-pair escapes in every text field, including
+// both links of all 20 download rows. Its wire size is 1,232,400 bytes plus
+// JSON framing — the arithmetic the content bound must cover.
+func escapedMaxBody() string {
+	var b strings.Builder
+	b.WriteString(`{"title":"`)
+	b.WriteString(escapedRunes(200))
+	b.WriteString(`","subtitle":"`)
+	b.WriteString(escapedRunes(500))
+	b.WriteString(`","description":"`)
+	b.WriteString(escapedRunes(20000))
+	b.WriteString(`","thumbnailPath":"`)
+	b.WriteString(adminThumb)
+	b.WriteString(`","status":"draft","downloads":[`)
+	link := "magnet:?x=" + escapedRunes(1990)
+	for i := range 20 {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		b.WriteString(`{"resolution":"`)
+		b.WriteString(escapedRunes(100))
+		b.WriteString(`","magnetUrl":"`)
+		b.WriteString(link)
+		b.WriteString(`","torrentUrl":"`)
+		b.WriteString(link)
+		b.WriteString(`"}`)
+	}
+	b.WriteString(`]}`)
+	return b.String()
+}
+
+// TestBlogCreate_BodyBound pins the 1.25 MiB content-write bound: a body over
+// it is 413 before decode; a body exactly at it is accepted; and every
+// documented maximum, escaped at the twelve-bytes-per-rune worst case, still
+// fits.
 func TestBlogCreate_BodyBound(t *testing.T) {
 	t.Parallel()
 	_, _, mux := setupBlogAdminHandlers(t, nil)
 
 	t.Run("over the bound", func(t *testing.T) {
 		t.Parallel()
-		body := writeBody("draft") + strings.Repeat(" ", 512*1024)
+		body := writeBody("draft") + strings.Repeat(" ", 1280*1024)
 		rec := serveAdmin(t, mux, adminRequest(http.MethodPost, "/api/v1/blog-posts", body, "admin", "admin1"))
 		if rec.Code != http.StatusRequestEntityTooLarge {
 			t.Fatalf("status = %d, want 413 (body %s)", rec.Code, rec.Body.String())
@@ -142,7 +181,19 @@ func TestBlogCreate_BodyBound(t *testing.T) {
 	t.Run("exactly at the bound", func(t *testing.T) {
 		t.Parallel()
 		base := writeBody("draft")
-		body := base + strings.Repeat(" ", 512*1024-len(base))
+		body := base + strings.Repeat(" ", 1280*1024-len(base))
+		rec := serveAdmin(t, mux, adminRequest(http.MethodPost, "/api/v1/blog-posts", body, "admin", "admin1"))
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("status = %d, want 201 (body %s)", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("escaped maxima fit", func(t *testing.T) {
+		t.Parallel()
+		body := escapedMaxBody()
+		if len(body) > 1280*1024 {
+			t.Fatalf("test body is %d bytes, over the bound it is meant to fit", len(body))
+		}
 		rec := serveAdmin(t, mux, adminRequest(http.MethodPost, "/api/v1/blog-posts", body, "admin", "admin1"))
 		if rec.Code != http.StatusCreated {
 			t.Fatalf("status = %d, want 201 (body %s)", rec.Code, rec.Body.String())

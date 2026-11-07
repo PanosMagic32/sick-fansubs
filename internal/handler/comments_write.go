@@ -273,18 +273,25 @@ func CommentsDelete(kind commentKind, db *sql.DB, notify push.Notifier, now func
 		})
 		if errors.Is(err, errIDMint) {
 			writeInternalError(w, r, "comment_removed notification id generation failed", "error", err)
+			if !isSelf {
+				logAuditCommentEvent(r, audit.EventCommentDeleted, audit.ResultFailure, su.UserID, authorID, kind.segment, contentID, commentID)
+			}
 			return
 		}
 		if err != nil {
 			// A row deleted between the author lookup and the delete is the
-			// documented benign TOCTOU — the same masked outcome.
-			writeStoreError(w, r, err, kind.label+" comment delete", "error", err)
+			// documented benign TOCTOU — the same masked outcome. A staff
+			// moderation that fails internally still owes its failure ledger
+			// row (the content-delete precedent).
+			if status := writeStoreError(w, r, err, kind.label+" comment delete", "error", err); !isSelf && status == http.StatusInternalServerError {
+				logAuditCommentEvent(r, audit.EventCommentDeleted, audit.ResultFailure, su.UserID, authorID, kind.segment, contentID, commentID)
+			}
 			return
 		}
 		event, emitted := res.event, res.emitted
 
 		if !isSelf {
-			logAuditTargetEvent(r, audit.EventCommentDeleted, audit.ResultSuccess, su.UserID, authorID, "")
+			logAuditCommentEvent(r, audit.EventCommentDeleted, audit.ResultSuccess, su.UserID, authorID, kind.segment, contentID, commentID)
 		}
 		// The notification row committed in the same transaction — handed to
 		// the push channel WITHOUT an actor: the notice never names the

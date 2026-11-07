@@ -26,13 +26,17 @@ const (
 	maxDownloadLabelRunes = 100
 	maxDownloadLinkRunes  = 2000
 
-	// maxContentWriteBodySize bounds the content create/update bodies: the
-	// downloads array drives the size — 20 rows × (label + two 2000-rune links) ≈ 82,000 runes, up
-	// to ~328,000 bytes (~320 KiB) in worst-case UTF-8 (4 bytes/rune),
-	// plus the 20,000-rune description (~80 KiB) — so the content write
-	// endpoints cannot share the 4 KiB auth bound. Still bounded BEFORE
-	// decoding.
-	maxContentWriteBodySize = 512 * 1024
+	// maxContentWriteBodySize bounds the content create/update bodies BEFORE
+	// decoding. The schema maxima drive the worst case: 20 download rows ×
+	// two 2000-rune links = 80,000 runes, plus 2,000 label runes, a
+	// 20,000-rune description, a 200-rune title, and a 500-rune subtitle.
+	// JSON may spell any non-BMP rune as a surrogate pair — twelve wire bytes
+	// per rune (`\uD800\uDC00`) — so the true worst case is 1,232,400 bytes
+	// before framing: 960,000 links + 24,000 labels + 240,000 description +
+	// 2,400 title + 6,000 subtitle. 1.25 MiB (1,310,720 bytes) covers every
+	// documented maximum with framing headroom while staying far below the
+	// media bound.
+	maxContentWriteBodySize = 1280 * 1024
 )
 
 // downloadRow is the wire-neutral input for one downloads entry. The

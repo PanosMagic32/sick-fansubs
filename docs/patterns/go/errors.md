@@ -49,7 +49,7 @@ repository's own convention, and the mapping tables themselves live in
    rule_ for the exception, not for the classification.
 9. **Map at the boundary, in one place.** `internal/handler/errors.go` owns the mapping:
    `writeStoreError` (404 for absence, 412 for a stale revision, 409 for the last-super-admin guard or
-   a push endpoint owned by another account, 403 for a non-author, 422 for the field violations), `writeStoreAccountError` (the same table, but
+   a push endpoint owned by another account, 403 for a non-author or a target whose live role no longer permits the actor, 422 for the field violations), `writeStoreAccountError` (the same table, but
    a vanished viewer row answers the generic 401 — the session-outlives-user-row race), and
    `writeAuthError` (401 invalid credentials, 409 race, 422 taken fields, the two masked token
    problems, and `ErrValidation` with its `FieldError` extraction). Each helper returns the status it

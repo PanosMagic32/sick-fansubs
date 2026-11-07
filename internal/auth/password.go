@@ -138,9 +138,14 @@ func (s *Service) ChangePassword(ctx context.Context, userID, currentPassword, n
 // bcrypt runs here, before the store's write transaction (bcrypt must never
 // run inside one).
 //
+// actorRole is re-checked against the target's live role inside the store
+// transaction, so a promotion that lands after the handler's check cannot
+// hand an admin a temp password for a new peer or super-admin.
+//
 // Returns store.ErrNotFound if the target vanished between the caller's
-// authorization load and this call.
-func (s *Service) ResetPassword(ctx context.Context, userID string) (tempPassword string, err error) {
+// authorization load and this call; store.ErrActorNotPermitted if the actor
+// may no longer act on the target's live role.
+func (s *Service) ResetPassword(ctx context.Context, actorRole, userID string) (tempPassword string, err error) {
 	temp, err := generateTempPassword()
 	if err != nil {
 		return "", fmt.Errorf("auth: generate temp password: %w", err)
@@ -152,7 +157,7 @@ func (s *Service) ResetPassword(ctx context.Context, userID string) (tempPasswor
 	}
 
 	now := time.Now().UnixMilli()
-	if err := store.ResetUserPassword(ctx, s.db, userID, string(hash), now); err != nil {
+	if err := store.ResetUserPassword(ctx, s.db, actorRole, userID, string(hash), now); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return "", store.ErrNotFound
 		}

@@ -167,20 +167,25 @@ func TestPushServiceFamily(t *testing.T) {
 		name     string
 		endpoint string
 		want     string
+		known    bool
 	}{
-		{"mozilla current", "https://updates.push.services.mozilla.com/wpush/v2/gAAAA", "mozilla"},
-		{"mozilla older host", "https://updates-push.services.mozaws.net/push/abc", "mozilla"},
-		{"fcm", "https://fcm.googleapis.com/fcm/send/abc", "fcm"},
-		{"fcm older host", "https://android.googleapis.com/gcm/send/abc", "fcm"},
-		{"apple", "https://web.push.apple.com/abc", "apple"},
-		{"other host", "https://push.example.com/e", "other"},
-		{"unparseable", "://not a url", "other"},
-		{"empty", "", "other"},
+		{"mozilla current", "https://updates.push.services.mozilla.com/wpush/v2/gAAAA", "mozilla", true},
+		{"mozilla older host", "https://updates-push.services.mozaws.net/push/abc", "mozilla", true},
+		{"fcm", "https://fcm.googleapis.com/fcm/send/abc", "fcm", true},
+		{"fcm older host", "https://android.googleapis.com/gcm/send/abc", "fcm", true},
+		{"apple", "https://web.push.apple.com/abc", "apple", true},
+		{"windows WNS", "https://wns2-sg2p.notify.windows.com/w/?token=abc", "other", true},
+		{"other host", "https://push.example.com/e", "other", false},
+		{"unparseable", "://not a url", "other", false},
+		{"empty", "", "other", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := pushServiceFamily(tc.endpoint); got != tc.want {
 				t.Errorf("pushServiceFamily(%q) = %q, want %q", tc.endpoint, got, tc.want)
+			}
+			if got := IsKnownService(tc.endpoint); got != tc.known {
+				t.Errorf("IsKnownService(%q) = %v, want %v", tc.endpoint, got, tc.known)
 			}
 		})
 	}

@@ -339,6 +339,31 @@ func TestMediaUpload_Success(t *testing.T) {
 	}
 }
 
+// TestMediaUpload_RateLimited pins the per-user upload bucket: the eleventh
+// request in the window answers 429 with Retry-After before the body is
+// parsed. The bucket counts every authenticated attempt, including a
+// malformed one.
+func TestMediaUpload_RateLimited(t *testing.T) {
+	t.Parallel()
+
+	mux, _, db := setupMediaMux(t)
+	cookie, csrf := setupUploadSession(t, db, "admin")
+
+	for i := range 10 {
+		rec := doUpload(t, mux, nil, "text/plain", cookie, csrf)
+		if rec.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("attempt %d: status = %d, want 415", i+1, rec.Code)
+		}
+	}
+	rec := doUpload(t, mux, nil, "text/plain", cookie, csrf)
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("eleventh attempt: status = %d, want 429 (body %s)", rec.Code, rec.Body.String())
+	}
+	if rec.Header().Get("Retry-After") == "" {
+		t.Error("429 without Retry-After")
+	}
+}
+
 func TestMediaUpload_RoleMatrix(t *testing.T) {
 	t.Parallel()
 

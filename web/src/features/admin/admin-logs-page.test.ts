@@ -106,6 +106,19 @@ const AUDIT_BODY = {
       remoteAddr: "192.0.2.2",
       createdAt: "2026-09-18T10:01:00.000Z",
     },
+    {
+      id: "e3",
+      event: "comment_deleted",
+      result: "success",
+      actorId: "mod-1",
+      targetId: "author-1",
+      contentKind: "blog-posts",
+      contentId: "post-1",
+      commentId: "comment-1",
+      requestId: "req-3",
+      remoteAddr: "192.0.2.3",
+      createdAt: "2026-09-18T10:03:00.000Z",
+    },
   ],
 };
 
@@ -224,13 +237,18 @@ describe("admin-logs-page", () => {
     expect(heads.filter((h) => h === "timestamp")).toHaveLength(2);
     expect(heads).toContain(el.admin.auditActorColumn);
     expect(heads).toContain(el.admin.auditTargetColumn);
+    expect(heads).toContain(el.admin.auditObjectColumn);
     expect(heads).toContain(el.admin.auditRequestColumn);
     const auditTable = root(page).querySelector(".audit-row")?.closest("table");
     expect(
       auditTable?.querySelectorAll("thead th span[lang='en']"),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
     expect(cells(page, ".logs-level")).toEqual(["error", "warn"]);
-    expect(cells(page, ".audit-result")).toEqual(["success", "failure"]);
+    expect(cells(page, ".audit-result")).toEqual([
+      "success",
+      "failure",
+      "success",
+    ]);
     expect(cells(page, ".logs-message")[0]).toBe("staff metrics totals failed");
     expect(cells(page, ".logs-fields")[0]).toContain(`"requestID":"r1"`);
     expect(cells(page, ".logs-fields")[1]).toBe(el.admin.logsFieldsEmpty);
@@ -240,6 +258,7 @@ describe("admin-logs-page", () => {
     expect(cells(page, ".audit-event")).toEqual([
       el.admin.auditEventNames.role_changed,
       el.admin.auditEventNames.sign_in_failure,
+      el.admin.auditEventNames.comment_deleted,
     ]);
     // The target cell carries the id AND the role, so match on the joined
     // text rather than an exact cell value.
@@ -247,6 +266,29 @@ describe("admin-logs-page", () => {
     expect(cells(page, ".audit-id").join("|")).toContain("target-1");
     expect(cells(page, ".audit-id").join("|")).toContain(el.admin.auditNone);
     expect(cells(page, ".audit-role")).toEqual([el.account.roleModerator]);
+    // The moderated object has its own labelled column: the kind is the only
+    // English-scoped token, and the comment id rides its own labelled line
+    // (the hidden Greek labels give both values an accessible name).
+    const objectLines = [...root(page).querySelectorAll(".audit-object-line")];
+    expect(objectLines).toHaveLength(2);
+    expect(objectLines[0]?.textContent).toContain("blog-posts:post-1");
+    expect(objectLines[0]?.querySelector(".sr-only")?.textContent?.trim()).toBe(
+      `${el.admin.auditContentLabel}:`,
+    );
+    expect(objectLines[0]?.querySelector("[lang='en']")?.textContent).toBe(
+      "blog-posts",
+    );
+    expect(objectLines[1]?.textContent).toContain("comment-1");
+    expect(objectLines[1]?.querySelector(".sr-only")?.textContent?.trim()).toBe(
+      `${el.admin.auditCommentLabel}:`,
+    );
+    expect(objectLines[1]?.hasAttribute("lang")).toBe(false);
+    const objectCells = cells(page, ".audit-object-cell");
+    expect(objectCells).toHaveLength(3);
+    expect(objectCells[0]).toBe(el.admin.auditNone);
+    expect(objectCells[1]).toBe(el.admin.auditNone);
+    expect(objectCells[2]).toContain("blog-posts:post-1");
+    expect(objectCells[2]).toContain("comment-1");
     expect(root(page).querySelector(".logs-hint")?.textContent).toContain(
       el.admin.logsHint,
     );
@@ -277,6 +319,7 @@ describe("admin-logs-page", () => {
     expect(results.map((el) => el.dataset.result)).toEqual([
       "success",
       "failure",
+      "success",
     ]);
 
     // The row carries the same value, so the whole line can be tinted.

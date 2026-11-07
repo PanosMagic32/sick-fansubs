@@ -16,7 +16,8 @@ import (
 // site (through the delegating Auth.logAudit method) share it, so a change to
 // what an audit record carries cannot reach one surface and miss another.
 //
-// [logAuditTargetEvent] is the actor+target sibling.
+// [logAuditTargetEvent] is the actor+target sibling, and
+// [logAuditCommentEvent] the moderation shape that also names the object.
 func logAuditEvent(r *http.Request, event, result, userID string) {
 	audit.Event(r.Context(), event, result, userID,
 		middleware.RequestIDFrom(r.Context()), middleware.ClientAddr(r))
@@ -29,5 +30,14 @@ func logAuditEvent(r *http.Request, event, result, userID string) {
 // deletion, email/verification, comment moderation).
 func logAuditTargetEvent(r *http.Request, event, result, actorID, targetID, targetRole string) {
 	audit.EventWithTarget(r.Context(), event, result, actorID, targetID, targetRole,
+		middleware.RequestIDFrom(r.Context()), middleware.ClientAddr(r))
+}
+
+// logAuditCommentEvent emits the moderation shape: the actor, the comment's
+// author as target, and the content kind/id plus comment id the moderation
+// addressed. The comment is hard-deleted, so these identifiers are the
+// ledger's only durable reference to it.
+func logAuditCommentEvent(r *http.Request, event, result, actorID, targetID, contentKind, contentID, commentID string) {
+	audit.EventWithCommentTarget(r.Context(), event, result, actorID, targetID, contentKind, contentID, commentID,
 		middleware.RequestIDFrom(r.Context()), middleware.ClientAddr(r))
 }

@@ -435,6 +435,12 @@ func TestRehashPasswordAndCreateSession_Success(t *testing.T) {
 
 	mustCreateUser(t, db, "user_01", "Katakuri", "katakuri", "k@example.com")
 
+	// An existing session from another device — a rehash is not a
+	// revocation, so it must survive.
+	otherDigest, otherCSRF := make([]byte, 32), make([]byte, 32)
+	otherDigest[0] = 9
+	mustCreateSession(t, db, "sess_other", "user_01", otherDigest, otherCSRF, 1, 5000, 5000+7*24*3600*1000)
+
 	digest := make([]byte, 32)
 	for i := range digest {
 		digest[i] = byte(i)
@@ -457,7 +463,8 @@ func TestRehashPasswordAndCreateSession_Success(t *testing.T) {
 		t.Fatalf("RehashPasswordAndCreateSession: %v", err)
 	}
 
-	// The verifier replaced and the version bumped.
+	// The verifier replaced and the version unchanged: the password did not
+	// change, so no other session is revoked.
 	u, err := UserByID(ctx, db, "user_01")
 	if err != nil {
 		t.Fatalf("UserByID: %v", err)
@@ -465,13 +472,16 @@ func TestRehashPasswordAndCreateSession_Success(t *testing.T) {
 	if u.Password != "$2a$12$rehashed-verifier" {
 		t.Errorf("password not rehashed: got %q", u.Password)
 	}
-	if u.AuthVersion != 2 {
-		t.Errorf("auth_version: got %d, want 2", u.AuthVersion)
+	if u.AuthVersion != 1 {
+		t.Errorf("auth_version: got %d, want 1", u.AuthVersion)
 	}
 
-	// The session exists under the NEW version and is resolvable.
-	if _, err := SessionByDigest(ctx, db, digest); err != nil {
-		t.Fatalf("SessionByDigest after rehash: %v", err)
+	// The new session exists under the unchanged version, and the pre-existing
+	// device session still resolves.
+	for name, d := range map[string][]byte{"new": digest, "other device": otherDigest} {
+		if _, err := SessionByDigest(ctx, db, d); err != nil {
+			t.Fatalf("%s session must resolve after rehash: %v", name, err)
+		}
 	}
 }
 
@@ -543,8 +553,8 @@ func TestRehashPasswordAndCreateSession_SuspendedUser(t *testing.T) {
 	db := openStoreDB(t)
 	ctx := t.Context()
 
-	// A suspended user with a matching auth_version: the UPDATE bump would
-	// succeed, but the conditional session INSERT must refuse (status guard).
+	// A suspended user with a matching auth_version: the conditional verifier
+	// UPDATE would succeed, but the session INSERT must refuse (status guard).
 	storetest.InsertUser(t, db, storetest.UserSpec{
 		ID:       "user_01",
 		Username: "Suspended",

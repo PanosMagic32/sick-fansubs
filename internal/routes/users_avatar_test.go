@@ -133,6 +133,30 @@ func TestAvatarUpload_Success(t *testing.T) {
 // POST /api/v1/media): missing file → 422 file:required, unknown
 // fields → 400, undecodable bytes → 422 file:invalidFormat, oversized
 // source → 413 file:tooLarge.
+// TestAvatarUpload_RateLimited pins the per-user upload bucket: the eleventh
+// request in the window answers 429 with Retry-After before the body is
+// parsed.
+func TestAvatarUpload_RateLimited(t *testing.T) {
+	t.Parallel()
+
+	mux, _, cookie, _ := setupUsersMux(t)
+	csrf := base64.RawURLEncoding.EncodeToString(make([]byte, 32))
+
+	for i := range 10 {
+		rec := doAvatarUpload(t, mux, nil, "text/plain", cookie, csrf)
+		if rec.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("attempt %d: status = %d, want 415", i+1, rec.Code)
+		}
+	}
+	rec := doAvatarUpload(t, mux, nil, "text/plain", cookie, csrf)
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("eleventh attempt: status = %d, want 429 (body %s)", rec.Code, rec.Body.String())
+	}
+	if rec.Header().Get("Retry-After") == "" {
+		t.Error("429 without Retry-After")
+	}
+}
+
 func TestAvatarUpload_Validation(t *testing.T) {
 	t.Parallel()
 

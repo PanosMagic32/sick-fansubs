@@ -69,12 +69,18 @@ func run(logger *slog.Logger) error {
 	ctx, cancel := context.WithTimeout(context.Background(), sweepDeadline)
 	defer cancel()
 
-	refs, err := store.ReferencedMediaPaths(ctx, db)
+	canonical := func(ref string) (string, bool) {
+		return media.CanonicalStoragePath(ref, cfg.PublicBaseURL)
+	}
+	refs, err := store.ReferencedMediaPaths(ctx, db, canonical)
 	if err != nil {
 		return fmt.Errorf("reference snapshot: %w", err)
 	}
+	stillReferenced := func(ctx context.Context, path string) (bool, error) {
+		return store.MediaPathReferenced(ctx, db, path, canonical)
+	}
 
-	stats, err := media.Sweep(ctx, logger, cfg.DataDir, refs, time.Now(), media.SweepGrace)
+	stats, err := media.Sweep(ctx, logger, cfg.DataDir, refs, stillReferenced, time.Now(), media.SweepGrace)
 	if err != nil {
 		return fmt.Errorf("sweep: %w", err)
 	}

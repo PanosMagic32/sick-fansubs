@@ -23,7 +23,7 @@ import (
 type userStatusChangeKind struct {
 	targetStatus string
 	event        string
-	write        func(ctx context.Context, db *sql.DB, userID string, updatedAtMS int64) error
+	write        func(ctx context.Context, db *sql.DB, actorRole, userID string, updatedAtMS int64) error
 }
 
 // UserSuspend returns the handler for POST /api/v1/users/{id}/suspend.
@@ -106,9 +106,9 @@ func userStatusChangeHandler(db *sql.DB, publicBaseURL string, kind userStatusCh
 			return
 		}
 
-		if err := kind.write(r.Context(), db, target.ID, time.Now().UnixMilli()); err != nil {
+		if err := kind.write(r.Context(), db, su.Role, target.ID, time.Now().UnixMilli()); err != nil {
 			switch writeStoreError(w, r, err, "user status change", "error", err) {
-			case http.StatusConflict, http.StatusInternalServerError:
+			case http.StatusForbidden, http.StatusConflict, http.StatusInternalServerError:
 				auditTargetFailure(r, kind.event, su, target)
 			}
 			return

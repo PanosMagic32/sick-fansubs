@@ -17,9 +17,9 @@ import (
 //   - account events: Kind = the event name, Result, ActorUsername,
 //     TargetUsername, TargetRole;
 //   - comment_reply / heart / comment: Kind = the kind, ActorUsername,
-//     ContentTitle (joined at read time regardless of status — NULL for
-//     deleted content), ContentKind, ContentID, CommentID. The heart
-//     and comment items reuse the comment_reply shape;
+//     ContentTitle (joined at read time and gated: NULL when the content
+//     is deleted or no longer published), ContentKind, ContentID,
+//     CommentID. The heart and comment items reuse the comment_reply shape;
 //   - content_updated / new_content: the comment shape MINUS CommentID
 //     (the content is the navigation target);
 //   - draft_activity: the comment shape MINUS CommentID PLUS DraftAction —
@@ -137,7 +137,14 @@ func userNotificationsFrom(viewerID string, viewerRoleWeight int, includeStaff b
 		}
 		fmt.Fprintf(&titleJoins, "\n\t\tLEFT JOIN %s %s ON un.content_kind = '%s' AND %s.id = un.content_id", k.table, alias, k.kind, alias)
 		fmt.Fprintf(&creatorJoins, "\n\t\tLEFT JOIN users %s ON %s.id = %s.creator_id", creator, creator, alias)
-		fmt.Fprintf(&titleCoalesce, "%s.title", alias)
+		// Every comment-kind notice joins its title at read time, so a notice
+		// that survives the content's later unpublishing must not disclose the
+		// current title of content the recipient can no longer read. The
+		// content_updated/new_content notices keep their title; the staff-only
+		// draft_activity notice exists to name unpublished content.
+		fmt.Fprintf(&titleCoalesce,
+			"CASE WHEN un.kind IN ('comment_reply', 'comment', 'heart', 'comment_removed') AND NOT (%s.status = 'published' AND %s.published_at_ms IS NOT NULL) THEN NULL ELSE %s.title END",
+			alias, alias, alias)
 		creatorIDs = append(creatorIDs, alias+".creator_id")
 		creatorWeights = append(creatorWeights, roleWeightCase(creator))
 	}

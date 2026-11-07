@@ -83,22 +83,24 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 		path := strings.TrimPrefix(r.URL.Path, "/")
 
 		// serveIndex writes the processed index.html with the security
-		// headers and the no-cache directive: every navigation revalidates,
-		// so a deploy's new asset hashes are always seen.
-		serveIndex := func() {
+		// headers and the given cache directive: every navigation revalidates,
+		// so a deploy's new asset hashes are always seen. Token-bearing auth
+		// routes answer no-store so the browser HTTP cache keeps no copy of a
+		// URL that names a one-time credential.
+		serveIndex := func(cacheControl string) {
 			if cachedIndex == nil {
 				http.Error(w, "Frontend index not available", http.StatusServiceUnavailable)
 				return
 			}
 			setSecurityHeaders(w)
-			w.Header().Set("Cache-Control", "no-cache")
+			w.Header().Set("Cache-Control", cacheControl)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Write(cachedIndex)
 		}
 
 		// Serve the processed index.html.
 		if path == "" || path == "index.html" {
-			serveIndex()
+			serveIndex("no-cache")
 			return
 		}
 
@@ -145,8 +147,16 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 			return
 		}
 
-		// SPA fallback: serve the processed index.html.
-		serveIndex()
+		// SPA fallback: serve the processed index.html. The reset and
+		// verification pages read a token from their query, so their shell
+		// must not enter the browser HTTP cache under the token-bearing URL.
+		// The client router canonicalizes a trailing slash only after the HTML
+		// loads, so both spellings must answer no-store here.
+		if route := strings.TrimRight(path, "/"); route == "auth/reset" || route == "auth/verify" {
+			serveIndex("no-store")
+			return
+		}
+		serveIndex("no-cache")
 	}), nil
 }
 

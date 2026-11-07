@@ -165,8 +165,10 @@ type pushTestEndpointDTO struct {
 	Accepted bool   `json:"accepted"`
 	// Status is the LAST response status the push service returned, sticky
 	// across retries; omitted when no attempt ever received a response (a pure
-	// transport failure or a cancelled window). A deliberate zero sentinel:
-	// 0 is not a status any server returns, so a pointer would buy nothing.
+	// transport failure or a cancelled window) and for every service: other
+	// row, whose host must not become a status oracle. A deliberate zero
+	// sentinel: 0 is not a status any server returns, so a pointer would buy
+	// nothing.
 	Status int `json:"status,omitempty"`
 	// Removed reports that the dead-endpoint rule deleted this row during
 	// this very send.
@@ -226,11 +228,17 @@ func PushTestSend(tester push.TestSender, limiter *middleware.RateLimiter) http.
 		}
 		endpoints := make([]pushTestEndpointDTO, 0, len(report.Endpoints))
 		for _, o := range report.Endpoints {
+			status := o.Status
+			if o.Service == push.ServiceOther {
+				// A legacy row outside the known push services must not turn
+				// the report into a status oracle for an arbitrary host.
+				status = 0
+			}
 			endpoints = append(endpoints, pushTestEndpointDTO{
 				ID:       o.SubscriptionID,
 				Service:  o.Service,
 				Accepted: o.Accepted,
-				Status:   o.Status,
+				Status:   status,
 				Removed:  o.Removed,
 			})
 		}

@@ -90,6 +90,41 @@ describe("mapSubmitError", () => {
     expect(result.banner).toContain("30");
   });
 
+  test("any 403 re-bootstraps the stale client session", () => {
+    let calls = 0;
+    const onAlreadyAuthenticated = () => {
+      calls++;
+    };
+
+    mapSubmitError(
+      new ApiError({
+        type: "/problems/auth/already-authenticated",
+        title: "Already authenticated",
+        status: 403,
+      }),
+      { ...opts, onAlreadyAuthenticated },
+    );
+    // The chain's generic CSRF refusal is the stale cross-tab path too.
+    mapSubmitError(
+      new ApiError({
+        type: "/problems/forbidden",
+        title: "Forbidden",
+        status: 403,
+      }),
+      { ...opts, onAlreadyAuthenticated },
+    );
+    mapSubmitError(
+      new ApiError({
+        type: "/problems/unauthorized",
+        title: "Unauthorized",
+        status: 401,
+      }),
+      { ...opts, onAlreadyAuthenticated },
+    );
+
+    expect(calls).toBe(2);
+  });
+
   test("a 429 without the header keeps the cooldown off", () => {
     const err = new ApiError({
       type: "/problems/rate-limited",

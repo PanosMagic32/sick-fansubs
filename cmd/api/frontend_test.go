@@ -79,6 +79,36 @@ func TestFrontendSPAFallbackServesIndex(t *testing.T) {
 	}
 }
 
+func TestFrontendTokenAuthRoutesAnswerNoStore(t *testing.T) {
+	h := newTestFrontend(t, "v1")
+
+	for _, target := range []string{
+		"/auth/reset?token=abc123",
+		"/auth/verify?token=def456",
+		"/auth/reset",
+		"/auth/verify",
+		"/auth/reset/?token=abc123",
+		"/auth/verify/?token=def456",
+		"/auth/reset/",
+		"/auth/verify/",
+	} {
+		rec := doFrontend(t, h, http.MethodGet, target)
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: status = %d, want 200", target, rec.Code)
+		}
+		if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+			t.Errorf("%s: Cache-Control = %q, want no-store", target, got)
+		}
+	}
+
+	// An ordinary page keeps the revalidate directive; only the two
+	// token-bearing routes change.
+	rec := doFrontend(t, h, http.MethodGet, "/blog/some-post")
+	if got := rec.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Errorf("ordinary route Cache-Control = %q, want no-cache", got)
+	}
+}
+
 func TestFrontendMissingAssetAnswers404(t *testing.T) {
 	h := newTestFrontend(t, "v1")
 

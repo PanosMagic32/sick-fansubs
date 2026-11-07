@@ -245,7 +245,8 @@ type DeliveryOutcome struct {
 	Accepted       bool   // the push service answered 200/201
 	// Status is the LAST response status the push service returned, sticky
 	// across retries; 0 when no attempt ever received a response (a pure
-	// transport failure or a window the caller cancelled).
+	// transport failure or a window the caller cancelled). The HTTP layer also
+	// withholds the number for a service-other row.
 	Status  int
 	Removed bool // the dead-endpoint rule deleted the row
 }
@@ -271,19 +272,44 @@ const (
 	serviceOther   = "other"
 )
 
+// ServiceOther is the coarse family for an endpoint outside the known push
+// services. The create endpoint refuses such a value; the self-test withholds
+// its raw response status so a legacy row cannot turn the report into a
+// status oracle for an arbitrary HTTPS host.
+const ServiceOther = serviceOther
+
+// IsKnownService reports whether endpoint belongs to one of the push-service
+// hosts a browser subscription can realistically use. The Windows Push
+// Notification Service (Edge on Windows) is accepted but still classifies as
+// "other": the wire family vocabulary stays the three services whose response
+// semantics the sender already models, and the self-test withholds the raw
+// status for that family.
+func IsKnownService(endpoint string) bool {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	return classifyPushHost(host) != serviceOther || isWindowsPushHost(host)
+}
+
 // pushServiceFamily classifies a stored endpoint by its host. An endpoint that
 // does not parse (impossible through the create endpoint, which validates
 // https + host) is "other" rather than an error: the report must never fail
-// because a label could not be derived. The families are the push services a
-// subscription can realistically point at — Chrome/Chromium endpoints live
-// under googleapis.com, Mozilla's under mozilla.com or mozaws.net, and
-// Apple's under push.apple.com.
+// because a label could not be derived. The named families are the push
+// services a subscription can realistically point at — Chrome/Chromium
+// endpoints live under googleapis.com, Mozilla's under mozilla.com or
+// mozaws.net, and Apple's under push.apple.com. Windows Push Notification
+// Service hosts remain "other" for reporting (see IsKnownService).
 func pushServiceFamily(endpoint string) string {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return serviceOther
 	}
-	host := strings.ToLower(u.Hostname())
+	return classifyPushHost(strings.ToLower(u.Hostname()))
+}
+
+func classifyPushHost(host string) string {
 	switch {
 	case strings.HasSuffix(host, ".mozilla.com") || strings.HasSuffix(host, ".mozaws.net"):
 		return serviceMozilla
@@ -294,4 +320,10 @@ func pushServiceFamily(endpoint string) string {
 	default:
 		return serviceOther
 	}
+}
+
+// isWindowsPushHost matches the Windows Push Notification Service hosts used by
+// Edge on Windows (for example wns2-sg2p.notify.windows.com).
+func isWindowsPushHost(host string) bool {
+	return strings.HasSuffix(host, ".notify.windows.com")
 }

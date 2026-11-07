@@ -18,6 +18,7 @@ import (
 	"sick-fansubs/internal/auth"
 	"sick-fansubs/internal/database"
 	"sick-fansubs/internal/handler"
+	"sick-fansubs/internal/identity"
 	"sick-fansubs/internal/middleware"
 	"sick-fansubs/internal/store"
 )
@@ -1815,6 +1816,35 @@ func TestAudit_StaleCookieSignOutEmitsNoEvent(t *testing.T) {
 	}
 }
 
+// TestAudit_ExpiredCookieSignOutEmitsNoEvent pins the expired-cookie arm:
+// the middleware clears the cookie and continues anonymously, so the handler
+// must not delete the stale row or write an actorless success row.
+func TestAudit_ExpiredCookieSignOutEmitsNoEvent(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	_, db, mux := setupAuthWithLogger(t, logger)
+	cookie, _ := createUser(t, mux, "TestUser", "test@example.com", "password123")
+
+	if _, err := db.Exec(`UPDATE sessions SET expires_at_ms = created_at_ms + 1`); err != nil {
+		t.Fatalf("expire sessions: %v", err)
+	}
+
+	srv := withMiddleware(mux, db)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sign-out", nil)
+	addCookie(req, cookie)
+	setOrigin(req)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("sign-out: got %d, want 200", rec.Code)
+	}
+
+	if records := parseAuditEvents(t, &buf); len(records) != 0 {
+		t.Errorf("expired-cookie sign-out must not emit an audit event, got: %+v", records)
+	}
+}
+
 // TestAudit_SignOut_Failure pins the failure-result event: an attempted
 // sign-out whose deletion fails is audit-worthy — the user's trail shows the
 // attempt did NOT succeed. The session lookup still succeeds, so the event
@@ -2630,7 +2660,7 @@ func TestVerifyEmail_SuspendedGeneric(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup user: %v", err)
 	}
-	if err := store.SuspendUser(ctx, db, uid.ID, time.Now().UnixMilli()); err != nil {
+	if err := store.SuspendUser(ctx, db, identity.RoleSuperAdmin, uid.ID, time.Now().UnixMilli()); err != nil {
 		t.Fatalf("suspend: %v", err)
 	}
 

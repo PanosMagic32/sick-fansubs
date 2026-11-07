@@ -135,7 +135,7 @@ func main() {
 	// here is non-fatal too — orphans are reclaimed on the next tick, and
 	// the sweep is hygiene, not correctness.
 	sweepCtx, cancelSweep := context.WithTimeout(ctx, startupPassBudget)
-	stats, sweepErr := sweepMediaOrphans(sweepCtx, db, cfg.DataDir)
+	stats, sweepErr := sweepMediaOrphans(sweepCtx, db, cfg.DataDir, cfg.PublicBaseURL)
 	cancelSweep()
 	if sweepErr != nil {
 		slog.Warn("startup media orphan sweep failed", "error", sweepErr,
@@ -234,7 +234,7 @@ func main() {
 	// check, so an error exit never leaves tasks running.
 	var cleanupWG sync.WaitGroup
 	cleanupWG.Go(func() { startSessionCleanup(ctx, db) })
-	cleanupWG.Go(func() { startMediaSweep(ctx, db, cfg.DataDir) })
+	cleanupWG.Go(func() { startMediaSweep(ctx, db, cfg.DataDir, cfg.PublicBaseURL) })
 	cleanupWG.Go(func() { startAuditCleanup(ctx, db) })
 	cleanupWG.Go(func() { startWALMonitor(ctx, cfg.DataDir) })
 

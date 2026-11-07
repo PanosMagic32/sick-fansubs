@@ -200,8 +200,8 @@ func TestListNotificationsUsernames(t *testing.T) {
 
 // TestUnifiedFeed_CommentItems pins the user_notifications half: the item
 // shape (kind discriminator + content fields, no result/target fields),
-// the contentTitle join regardless of status, the NULL title for deleted
-// content, and the merged ordering across both sources.
+// the contentTitle published gate for comment kinds, the NULL title for
+// deleted content, and the merged ordering across both sources.
 func TestUnifiedFeed_CommentItems(t *testing.T) {
 	db := openStoreDB(t)
 	ctx := t.Context()
@@ -244,13 +244,56 @@ func TestUnifiedFeed_CommentItems(t *testing.T) {
 	if n1.ContentTitle == nil || *n1.ContentTitle != "A post" || n1.ContentKind != "blog-posts" || n1.ContentID != "b1" || n1.CommentID != "c1" {
 		t.Errorf("n1 content fields: %+v", n1)
 	}
-	// The draft's title joins regardless of status.
-	if n2 := items[2]; n2.ContentTitle == nil || *n2.ContentTitle != "A draft" {
-		t.Errorf("n2 title should join regardless of status: %+v", items[2].ContentTitle)
+	// The reply's content left the published state, so its title is withheld.
+	if n2 := items[2]; n2.ContentTitle != nil {
+		t.Errorf("n2 title should be nil after unpublishing, got %q", *n2.ContentTitle)
 	}
 	// Deleted content → NULL title (the frontend's generic label).
 	if n3 := items[3]; n3.ContentTitle != nil {
 		t.Errorf("n3 title should be nil for deleted content, got %q", *n3.ContentTitle)
+	}
+}
+
+// TestUnifiedFeed_CommentRemovedHidesUnpublishedTitle pins the read-time
+// half of the removal-notice confidentiality gate: a notice on content that
+// is no longer published joins no title, while the same notice on published
+// content keeps it.
+func TestUnifiedFeed_CommentRemovedHidesUnpublishedTitle(t *testing.T) {
+	db := openStoreDB(t)
+	ctx := t.Context()
+
+	mustCreateUser(t, db, "v1", "v1", "v1", "v1@example.com")
+	mustCreateUser(t, db, "actor", "Actorus", "actorus", "actorus@example.com")
+	mustCreateBlogPost(t, db, BlogPostSummary{ID: "pub", Title: "Published title", ThumbnailURL: "/media/images/x.jpg", PublishedAtMS: 3000}, "published")
+	mustCreateBlogPost(t, db, BlogPostSummary{ID: "draft", Title: "Secret draft title", ThumbnailURL: "/media/images/x.jpg"}, "draft")
+	for _, row := range []struct {
+		id, contentID string
+		created       int64
+	}{
+		{"removed-pub", "pub", 2000},
+		{"removed-draft", "draft", 1000},
+	} {
+		if _, err := db.Exec(`INSERT INTO user_notifications
+			(id, recipient_id, kind, actor_id, content_kind, content_id, comment_id, created_at_ms)
+			VALUES (?, 'v1', 'comment_removed', 'actor', 'blog-posts', ?, 'c', ?)`,
+			row.id, row.contentID, row.created); err != nil {
+			t.Fatalf("seed %s: %v", row.id, err)
+		}
+	}
+
+	items, _, err := ListNotifications(ctx, db, "v1", identity.RoleWeight(identity.RoleUser), false, 10, nil)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	byID := map[string]NotificationItem{}
+	for _, it := range items {
+		byID[it.ID] = it
+	}
+	if got := byID["removed-pub"].ContentTitle; got == nil || *got != "Published title" {
+		t.Errorf("published removal title = %v, want Published title", got)
+	}
+	if got := byID["removed-draft"].ContentTitle; got != nil {
+		t.Errorf("unpublished removal title = %q, want nil", *got)
 	}
 }
 
@@ -526,7 +569,7 @@ func TestNotificationReadsCascade(t *testing.T) {
 	}
 
 	// Account cascade: delete the viewer → the remaining read row dies.
-	if err := DeleteUser(ctx, db, "v1"); err != nil {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, "v1"); err != nil {
 		t.Fatalf("delete viewer: %v", err)
 	}
 	if n := readCount(); n != 0 {

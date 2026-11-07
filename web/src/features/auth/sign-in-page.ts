@@ -69,6 +69,8 @@ export class SignInPage extends LitElement {
   @state() private _fieldErrors: FieldErrors = {};
   @state() private _error = "";
   @state() private _pending = false;
+  /** The 403 re-bootstrap the focus handoff waits for. */
+  private _authRetry: Promise<void> = Promise.resolve();
   /** Post-reset success banner — sessionStorage transport. */
   @state() private _resetSuccess = false;
   /** Post-verify success banner — same transport, same one-shot. */
@@ -183,8 +185,21 @@ export class SignInPage extends LitElement {
     // Focus after _pending flips false: inputs re-enable on re-render and
     // a disabled input cannot receive focus.
     if (focusAfterError) {
+      // A 403 starts a session re-bootstrap; wait for it to settle before
+      // choosing the focus target (the form may be replaced by the spinner
+      // or the bootstrap-error view).
+      await this._authRetry;
       await this.updateComplete;
-      focusFirstInvalid(this.shadowRoot, FIELD_IDS, this._fieldErrors);
+      const status = this.session?.state.status;
+      if (status === "error") {
+        this.shadowRoot?.querySelector<HTMLElement>("#signin-heading")?.focus();
+      } else if (status === "anonymous") {
+        if (this._error) {
+          this.shadowRoot?.querySelector<HTMLElement>("#signin-error")?.focus();
+        } else {
+          focusFirstInvalid(this.shadowRoot, FIELD_IDS, this._fieldErrors);
+        }
+      }
     }
   }
 
@@ -224,7 +239,7 @@ export class SignInPage extends LitElement {
     const { fields, banner, retryAfterSeconds } = mapSubmitError(err, {
       serverField: isServerField,
       onAlreadyAuthenticated: () => {
-        void this.session?.retryBootstrap();
+        this._authRetry = this.session?.retryBootstrap() ?? Promise.resolve();
       },
     });
     this._fieldErrors = fields;
@@ -261,7 +276,7 @@ export class SignInPage extends LitElement {
           class="auth-card sign-in-page"
           aria-labelledby="signin-heading"
         >
-          <h1 id="signin-heading">${el.auth.signInTitle}</h1>
+          <h1 id="signin-heading" tabindex="-1">${el.auth.signInTitle}</h1>
           <error-banner .message=${message}></error-banner>
           <button
             type="button"
@@ -323,6 +338,7 @@ export class SignInPage extends LitElement {
             this._error
               ? html`<error-banner
                   id="signin-error"
+                  tabindex="-1"
                   .message=${this._error}
                 ></error-banner>`
               : ""

@@ -187,24 +187,26 @@ type RehashPasswordAndCreateSessionParams struct {
 }
 
 // RehashPasswordAndCreateSession atomically replaces the user's password
-// verifier (bumping auth_version) and creates a session under the NEW version.
+// verifier under an auth_version CAS and creates a session under that same
+// unchanged version.
 //
-// These two writes must be one transaction:
-// the rehash bumps auth_version, and the session insert must reference the
-// bumped version. If the rehash and the insert were separate operations, the
-// session would either be created against the stale version (INSERT…SELECT
-// matches zero rows → the sign-in fails right after a successful rehash) or
-// be invalidated by a bump that lands after its insert. One transaction
-// removes the whole ordering problem.
+// These two writes must be one transaction: if the verifier update and the
+// session insert were separate, a concurrent revocation could land between
+// them and the new session would be inserted against stale security state.
+// One transaction removes the ordering problem.
+//
+// A rehash changes only the verifier's cost, not the credential: the password
+// is unchanged, so auth_version is not bumped, every other session stays
+// valid, and the session list and push delivery keep matching reality.
 //
 // Transaction:
-//  1. UPDATE users SET password = NewHash, auth_version = auth_version + 1
+//  1. UPDATE users SET password = NewHash
 //     WHERE id = UserID AND auth_version = CurrentAuthVersion. Zero rows mean
 //     security state changed concurrently (or the user is gone) — nothing is
 //     written and the caller maps the error to a generic sign-in failure.
 //  2. INSERT the session row with the same conditional INSERT…SELECT guard as
-//     CreateSession, stamped with CurrentAuthVersion+1 (still rejects a
-//     suspension that races in between).
+//     CreateSession, stamped with CurrentAuthVersion (still rejects a
+//     suspension or revocation that races in between).
 //
 // Returns:
 //   - ErrAuthVersionMismatch if the version changed or the user was suspended.
@@ -217,9 +219,10 @@ func RehashPasswordAndCreateSession(ctx context.Context, db *sql.DB, p RehashPas
 	}
 	defer rollbackTx(tx, &err)
 
-	// 1. Conditional verifier update + auth_version bump.
+	// 1. Conditional verifier update. The auth_version guard still rejects a
+	// concurrent revocation; the version itself is not bumped.
 	res, err := tx.ExecContext(ctx,
-		`UPDATE users SET password = ?, auth_version = auth_version + 1, updated_at_ms = ?
+		`UPDATE users SET password = ?, updated_at_ms = ?
 		 WHERE id = ? AND auth_version = ?`,
 		p.NewHash, p.UpdatedAtMS, p.UserID, p.CurrentAuthVersion,
 	)
@@ -244,7 +247,7 @@ func RehashPasswordAndCreateSession(ctx context.Context, db *sql.DB, p RehashPas
 		return ErrAuthVersionMismatch
 	}
 
-	// 2. Conditional session insert under the NEW version.
+	// 2. Conditional session insert under the unchanged version.
 	const q = `INSERT INTO sessions (id, user_id, token_digest, csrf_token, auth_version, client_label, created_at_ms, expires_at_ms)
 	SELECT ?, ?, ?, ?, ?, ?, ?, ?
 	WHERE EXISTS (
@@ -253,8 +256,8 @@ func RehashPasswordAndCreateSession(ctx context.Context, db *sql.DB, p RehashPas
 	)`
 
 	res, err = tx.ExecContext(ctx, q,
-		p.SessionID, p.UserID, p.TokenDigest, p.CSRF, p.CurrentAuthVersion+1, nullableString(p.ClientLabel), p.CreatedAtMS, p.ExpiresAtMS,
-		p.UserID, p.CurrentAuthVersion+1,
+		p.SessionID, p.UserID, p.TokenDigest, p.CSRF, p.CurrentAuthVersion, nullableString(p.ClientLabel), p.CreatedAtMS, p.ExpiresAtMS,
+		p.UserID, p.CurrentAuthVersion,
 	)
 	if err != nil {
 		if IsUniqueViolation(err) {
@@ -267,8 +270,8 @@ func RehashPasswordAndCreateSession(ctx context.Context, db *sql.DB, p RehashPas
 		return fmt.Errorf("store: rehash+create session rows affected: %w", err)
 	}
 	if n == 0 {
-		// The version we bumped to no longer matches or the user is
-		// suspended — either way the sign-in must not produce a session.
+		// The version changed or the user is suspended — either way the
+		// sign-in must not produce a session.
 		return ErrAuthVersionMismatch
 	}
 

@@ -3,7 +3,10 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+
+	"sick-fansubs/internal/identity"
 )
 
 // UpdatePasswordAndRevokeSessions atomically updates the password hash,
@@ -83,6 +86,11 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 // auth_version, deletes all of the target's sessions, drops the target's
 // push subscriptions, and removes in-flight reset links.
 //
+// The actor's role is re-evaluated against the target's LIVE role inside the
+// transaction: a promotion that lands after the handler's check must not let
+// an admin mint a temp password for a new super-admin. A refusal returns
+// ErrActorNotPermitted.
+//
 // Unlike UpdatePasswordAndRevokeSessions there is NO auth_version CAS: the
 // reset is an admin action against an account whose credentials may be
 // unusable, so the current version is irrelevant.
@@ -92,6 +100,7 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 // race guard.
 //
 // Transaction:
+//  0. Read the target's live role and authorize the actor against it.
 //  1. UPDATE the verifier + flag + version (0 rows = the target vanished
 //     mid-request → ErrNotFound).
 //  2. DELETE all session rows for the target (idempotent).
@@ -104,12 +113,25 @@ func UpdatePasswordAndRevokeSessions(ctx context.Context, db *sql.DB, userID str
 // write transaction.
 //
 // Returns ErrNotFound if the user does not exist.
-func ResetUserPassword(ctx context.Context, db *sql.DB, userID string, newHash string, updatedAtMS int64) (err error) {
+// Returns ErrActorNotPermitted if the actor may not reset the target's live role.
+func ResetUserPassword(ctx context.Context, db *sql.DB, actorRole, userID string, newHash string, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin reset tx: %w", err)
 	}
 	defer rollbackTx(tx, &err)
+
+	var currentRole string
+	err = tx.QueryRowContext(ctx, `SELECT role FROM users WHERE id = ?`, userID).Scan(&currentRole)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("store: reset lookup: %w", err)
+	}
+	if !identity.CanResetPassword(actorRole, currentRole) {
+		return ErrActorNotPermitted
+	}
 
 	res, err := tx.ExecContext(ctx,
 		`UPDATE users SET password = ?, must_change_password = 1, auth_version = auth_version + 1, updated_at_ms = ?
@@ -146,9 +168,15 @@ func ResetUserPassword(ctx context.Context, db *sql.DB, userID string, newHash s
 }
 
 // IncrementAuthVersionAndDeleteSessions atomically bumps the user's
-// auth_version and deletes all of their session rows in one transaction.
+// auth_version, deletes all of their session rows, and drops the user's push
+// subscriptions in one transaction.
 //
-// This pairing must be atomic: the bump
+// Push delivery is account-bound — signing out all sessions revokes every
+// device's access, so the rows that would keep notifying those devices die
+// with the sessions. A device that signs in again re-registers its still-live
+// browser subscription through the client's background reconcile.
+//
+// The bump+delete pairing must be atomic: the bump
 // is the authoritative revocation and the row deletion is cleanup. As two
 // separate operations, a sign-in that commits between them would have its
 // fresh session deleted even though it verified the new version — breaking
@@ -181,6 +209,10 @@ func IncrementAuthVersionAndDeleteSessions(ctx context.Context, db *sql.DB, user
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("store: delete sessions: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM push_subscriptions WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("store: delete push subscriptions: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

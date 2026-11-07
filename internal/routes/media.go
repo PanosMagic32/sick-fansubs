@@ -3,8 +3,10 @@ package routes
 import (
 	"database/sql"
 	"net/http"
+	"time"
 
 	"sick-fansubs/internal/handler"
+	"sick-fansubs/internal/middleware"
 )
 
 // Media registers the media routes: public immutable serving,
@@ -38,11 +40,12 @@ func Media(mux *http.ServeMux, dataDir string, db *sql.DB, secure bool, trustedO
 	mux.Handle("/media/", notFound())
 	mux.Handle("/media", notFound())
 
-	var upload http.Handler = handler.MediaUpload(dataDir, publicBaseURL)
+	mediaUploadLimiter := middleware.NewRateLimiter(10, 15*time.Minute, time.Minute)
+	var upload http.Handler = handler.MediaUpload(dataDir, publicBaseURL, mediaUploadLimiter)
 	upload = authenticatedChain(upload, db, secure, trustedOrigin)
 	mux.Handle("POST /api/v1/media", upload)
 
-	var delete http.Handler = handler.MediaDelete(dataDir, db)
+	var delete http.Handler = handler.MediaDelete(dataDir, db, publicBaseURL)
 	delete = authenticatedChain(delete, db, secure, trustedOrigin)
 	mux.Handle("DELETE /api/v1/media/{file}", delete)
 	// The method-less pattern catches every non-POST/DELETE method: without

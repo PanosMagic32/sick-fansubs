@@ -40,6 +40,10 @@ func guardLastActiveSuperAdminTx(ctx context.Context, tx *sql.Tx, wouldReduce bo
 // every session: the bump is the authoritative revocation and the delete is
 // cleanup, the same pairing as IncrementAuthVersionAndDeleteSessions.
 //
+// The actor's role is re-evaluated against the target's LIVE role inside the
+// transaction: a promotion that lands after the handler's check must not let
+// the actor change a peer's role. A refusal returns ErrActorNotPermitted.
+//
 // The last-active-super-admin guard runs INSIDE
 // the transaction: if the target is an ACTIVE super-admin and newRole is not
 // super-admin, the remaining active super-admin count must stay ≥ 1,
@@ -56,8 +60,9 @@ func guardLastActiveSuperAdminTx(ctx context.Context, tx *sql.Tx, wouldReduce bo
 // revoke sessions.
 //
 // Returns ErrNotFound if the user does not exist.
+// Returns ErrActorNotPermitted if the actor may not change the target's live role.
 // Returns ErrLastActiveSuperAdmin if the change would leave zero active super-admins.
-func ChangeUserRole(ctx context.Context, db *sql.DB, userID, newRole string, updatedAtMS int64) (err error) {
+func ChangeUserRole(ctx context.Context, db *sql.DB, actorRole, userID, newRole string, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin role-change tx: %w", err)
@@ -74,6 +79,9 @@ func ChangeUserRole(ctx context.Context, db *sql.DB, userID, newRole string, upd
 	}
 	if err != nil {
 		return fmt.Errorf("store: role-change lookup: %w", err)
+	}
+	if !identity.CanChangeRole(actorRole, currentRole, newRole) {
+		return ErrActorNotPermitted
 	}
 
 	// 2. Guard: demoting an ACTIVE super-admin must not empty the active set.
@@ -124,9 +132,14 @@ func ChangeUserRole(ctx context.Context, db *sql.DB, userID, newRole string, upd
 // suspended super-admin is outside the active count, so deleting one never
 // triggers the guard.
 //
+// The actor's role is re-evaluated against the target's LIVE role inside the
+// transaction, so a promotion that lands after the handler's check cannot let
+// the actor delete a peer.
+//
 // Returns ErrNotFound if the user does not exist.
+// Returns ErrActorNotPermitted if the actor may not delete the target's live role.
 // Returns ErrLastActiveSuperAdmin if the deletion would leave zero active super-admins.
-func DeleteUser(ctx context.Context, db *sql.DB, userID string) (err error) {
+func DeleteUser(ctx context.Context, db *sql.DB, actorRole, userID string) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin delete-user tx: %w", err)
@@ -143,6 +156,9 @@ func DeleteUser(ctx context.Context, db *sql.DB, userID string) (err error) {
 	}
 	if err != nil {
 		return fmt.Errorf("store: delete-user lookup: %w", err)
+	}
+	if !identity.CanDeleteUser(actorRole, currentRole) {
+		return ErrActorNotPermitted
 	}
 
 	// 2. Guard: deleting an ACTIVE super-admin must not empty the active set.
@@ -201,9 +217,14 @@ func DeleteUser(ctx context.Context, db *sql.DB, userID string) (err error) {
 // handler's pre-read, and the loser of that race re-bumps — acceptable
 // under that rule (the bump is revocation, not a race guard).
 //
+// The actor's role is re-evaluated against the target's LIVE role inside the
+// transaction, so a promotion that lands after the handler's check cannot let
+// the actor suspend a peer.
+//
 // Returns ErrNotFound if the user does not exist.
+// Returns ErrActorNotPermitted if the actor may not suspend the target's live role.
 // Returns ErrLastActiveSuperAdmin if the suspension would leave zero active super-admins.
-func SuspendUser(ctx context.Context, db *sql.DB, userID string, updatedAtMS int64) (err error) {
+func SuspendUser(ctx context.Context, db *sql.DB, actorRole, userID string, updatedAtMS int64) (err error) {
 	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
 	if err != nil {
 		return fmt.Errorf("store: begin suspend-user tx: %w", err)
@@ -220,6 +241,9 @@ func SuspendUser(ctx context.Context, db *sql.DB, userID string, updatedAtMS int
 	}
 	if err != nil {
 		return fmt.Errorf("store: suspend-user lookup: %w", err)
+	}
+	if !identity.CanChangeUserStatus(actorRole, currentRole) {
+		return ErrActorNotPermitted
 	}
 
 	// 2. Guard: suspending an ACTIVE super-admin must not empty the active set.
@@ -257,22 +281,43 @@ func SuspendUser(ctx context.Context, db *sql.DB, userID string, updatedAtMS int
 	return nil
 }
 
-// ReactivateUser sets status='active' and bumps auth_version in ONE atomic
-// UPDATE — reactivation requires a new sign-in. No session
-// delete — suspension already removed them — and no guard — reactivation can
-// never reduce the active super-admin count. No transaction is needed: a
-// single statement is already atomic.
+// ReactivateUser sets status='active' and bumps auth_version in one immediate
+// transaction — reactivation requires a new sign-in. No session delete —
+// suspension already removed them — and no guard — reactivation can never
+// reduce the active super-admin count.
+//
+// The actor's role is re-evaluated against the target's LIVE role inside the
+// transaction, so a promotion that lands after the handler's check cannot let
+// the actor reactivate a peer.
 //
 // Returns ErrNotFound if the user does not exist.
-func ReactivateUser(ctx context.Context, db *sql.DB, userID string, updatedAtMS int64) error {
-	const q = `UPDATE users SET status = ?, auth_version = auth_version + 1, updated_at_ms = ?
-	WHERE id = ?`
+// Returns ErrActorNotPermitted if the actor may not reactivate the target's live role.
+func ReactivateUser(ctx context.Context, db *sql.DB, actorRole, userID string, updatedAtMS int64) (err error) {
+	tx, err := db.BeginTx(ctx, nil) // nil = immediate (our DSN default)
+	if err != nil {
+		return fmt.Errorf("store: begin reactivate-user tx: %w", err)
+	}
+	defer rollbackTx(tx, &err)
 
-	res, err := db.ExecContext(ctx, q, identity.StatusActive, updatedAtMS, userID)
+	var currentRole string
+	err = tx.QueryRowContext(ctx, `SELECT role FROM users WHERE id = ?`, userID).Scan(&currentRole)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("store: reactivate-user lookup: %w", err)
+	}
+	if !identity.CanChangeUserStatus(actorRole, currentRole) {
+		return ErrActorNotPermitted
+	}
+
+	res, err := tx.ExecContext(ctx,
+		`UPDATE users SET status = ?, auth_version = auth_version + 1, updated_at_ms = ? WHERE id = ?`,
+		identity.StatusActive, updatedAtMS, userID,
+	)
 	if err != nil {
 		return fmt.Errorf("store: reactivate user: %w", err)
 	}
-
 	n, err := res.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("store: reactivate user rows affected: %w", err)
@@ -281,5 +326,8 @@ func ReactivateUser(ctx context.Context, db *sql.DB, userID string, updatedAtMS 
 		return ErrNotFound
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("store: reactivate-user commit: %w", err)
+	}
 	return nil
 }

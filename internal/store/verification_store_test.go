@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 	"testing"
+
+	"sick-fansubs/internal/identity"
 )
 
 func TestCreateVerificationToken_ReplacesExisting(t *testing.T) {
@@ -239,7 +241,7 @@ func TestVerificationTokensCascadeOnUserDelete(t *testing.T) {
 	if err := CreateVerificationToken(ctx, db, CreateVerificationTokenParams{TokenDigest: d, UserID: u, CreatedAtMS: now, ExpiresAtMS: now + 60_000}); err != nil {
 		t.Fatalf("CreateVerificationToken: %v", err)
 	}
-	if err := DeleteUser(ctx, db, u); err != nil {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, u); err != nil {
 		t.Fatalf("DeleteUser: %v", err)
 	}
 	var n int

@@ -111,4 +111,19 @@ describe("PWA service worker", () => {
     expect(source).not.toContain("self.skipWaiting");
     expect(source).not.toContain("self.clients.claim");
   });
+
+  test("never caches token-bearing auth navigations", async () => {
+    const source = await readArtifact("sw.js");
+    // The reset and verification pages read a one-time token from the
+    // query, so the page cache must refuse both paths and any URL that
+    // carries a token parameter, and activation must purge older entries.
+    expect(source).toContain(
+      `SENSITIVE_AUTH_PATHS = new Set(["/auth/reset", "/auth/verify"])`,
+    );
+    expect(source).toContain(`url.searchParams.has("token")`);
+    expect(source).toContain("purgeTokenBearingPages()");
+    expect(source).toContain(
+      "const cacheable = !isTokenBearing(new URL(request.url));",
+    );
+  });
 });

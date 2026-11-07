@@ -99,11 +99,12 @@ func UserPasswordReset(db *sql.DB, auth *auth.Service) http.HandlerFunc {
 			return
 		}
 
-		temp, err := auth.ResetPassword(r.Context(), target.ID)
+		temp, err := auth.ResetPassword(r.Context(), su.Role, target.ID)
 		if err != nil {
 			// A target that vanished between the authorization load and the
-			// write shares the masked 404; anything else is an audited failure.
-			if writeStoreError(w, r, err, "password reset", "error", err) == http.StatusInternalServerError {
+			// write shares the masked 404; a target promoted after that load
+			// answers the audited 403; anything else is an audited failure.
+			if status := writeStoreError(w, r, err, "password reset", "error", err); status == http.StatusForbidden || status == http.StatusInternalServerError {
 				auditTargetFailure(r, audit.EventPasswordReset, su, target)
 			}
 			return
@@ -262,11 +263,12 @@ func UserRoleChange(db *sql.DB, publicBaseURL string) http.HandlerFunc {
 			return
 		}
 
-		if err := store.ChangeUserRole(r.Context(), db, target.ID, req.Role, time.Now().UnixMilli()); err != nil {
-			// The guard 409 and the unmapped 500 are security-relevant; the
-			// masked 404 is not audited (the lookup precedent).
+		if err := store.ChangeUserRole(r.Context(), db, su.Role, target.ID, req.Role, time.Now().UnixMilli()); err != nil {
+			// The guard 409, the live-role 403, and the unmapped 500 are
+			// security-relevant; the masked 404 is not audited (the lookup
+			// precedent).
 			switch writeStoreError(w, r, err, "role change", "error", err) {
-			case http.StatusConflict, http.StatusInternalServerError:
+			case http.StatusForbidden, http.StatusConflict, http.StatusInternalServerError:
 				auditTargetFailure(r, audit.EventRoleChanged, su, target)
 			}
 			return
@@ -324,9 +326,9 @@ func UserDelete(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := store.DeleteUser(r.Context(), db, target.ID); err != nil {
+		if err := store.DeleteUser(r.Context(), db, su.Role, target.ID); err != nil {
 			switch writeStoreError(w, r, err, "user deletion", "error", err) {
-			case http.StatusConflict, http.StatusInternalServerError:
+			case http.StatusForbidden, http.StatusConflict, http.StatusInternalServerError:
 				auditTargetFailure(r, audit.EventUserDeleted, su, target)
 			}
 			return

@@ -15,6 +15,7 @@ import (
 
 	"sick-fansubs/internal/auth"
 	"sick-fansubs/internal/id"
+	"sick-fansubs/internal/push"
 	"sick-fansubs/internal/store"
 )
 
@@ -156,13 +157,18 @@ func validatePushSubscriptionBody(w http.ResponseWriter, r *http.Request, req pu
 	switch {
 	case endpoint == "":
 		violations = append(violations, Violation{Field: "endpoint", Code: "required"})
-	case len(endpoint) > maxPushEndpointLen:
+	case utf8.RuneCountInString(endpoint) > maxPushEndpointLen:
 		violations = append(violations, Violation{Field: "endpoint", Code: "maxLength"})
 	default:
 		u, err := url.Parse(endpoint)
 		// Userinfo and fragments never belong in a push endpoint — the
 		// browser's subscription URLs are scheme+host+path.
 		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" {
+			violations = append(violations, Violation{Field: "endpoint", Code: "invalidValue"})
+		} else if !push.IsKnownService(endpoint) {
+			// A push endpoint names a browser push service. Refusing other
+			// HTTPS hosts keeps an account from aiming the server's sends (and
+			// the self-test's response status) at an arbitrary host.
 			violations = append(violations, Violation{Field: "endpoint", Code: "invalidValue"})
 		}
 	}

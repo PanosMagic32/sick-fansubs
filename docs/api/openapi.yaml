@@ -158,10 +158,10 @@ paths:
       operationId: signOutAll
       summary: End every session for the authenticated user
       description: >-
-        Increments auth_version and deletes all session rows atomically, then
-        clears the cookie. Idempotent: without a valid session there is
-        nothing to revoke, and the call clears the cookie and answers the
-        same 200.
+        Increments auth_version, deletes all session rows, and deletes the
+        account's push subscriptions atomically, then clears the cookie.
+        Idempotent: without a valid session there is nothing to revoke, and
+        the call clears the cookie and answers the same 200.
       responses:
         "200":
           description: All sessions ended — cookie cleared.
@@ -889,6 +889,8 @@ paths:
         total-pixel bound, or over the 8192 per-axis bound is a 413 with
         violation file:tooLarge; undecodable bytes are a 422 with
         file:invalidFormat; a missing file part is a 422 with file:required.
+        Per-user bucket: 10 uploads per 15 minutes (429 with Retry-After);
+        a process-wide four-slot semaphore bounds concurrent decoding.
       requestBody:
         required: true
         content:
@@ -927,6 +929,8 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "422":
           $ref: "#/components/responses/Validation"
+        "429":
+          $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
   # ── Current user favorites ──
@@ -1568,7 +1572,7 @@ paths:
         (1-20 rows; each row needs a resolution and at least one of
         magnetUrl/torrentUrl; every link must parse as an http(s) URL with
         a host or a magnet URI — 422 {downloads[i].magnetUrl,
-        invalidFormat} etc.). Body hard-limit 512 KiB.
+        invalidFormat} etc.). Body hard-limit 1.25 MiB.
       requestBody:
         required: true
         content:
@@ -1677,7 +1681,7 @@ paths:
         array REPLACES the whole row set in the same transaction (1-20
         rows, the same per-row contract as the create — required, each row
         needs a resolution and at least one link, links validated against
-        the read grammar). Body hard-limit 512 KiB.
+        the read grammar). Body hard-limit 1.25 MiB.
       parameters:
         - $ref: "#/components/parameters/IfMatch"
         - $ref: "#/components/parameters/BlogPostID"
@@ -1974,7 +1978,7 @@ paths:
         at least one of magnetUrl/torrentUrl; every link must parse as an
         http(s) URL with a host or a magnet URI — 422
         {downloads[i].magnetUrl, invalidFormat} etc.). Body hard-limit
-        512 KiB.
+        1.25 MiB.
       requestBody:
         required: true
         content:
@@ -2081,7 +2085,7 @@ paths:
         row set in the same transaction (1-20 rows, the same per-row
         contract as the create — required, each row needs a name and at
         least one link, links validated against the read grammar). Body
-        hard-limit 512 KiB.
+        hard-limit 1.25 MiB.
       parameters:
         - $ref: "#/components/parameters/IfMatch"
         - $ref: "#/components/parameters/ProjectID"
@@ -2462,6 +2466,8 @@ paths:
         2^24 total-pixel bound, or over the 8192 per-axis bound is a 413
         with violation file:tooLarge; undecodable bytes are a 422 with
         file:invalidFormat; a missing file part is a 422 with file:required.
+        Per-user bucket: 10 uploads per 15 minutes (429 with Retry-After);
+        a process-wide four-slot semaphore bounds concurrent decoding.
       requestBody:
         required: true
         content:
@@ -2505,6 +2511,8 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "422":
           $ref: "#/components/responses/Validation"
+        "429":
+          $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
   # ── Media explicit delete ──
@@ -3753,9 +3761,11 @@ paths:
         skipped; push fanned out after the commit; the notice never names
         the moderator) and, after the commit, the ledger-only
         comment_deleted audit event (actor + the comment's author as
-        target — the dual-write ledger contract);
+        target + the content kind/id and comment id — the dual-write ledger
+        contract);
         self-deletes — including a staff member deleting their own comment
-        — emit none. DELETE is EXEMPT from the
+        — emit none. A removal on unpublished content sends the notice
+        without the content's current title. DELETE is EXEMPT from the
         published-only gate: moderation must work on archived/draft
         content. A non-author below the staff floor on unpublished content
         answers that content's masked 404. Requires the trusted origin + CSRF. 204.
@@ -4118,8 +4128,10 @@ paths:
         notification emitted to that comment's author in the same
         transaction (in-app for an active author — a suspended author is
         skipped), the comment_deleted audit event for staff deletions of
-        others' comments (emitted after the commit — the dual-write ledger
-        contract), and the published-gate exemption. A non-author below
+        others' comments (emitted after the commit with the content
+        kind/id and comment id — the dual-write ledger contract), and the
+        published-gate exemption. A removal on unpublished content sends
+        the notice without the content's current title. A non-author below
         the staff floor on unpublished content answers that content's
         masked 404.
         Rate-limited to 20 deletions per 15 minutes per user (429 with
@@ -5082,6 +5094,21 @@ components:
         targetRole:
           type: string
           description: The target's role at the time; omitted when there is none.
+        contentKind:
+          type: string
+          description: >-
+            The moderated content kind on a comment_deleted row; omitted for
+            events that address no content object.
+        contentId:
+          type: string
+          description: >-
+            The moderated content id on a comment_deleted row; omitted when
+            there is no content object.
+        commentId:
+          type: string
+          description: >-
+            The deleted comment id on a comment_deleted row; omitted when
+            there is no comment object.
         requestId:
           type: string
           description: The request correlation identifier of the audited request.
@@ -6685,8 +6712,8 @@ components:
       description: >-
         One comment-related entry from the viewer's user_notifications rows
         — comment_reply and comment (a new top-level comment on content the viewer follows).
-        contentTitle joins the content row at read time regardless of
-        status; it is null when the content was hard-deleted (the frontend
+        contentTitle joins the content row at read time; it is null when the
+        content was hard-deleted or is no longer published (the frontend
         renders a generic label). The client navigates to
         /blog/{contentId}#comment-{commentId} (or /projects/…) — the
         comments deep-link flow.
@@ -6722,8 +6749,8 @@ components:
             - type: string
             - type: "null"
           description: >-
-            The content title joined at read time regardless of status;
-            null for deleted content.
+            The content title joined at read time; null when the content is
+            deleted or is no longer published.
         contentKind:
           type: string
           enum:
@@ -6758,7 +6785,9 @@ components:
         fragment: the comment is gone, so a #comment-{commentId} fragment
         could only ever hit the deleted-target notice. commentId still
         carries the removed comment's own id (it is the push tag's
-        identifier).
+        identifier). contentTitle is null when the content is no longer
+        published: the notice must not disclose a title the author can no
+        longer read.
       additionalProperties: false
       required:
         - id
@@ -6788,8 +6817,8 @@ components:
             - type: string
             - type: "null"
           description: >-
-            The content title joined at read time regardless of status;
-            null for deleted content.
+            The content title joined at read time; null when the content is
+            deleted or is no longer published.
         contentKind:
           type: string
           enum:
@@ -6858,8 +6887,8 @@ components:
             - type: string
             - type: "null"
           description: >-
-            The content title joined at read time regardless of status;
-            null for deleted content.
+            The content title joined at read time; null when the content is
+            deleted or is no longer published.
         contentKind:
           type: string
           enum:
@@ -7103,7 +7132,11 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          description: Absolute https URL of the push service endpoint.
+          description: >-
+            Absolute https URL of the push service endpoint. maxLength counts
+            characters. The host must belong to a known push-service family
+            (Mozilla, FCM/Google, Apple, or the Windows Push Notification
+            Service used by Edge); any other host is rejected as invalidValue.
         keys:
           type: object
           additionalProperties: false
@@ -7257,8 +7290,8 @@ components:
           description: >-
             The last HTTP status the push service returned, sticky across the
             retry ladder. ABSENT when no attempt received a response at all
-            (a pure transport failure or an aborted window) — the one case
-            where an unaccepted endpoint carries no number.
+            (a pure transport failure or an aborted window), and deliberately
+            withheld for every service: other row.
         removed:
           type: boolean
           description: >-
@@ -7525,7 +7558,9 @@ components:
       description: >-
         403 — problem type /problems/auth/already-authenticated when a
         session already exists, or /problems/forbidden for a trusted-origin
-        or CSRF failure on the same request.
+        or CSRF failure on the same request. A stale cross-tab session takes
+        the chain's forbidden path before the handler's already-authenticated
+        branch; clients treat either problem as "re-bootstrap the session".
       headers:
         X-Request-ID:
           $ref: "#/components/headers/RequestID"

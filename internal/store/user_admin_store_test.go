@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"testing"
@@ -24,6 +25,47 @@ func mustCreateStaffUser(t *testing.T, db *sql.DB, id, username, role, status st
 	})
 }
 
+// TestUserAdminWrites_ReevaluateActorRole pins the in-transaction
+// authorization re-check: a target promoted to super-admin after the
+// handler's load is a peer the admin may no longer manage.
+func TestUserAdminWrites_ReevaluateActorRole(t *testing.T) {
+	t.Parallel()
+
+	writes := map[string]func(ctx context.Context, db *sql.DB) error{
+		"role change": func(ctx context.Context, db *sql.DB) error {
+			return ChangeUserRole(ctx, db, identity.RoleAdmin, "target", identity.RoleUser, 4_000)
+		},
+		"delete": func(ctx context.Context, db *sql.DB) error {
+			return DeleteUser(ctx, db, identity.RoleAdmin, "target")
+		},
+		"suspend": func(ctx context.Context, db *sql.DB) error {
+			return SuspendUser(ctx, db, identity.RoleAdmin, "target", 4_000)
+		},
+		"reactivate": func(ctx context.Context, db *sql.DB) error {
+			return ReactivateUser(ctx, db, identity.RoleAdmin, "target", 4_000)
+		},
+		"password reset": func(ctx context.Context, db *sql.DB) error {
+			return ResetUserPassword(ctx, db, identity.RoleAdmin, "target", "$2a$12$temp", 4_000)
+		},
+	}
+	for name, write := range writes {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			db := openStoreDB(t)
+			status := identity.StatusActive
+			if name == "reactivate" {
+				status = identity.StatusSuspended
+			}
+			mustCreateStaffUser(t, db, "target", "PromotedTarget", identity.RoleSuperAdmin, status, 1000)
+
+			if err := write(t.Context(), db); !errors.Is(err, ErrActorNotPermitted) {
+				t.Errorf("got %v, want ErrActorNotPermitted", err)
+			}
+		})
+	}
+}
+
 func TestSuspendUser_Success(t *testing.T) {
 	t.Parallel()
 	db := openStoreDB(t)
@@ -40,7 +82,7 @@ func TestSuspendUser_Success(t *testing.T) {
 		t.Fatalf("CreateSession: %v", err)
 	}
 
-	if err := SuspendUser(ctx, db, "target", 4_000); err != nil {
+	if err := SuspendUser(ctx, db, identity.RoleSuperAdmin, "target", 4_000); err != nil {
 		t.Fatalf("SuspendUser: %v", err)
 	}
 
@@ -66,7 +108,7 @@ func TestSuspendUser_NotFound(t *testing.T) {
 	t.Parallel()
 	db := openStoreDB(t)
 
-	if err := SuspendUser(t.Context(), db, "nonexistent", 3_000); !errors.Is(err, ErrNotFound) {
+	if err := SuspendUser(t.Context(), db, identity.RoleSuperAdmin, "nonexistent", 3_000); !errors.Is(err, ErrNotFound) {
 		t.Errorf("got %v, want ErrNotFound", err)
 	}
 }
@@ -79,7 +121,7 @@ func TestSuspendUser_LastActiveSuperAdminGuard(t *testing.T) {
 	mustCreateStaffUser(t, db, "lone-sa", "LoneSA", "super-admin", "active", 1000)
 
 	// Suspending the only active super-admin — self or peer — is rejected.
-	if err := SuspendUser(ctx, db, "lone-sa", 3_000); !errors.Is(err, ErrLastActiveSuperAdmin) {
+	if err := SuspendUser(ctx, db, identity.RoleSuperAdmin, "lone-sa", 3_000); !errors.Is(err, ErrLastActiveSuperAdmin) {
 		t.Fatalf("suspend lone super-admin: got %v, want ErrLastActiveSuperAdmin", err)
 	}
 }
@@ -94,7 +136,7 @@ func TestSuspendUser_SuspendedSuperAdminNoGuard(t *testing.T) {
 	// the store must still be safe when the write path races the read.
 	mustCreateStaffUser(t, db, "sus-sa", "SuspendedSA", "super-admin", "suspended", 1000)
 
-	if err := SuspendUser(ctx, db, "sus-sa", 3_000); err != nil {
+	if err := SuspendUser(ctx, db, identity.RoleSuperAdmin, "sus-sa", 3_000); err != nil {
 		t.Fatalf("suspend already-suspended super-admin: %v", err)
 	}
 }
@@ -106,7 +148,7 @@ func TestReactivateUser_Success(t *testing.T) {
 
 	mustCreateStaffUser(t, db, "target", "SuspendedUser", "user", "suspended", 2000)
 
-	if err := ReactivateUser(ctx, db, "target", 4_000); err != nil {
+	if err := ReactivateUser(ctx, db, identity.RoleSuperAdmin, "target", 4_000); err != nil {
 		t.Fatalf("ReactivateUser: %v", err)
 	}
 
@@ -129,7 +171,7 @@ func TestReactivateUser_NotFound(t *testing.T) {
 	t.Parallel()
 	db := openStoreDB(t)
 
-	if err := ReactivateUser(t.Context(), db, "nonexistent", 3_000); !errors.Is(err, ErrNotFound) {
+	if err := ReactivateUser(t.Context(), db, identity.RoleSuperAdmin, "nonexistent", 3_000); !errors.Is(err, ErrNotFound) {
 		t.Errorf("got %v, want ErrNotFound", err)
 	}
 }
@@ -368,7 +410,7 @@ func TestChangeUserRole_Success(t *testing.T) {
 		t.Fatalf("create session: %v", err)
 	}
 
-	if err := ChangeUserRole(ctx, db, "target", identity.RoleModerator, 3000); err != nil {
+	if err := ChangeUserRole(ctx, db, identity.RoleSuperAdmin, "target", identity.RoleModerator, 3000); err != nil {
 		t.Fatalf("ChangeUserRole: %v", err)
 	}
 
@@ -392,7 +434,7 @@ func TestChangeUserRole_NotFound(t *testing.T) {
 	db := openStoreDB(t)
 	ctx := t.Context()
 
-	if err := ChangeUserRole(ctx, db, "nonexistent", identity.RoleModerator, 3000); !errors.Is(err, ErrNotFound) {
+	if err := ChangeUserRole(ctx, db, identity.RoleSuperAdmin, "nonexistent", identity.RoleModerator, 3000); !errors.Is(err, ErrNotFound) {
 		t.Errorf("got %v, want ErrNotFound", err)
 	}
 }
@@ -405,7 +447,7 @@ func TestChangeUserRole_LastActiveSuperAdminGuard(t *testing.T) {
 	mustCreateStaffUser(t, db, "lone-sa", "LoneSA", "super-admin", "active", 1000)
 
 	// Demoting the only active super-admin (self or peer) must be rejected.
-	if err := ChangeUserRole(ctx, db, "lone-sa", identity.RoleAdmin, 3000); !errors.Is(err, ErrLastActiveSuperAdmin) {
+	if err := ChangeUserRole(ctx, db, identity.RoleSuperAdmin, "lone-sa", identity.RoleAdmin, 3000); !errors.Is(err, ErrLastActiveSuperAdmin) {
 		t.Fatalf("demote lone super-admin: got %v, want ErrLastActiveSuperAdmin", err)
 	}
 	u, err := UserByID(ctx, db, "lone-sa")
@@ -418,7 +460,7 @@ func TestChangeUserRole_LastActiveSuperAdminGuard(t *testing.T) {
 
 	// With a second active super-admin, the demotion is fine.
 	mustCreateStaffUser(t, db, "sa2", "SecondSA", "super-admin", "active", 2000)
-	if err := ChangeUserRole(ctx, db, "lone-sa", identity.RoleAdmin, 3000); err != nil {
+	if err := ChangeUserRole(ctx, db, identity.RoleSuperAdmin, "lone-sa", identity.RoleAdmin, 3000); err != nil {
 		t.Fatalf("demote with two super-admins: %v", err)
 	}
 }
@@ -432,7 +474,7 @@ func TestChangeUserRole_SuspendedSuperAdminDemoteAllowed(t *testing.T) {
 	// demoting them cannot reduce it, so the guard stays silent.
 	mustCreateStaffUser(t, db, "sus-sa", "SuspendedSA", "super-admin", "suspended", 1000)
 
-	if err := ChangeUserRole(ctx, db, "sus-sa", identity.RoleUser, 3000); err != nil {
+	if err := ChangeUserRole(ctx, db, identity.RoleSuperAdmin, "sus-sa", identity.RoleUser, 3000); err != nil {
 		t.Fatalf("demote suspended super-admin: %v", err)
 	}
 }
@@ -553,7 +595,7 @@ func TestDeleteUser_Success(t *testing.T) {
 		t.Error("user_notifications holds no seeded row for the target before deletion")
 	}
 
-	if err := DeleteUser(ctx, db, "target"); err != nil {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, "target"); err != nil {
 		t.Fatalf("DeleteUser: %v", err)
 	}
 
@@ -678,7 +720,7 @@ func TestDeleteUser_NotFound(t *testing.T) {
 	db := openStoreDB(t)
 	ctx := t.Context()
 
-	if err := DeleteUser(ctx, db, "nonexistent"); !errors.Is(err, ErrNotFound) {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, "nonexistent"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("got %v, want ErrNotFound", err)
 	}
 }
@@ -691,7 +733,7 @@ func TestDeleteUser_LastActiveSuperAdminGuard(t *testing.T) {
 	mustCreateStaffUser(t, db, "lone-sa", "LoneSA", "super-admin", "active", 1000)
 
 	// Deleting the only active super-admin — self or peer — is rejected.
-	if err := DeleteUser(ctx, db, "lone-sa"); !errors.Is(err, ErrLastActiveSuperAdmin) {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, "lone-sa"); !errors.Is(err, ErrLastActiveSuperAdmin) {
 		t.Fatalf("delete lone super-admin: got %v, want ErrLastActiveSuperAdmin", err)
 	}
 	if _, err := UserByID(ctx, db, "lone-sa"); err != nil {
@@ -700,7 +742,7 @@ func TestDeleteUser_LastActiveSuperAdminGuard(t *testing.T) {
 
 	// With a second active super-admin, deletion is fine.
 	mustCreateStaffUser(t, db, "sa2", "SecondSA", "super-admin", "active", 2000)
-	if err := DeleteUser(ctx, db, "lone-sa"); err != nil {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, "lone-sa"); err != nil {
 		t.Fatalf("delete with two super-admins: %v", err)
 	}
 }
@@ -714,7 +756,7 @@ func TestDeleteUser_SuspendedSuperAdminDeletable(t *testing.T) {
 	// cannot reduce it, so the guard stays silent.
 	mustCreateStaffUser(t, db, "sus-sa", "SuspendedSA", "super-admin", "suspended", 1000)
 
-	if err := DeleteUser(ctx, db, "sus-sa"); err != nil {
+	if err := DeleteUser(ctx, db, identity.RoleSuperAdmin, "sus-sa"); err != nil {
 		t.Fatalf("delete suspended super-admin: %v", err)
 	}
 }

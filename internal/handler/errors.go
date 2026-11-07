@@ -106,6 +106,9 @@ func writeStoreOutcome(w http.ResponseWriter, r *http.Request, err error, op str
 	case errors.Is(err, store.ErrNotAuthor):
 		writeForbidden(w, r, op+" requires the author")
 		return http.StatusForbidden
+	case errors.Is(err, store.ErrActorNotPermitted):
+		writeForbidden(w, r, op+" not permitted for this target")
+		return http.StatusForbidden
 	case errors.Is(err, store.ErrInvalidParent):
 		writeValidationErrors(w, r, []Violation{{Field: "parentId", Code: "invalidValue"}})
 		return http.StatusUnprocessableEntity

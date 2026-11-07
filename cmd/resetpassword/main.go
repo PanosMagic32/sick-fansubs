@@ -39,6 +39,7 @@ import (
 	"sick-fansubs/internal/auth"
 	"sick-fansubs/internal/config"
 	"sick-fansubs/internal/database"
+	"sick-fansubs/internal/identity"
 	"sick-fansubs/internal/logging"
 	"sick-fansubs/internal/store"
 )
@@ -109,7 +110,10 @@ func run(logger *slog.Logger, username string, out io.Writer) error {
 	// sender turns an accidental ForgotPassword call from this maintenance
 	// tool into an honest 500 (the service guards it).
 	authSvc := auth.New(db, nil, "")
-	temp, err := authSvc.ResetPassword(ctx, target.ID)
+	// The break-glass command carries operator authority: the store still
+	// re-evaluates the actor against the target's live role, and the
+	// super-admin role is the one that may reset any account.
+	temp, err := authSvc.ResetPassword(ctx, identity.RoleSuperAdmin, target.ID)
 	if err != nil {
 		return err
 	}

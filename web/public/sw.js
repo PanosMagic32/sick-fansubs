@@ -21,21 +21,48 @@ const ASSETS_CACHE = "sf-assets-" + SF_VERSION;
 const MEDIA_CACHE = "sf-media";
 const MEDIA_MAX_ENTRIES = 100;
 
-// activate: remove asset caches from older versions. Pages and media are
-// deliberate stable names — they are never wiped by an update. Cache
-// contents are treated as disposable: Safari drops origin data
-// after 7 inactive days and everything repopulates on demand.
+// A navigation to these paths carries a one-time credential in its query.
+// The page scripts strip the token from the address bar after the
+// navigation, but the worker's page cache runs first and keys entries by
+// the full URL, so a cached reset or verification navigation would outlive
+// the strip, sign-out, and deploys. Never cache these navigations, and
+// purge any entry an older worker already stored.
+const SENSITIVE_AUTH_PATHS = new Set(["/auth/reset", "/auth/verify"]);
+
+function isTokenBearing(url) {
+  return (
+    SENSITIVE_AUTH_PATHS.has(url.pathname) || url.searchParams.has("token")
+  );
+}
+
+async function purgeTokenBearingPages() {
+  const cache = await caches.open(PAGES_CACHE);
+  const keys = await cache.keys();
+  await Promise.all(
+    keys
+      .filter((request) => isTokenBearing(new URL(request.url)))
+      .map((request) => cache.delete(request)),
+  );
+}
+
+// activate: remove asset caches from older versions and purge token-bearing
+// page entries. Pages and media are deliberate stable names — they are never
+// wiped by an update. Cache contents are treated as disposable: Safari drops
+// origin data after 7 inactive days and everything repopulates on demand.
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key.startsWith("sf-assets-") && key !== ASSETS_CACHE) {
-            return caches.delete(key);
-          }
-        }),
+    Promise.all([
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys.map((key) => {
+            if (key.startsWith("sf-assets-") && key !== ASSETS_CACHE) {
+              return caches.delete(key);
+            }
+          }),
+        ),
       ),
-    ),
+      purgeTokenBearingPages(),
+    ]),
   );
 });
 
@@ -66,6 +93,10 @@ const TPL_DRAFT_UNPUBLISHED_VERB = "απέσυρε το";
 // the moderator is never named, so its template has no actor slot.
 const TPL_REMOVED_OPEN = "Το σχόλιό σου στο ";
 const TPL_REMOVED_CLOSE = " αφαιρέθηκε.";
+// A removal notice whose content is no longer published carries no title;
+// the sentence and the notification header use the same generic fallback as
+// the feed.
+const TPL_GENERIC_CONTENT = "Περιεχόμενο";
 // The self-test send: there is no content to
 // title the notification with, so the worker supplies both lines — the
 // title is the site name and the body states what the user just proved.
@@ -141,11 +172,15 @@ function sentenceFor(p) {
   if (p.kind === "test") {
     return TPL_TEST_BODY;
   }
+  if (p.kind === "comment_removed") {
+    return (
+      TPL_REMOVED_OPEN +
+      (p.contentTitle || TPL_GENERIC_CONTENT) +
+      TPL_REMOVED_CLOSE
+    );
+  }
   if (!p.contentTitle) {
     return null;
-  }
-  if (p.kind === "comment_removed") {
-    return TPL_REMOVED_OPEN + p.contentTitle + TPL_REMOVED_CLOSE;
   }
   if (!p.actorUsername) {
     return null;
@@ -188,10 +223,18 @@ self.addEventListener("push", (event) => {
     return;
   }
   // The self-test has no content title to head the notification with.
-  const title = data.kind === "test" ? TPL_TEST_TITLE : data.contentTitle;
+  const title =
+    data.kind === "test"
+      ? TPL_TEST_TITLE
+      : data.kind === "comment_removed" && !data.contentTitle
+        ? TPL_GENERIC_CONTENT
+        : data.contentTitle;
   event.waitUntil(
     self.registration.showNotification(title, {
       body: sentence,
+      // Notifications do not inherit the document's lang; an English voice
+      // reading the Greek sentence is unintelligible.
+      lang: "el",
       icon: "/icons/icon-192.png",
       // Repeats (a re-heart, a burst on one comment, a second edit of the
       // same content, two test presses) replace instead of stacking;
@@ -282,10 +325,12 @@ self.addEventListener("fetch", (event) => {
 // never pollute the page cache.
 function networkFirstHTML(event) {
   const request = event.request;
+  const cacheable = !isTokenBearing(new URL(request.url));
   event.respondWith(
     fetch(request)
       .then((response) => {
         if (
+          cacheable &&
           response.ok &&
           response.headers.get("Content-Type")?.startsWith("text/html")
         ) {
@@ -300,11 +345,13 @@ function networkFirstHTML(event) {
       })
       .catch(async () => {
         const cache = await caches.open(PAGES_CACHE);
-        return (
-          (await cache.match(request)) ||
-          (await cache.match("/")) ||
-          fetch(request)
-        );
+        if (cacheable) {
+          const hit = await cache.match(request);
+          if (hit) {
+            return hit;
+          }
+        }
+        return (await cache.match("/")) || fetch(request);
       }),
   );
 }

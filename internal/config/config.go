@@ -178,10 +178,10 @@ func (c *Config) validate() error {
 		// already passed the absolute-http(s)-URL validators above, so a
 		// scheme prefix check is sufficient here.
 		if !strings.HasPrefix(c.TrustedOrigin, "https://") {
-			return fmt.Errorf("config: APP_ENV=%s requires TRUSTED_ORIGIN to use https, got %q", EnvProduction, c.TrustedOrigin)
+			return fmt.Errorf("config: APP_ENV=%s requires TRUSTED_ORIGIN to use https", EnvProduction)
 		}
 		if !strings.HasPrefix(c.PublicBaseURL, "https://") {
-			return fmt.Errorf("config: APP_ENV=%s requires PUBLIC_BASE_URL to use https, got %q", EnvProduction, c.PublicBaseURL)
+			return fmt.Errorf("config: APP_ENV=%s requires PUBLIC_BASE_URL to use https", EnvProduction)
 		}
 	}
 	if err := c.validateSMTP(); err != nil {
@@ -230,7 +230,9 @@ func (c *Config) validateSMTP() error {
 		// sender (RFC 5321 §4.1.2).
 		addr, err := netmail.ParseAddress(c.SMTPFrom)
 		if err != nil || addr.Name != "" || addr.Address != c.SMTPFrom {
-			return fmt.Errorf("config: SMTP_FROM must be a bare addr-spec, got %q", c.SMTPFrom)
+			// The configured address may be the operator's personal address;
+			// the startup error must not echo it (logging.md rule 8).
+			return fmt.Errorf("config: SMTP_FROM must be a bare addr-spec")
 		}
 	}
 	return nil
@@ -439,7 +441,9 @@ func trustedOriginFromEnv(appEnv string) string {
 func validatePublicBaseURL(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil {
-		return fmt.Errorf("config: PUBLIC_BASE_URL is not a valid URL: %w", err)
+		// url.Error embeds the raw value, including userinfo; the startup
+		// error must not echo it.
+		return fmt.Errorf("config: PUBLIC_BASE_URL is not a valid URL")
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("config: PUBLIC_BASE_URL must use http or https, got %q", u.Scheme)
@@ -464,7 +468,9 @@ func validatePublicBaseURL(raw string) error {
 func validateTrustedOrigin(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil {
-		return fmt.Errorf("config: TRUSTED_ORIGIN is not a valid URL: %w", err)
+		// url.Error embeds the raw value, including userinfo; the startup
+		// error must not echo it.
+		return fmt.Errorf("config: TRUSTED_ORIGIN is not a valid URL")
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("config: TRUSTED_ORIGIN must use http or https, got %q", u.Scheme)
@@ -473,18 +479,19 @@ func validateTrustedOrigin(raw string) error {
 		return fmt.Errorf("config: TRUSTED_ORIGIN must be an absolute URL with a host")
 	}
 	if u.User != nil {
-		return fmt.Errorf("config: TRUSTED_ORIGIN must not carry userinfo, got %q", raw)
+		// Userinfo may carry credentials; the startup error must not echo it.
+		return fmt.Errorf("config: TRUSTED_ORIGIN must not carry userinfo")
 	}
 	if (u.Scheme == "https" && u.Port() == "443") || (u.Scheme == "http" && u.Port() == "80") {
 		// Browsers omit the default port from Origin; keeping it here can
 		// only fail closed at request time.
-		return fmt.Errorf("config: TRUSTED_ORIGIN must not name the scheme's default port, got %q", raw)
+		return fmt.Errorf("config: TRUSTED_ORIGIN must not name the scheme's default port")
 	}
 	if strings.HasSuffix(u.Hostname(), ".") {
-		return fmt.Errorf("config: TRUSTED_ORIGIN must not carry a trailing-dot host, got %q", raw)
+		return fmt.Errorf("config: TRUSTED_ORIGIN must not carry a trailing-dot host")
 	}
 	if u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
-		return fmt.Errorf("config: TRUSTED_ORIGIN must be an origin only (no path, query, or fragment), got %q", raw)
+		return fmt.Errorf("config: TRUSTED_ORIGIN must be an origin only (no path, query, or fragment)")
 	}
 	return nil
 }
