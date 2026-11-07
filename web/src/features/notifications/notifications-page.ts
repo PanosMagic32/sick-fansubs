@@ -107,6 +107,10 @@ export class NotificationsPage extends LitElement {
    * page's shared action-error slot. */
   @state() _readError = "";
 
+  /** The persistent live region's current text. The element stays mounted
+   * (empty) across renders; assignments after an action are announced. */
+  @state() private _announcement = "";
+
   /** The server's continuation cursor for the next page (non-reactive —
    * consumed by the pager click only). */
   private _endCursor: string | null = null;
@@ -205,7 +209,6 @@ export class NotificationsPage extends LitElement {
     this.status = "loading";
     this.errorMessage = "";
     this._readError = "";
-    this.total = 0;
 
     try {
       const page = await listNotifications(
@@ -255,9 +258,38 @@ export class NotificationsPage extends LitElement {
   }
 
   /** Drop ONE row once the server's 204 lands — the items section calls this
-   * from its per-row delete. */
+   * from its per-row delete. The pager facts move with the list: a stale
+   * total misstates the page count, and an emptied page with later pages
+   * must advance rather than claim the feed is empty. */
   _removeItem(id: string) {
+    const before = this.items.length;
     this.items = this.items.filter((i) => i.id !== id);
+    if (this.items.length === before) return;
+    this.total = Math.max(0, this.total - 1);
+    // Invalidate any other item flow still awaiting a response: its row is
+    // no longer part of the visible list.
+    this._listGeneration++;
+    if (this.items.length === 0) this._advanceAfterEmptyPage();
+  }
+
+  /** A local removal emptied the page. When the server has more rows, move
+   * to the next page (or back, on a last page) instead of showing the empty
+   * state over an unread feed. */
+  private _advanceAfterEmptyPage() {
+    if (this.hasNext && this._endCursor) {
+      this.paging.next(this._endCursor);
+      return;
+    }
+    if (this.paging.hasPrevious) this.paging.prev();
+  }
+
+  /** Announce a completed action in the persistent live region. Clears the
+   * region first so a repeated identical action is re-announced. */
+  _announce(message: string) {
+    this._announcement = "";
+    void this.updateComplete.then(() => {
+      this._announcement = message;
+    });
   }
 
   private async _onMarkAll() {
@@ -271,14 +303,31 @@ export class NotificationsPage extends LitElement {
       // A load that started after the click may still be painting the
       // pre-read snapshot; re-sync instead of mutating a list it owns.
       if (generation !== this._listGeneration) {
+        // The server-side read-all stands even though a newer load owns the
+        // visible list; announce it on this path too.
+        this._announce(el.notifications.markAllAnnounce);
         this.paging.sync(false);
+        await this._focusIfBulkControlGone(".mark-all");
         return;
       }
       this.items = this.items.map((item) => ({ ...item, read: true }));
+      this._announce(el.notifications.markAllAnnounce);
+      await this._focusIfBulkControlGone(".mark-all");
     } catch (err) {
       this._readError = mapError(err);
     } finally {
       this._bulkPending = null;
+    }
+  }
+
+  /** A bulk control withdraws when its action leaves nothing to act on. Keep
+   * the keyboard user in the feed instead of dropping focus to the body. */
+  private async _focusIfBulkControlGone(selector: string) {
+    await this.updateComplete;
+    if (!this.shadowRoot?.querySelector(selector)) {
+      this.shadowRoot
+        ?.querySelector<HTMLElement>("#notifications-heading")
+        ?.focus();
     }
   }
 
@@ -297,7 +346,23 @@ export class NotificationsPage extends LitElement {
         this.paging.sync(false);
         return;
       }
-      this.items = this.items.filter((i) => !i.read || isAccountEvent(i));
+      const kept = this.items.filter((i) => !i.read || isAccountEvent(i));
+      const removed = this.items.length - kept.length;
+      this.items = kept;
+      if (removed > 0) {
+        this.total = Math.max(0, this.total - removed);
+        this._listGeneration++;
+        this._announce(el.notifications.clearReadAnnounce);
+        if (this.items.length === 0) this._advanceAfterEmptyPage();
+        // The pressed control withdraws once nothing read remains; keep the
+        // keyboard user in the feed instead of dropping focus to the body.
+        await this.updateComplete;
+        if (!this.shadowRoot?.querySelector(".clear-read")) {
+          this.shadowRoot
+            ?.querySelector<HTMLElement>("#notifications-heading")
+            ?.focus();
+        }
+      }
     } catch (err) {
       this._readError = mapError(err);
     } finally {
@@ -331,6 +396,11 @@ export class NotificationsPage extends LitElement {
       this._endCursor = null;
       this.total = 0;
       this._dispatchChanged();
+      this._announce(el.notifications.deleteAllAnnounce);
+      await this.updateComplete;
+      this.shadowRoot
+        ?.querySelector<HTMLElement>("#notifications-heading")
+        ?.focus();
     } catch (err) {
       this._readError = mapError(err);
     } finally {
@@ -364,7 +434,9 @@ export class NotificationsPage extends LitElement {
     return html`
       <section class="notifications-page">
         <header class="notifications-header">
-          <h1>${el.notifications.title}</h1>
+          <h1 id="notifications-heading" tabindex="-1">
+            ${el.notifications.title}
+          </h1>
           ${
             this.status === "success" && this.items.length > 0
               ? html`<div class="notifications-actions">
@@ -373,7 +445,9 @@ export class NotificationsPage extends LitElement {
                       ? html`<button
                           type="button"
                           class="button button--secondary button--sm clear-read"
-                          ?disabled=${this._bulkPending !== null}
+                          aria-disabled=${
+                            this._bulkPending !== null ? "true" : "false"
+                          }
                           @click=${this._onClearRead}
                         >
                           ${
@@ -384,22 +458,30 @@ export class NotificationsPage extends LitElement {
                         </button>`
                       : ""
                   }
-                  <button
-                    type="button"
-                    class="button button--secondary button--sm mark-all"
-                    ?disabled=${this._bulkPending !== null}
-                    @click=${this._onMarkAll}
-                  >
-                    ${
-                      this._bulkPending === "markAll"
-                        ? el.notifications.markAllPending
-                        : el.notifications.markAll
-                    }
-                  </button>
+                  ${
+                    this.items.some((i) => !i.read)
+                      ? html`<button
+                          type="button"
+                          class="button button--secondary button--sm mark-all"
+                          aria-disabled=${
+                            this._bulkPending !== null ? "true" : "false"
+                          }
+                          @click=${this._onMarkAll}
+                        >
+                          ${
+                            this._bulkPending === "markAll"
+                              ? el.notifications.markAllPending
+                              : el.notifications.markAll
+                          }
+                        </button>`
+                      : ""
+                  }
                   <button
                     type="button"
                     class="button button--danger button--sm delete-all"
-                    ?disabled=${this._bulkPending !== null}
+                    aria-disabled=${
+                      this._bulkPending !== null ? "true" : "false"
+                    }
                     @click=${this._onDeleteAll}
                   >
                     ${
@@ -419,6 +501,10 @@ export class NotificationsPage extends LitElement {
           .limit=${this.paging.limit}
         ></pager-status>
 
+        <p class="sr-only notifications-announcer" role="status">
+          ${this._announcement}
+        </p>
+
         ${
           this._readError
             ? html`<error-banner .message=${this._readError}></error-banner>`
@@ -428,6 +514,7 @@ export class NotificationsPage extends LitElement {
           this.status === "error"
             ? html`<div class="state-block">
                 <error-banner
+                  retry
                   .message=${this.errorMessage}
                   @retry=${() => this.paging.sync(false)}
                 ></error-banner>
@@ -452,22 +539,26 @@ export class NotificationsPage extends LitElement {
         }
         ${
           this.status === "success" && this.items.length > 0
-            ? html`
-                <ul class="notifications-list" role="list">
-                  ${this.items.map((item) => this._itemsSection.template(item))}
-                </ul>
-                <pager-nav
-                  .hasPrevious=${this.paging.hasPrevious}
-                  .hasNext=${this.hasNext}
-                  .limit=${this.paging.limit}
-                  .page=${this.paging.page}
-                  .total=${this.total}
-                  .limits=${PAGE_SIZES}
-                  @sf-pager-prev=${this._onPrev}
-                  @sf-pager-next=${this._onNext}
-                  @sf-limit-change=${this._onLimitChange}
-                ></pager-nav>
-              `
+            ? html`<ul class="notifications-list" role="list">
+                ${this.items.map((item) => this._itemsSection.template(item))}
+              </ul>`
+            : ""
+        }
+        ${
+          this.items.length > 0 &&
+          (this.status === "loading" || this.status === "success")
+            ? html`<pager-nav
+                ?hasPrevious=${this.paging.hasPrevious}
+                ?hasNext=${this.hasNext}
+                ?busy=${this.status === "loading"}
+                .limit=${this.paging.limit}
+                .page=${this.paging.page}
+                .total=${this.total}
+                .limits=${PAGE_SIZES}
+                @sf-pager-prev=${this._onPrev}
+                @sf-pager-next=${this._onNext}
+                @sf-limit-change=${this._onLimitChange}
+              ></pager-nav>`
             : ""
         }
       </section>

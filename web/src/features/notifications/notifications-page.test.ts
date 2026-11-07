@@ -831,9 +831,12 @@ describe("notifications-page", () => {
     expect(unread).toContain("background: var(--sf-accent-tint)");
     expect(unread).not.toContain("var(--sf-dot)");
 
-    const read =
-      pageStyles.match(/\.notification-item\.is-read \{([^}]*)\}/)?.[1] ?? "";
-    expect(read).toContain("opacity:");
+    // The read state never lowers contrast: the row keeps the base muted
+    // text (which clears 4.5:1 in both themes) and the bar/tint absence
+    // carries the state. No .is-read opacity rule may return.
+    expect(pageStyles).not.toMatch(/\.notification-item\.is-read \{/);
+    expect(pageStyles).toContain("color: var(--sf-success-strong)");
+    expect(pageStyles).toContain("color: var(--sf-error-strong)");
   });
 
   test("clicking an account row flips it to read in place", async () => {
@@ -956,7 +959,7 @@ describe("notifications-page", () => {
       "/api/v1/notifications?limit=10",
       "/api/v1/notifications?limit=10&after=cur1",
     ]);
-    // The loading state unmounts the pager, so the post-load state arrives on
+    // The loading state keeps the pager mounted, so the post-load state arrives on
     // a fresh element.
     const pagerAfter = root(page).querySelector("pager-nav") as PagerNav;
     expect(pagerAfter.hasNext).toBe(false);
@@ -1064,21 +1067,18 @@ describe("notifications-page", () => {
         el.notifications.markAllPending,
     );
     const pending = root(page).querySelector(".mark-all") as HTMLButtonElement;
-    expect(pending.disabled).toBe(true);
+    // aria-disabled keeps the control focused; the shared latch refuses a
+    // second request.
+    expect(pending.getAttribute("aria-disabled")).toBe("true");
 
     resolvePost!({ status: 204, body: "" });
     await waitFor(
       () =>
-        root(page).querySelector(".mark-all")?.textContent?.trim() ===
-        el.notifications.markAll,
+        root(page).querySelectorAll(".notification-item.is-unread").length ===
+        0,
     );
-    expect(
-      (root(page).querySelector(".mark-all") as HTMLButtonElement).disabled,
-    ).toBe(false);
-    // The confirmed read-all flipped every row locally.
-    expect(
-      root(page).querySelectorAll(".notification-item.is-unread"),
-    ).toHaveLength(0);
+    // Nothing left to mark, so the verb is not offered at all.
+    expect(root(page).querySelector(".mark-all")).toBeNull();
   });
 
   test("a bulk action in flight disables every toolbar verb", async () => {
@@ -1106,22 +1106,24 @@ describe("notifications-page", () => {
     (root(page).querySelector(".clear-read") as HTMLButtonElement).click();
     await waitFor(
       () =>
-        (root(page).querySelector(".mark-all") as HTMLButtonElement).disabled,
+        root(page).querySelector(".mark-all")?.getAttribute("aria-disabled") ===
+        "true",
     );
 
     // ONE shared gate: while clear-read is in flight no other bulk verb can
-    // start a second request.
+    // start a second request. aria-disabled (not disabled) keeps focus.
     expect(
-      (root(page).querySelector(".mark-all") as HTMLButtonElement).disabled,
-    ).toBe(true);
+      root(page).querySelector(".mark-all")?.getAttribute("aria-disabled"),
+    ).toBe("true");
     expect(
-      (root(page).querySelector(".delete-all") as HTMLButtonElement).disabled,
-    ).toBe(true);
+      root(page).querySelector(".delete-all")?.getAttribute("aria-disabled"),
+    ).toBe("true");
 
     resolvePost!({ status: 204, body: "" });
     await waitFor(
       () =>
-        !(root(page).querySelector(".mark-all") as HTMLButtonElement).disabled,
+        root(page).querySelector(".mark-all")?.getAttribute("aria-disabled") ===
+        "false",
     );
     page.remove();
   });
@@ -1172,9 +1174,9 @@ describe("notifications-page", () => {
       ".notification-item",
     )[0] as HTMLButtonElement;
     first.click();
-    await waitFor(() => first.disabled);
+    await waitFor(() => first.getAttribute("aria-disabled") === "true");
 
-    // Disabled plus the id guard: neither repeat can double-post or
+    // aria-disabled plus the id guard: neither repeat can double-post or
     // double-navigate.
     first.click();
     first.click();
@@ -1403,6 +1405,81 @@ describe("notifications-page — read state and deletion", () => {
     expect(changed).toBe(1);
   });
 
+  test("a delete is announced in a persistent live region", async () => {
+    stubFetch(async (_url, method) =>
+      method === "DELETE"
+        ? { status: 204, body: "" }
+        : { status: 200, body: MIXED_BODY },
+    );
+
+    const page = await render("moderator");
+    const announcer = root(page).querySelector(
+      ".notifications-announcer",
+    ) as HTMLElement;
+    // The region exists (empty) before the action, so the assignment is
+    // announced rather than lost with a mounted-together node.
+    expect(announcer.textContent?.trim()).toBe("");
+
+    const row = [...root(page).querySelectorAll(".notification-row")][2]!;
+    (row.querySelector(".notification-delete") as HTMLButtonElement).click();
+    await waitFor(
+      () =>
+        root(page)
+          .querySelector(".notifications-announcer")
+          ?.textContent?.trim() === el.notifications.deleteOneAnnounce,
+    );
+    page.remove();
+  });
+
+  test("deleting the last row of a page advances to the next page", async () => {
+    const FIRST_PAGE = {
+      items: [
+        {
+          ...(COMMENT_REPLY_BODY.items[0] as object),
+          id: "un1",
+          read: false,
+        },
+      ],
+      pageInfo: { hasNextPage: true, endCursor: "cur1", total: 2 },
+    };
+    const SECOND_PAGE = {
+      items: [
+        {
+          ...(COMMENT_REPLY_BODY.items[1] as object),
+          id: "un2",
+          read: false,
+        },
+      ],
+      pageInfo: { hasNextPage: false, endCursor: null, total: 1 },
+    };
+    const urls: string[] = [];
+    stubFetch(async (url, method) => {
+      urls.push(`${method} ${url}`);
+      if (method === "DELETE") return { status: 204, body: "" };
+      return {
+        status: 200,
+        body: url.includes("after=cur1") ? SECOND_PAGE : FIRST_PAGE,
+      };
+    });
+
+    const page = await render("user");
+    (
+      root(page).querySelector(".notification-delete") as HTMLButtonElement
+    ).click();
+    await waitFor(
+      () =>
+        root(page).querySelectorAll(".notification-row").length === 1 &&
+        !!urls.find((u) => u.includes("after=cur1")),
+    );
+
+    // The next page loads instead of the page claiming the feed is empty.
+    expect(root(page).querySelector(".notifications-empty")).toBeNull();
+    expect(
+      root(page).querySelector(".notification-item")?.textContent,
+    ).toContain(el.notifications.verbCommentReply);
+    page.remove();
+  });
+
   test("the delete control is an icon button that names itself while in flight", async () => {
     let resolveDelete: (r: {
       status: number;
@@ -1437,7 +1514,7 @@ describe("notifications-page — read state and deletion", () => {
     const pending = [
       ...root(page).querySelectorAll(".notification-row"),
     ][2]!.querySelector(".notification-delete") as HTMLButtonElement;
-    expect(pending.disabled).toBe(true);
+    expect(pending.getAttribute("aria-disabled")).toBe("true");
     expect(pending.getAttribute("aria-label")).toBe(
       el.notifications.deleteOnePending,
     );
@@ -1467,6 +1544,7 @@ describe("notifications-page — read state and deletion", () => {
     expect(clear).not.toBeNull();
     expect(clear.textContent?.trim()).toBe(el.notifications.clearRead);
 
+    clear.focus();
     clear.click();
     await new Promise((r) => setTimeout(r, 10));
 
@@ -1483,8 +1561,10 @@ describe("notifications-page — read state and deletion", () => {
             ?.classList.contains("is-unread") === true,
       ),
     ).toBe(true);
-    // Nothing read-and-deletable is left, so the control withdraws.
+    // Nothing read-and-deletable is left, so the control withdraws; focus
+    // moves to the feed heading instead of the document body.
     expect(root(page).querySelector(".clear-read")).toBeNull();
+    expect(page.shadowRoot?.activeElement?.id).toBe("notifications-heading");
     // A deleted unread row would change the badge; clear-read keeps the
     // contract one code path, so it announces once.
     expect(changed).toBe(1);
@@ -1520,13 +1600,18 @@ describe("notifications-page — read state and deletion", () => {
     });
 
     const page = await render("moderator");
-    (root(page).querySelector(".mark-all") as HTMLButtonElement).click();
+    const markAll = root(page).querySelector(".mark-all") as HTMLButtonElement;
+    markAll.focus();
+    markAll.click();
     await new Promise((r) => setTimeout(r, 10));
 
     expect(
       root(page).querySelectorAll(".notification-item.is-unread"),
     ).toHaveLength(0);
     expect(root(page).querySelector(".clear-read")).not.toBeNull();
+    // The mark-all control withdraws; focus stays in the feed.
+    expect(root(page).querySelector(".mark-all")).toBeNull();
+    expect(page.shadowRoot?.activeElement?.id).toBe("notifications-heading");
   });
 
   test("deleting a ledger row sends the DELETE and drops the row", async () => {
@@ -1637,7 +1722,7 @@ describe("notifications-page — read state and deletion", () => {
     const pending = root(page).querySelector(
       ".delete-all",
     ) as HTMLButtonElement;
-    expect(pending.disabled).toBe(true);
+    expect(pending.getAttribute("aria-disabled")).toBe("true");
     expect(pending.textContent?.trim()).toBe(el.notifications.deleteAllPending);
 
     resolvePost!({ status: 204, body: "" });

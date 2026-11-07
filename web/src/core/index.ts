@@ -13,6 +13,7 @@ import "@features/blog/blog-detail-page.js";
 import "@features/projects/projects-list-page.js";
 import "@features/projects/project-detail-page.js";
 import "@features/search/search-page.js";
+import "@features/notifications/notifications-page.js";
 import "@features/about/about-page.js";
 import "@features/admin/admin-page.js";
 import "@features/admin/admin-projects-page.js";

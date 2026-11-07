@@ -70,6 +70,9 @@ export interface NotificationItemsHost extends ReactiveControllerHost {
   /** The host element's connection state — an awaited item flow must not
    * mutate or navigate a list that has been torn down. */
   readonly isConnected: boolean;
+  /** The page's shadow root — a successful delete hands focus to the feed
+   * heading. */
+  readonly shadowRoot: ShadowRoot | null;
   /** The page's shared action error (a failed mark-read, delete, read-all or
    * clear-read) — it renders as the banner above the list. */
   _readError: string;
@@ -80,6 +83,8 @@ export interface NotificationItemsHost extends ReactiveControllerHost {
   _markLocalRead(id: string): void;
   /** Drop ONE row after the server's 204. */
   _removeItem(id: string): void;
+  /** Announce a completed action in the page's persistent live region. */
+  _announce(message: string): void;
   /** Announce the read change so the header bell refetches its badge. */
   _dispatchChanged(): void;
   /** The list generation the page is showing — bumped whenever a load or a
@@ -229,6 +234,13 @@ export class NotificationItemsSection implements ReactiveController {
       this._host._dispatchChanged();
       if (!this._ownsList(generation)) return;
       this._host._removeItem(item.id);
+      this._host._announce(el.notifications.deleteOneAnnounce);
+      // The focused control is removed with the row; land on the stable
+      // feed heading rather than the document body.
+      await this._host.updateComplete;
+      this._host.shadowRoot
+        ?.querySelector<HTMLElement>("#notifications-heading")
+        ?.focus();
     } catch (err) {
       this._host._readError = mapError(err);
     } finally {
@@ -446,7 +458,7 @@ export class NotificationItemsSection implements ReactiveController {
         <button
           type="button"
           class="notification-item${item.read ? " is-read" : " is-unread"}"
-          ?disabled=${marking}
+          aria-disabled=${marking ? "true" : "false"}
           @click=${() => this._onItemClick(item)}
         >
           ${
@@ -475,7 +487,7 @@ export class NotificationItemsSection implements ReactiveController {
           class="button button--icon button--ghost notification-delete"
           aria-label=${deleteLabel}
           title=${deleteLabel}
-          ?disabled=${deleting}
+          aria-disabled=${deleting ? "true" : "false"}
           @click=${() => this._onDelete(item)}
         >
           ${icons.trash}

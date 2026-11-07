@@ -34,7 +34,7 @@
     color: var(--sf-text-muted);
 }
 
-.clear-read:hover:not(:disabled) {
+.clear-read:hover:not([aria-disabled="true"]) {
     border-color: var(--sf-error);
     color: var(--sf-error);
 }
@@ -86,7 +86,7 @@
     font-size: 1rem;
 }
 
-.notification-delete:hover:not(:disabled) {
+.notification-delete:hover:not([aria-disabled="true"]) {
     border-color: var(--sf-error);
     color: var(--sf-error);
 }
@@ -108,27 +108,26 @@
     transition: border-color 0.15s;
 }
 
-.notification-item:hover:not(:disabled) {
+.notification-item:hover:not([aria-disabled="true"]) {
     border-color: var(--sf-accent-light);
 }
 
-/* Read state: an unread entry carries the accent bar and
-   a tinted surface; a read one dims. Colour is never the ONLY signal — the
-   bar is a shape, and the row's position plus the unread badge count carry
-   the same information. */
+/* Read state: an unread entry carries the accent bar and a tinted surface;
+   a read one keeps the base muted text. The difference must never be a
+   contrast reduction — read rows stay above 4.5:1 in both themes. Colour
+   is never the ONLY signal: the bar is a shape, and the row's position plus
+   the unread badge count carry the same information. */
 .notification-item.is-unread {
     border-left: 3px solid var(--sf-accent-light);
     background: var(--sf-accent-tint);
     color: var(--sf-text);
 }
 
-.notification-item.is-read {
-    opacity: 0.72;
-}
-
-.notification-item:disabled {
+/* The in-flight state is aria-disabled: the control keeps its contrast and
+   its focus, and the handler's latch refuses a second request. */
+.notification-item[aria-disabled="true"],
+.notification-delete[aria-disabled="true"] {
     cursor: default;
-    opacity: 0.65;
 }
 
 .notification-text {
@@ -167,12 +166,12 @@
 
 .notification-result-success {
     background: color-mix(in srgb, var(--sf-success) 15%, transparent);
-    color: var(--sf-success);
+    color: var(--sf-success-strong);
 }
 
 .notification-result-failure {
     background: color-mix(in srgb, var(--sf-error) 15%, transparent);
-    color: var(--sf-error);
+    color: var(--sf-error-strong);
 }
 
 .notification-time {

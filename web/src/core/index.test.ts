@@ -38,6 +38,7 @@ describe("core/index registrations", () => {
       "sign-in-page",
       "register-page",
       "account-page",
+      "notifications-page",
     ];
     for (const tag of routed) {
       expect(customElements.get(tag), tag).toBeDefined();
