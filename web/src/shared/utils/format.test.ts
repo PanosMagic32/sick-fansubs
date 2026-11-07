@@ -114,6 +114,15 @@ describe("formatRelativeTime", () => {
     );
   });
 
+  test("rounding carries into the next unit at the boundary", () => {
+    // 59m59s must read as one hour, not "60 minutes"; 23h59m59s as one day.
+    expect(formatRelativeTime("2026-03-01T11:00:01.000Z", now)).toContain(
+      "ώρα",
+    );
+    // numeric:"auto" renders one day as «χθες» — not «πριν από 24 ώρες».
+    expect(formatRelativeTime("2026-02-28T12:00:01.000Z", now)).toBe("χθες");
+  });
+
   test("past the 30-day cutoff switches to the absolute date", () => {
     const longAgo = "2026-01-01T12:00:00.000Z";
     expect(formatRelativeTime(longAgo, now)).toBe(formatDateOnly(longAgo));

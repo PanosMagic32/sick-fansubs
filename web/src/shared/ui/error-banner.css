@@ -1,4 +1,12 @@
-/* Alert paragraph (the shared banner's layout). */
+/* Alert paragraph plus its optional retry control (the shared banner's
+   layout). */
+
+.banner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
 
 .error {
     font-size: 0.9rem;

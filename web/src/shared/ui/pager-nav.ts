@@ -7,9 +7,17 @@
  * states the two facts the arrows alone cannot show without competing with
  * the controls for row space. The buttons render ALWAYS and DISABLE at the
  * boundaries (first/last page) so the row keeps stable geometry and the
- * disabled state communicates the boundary. The host decides whether to
- * render the pager at all — the list pages show it only in the
- * success-with-items state (never on loading/error/empty).
+ * the row keeps stable geometry and the
+ * `aria-disabled` state communicates the boundary. The host decides whether
+ * to render the pager at all — the list pages keep it mounted while a page
+ * load it owns is in flight (the host passes `busy`), so the pressed control
+ * keeps focus; it is hidden on the first load, error, and empty results.
+ *
+ * While `busy`, the arrow controls expose `aria-disabled` and their handlers
+ * no-op: a native `disabled` attribute would blur the control the page turn
+ * was started from. The page-size select IS natively disabled (a native
+ * select cannot be prevented from opening otherwise); if it held focus when
+ * the load started, focus returns to it when the load settles.
  *
  * Arrow-only buttons: the visible row carries the glyph, and the catalog
  * «Προηγούμενη» / «Επόμενη» labels are the buttons' ACCESSIBLE NAMES
@@ -64,25 +72,54 @@ export class PagerNav extends LitElement {
   /** The sizes the dropdown offers (shared PAGE_SIZES). */
   @property({ type: Array }) limits: readonly number[] = [];
 
+  /** A page load this pager started is in flight. The controls stay mounted
+   * and focusable; `aria-disabled` + no-op handlers prevent a second turn. */
+  @property({ type: Boolean }) busy = false;
+
+  /** Set when the size select held focus as a load started; restored after
+   * the busy state clears (a native disabled select loses focus). */
+  private _restoreSelectFocus = false;
+
+  protected override willUpdate(changed: PropertyValues) {
+    if (changed.has("busy") && this.busy) {
+      try {
+        this._restoreSelectFocus =
+          this.shadowRoot?.activeElement === this._select();
+      } catch {
+        // happy-dom's shadow-root activeElement traversal throws when the
+        // root is detached; the browser path is the real contract.
+        this._restoreSelectFocus = false;
+      }
+    }
+  }
+
   /** happy-dom ignores the `selected` attribute on options (browsers honor
    * it), so the active size is applied to the select imperatively after
    * every render — otherwise the first option wins. */
   protected override updated(changed: PropertyValues) {
+    const select = this._select();
     if (changed.has("limit") || changed.has("limits")) {
-      const select = this.renderRoot.querySelector(
-        "select",
-      ) as HTMLSelectElement | null;
       if (select) select.value = String(this.limit);
+    }
+    if (changed.has("busy") && !this.busy && this._restoreSelectFocus) {
+      this._restoreSelectFocus = false;
+      select?.focus();
     }
   }
 
+  private _select(): HTMLSelectElement | null {
+    return this.renderRoot.querySelector("select");
+  }
+
   private _onPrevClick() {
+    if (this.busy || !this.hasPrevious) return;
     this.dispatchEvent(
       new CustomEvent("sf-pager-prev", { bubbles: true, composed: true }),
     );
   }
 
   private _onNextClick() {
+    if (this.busy || !this.hasNext) return;
     this.dispatchEvent(
       new CustomEvent("sf-pager-next", { bubbles: true, composed: true }),
     );
@@ -90,6 +127,11 @@ export class PagerNav extends LitElement {
 
   private _onLimitChange(e: Event) {
     const select = e.target as HTMLSelectElement;
+    if (this.busy) {
+      // The native select still opens; keep the committed size visible.
+      select.value = String(this.limit);
+      return;
+    }
     const size = Number.parseInt(select.value, 10);
     if (!Number.isInteger(size)) return;
     this.dispatchEvent(
@@ -114,12 +156,16 @@ export class PagerNav extends LitElement {
 
     return html`
       <div class="pager-wrap">
-        <nav class="pager" aria-label=${el.ui.pagerLabel}>
+        <nav
+          class="pager"
+          aria-label=${el.ui.pagerLabel}
+          aria-busy=${this.busy ? "true" : "false"}
+        >
           <button
             class="button button--secondary button--icon chip-arrow"
             type="button"
             aria-label=${el.ui.prevPage}
-            ?disabled=${!this.hasPrevious}
+            aria-disabled=${this.busy || !this.hasPrevious ? "true" : "false"}
             @click=${this._onPrevClick}
           >
             <span aria-hidden="true">←</span>
@@ -134,7 +180,12 @@ export class PagerNav extends LitElement {
             <!-- The select stretches invisibly over the WHOLE chip (owner:
                  the entire chip is the hit target) — the visible label/value
                  above are decorative; the select owns focus and keyboard. -->
-            <select class="size-select" @change=${this._onLimitChange}>
+            <select
+              class="size-select"
+              aria-disabled=${this.busy ? "true" : "false"}
+              ?disabled=${this.busy}
+              @change=${this._onLimitChange}
+            >
               ${options.map(
                 (size) => html`<option value=${size}>${size}</option>`,
               )}
@@ -145,7 +196,7 @@ export class PagerNav extends LitElement {
             class="button button--secondary button--icon chip-arrow"
             type="button"
             aria-label=${el.ui.nextPage}
-            ?disabled=${!this.hasNext}
+            aria-disabled=${this.busy || !this.hasNext ? "true" : "false"}
             @click=${this._onNextClick}
           >
             <span aria-hidden="true">→</span>

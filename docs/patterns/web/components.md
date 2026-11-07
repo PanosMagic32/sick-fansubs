@@ -111,9 +111,10 @@ exist, and the platform contracts (forms, dialogs, accessibility) every componen
     Status text lives in a live region that is mounted before its text changes. A region that mounts
     together with its text at initial render is accepted for initial-load empty/loading states;
     status text that changes after an action must live in a region that persists across the change
-    (the push-settings shape, and `<pager-status>` for a page turn: the pager itself unmounts while
-    the next page loads, so its visible caption is aria-hidden and the persistent hidden region
-    announces). Headings, lists, landmarks, and `fieldset`/`legend` groups reflect the
+    (the push-settings shape, and `<pager-status>` for a page turn: the pager stays mounted with
+    `aria-disabled` / `aria-busy` while the next page loads, its visible caption is aria-hidden,
+    and the persistent hidden region announces the new position). A note that receives focus as
+    the action's hand-off is announced by that focus and is NOT also a live region. Headings, lists, landmarks, and `fieldset`/`legend` groups reflect the
     real structure.
 12. **The catalog is the only copy source.** Every user-facing string comes from
     `shared/catalog/el.ts` (Greek); an anglicism rendered as-is carries `lang="en"` — a
@@ -212,6 +213,7 @@ export class BlogListPage extends LitElement {
   render() {
     return html`<pager-nav
       .hasNext=${this.hasNext}
+      ?busy=${this.status === "loading"}
       @sf-pager-next=${this._onNext}
     ></pager-nav>`;
   }
@@ -273,7 +275,7 @@ Recipes for the recurring changes:
 - `web/src/features/search/search-page.ts` — the page owns the URL state machine (query, type,
   sort, window) and hands values down; the result rows are template functions.
 - `web/src/shared/ui/pager-nav.ts` — a shared child: properties in (`hasPrevious`, `hasNext`,
-  `limit`), `sf-pager-*` events out, chrome-free layout.
+  `busy`, `limit`, `page`, `total`), `sf-pager-*` events out, chrome-free layout.
 - `web/src/shared/ui/form-field.ts` — the directive precedent, and `controls.ts` — the typed
   door to the control vocabulary.
 - `web/src/shared/ui/content-card.ts` — the card element: four shapes, typed inputs, two action

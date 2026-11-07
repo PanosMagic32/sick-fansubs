@@ -41,6 +41,14 @@ describe("controls", () => {
     ]);
   });
 
+  test("aria-disabled buttons keep the inert hover shape", () => {
+    for (const variant of BUTTON_VARIANTS) {
+      expect(controlsCss).toContain(
+        `.button--${variant}:hover:not(:disabled):not([aria-disabled="true"])`,
+      );
+    }
+  });
+
   test("the icon modifier keeps a custom-minimum target floor", () => {
     expect(controlsCss).toMatch(
       /\.button--icon\s*\{[^}]*min-width:\s*2rem;[^}]*min-height:\s*2rem;/,

@@ -185,8 +185,8 @@ const account = {
   // copy rather than leaking the raw identifier.
   roleUnknown: "Άγνωστος ρόλος",
   // Account-section tab chrome (owner ruling): the page's sections are
-  // tabs — profile (identity + devices), favorites, security (password
-  // change).
+  // tabs — profile, favorites, notifications (push + install), devices, and
+  // security (password change).
   tabsLabel: "Ενότητες λογαριασμού",
   securityTab: "Ασφάλεια",
   // Notifications tab — the push settings + install
@@ -228,10 +228,10 @@ const account = {
   // surface instead of promising a delivered email.
   registrationSuccess:
     "Ο λογαριασμός δημιουργήθηκε. Επιβεβαιώστε τη διεύθυνση email σας — αν δεν λάβατε σύνδεσμο, ζητήστε νέα αποστολή.",
-  // Active sessions — the "Συσκευές" block of the profile
-  // tab. The device label itself is data (a browser/platform product name
-  // like "Chrome · Android"), never catalog copy; only the fallback for an
-  // absent label is Greek. The heading is el.ui.sessions.
+  // Active sessions — the "Συσκευές" tab. The device label itself is data
+  // (a browser/platform product name like "Chrome · Android"), never
+  // catalog copy; only the fallback for an absent label is Greek. The
+  // heading is el.ui.sessions.
   sessionsCurrent: "Αυτή η συσκευή",
   sessionsUnknownDevice: "Άγνωστη συσκευή",
   sessionsStartedAt: "Σύνδεση",
@@ -264,8 +264,9 @@ const favorites = {
 
 /**
  * Content follows — the detail-page bell toggle. The two aria-labels name
- * the toggle state; the bell glyph is decorative (aria-hidden), same
- * policy as the favorite heart.
+ * the ACTION the press performs (the icon-only button is a changing-label
+ * action control, not a pressed-state toggle); the bell glyph is decorative
+ * (aria-hidden), same policy as the favorite heart.
  */
 const follows = {
   // The button aria-label when NOT following.
@@ -425,7 +426,7 @@ const donation = {
 } as const;
 
 /** Install affordance — the control shared by the home donation strip
- * and the account page's profile panel. Android
+ * and the account page's notifications panel. Android
  * and desktop Chrome hand the page a deferred install prompt; iOS never
  * does, so the control states the manual path instead. The iOS wording
  * reuses the «αρχική οθόνη» phrase from el.notifications.pushIOSHint. */
@@ -757,6 +758,13 @@ const notifications = {
   unreadRow: "Αδιάβαστη",
   markAll: "Σήμανση όλων ως αναγνωσμένων",
   markAllPending: "Σήμανση…",
+  // Post-action confirmations for the persistent live region. A destructive
+  // or bulk action must be announced even though its control and rows may
+  // unmount in the same render.
+  markAllAnnounce: "Όλες οι ειδοποιήσεις σημάνθηκαν ως αναγνωσμένες.",
+  clearReadAnnounce: "Οι αναγνωσμένες ειδοποιήσεις διαγράφηκαν.",
+  deleteOneAnnounce: "Η ειδοποίηση διαγράφηκε.",
+  deleteAllAnnounce: "Όλες οι ειδοποιήσεις διαγράφηκαν.",
   // Deletion: one entry at a time, every READ event row, or the whole feed.
   // Event rows are deleted; the five account events are ledger rows and are
   // DISMISSED for the viewer — the ledger itself keeps them.
@@ -959,6 +967,11 @@ export function heartersAriaLabel(count: number): string {
     : `${count} καρδιές — δείτε ποιοι`;
 }
 
+/** The read-only heart count's accessible name (anonymous readers). */
+export function heartsCountLabel(count: number): string {
+  return count === 1 ? "1 καρδιά" : `${count} καρδιές`;
+}
+
 /**
  * The likers modal — the shared who-liked list behind the content
  * indicators (favorites on posts/projects, hearts on comments).
@@ -1007,8 +1020,10 @@ const comments = {
   // so the accessible name / tooltip carries it while the request is out.
   deletePending: "Διαγραφή…",
   // A delete removes the whole subtree (hard cascade) — the
-  // confirmation names the replies.
+  // confirmation names the replies. A reply has no subtree, so it takes
+  // the shorter copy.
   deleteConfirm: "Θα διαγραφεί το σχόλιο και οι απαντήσεις του. Συνέχεια;",
+  deleteReplyConfirm: "Θα διαγραφεί η απάντηση. Συνέχεια;",
   edited: "επεξεργάστηκε",
   staffBadge: "Ομάδα",
   // The deep-link arrival markers: the chip labels the fragment

@@ -65,7 +65,7 @@
     color: var(--sf-on-accent);
 }
 
-.button--primary:hover:not(:disabled) {
+.button--primary:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--sf-accent-strong);
     border-color: var(--sf-accent-strong);
 }
@@ -75,7 +75,7 @@
     border-color: var(--sf-border);
 }
 
-.button--secondary:hover:not(:disabled) {
+.button--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
     border-color: var(--sf-accent-light);
 }
 
@@ -84,7 +84,7 @@
     color: var(--sf-error);
 }
 
-.button--danger:hover:not(:disabled) {
+.button--danger:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--sf-surface);
 }
 
@@ -92,7 +92,7 @@
     color: var(--sf-text-dim);
 }
 
-.button--ghost:hover:not(:disabled) {
+.button--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
     color: var(--sf-text);
 }
 
@@ -103,7 +103,7 @@
     font-weight: 500;
 }
 
-.button--link:hover:not(:disabled) {
+.button--link:hover:not(:disabled):not([aria-disabled="true"]) {
     text-decoration: underline;
 }
 

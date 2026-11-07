@@ -113,13 +113,13 @@ export function formatRelativeTime(
   if (absMs < 60_000) return el.ui.justNow;
   if (absMs >= RELATIVE_CUTOFF_MS) return dateOnlyFmt.format(thenMs);
 
-  const diffSec = Math.round(diffMs / 1000);
-  const absSec = Math.abs(diffSec);
-  if (absSec < 3600)
-    return relativeFmt.format(Math.round(diffSec / 60), "minute");
-  if (absSec < 86_400)
-    return relativeFmt.format(Math.round(diffSec / 3600), "hour");
-  return relativeFmt.format(Math.round(diffSec / 86_400), "day");
+  // Round at the unit that is DISPLAYED, then carry when the rounded value
+  // reaches the next unit (59m59s is "1 hour", not "60 minutes").
+  const minutes = Math.round(diffMs / 60_000);
+  if (Math.abs(minutes) < 60) return relativeFmt.format(minutes, "minute");
+  const hours = Math.round(diffMs / 3_600_000);
+  if (Math.abs(hours) < 24) return relativeFmt.format(hours, "hour");
+  return relativeFmt.format(Math.round(diffMs / 86_400_000), "day");
 }
 
 /**

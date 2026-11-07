@@ -1,12 +1,13 @@
 /**
  * Persistent pager live region. The visible caption lives inside
- * <pager-nav>, which every host unmounts while a page loads; an ARIA live
- * region must persist across the change to announce it, so this element
- * stays mounted and carries the same sentence in a visually hidden region.
+ * <pager-nav>, which stays mounted while a page turn loads; an ARIA live
+ * region must persist across the change to announce it, so this element is
+ * always mounted and carries the same sentence in a visually hidden region.
  *
- * The text is empty until the page reports a non-zero total (hosts reset the
- * total when a load starts), so a load announces the new position when the
- * response lands and stays silent otherwise.
+ * The text is empty until the page reports a non-zero total. Hosts keep the
+ * last successful total while a load is in flight, so the mounted pager can
+ * keep its geometry and focus; the sentence changes when the response lands
+ * (an unchanged node is not re-announced). A failed load clears the total.
  */
 
 import { html, LitElement, unsafeCSS } from "lit";

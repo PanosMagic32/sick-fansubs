@@ -34,7 +34,7 @@ function buttons(pager: PagerNav): HTMLButtonElement[] {
 }
 
 describe("pager-nav", () => {
-  test("renders both buttons always — disabled at the boundaries", async () => {
+  test("renders both buttons always — aria-disabled at the boundaries", async () => {
     const pager = await render({
       hasPrevious: false,
       hasNext: true,
@@ -43,9 +43,12 @@ describe("pager-nav", () => {
     });
 
     const [prev, next] = buttons(pager);
-    // First page: Previous disabled (no marker in this session), Next live.
-    expect(prev?.disabled).toBe(true);
+    // First page: Previous aria-disabled (no marker in this session), Next
+    // live. Both stay focusable so a page turn never drops the keyboard.
+    expect(prev?.disabled).toBe(false);
     expect(next?.disabled).toBe(false);
+    expect(prev?.getAttribute("aria-disabled")).toBe("true");
+    expect(next?.getAttribute("aria-disabled")).toBe("false");
     // Arrow-only chips: the visible row carries the
     // glyph, the accessible name carries the catalog words.
     expect(text(root(pager), "button:nth-of-type(1)")).toBe("←");
@@ -80,7 +83,7 @@ describe("pager-nav", () => {
     pager.remove();
   });
 
-  test("last page disables Next; a paged session enables Previous", async () => {
+  test("last page marks Next aria-disabled; a paged session enables Previous", async () => {
     const pager = await render({
       hasPrevious: true,
       hasNext: false,
@@ -90,7 +93,27 @@ describe("pager-nav", () => {
 
     const [prev, next] = buttons(pager);
     expect(prev?.disabled).toBe(false);
-    expect(next?.disabled).toBe(true);
+    expect(next?.disabled).toBe(false);
+    expect(prev?.getAttribute("aria-disabled")).toBe("false");
+    expect(next?.getAttribute("aria-disabled")).toBe("true");
+    pager.remove();
+  });
+
+  test("a boundary press dispatches nothing", async () => {
+    const pager = await render({
+      hasPrevious: false,
+      hasNext: false,
+      limits: [10, 20, 50],
+      limit: 10,
+    });
+
+    const events: string[] = [];
+    pager.addEventListener("sf-pager-prev", () => events.push("prev"));
+    pager.addEventListener("sf-pager-next", () => events.push("next"));
+    const [prev, next] = buttons(pager);
+    prev!.dispatchEvent(new Event("click", { bubbles: true }));
+    next!.dispatchEvent(new Event("click", { bubbles: true }));
+    expect(events).toEqual([]);
     pager.remove();
   });
 
@@ -109,6 +132,65 @@ describe("pager-nav", () => {
     prev!.dispatchEvent(new Event("click", { bubbles: true }));
     next!.dispatchEvent(new Event("click", { bubbles: true }));
     expect(events).toEqual(["prev", "next"]);
+    pager.remove();
+  });
+
+  test("busy keeps the controls mounted and focusable but blocks a second turn", async () => {
+    const pager = await render({
+      hasPrevious: true,
+      hasNext: true,
+      limits: [10, 20, 50],
+      limit: 10,
+      busy: true,
+    });
+
+    const events: string[] = [];
+    pager.addEventListener("sf-pager-prev", () => events.push("prev"));
+    pager.addEventListener("sf-pager-next", () => events.push("next"));
+    pager.addEventListener("sf-limit-change", () => events.push("limit"));
+
+    const [prev, next] = buttons(pager);
+    const select = root(pager).querySelector("select") as HTMLSelectElement;
+    // aria-disabled, not disabled: the focused control must survive the load.
+    expect(prev?.disabled).toBe(false);
+    expect(next?.disabled).toBe(false);
+    expect(prev?.getAttribute("aria-disabled")).toBe("true");
+    expect(next?.getAttribute("aria-disabled")).toBe("true");
+    expect(select.getAttribute("aria-disabled")).toBe("true");
+    expect(select.disabled).toBe(true);
+    expect(root(pager).querySelector("nav")?.getAttribute("aria-busy")).toBe(
+      "true",
+    );
+
+    prev!.dispatchEvent(new Event("click", { bubbles: true }));
+    next!.dispatchEvent(new Event("click", { bubbles: true }));
+    select.value = "50";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(events).toEqual([]);
+    // The rejected native change snaps back to the committed size.
+    expect(select.value).toBe("10");
+    pager.remove();
+  });
+
+  test("a busy size select restores focus when the load settles", async () => {
+    const pager = await render({
+      hasPrevious: true,
+      hasNext: true,
+      limits: [10, 20, 50],
+      limit: 10,
+    });
+    const select = root(pager).querySelector("select") as HTMLSelectElement;
+    select.focus();
+
+    pager.busy = true;
+    await pager.updateComplete;
+    expect(select.disabled).toBe(true);
+
+    pager.busy = false;
+    await pager.updateComplete;
+    expect(pager.shadowRoot?.activeElement).toBe(select);
+    select.blur();
     pager.remove();
   });
 
@@ -294,7 +376,7 @@ describe("pager-nav", () => {
     const status = rootEl.querySelector(".page-status");
     expect(status).not.toBeNull();
     // The caption is visual only: the persistent <pager-status> region is
-    // the live region (the pager itself unmounts while a page loads).
+    // the live region (the pager stays mounted while a page loads).
     expect(status?.getAttribute("aria-hidden")).toBe("true");
     expect(status?.getAttribute("role")).toBeNull();
     // A caption, not a row child.
