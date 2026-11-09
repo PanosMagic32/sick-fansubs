@@ -89,6 +89,23 @@ services:
     image: ghcr.io/panosmagic32/sick-fansubs-caddy:${AUX_TAG:-latest}
     restart: unless-stopped
     logging: *default-logging
+    # Caddy listens on 443 as a non-root process. The unprivileged-port
+    # floor is pinned to 0 so the bind never depends on daemon defaults;
+    # every capability is dropped except NET_BIND_SERVICE, kept so a rollback
+    # image with the file capability can exec. no-new-privileges blocks a
+    # new privilege gain.
+    user: "1000:1000"
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: "0"
+    cap_drop:
+      - ALL
+    # Kept in the bounding set so a rollback to a Caddy image that still
+    # carries the file capability can exec; the sysctl permits the bind
+    # without it.
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "443:443"
     volumes:

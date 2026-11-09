@@ -28,11 +28,18 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	// actionlint's workflow parser does not compile against newer yaml releases.
 	go.yaml.in/yaml/v4 v4.0.0-rc.3 // indirect
+	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/telemetry v0.0.0-20261010193011-f71dc92da45e // indirect
+	golang.org/x/tools v0.52.0 // indirect
+	golang.org/x/vuln v1.9.0 // indirect
 	modernc.org/libc v1.80.2 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
 
-tool github.com/rhysd/actionlint/cmd/actionlint
+tool (
+	github.com/rhysd/actionlint/cmd/actionlint
+	golang.org/x/vuln/cmd/govulncheck
+)

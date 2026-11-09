@@ -88,9 +88,9 @@ VPS
 ## Deploy topology
 
 - Version tags drive `.github/workflows/deploy.yml`: the test job runs the `make check` suite plus a
-  build and a frozen-lockfile install; the build job pushes five images to ghcr (app, migrate,
-  backup, restore, caddy — the auxiliary images version-paired with the app through `AUX_TAG`,
-  restore riding `:latest` as the break-glass path); the deploy job — gated by the
+  build and a frozen-lockfile install; the build job pushes six images to ghcr (app, migrate,
+  backup, restore, rebuildsearch, caddy — the auxiliary images version-paired with the app through
+  `AUX_TAG`, restore riding `:latest` as the break-glass path); the deploy job — gated by the
   `deploy-approval` environment — ships the compose file, the Caddyfile, and the scripts over SSH
   and runs `deploy/deploy.sh` ([ops/deploy.md](ops/deploy.md)).
 - `deploy.sh` takes the preflight backup, stops the app, applies migrations, brings the stack up,

@@ -2,8 +2,8 @@ name: currency
 
 # Weekly dependency-currency report (docs/ops/currency.md): what drifted and
 # what the vulnerability scanners find. Report-only — upgrades land by review
-# through the normal gate. govulncheck's non-zero exit on a finding is the
-# intended signal here.
+# through the normal gate, and a red run is the signal rather than a merge
+# gate.
 on:
   schedule:
     - cron: "17 6 * * 1"
@@ -14,31 +14,34 @@ permissions:
 
 jobs:
   report:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # CI never pushes, so no git token lands in the local git config
           # where a compromised action could read it.
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           # Keep in step with the oven/bun tag in the Dockerfile.
           bun-version: "1.4.4"
       - name: Go module drift (go list -m -u all)
         run: go list -m -u all
       - name: Go vulnerability scan (govulncheck)
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        if: ${{ !cancelled() }}
+        run: make deps-vuln
       - name: Web dependency drift (bun outdated)
+        if: ${{ !cancelled() }}
         working-directory: web
-        # bun outdated exits non-zero when it reports drift; this job is a
-        # report, so the listing must not fail the run.
-        run: bun outdated || true
+        # bun outdated exits non-zero when it reports drift. The red run is
+        # the weekly signal; it is not a merge gate.
+        run: bun outdated
       - name: Web advisory scan (bun audit)
+        if: ${{ !cancelled() }}
         working-directory: web
         run: |
           bun install --frozen-lockfile

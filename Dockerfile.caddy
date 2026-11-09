@@ -30,3 +30,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM caddy:2.11.9-alpine
 
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+
+# Caddy runs non-root. The stock image's file capability makes exec fail
+# under a bounding set that excludes it, so remove it; the compose service
+# keeps NET_BIND_SERVICE for older rollback images and pins the
+# unprivileged-port floor for the :443 bind.
+RUN setcap -r /usr/bin/caddy
+
+# Compose repeats the user so an older Caddy image without this line still
+# runs the public edge non-root.
+USER 1000:1000

@@ -62,7 +62,8 @@ while IFS= read -r ref; do
 	"ghcr.io/panosmagic32/sick-fansubs-caddy:$AUX_TAG" | \
 		"ghcr.io/panosmagic32/sick-fansubs-migrate:$AUX_TAG" | \
 		"ghcr.io/panosmagic32/sick-fansubs-backup:$AUX_TAG" | \
-		"ghcr.io/panosmagic32/sick-fansubs-restore:$AUX_TAG") continue ;;
+		"ghcr.io/panosmagic32/sick-fansubs-restore:$AUX_TAG" | \
+		"ghcr.io/panosmagic32/sick-fansubs-rebuildsearch:$AUX_TAG") continue ;;
 	esac
 	echo "removing old image tag $ref"
 	if docker image rm "$ref"; then

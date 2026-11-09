@@ -168,9 +168,12 @@ go-fmt-check: ## Check if Go files are formatted (for CI — exits non-zero on d
 
 go-lint: go-vet go-fmt-check ## Run all Go lint/format checks
 
-deps-report: ## Report dependency drift (Go modules + web packages) — report only
+deps-report: ## Report dependency drift (Go modules + web packages); web drift exits non-zero
 	@go list -m -u all
-	@cd web && bun outdated || true
+	@cd web && bun outdated
+
+deps-vuln: ## Scan Go dependencies for reachable vulnerabilities (needs network)
+	@go tool govulncheck ./...
 
 # ── Frontend: Build ──────────────────────────────────────────
 
@@ -262,7 +265,7 @@ clean: ## Remove build artifacts
         go-build go-build-dev build \
         go-test go-test-verbose go-test-all go-test-race go-test-coverage test \
         go-vet go-fmt go-fmt-check go-lint go-fix \
-        deps-report \
+	        deps-report deps-vuln \
 	        web-install web-build web-typecheck web-test web-lint \
 	        docs-lint workflow-lint \
         fmt lint check check-all \

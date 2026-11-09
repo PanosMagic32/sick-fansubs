@@ -83,22 +83,22 @@ The answer we write, grouped by the release that introduced it:
 
 Replaced idioms, in the form a reader may still meet in old code or in older writing:
 
-| Old form                                                     | Replacement                                                                                                                         |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `interface{}`                                                | `any`                                                                                                                               |
-| hand-rolled contains / equality / sort helpers               | `slices`, `maps`                                                                                                                    |
-| `sort.Slice`, `sort.Strings`, `sort.Sort(sort.Reverse(...))` | `slices.SortFunc` with `cmp.Compare`                                                                                                |
-| `log` / `log.Printf`                                         | `log/slog` with a level and key-value pairs                                                                                         |
-| `x := x` before a closure or goroutine                       | nothing — the loop variable is per iteration                                                                                        |
-| `wg.Add(1)` plus `defer wg.Done()`                           | `wg.Go(func() { ... })`                                                                                                             |
-| a hand-written `slog` multi-handler                          | `slog.NewMultiHandler`                                                                                                              |
-| `errors.As(err, &target)`                                    | `errors.AsType[*T](err)`                                                                                                            |
-| `time.Sleep` in a concurrency test                           | `testing/synctest` with a fake clock                                                                                                |
-| `os.Open` plus manual directory confinement                  | `os.Root`                                                                                                                           |
-| `tools.go` blank-import files for build tools                | the `tool` directive in `go.mod` (the repo's own commands live in `cmd/`; the workflow linter is the one tool-directive dependency) |
-| `golang.org/x/crypto/{sha3,pbkdf2,hkdf}`                     | the standard `crypto/{sha3,pbkdf2,hkdf}` packages                                                                                   |
-| `github.com/google/uuid` for new identifiers                 | this tree's own id minter                                                                                                           |
-| `expected …, got …` in a failure message                     | `got, want` (see [testing.md](testing.md))                                                                                          |
+| Old form                                                     | Replacement                                                                                                                                        |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `interface{}`                                                | `any`                                                                                                                                              |
+| hand-rolled contains / equality / sort helpers               | `slices`, `maps`                                                                                                                                   |
+| `sort.Slice`, `sort.Strings`, `sort.Sort(sort.Reverse(...))` | `slices.SortFunc` with `cmp.Compare`                                                                                                               |
+| `log` / `log.Printf`                                         | `log/slog` with a level and key-value pairs                                                                                                        |
+| `x := x` before a closure or goroutine                       | nothing — the loop variable is per iteration                                                                                                       |
+| `wg.Add(1)` plus `defer wg.Done()`                           | `wg.Go(func() { ... })`                                                                                                                            |
+| a hand-written `slog` multi-handler                          | `slog.NewMultiHandler`                                                                                                                             |
+| `errors.As(err, &target)`                                    | `errors.AsType[*T](err)`                                                                                                                           |
+| `time.Sleep` in a concurrency test                           | `testing/synctest` with a fake clock                                                                                                               |
+| `os.Open` plus manual directory confinement                  | `os.Root`                                                                                                                                          |
+| `tools.go` blank-import files for build tools                | the `tool` directive in `go.mod` (the repo's own commands live in `cmd/`; the workflow linter and govulncheck are the tool-directive dependencies) |
+| `golang.org/x/crypto/{sha3,pbkdf2,hkdf}`                     | the standard `crypto/{sha3,pbkdf2,hkdf}` packages                                                                                                  |
+| `github.com/google/uuid` for new identifiers                 | this tree's own id minter                                                                                                                          |
+| `expected …, got …` in a failure message                     | `got, want` (see [testing.md](testing.md))                                                                                                         |
 
 ## Examples
 

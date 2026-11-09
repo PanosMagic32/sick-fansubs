@@ -14,11 +14,12 @@ Backup and restore have their own docs.
    is `.github/workflows/deploy.yml`; the tag names the application artifact.
 2. **The artifact is one application image with the Lit build embedded.** Vite builds the frontend
    before Go compilation and `//go:embed` serves it; Caddy never deploys `web/dist` separately. The
-   tag also builds the auxiliary images: `migrate`, `backup`, `restore`, and `caddy` (the custom
-   Caddy image carries the Cloudflare DNS module). Auxiliary images are published under both
-   `:latest` and the version tag, and the running stack pins them through `AUX_TAG`
-   (`${AUX_TAG:-latest}` in `compose.yaml`, written beside `TAG` and reset on rollback by the
-   deploy script). The break-glass restore one-off rides `:latest`. The application image is
+   tag also builds the auxiliary images: `migrate`, `backup`, `restore`, `rebuildsearch`, and
+   `caddy` (the custom Caddy image carries the Cloudflare DNS module). Auxiliary images are
+   published under both `:latest` and the version tag; the compose services pin `migrate`, `backup`,
+   and `caddy` through `AUX_TAG` (`${AUX_TAG:-latest}` in `compose.yaml`, written beside `TAG` and
+   reset on rollback by the deploy script). The restore and rebuildsearch one-offs ride their
+   runbook's tag. The application image is
    always the tag. A missing or stale frontend build fails packaging instead of embedding the
    wrong files.
 3. **Caddy is the only public ingress; the application has no published port.** Caddy terminates
@@ -26,14 +27,23 @@ Backup and restore have their own docs.
    overwrites forwarding headers and parses `X-Forwarded-For` with `trusted_proxies` +
    `trusted_proxies_strict`, so Go trusts client identity only from the edge. The range list is
    kept set-equal to the `DOCKER-USER` sources in
-   [bring-up.md](../../deploy/bring-up.md) §4 (`internal/codestyle` guards the pair). The Caddy
-   port mapping is `443:443`. The access log drops the `token`
-   query key and the `Referer` header — the password-reset link carries a credential, and the
-   token page's first asset fetches would otherwise log it.
+   [bring-up.md](../../deploy/bring-up.md) §4 (`internal/codestyle` guards the pair). Caddy runs as
+   uid/gid 1000 with every capability dropped except `NET_BIND_SERVICE` — kept in the bounding set
+   so a rollback to a pre-capability-removal image can exec — and `no-new-privileges`; the image
+   removes the binary's file capability, and the container pins the unprivileged-port floor to 0 so
+   the bind does not depend on that capability. The port mapping is `443:443`. The
+   access log drops the `token` query key, `Referer`, `Cookie`, `X-Csrf-Token`, `Authorization`,
+   and `Set-Cookie` — the password-reset link carries a credential, and session/CSRF values must
+   not reach container logs.
 4. **The stack is one Compose project with one application data volume (plus Caddy's state
    volumes) and two one-shot profiles.** `app` holds
    `sick-data:/app/data`; `caddy` holds `caddy-data`/`caddy-config`; `./backups` is a host bind the
-   cron and Mega scripts read; `migrate` and `backup` run only through their profiles
+   cron and Mega scripts read. A Caddy volume created before the non-root switch needs a one-time
+   root one-off immediately before the first non-root start: stop Caddy, run
+   `docker compose run --rm --no-deps --user root --cap-add CHOWN --cap-add DAC_OVERRIDE --entrypoint chown caddy -R 1000:1000 /data /config`,
+   then start the deploy; its `up -d` starts the non-root Caddy. A fresh volume inherits the image's
+   writable `/data/caddy` and `/config/caddy` state directories.
+   `migrate` and `backup` run only through their profiles
    (`docker compose --profile migrate run --rm migrate`). Migrations are an explicit maintenance
    step, never run by the app process, and the app only performs the strict read-only compatibility
    check at startup — the mechanics are [sqlite.md](../patterns/go/sqlite.md)'s. A routine deploy
@@ -85,7 +95,8 @@ Backup and restore have their own docs.
    strict readiness contract ([sqlite.md](../patterns/go/sqlite.md) rule 10) and answers `not_ready`
    while a restore marker exists. After a deploy: readiness, one public read, the deployed version
    and the applied migration version, then watch the logs for the agreed interval.
-9. **CI holds least privilege.** Third-party actions are pinned to major versions; checkouts set
+9. **CI holds least privilege.** Third-party actions are pinned to commit SHAs with the release in
+   a trailing comment; checkouts set
    `persist-credentials: false`; permissions are `contents: read`, with `packages: write` on the
    build job alone (the one job that pushes images); deploy
    credentials are repository secrets and variables used only by the deploy job (`PUBLIC_BASE_URL`
@@ -109,7 +120,7 @@ Backup and restore have their own docs.
 The pipeline and the on-VPS sequence:
 
 ```text
-tag push ─▶ test job (Go + web) ─▶ build job (5 images → ghcr) ─▶ deploy job
+tag push ─▶ test job (Go + web) ─▶ build job (6 images → ghcr) ─▶ deploy job
                                                                       │
                                           scp: compose.yaml, Caddyfile.new,
                                                scripts, backup and restore runbooks
@@ -203,8 +214,9 @@ tag push ─▶ test job (Go + web) ─▶ build job (5 images → ghcr) ─▶ 
   accepts only `<major>.<minor>.<patch>[-<prerelease>]` (alnum, dash, dot), which also keeps shell
   metacharacters out of the deploy step's `NEW_TAG='…'` interpolation.
 - **New ghcr packages default to private.** Set each package's visibility before the first
-  anonymous pull; the five image names are `sick-fansubs`, `sick-fansubs-migrate`,
-  `sick-fansubs-backup`, `sick-fansubs-restore`, and `sick-fansubs-caddy`.
+  anonymous pull; the six image names are `sick-fansubs`, `sick-fansubs-migrate`,
+  `sick-fansubs-backup`, `sick-fansubs-restore`, `sick-fansubs-rebuildsearch`, and
+  `sick-fansubs-caddy`.
 
 ## Pointers
 
