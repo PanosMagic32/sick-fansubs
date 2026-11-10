@@ -37,10 +37,11 @@ COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 # unprivileged-port floor for the :443 bind.
 RUN setcap -r /usr/bin/caddy
 
-# The state directories are created and owned here, before USER, so a fresh
-# volume copies uid 1000 ownership from the image and the deploy preflight
-# passes without the one-time root chown that older volumes need.
-RUN mkdir -p /data/caddy /config/caddy && chown -R 1000:1000 /data/caddy /config/caddy
+# The state directories are created here, before USER, owned by uid 1000 and
+# mode 0755, so a fresh volume copies that state from the image: the deploy
+# preflight passes and Caddy can write without the one-time root chown that
+# older volumes need.
+RUN mkdir -p /data/caddy /config/caddy && chown -R 1000:1000 /data/caddy /config/caddy && chmod 0755 /data/caddy /config/caddy
 
 # Compose repeats the user so an older Caddy image without this line still
 # runs the public edge non-root.

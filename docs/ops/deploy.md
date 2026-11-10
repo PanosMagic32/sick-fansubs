@@ -44,7 +44,7 @@ Backup and restore have their own docs.
    root one-off immediately before the first non-root start: from `~/sick-fansubs`, stop Caddy, run
    `docker compose run --rm --no-deps --user root --cap-add CHOWN --cap-add DAC_READ_SEARCH --entrypoint chown caddy -R 1000:1000 /data /config`,
    then start the deploy; its `up -d` starts the non-root Caddy. A fresh volume inherits the image's
-   `/data/caddy` and `/config/caddy` state directories, which the image creates and owns as uid 1000.
+   `/data/caddy` and `/config/caddy` state directories, which the image creates as uid 1000, mode 0755.
    The deploy preflight refuses to run while a path in `/data/caddy` or `/config/caddy` is not
    owned by uid 1000, and prints the repair. It inspects the existing caddy container's volumes
    (running or stopped), or the volumes derived from the compose project name after a shutdown; a
@@ -235,6 +235,17 @@ tag push ─▶ test job (Go + web) ─▶ build job (6 images → ghcr) ─▶ 
   anonymous pull; the six image names are `sick-fansubs`, `sick-fansubs-migrate`,
   `sick-fansubs-backup`, `sick-fansubs-restore`, `sick-fansubs-rebuildsearch`, and
   `sick-fansubs-caddy`.
+- **Caddy carries no Compose healthcheck.** The deploy gate proves the edge instead: two `Up`
+  samples and a loopback TLS request for the site name. A hand-run `docker compose up -d` gets
+  neither, so run the loopback probe after a manual start.
+- **The Caddyfile is not validated before the migrate profile runs.** The deploy swaps the staged
+  file in, migrates, then `up -d`; Caddy rejects a bad configuration at that start, and the
+  rollback restores the previous Caddyfile and image pair. The file is small and reviewed, and the
+  rollback keeps a bad configuration from staying in front of the stack — an accepted hold.
+- **`compose.yaml` and the Dockerfiles are exercised, not linted.** CI lints the workflows and the
+  shell scripts, and the build job compiles every image; Compose parses its file at deploy time.
+  A syntax error therefore fails the build or the deploy (with rollback), not a pre-merge lint —
+  an accepted hold.
 
 ## Pointers
 

@@ -35,7 +35,9 @@ infrastructure, and ripple effects.
 7. **Findings carry a severity** — `blocker`, `major`, `minor`, or `nit` (table below). A `blocker`
    is fixed immediately on discovery; it never waits for the pass gate.
 8. **Owner gates.** A pass closes by owner ruling on its written summary; the ruling needs no
-   signature line. The review is done when every pass is closed, no `blocker` or `major` finding
+   signature line. A parked finding's ruling lands in the pattern or feature doc that owns the
+   affected rule; the batch findings and the pass gate stay in the review workspace. The review is
+   done when every pass is closed, no `blocker` or `major` finding
    is open (each closed or parked with a recorded owner ruling), and `make check` is green.
 9. **Pause only at batch boundaries.** Never stop inside a batch. Resume from the latest pass
    summary; the next batch starts only after the previous batch's findings and rulings are
