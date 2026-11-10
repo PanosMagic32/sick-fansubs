@@ -1489,6 +1489,43 @@ func TestResetPasswordWithToken_WeakPassword(t *testing.T) {
 	}
 }
 
+// TestResetPasswordWithToken_SuspendedAccountCheckedBeforePolicy pins the
+// account-status priority: a valid token for a suspended account answers the
+// generic token-invalid even when the password is weak, and the token dies
+// immediately instead of surviving until reactivation.
+func TestResetPasswordWithToken_SuspendedAccountCheckedBeforePolicy(t *testing.T) {
+	t.Parallel()
+	db := openServiceDB(t)
+	sender := &fakeSender{}
+	svc := newTestServiceWith(db, sender, "http://localhost:3000")
+	ctx := t.Context()
+
+	_, _, user, err := svc.Register(ctx, "suspendedreset", "suspendedreset@example.com", "password123", "")
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if _, err := svc.ForgotPassword(ctx, "suspendedreset"); err != nil {
+		t.Fatalf("ForgotPassword: %v", err)
+	}
+	token := linkToken(sender.last().body)
+
+	if err := store.SuspendUser(ctx, db, identity.RoleSuperAdmin, user.ID, time.Now().UnixMilli()); err != nil {
+		t.Fatalf("SuspendUser: %v", err)
+	}
+
+	if _, _, err := svc.ResetPasswordWithToken(ctx, token, "short"); !errors.Is(err, ErrResetTokenInvalid) {
+		t.Fatalf("suspended + weak password: got %v, want ErrResetTokenInvalid", err)
+	}
+
+	digest, ok := resetTokenDigest(token)
+	if !ok {
+		t.Fatal("well-formed token did not digest")
+	}
+	if _, err := store.ResetTokenUserID(ctx, db, digest, time.Now().UnixMilli()); !errors.Is(err, store.ErrResetTokenInvalid) {
+		t.Fatalf("suspended-account reset token survived: got %v, want store.ErrResetTokenInvalid", err)
+	}
+}
+
 func TestResetPasswordWithToken_TokenCheckedFirst(t *testing.T) {
 	t.Parallel()
 	db := openServiceDB(t)

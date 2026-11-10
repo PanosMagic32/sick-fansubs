@@ -80,6 +80,19 @@ func ResetTokenUserID(ctx context.Context, db *sql.DB, tokenDigest []byte, nowMS
 	return userID, nil
 }
 
+// InvalidateResetToken deletes one reset token by digest. The service calls
+// it when a well-formed, unexpired token belongs to a non-active account:
+// the link must die even though no password write (and no consume
+// transaction) runs.
+func InvalidateResetToken(ctx context.Context, db *sql.DB, tokenDigest []byte) error {
+	if _, err := db.ExecContext(ctx,
+		`DELETE FROM password_reset_tokens WHERE token_digest = ?`, tokenDigest,
+	); err != nil {
+		return fmt.Errorf("store: invalidate reset token: %w", err)
+	}
+	return nil
+}
+
 // ResetPasswordWithTokenParams holds the values needed to consume a reset
 // token and replace the password atomically.
 type ResetPasswordWithTokenParams struct {

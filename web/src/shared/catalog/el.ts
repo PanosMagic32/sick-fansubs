@@ -939,6 +939,14 @@ export function unreadBadgeLabel(count: number): string {
 }
 
 /**
+ * The unread badge's visible text: the count, capped at "99+" so the badge
+ * never widens the header row. The full count stays in the accessible label.
+ */
+export function unreadBadgeText(count: number): string {
+  return count > 99 ? "99+" : String(count);
+}
+
+/**
  * Content-indicator count labels: the indicators render
  * the bare number visually; the FULL Greek phrase — singular for exactly
  * one, plural otherwise — rides each indicator's aria-label (the

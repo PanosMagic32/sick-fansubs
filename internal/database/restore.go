@@ -260,10 +260,14 @@ func stageAndPrepare(dataDir, backupPath string, attemptMS int64) (string, error
 		return "", fmt.Errorf("database: prepare staged copy: %w", err)
 	}
 	fail := func(tx *sql.Tx, err error) (string, error) {
-		// Rollback is best-effort: the transaction is being abandoned and the
-		// failure below is the error the operator needs.
+		// Rollback is part of the error contract: a rollback failure means the
+		// staged connection's state is unknown, so it is joined into the
+		// operator-visible error instead of discarded. The close stays
+		// best-effort; the returned error is the failure.
 		if tx != nil {
-			_ = tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+				err = errors.Join(err, fmt.Errorf("database: rollback staged tx: %w", rbErr))
+			}
 		}
 		_ = db.Close() // best effort; the returned error is the failure
 		cleanup()
@@ -277,11 +281,12 @@ func stageAndPrepare(dataDir, backupPath string, attemptMS int64) (string, error
 		return fail(nil, fmt.Errorf("database: staged foreign keys: %w", err))
 	}
 
-	// Every session and every pending token die in ONE transaction, then
-	// the counts are verified independently (step 4) — no restored session
-	// can authenticate and no consumed reset/verification link comes back
-	// to life (the sessions-purge rationale applied to the token tables —
-	// one uniform invariant across every token table).
+	// Every session, every pending token, and every push subscription die
+	// in ONE transaction, then the counts are verified independently (step 4)
+	// — no restored session can authenticate, no consumed reset/verification
+	// link comes back to life, and a device revoked by sign-out-all after the
+	// backup cannot receive notifications again (the sessions-purge rationale
+	// applied to the account-bound delivery rows).
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	tx, err := db.BeginTx(ctx, nil)
@@ -297,6 +302,9 @@ func stageAndPrepare(dataDir, backupPath string, attemptMS int64) (string, error
 	if _, err := tx.ExecContext(ctx, "DELETE FROM email_verification_tokens"); err != nil {
 		return fail(tx, fmt.Errorf("database: delete verification tokens: %w", err))
 	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM push_subscriptions"); err != nil {
+		return fail(tx, fmt.Errorf("database: delete push subscriptions: %w", err))
+	}
 	if err := tx.Commit(); err != nil {
 		return fail(tx, fmt.Errorf("database: commit session deletion: %w", err))
 	}
@@ -309,6 +317,9 @@ func stageAndPrepare(dataDir, backupPath string, attemptMS int64) (string, error
 	if err := verificationTokensEmpty(db); err != nil {
 		return fail(nil, fmt.Errorf("database: staged verification tokens: %w", err))
 	}
+	if err := pushSubscriptionsEmpty(db); err != nil {
+		return fail(nil, fmt.Errorf("database: staged push subscriptions: %w", err))
+	}
 
 	if err := db.Close(); err != nil {
 		cleanup()
@@ -317,12 +328,12 @@ func stageAndPrepare(dataDir, backupPath string, attemptMS int64) (string, error
 	return stagedDir, nil
 }
 
-// finalizeStaged re-verifies the prepared staged copy (strict history, full
-// integrity, foreign keys, zero sessions), checkpoints the WAL with
-// TRUNCATE, closes the pool, removes the sidecars, and requires the
+// finalizeStaged re-verifies the prepared staged copy (strict history via
+// openStrict, full integrity, foreign keys, zero sessions), checkpoints the WAL
+// with TRUNCATE, closes the pool, removes the sidecars, and requires the
 // operation directory to hold exactly the self-contained main file.
 func finalizeStaged(stagedDir string) error {
-	db, err := Open(Config{DataDir: stagedDir})
+	db, err := openStrict(stagedDir)
 	if err != nil {
 		return fmt.Errorf("database: reopen staged copy: %w", err)
 	}
@@ -331,9 +342,6 @@ func finalizeStaged(stagedDir string) error {
 		return err
 	}
 
-	if err := migrationHistoryOK(db); err != nil {
-		return fail(fmt.Errorf("database: staged history: %w", err))
-	}
 	if err := VerifySchema(db); err != nil {
 		return fail(fmt.Errorf("database: staged schema: %w", err))
 	}

@@ -129,13 +129,12 @@ func parseFileWithExt(file string, exts ...string) (id, ext string, ok bool) {
 // (`media/images/<any-two-chars>/<id>.<ext>` — ServedPath drops the segment),
 // a relative form carrying a query, fragment, `.` segment, or percent-encoded
 // bytes (the browser and ServeMux clean and decode it), and an absolute
-// http(s) URL on the configured public host with any port, either scheme, a
-// case-insensitive scheme, a trailing-dot hostname, or the host's `www` twin
-// (the edge redirects between the two). The absolute form compares normalized
-// hostnames, not raw Host values, and ignoring the port can only widen the
-// keep-set, never drop a live reference. Values that cannot name a local file
-// (another hostname, an escaping path, a malformed segment, an unsupported
-// extension) are reported not-ok; callers skip them.
+// http(s) URL whose path names the media tree. The absolute form is deliberately
+// host-agnostic: the keep-set can only widen across a domain or base-URL change,
+// never shrink, so a stored absolute reference stays protected after the public
+// host moves. Values that cannot name a local file (an escaping path, a
+// malformed segment, an unsupported extension) are reported not-ok; callers
+// skip them.
 func CanonicalStoragePath(stored, publicBaseURL string) (string, bool) {
 	candidate, ok := localMediaPath(stored, publicBaseURL)
 	if !ok {
@@ -165,11 +164,13 @@ func CanonicalStoragePath(stored, publicBaseURL string) (string, bool) {
 
 // localMediaPath reduces a stored reference to the cleaned, decoded
 // `media/images/...` path the read path serves, or reports not-ok. An absolute
-// http(s) URL must name the configured public host (or its `www` twin); the
-// base path prefix, when present, is stripped like the serving URL does.
-// Relative values lose their query and fragment, then decode and clean exactly
-// as the browser and the router do. The leading slash anchors path.Clean, so
-// `..` can never escape the media tree.
+// http(s) URL contributes its path regardless of host: the keep-set must not
+// shrink when the public base URL changes, because a stored absolute reference
+// that is still live would otherwise become a deletion candidate. The base
+// path prefix, when present, is stripped like the serving URL does. Relative
+// values lose their query and fragment, then decode and clean exactly as the
+// browser and the router do. The leading slash anchors path.Clean, so `..` can
+// never escape the media tree.
 func localMediaPath(stored, publicBaseURL string) (string, bool) {
 	candidate := stored
 	if u, err := url.Parse(candidate); err == nil && u.Scheme != "" && u.Host != "" {
@@ -178,19 +179,16 @@ func localMediaPath(stored, publicBaseURL string) (string, bool) {
 		default:
 			return "", false
 		}
-		if publicBaseURL == "" {
-			return "", false
-		}
-		base, err := url.Parse(publicBaseURL)
-		if err != nil || base.Hostname() == "" || !sameMediaHost(u.Hostname(), base.Hostname()) {
+		if u.Hostname() == "" {
 			return "", false
 		}
 		candidate = u.Path
-		if prefix := strings.TrimRight(base.Path, "/"); prefix != "" && prefix != "/" {
-			if !strings.HasPrefix(candidate, prefix+"/") {
-				return "", false
+		if base, err := url.Parse(publicBaseURL); err == nil {
+			if prefix := strings.TrimRight(base.Path, "/"); prefix != "" && prefix != "/" {
+				if strings.HasPrefix(candidate, prefix+"/") {
+					candidate = strings.TrimPrefix(candidate, prefix)
+				}
 			}
-			candidate = strings.TrimPrefix(candidate, prefix)
 		}
 	} else if i := strings.IndexAny(candidate, "?#"); i >= 0 {
 		candidate = candidate[:i]
@@ -206,19 +204,6 @@ func localMediaPath(stored, publicBaseURL string) (string, bool) {
 		return "", false
 	}
 	return cleaned, true
-}
-
-// sameMediaHost compares two hostnames after lowercasing, trimming one
-// trailing dot, and treating a leading `www.` as optional: the production edge
-// redirects www to the apex (and the reverse alias is possible), so both names
-// address the same served media file.
-func sameMediaHost(a, b string) bool {
-	normalize := func(host string) string {
-		host = strings.ToLower(host)
-		host = strings.TrimSuffix(host, ".")
-		return strings.TrimPrefix(host, "www.")
-	}
-	return normalize(a) == normalize(b)
 }
 
 // isLowerHex reports whether s consists of lowercase hex characters only.

@@ -345,7 +345,9 @@ token` prints nothing.
   `:latest` and the version tag; the compose stack pins caddy/migrate/backup through
   `${AUX_TAG:-latest}` (written beside `TAG` and reset on rollback by `deploy.sh`). Restore and
   rebuildsearch have no compose service — their one-offs use the same tag; the manual offline path
-  must load the aux images under the `AUX_TAG` value compose will resolve.
+  must load the aux images under the `AUX_TAG` value compose will resolve. The offline path needs no
+  extra image for the break-glass reset: it ships inside the app image as
+  `/app/resetpassword` (`cmd/resetpassword/AGENTS.md`).
 - **Secret rotation:** edit the `SMTP_API_KEY` or `VAPID_PRIVATE_KEY` line in `.env`, then
   `docker compose up -d --force-recreate app` — the app reads secrets only at startup, and compose
   does not recreate the service when only a secret source changes. No image rebuild, no repo

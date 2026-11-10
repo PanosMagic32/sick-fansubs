@@ -97,14 +97,16 @@ func CreateBlogPost(ctx context.Context, db *sql.DB, p CreateBlogPostParams) (po
 		return nil, nil, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, nil, fmt.Errorf("store: commit %s create: %w", k.label, err)
-	}
-
-	// The row is our own — the ungated read-back needs no visibility gate.
-	post, err = getStaffBlogPostUngated(ctx, db, p.ID)
+	// Read the response projection INSIDE the transaction: the row is
+	// guaranteed present, and a read failure rolls the whole write back
+	// instead of reporting a committed write as a 500.
+	post, err = getStaffBlogPostUngated(ctx, tx, p.ID)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("store: commit %s create: %w", k.label, err)
 	}
 	return post, events, nil
 }
@@ -210,13 +212,15 @@ func UpdateBlogPost(ctx context.Context, db *sql.DB, id string, revision int64, 
 		return nil, nil, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, nil, fmt.Errorf("store: commit %s update: %w", k.label, err)
-	}
-
-	post, err = getStaffBlogPostUngated(ctx, db, id)
+	// Same transactional read-back as create: a projection failure rolls the
+	// update back, so a committed write is never reported as a 500.
+	post, err = getStaffBlogPostUngated(ctx, tx, id)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("store: commit %s update: %w", k.label, err)
 	}
 	return post, events, nil
 }

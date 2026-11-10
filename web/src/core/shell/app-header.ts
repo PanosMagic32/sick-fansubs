@@ -10,10 +10,11 @@ import { fetchCurrentUserProfile } from "@features/auth/data-access/profile-api.
 import { unreadNotificationCount } from "@features/notifications/data-access/notifications-api.js";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@features/notifications/notifications-page.js";
 import { AVATAR_CHANGED_EVENT } from "@shared/events.js";
+import { NAVIGATE_EVENT } from "@core/router.js";
 import type { Theme } from "@core/shell/types.js";
 import { ApiError } from "@shared/api/client.js";
 import { requestSignal } from "@shared/api/request-signal.js";
-import { el, unreadBadgeLabel } from "@shared/catalog/el.js";
+import { el, unreadBadgeLabel, unreadBadgeText } from "@shared/catalog/el.js";
 import { TRACKER_URL } from "@shared/config/links.js";
 import { avatarTemplate } from "@shared/ui/avatar.js";
 import avatarStyles from "@shared/ui/avatar.css?inline";
@@ -95,26 +96,19 @@ export class AppHeader extends LitElement {
     super.connectedCallback();
     this.setAttribute("role", "banner");
     this.addEventListener("keydown", this._onKeyDown);
-    // Close the mobile dropdown on outside clicks; Escape closes it from
-    // the keyboard. TWO listeners, because retargeting hides the
-    // difference at document level: the document one sees only "outside
-    // this header", while the shadow one sees the real inner target and
-    // decides panel-vs-bar (below). Focus containment stays deferred.
+    // Two listeners: the document one sees outside clicks, the shadow one
+    // sees the real inner target. Focus containment stays deferred.
     document.addEventListener("click", this._onDocumentClick);
-    // Read mutations on the /notifications page (mark-read, read-all)
-    // refetch the badge (badge freshness rides this
-    // event instead of a polling timer).
+    // Read mutations on /notifications refetch the badge (event-driven).
     window.addEventListener(
       NOTIFICATIONS_CHANGED_EVENT,
       this._onNotificationsChanged,
     );
-    // A confirmed avatar upload on the /account page refetches the
-    // profile so the icon-only chip shows the new image. The avatar is
-    // not part of the session projection, so no session change announces
-    // it.
+    window.addEventListener(NAVIGATE_EVENT, this._onNavigate);
+    window.addEventListener("popstate", this._onNavigate);
+    // A confirmed avatar upload refetches the profile chip.
     window.addEventListener(AVATAR_CHANGED_EVENT, this._onAvatarChanged);
-    // firstUpdated() attached the shadow listener once; re-attach it after
-    // a reconnect, because disconnectedCallback removes it every time.
+    // Re-attach the shadow listener after a reconnect.
     if (this.hasUpdated) {
       this.renderRoot.addEventListener("click", this._onShadowClick);
     }
@@ -132,35 +126,33 @@ export class AppHeader extends LitElement {
       this._onNotificationsChanged,
     );
     window.removeEventListener(AVATAR_CHANGED_EVENT, this._onAvatarChanged);
+    window.removeEventListener(NAVIGATE_EVENT, this._onNavigate);
+    window.removeEventListener("popstate", this._onNavigate);
     this._unreadAbort?.abort();
     this._profileAbort?.abort();
     super.disconnectedCallback();
   }
 
   protected override firstUpdated() {
-    // The inner listener (see connectedCallback): available once the shadow
-    // root exists.
+    // The inner listener needs the shadow root.
     this.renderRoot.addEventListener("click", this._onShadowClick);
   }
 
   protected override updated(changed: PropertyValues<this>) {
-    // Badge refresh on navigation (currentPath is set by the router) and
-    // on session changes (bootstrap/sign-in/sign-out/revalidate).
+    // Badge refresh on navigation and session changes.
     if (changed.has("currentPath")) {
       // Every navigation closes the mobile dropdown, however it started
       // (a link, the brand, an in-page control, back/forward). The
       // outside-click listener cannot catch it — the brand IS inside this
       // header — so the menu follows the path instead.
       //
-      // The FIRST update is not a navigation: Lit reports every declared
-      // property as changed on mount, so reacting there would close a menu
-      // the header was just asked to show.
+      // The FIRST update is not a navigation (Lit reports every property
+      // as changed on mount), so do not close a menu just asked to show.
       if (this._pathSeen) {
         this.navOpen = false;
         this._menuOpen = false;
       }
       this._pathSeen = true;
-      void this._refreshUnread();
     }
     const s = this.session?.state;
     const key =
@@ -171,8 +163,7 @@ export class AppHeader extends LitElement {
       this._sessionKey = key;
       if (s?.status !== "authenticated") {
         this._avatarUrl = null;
-        // A session flip closes and clears the menu — a later sign-in must
-        // not resurrect a panel the previous session left open.
+        // A session flip closes and clears the menu.
         this._menuOpen = false;
         this._menuError = "";
       }
@@ -329,6 +320,14 @@ export class AppHeader extends LitElement {
   /** Avatar upload confirmation → refetch the profile for the chip. */
   private _onAvatarChanged = () => {
     void this._refreshAvatar();
+  };
+
+  /** Every navigation closes both header panels, including a query-only
+   * change the pathname-only currentPath branch cannot see. */
+  private _onNavigate = () => {
+    this.navOpen = false;
+    this._menuOpen = false;
+    void this._refreshUnread();
   };
 
   /**
@@ -646,7 +645,7 @@ export class AppHeader extends LitElement {
                   >${icons.bell}${
                     this._unread
                       ? html`<span class="unread-badge"
-                          >${this._unread > 99 ? "99+" : this._unread}</span
+                          >${unreadBadgeText(this._unread)}</span
                         >`
                       : nothing
                   }</span

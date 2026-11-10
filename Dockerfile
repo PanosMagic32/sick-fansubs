@@ -2,8 +2,8 @@
 # │  Sick-Fansubs — Multi-stage Docker build            │
 # │                                                     │
 # │  Stage 1 (frontend): bun + Vite → dist/             │
-# │  Stage 2 (backend):  Go + embed dist/ → binary      │
-# │  Stage 3 (runtime):  Alpine + binary → serve        │
+# │  Stage 2 (backend):  Go + embed dist/ → binaries    │
+# │  Stage 3 (runtime):  Alpine + binaries → serve      │
 # └─────────────────────────────────────────────────────┘
 #
 # The DEFAULT target is the LAST stage — production. Keep `prod` last: a
@@ -36,7 +36,8 @@ COPY . .
 # Place the built frontend where Go's embed directive finds it.
 # frontend.go uses //go:embed web/dist/* relative to cmd/api/.
 COPY --from=frontend /src/dist/ cmd/api/web/dist/
-RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${APP_VERSION}" -o main ./cmd/api/
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${APP_VERSION}" -o main ./cmd/api/ && \
+    CGO_ENABLED=0 go build -o resetpassword ./cmd/resetpassword
 
 # ── Development stage (hot-reload with Air) ──────────
 FROM backend AS dev
@@ -56,6 +57,12 @@ RUN apk add --no-cache ca-certificates && \
     addgroup -S -g 1000 app && adduser -S -u 1000 -G app app
 
 COPY --from=backend /app/main /app/main
+# The break-glass password reset travels WITH the app image: it is exactly
+# version-paired with the live schema, needs no extra image/pull, and the
+# offline image bundle already carries it. Run it with
+# `--entrypoint /app/resetpassword` while the app is stopped
+# (cmd/resetpassword/AGENTS.md).
+COPY --from=backend /app/resetpassword /app/resetpassword
 
 # SQLite data directory (mounted as a volume in production).
 RUN mkdir -p /app/data && chown app:app /app/data && chmod 700 /app/data

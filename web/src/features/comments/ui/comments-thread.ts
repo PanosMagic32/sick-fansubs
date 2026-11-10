@@ -357,6 +357,8 @@ export class CommentsThread extends LitElement {
         ),
       );
     } catch {
+      // A superseded request's abort must not clear the newer count.
+      if (controller.signal.aborted) return;
       // The count is decorative — the title just drops the number.
       this._count = null;
     }

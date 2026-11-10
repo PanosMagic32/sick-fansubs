@@ -126,4 +126,18 @@ describe("PWA service worker", () => {
       "const cacheable = !isTokenBearing(new URL(request.url));",
     );
   });
+
+  test("keeps cache writes inside the fetch event lifetime", async () => {
+    const source = await readArtifact("sw.js");
+    // A detached waitUntil from a later microtask is ignored once
+    // respondWith settles. The navigation cache write must be registered in
+    // the dispatch turn; the asset/media writers must await their puts.
+    expect(source).toContain("event.waitUntil(\n    responsePromise");
+    expect(source).not.toContain(
+      ".then((cache) =>\n              event.waitUntil(cache.put(",
+    );
+    expect(
+      source.match(/await cache\.put\(request, response\.clone\(\)\);/g),
+    ).toHaveLength(3);
+  });
 });

@@ -41,7 +41,7 @@ const (
 type Service struct {
 	db     *sql.DB
 	sender mail.Sender
-	base   string // PublicBaseURL — the reset-link origin
+	base   string // application origin (TRUSTED_ORIGIN) — the reset-link base
 	// bcryptCost is the cost for NEW hashes (the production default;
 	// tests lower it — see the bcryptCost const comment).
 	bcryptCost int
@@ -49,8 +49,11 @@ type Service struct {
 
 // New creates a Service backed by the given database pool.
 // sender delivers the reset email (mail.Relay in production, mail.LogLink
-// in loopback dev); base is the canonical public origin for link
-// construction. Both are required — cmd/api wires them from config.
+// in loopback dev); base is the application origin (TRUSTED_ORIGIN) for link
+// construction. The API surface requires both. A nil sender deliberately
+// disables mail on admin-only surfaces (routes.Users and cmd/resetpassword
+// pass nil); base is required only by the link-building paths, which those
+// surfaces never call.
 //
 // The dummy bcrypt hash for timing defense is warmed at construction time
 // so that a generation failure is detected at startup, not at request time.
@@ -82,7 +85,7 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 	u, err := s.lookupUserByIdentifier(ctx, identifier)
 	if errors.Is(err, store.ErrNotFound) {
 		// Dummy bcrypt to maintain timing consistency with the real path.
-		_ = compareDummy(dummyBcryptHash(), []byte(password))
+		_ = compareDummy(dummyBcryptHash(), bcryptVerificationPrefix([]byte(password)))
 		return "", "", identity.PublicUser{}, false, ErrInvalidCredentials
 	}
 
@@ -105,7 +108,7 @@ func (s *Service) SignIn(ctx context.Context, identifier, password, userAgent st
 		// leaks "this account has a broken verifier" (enumeration
 		// resistance).
 		if !errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			_ = compareDummy(dummyBcryptHash(), []byte(password))
+			_ = compareDummy(dummyBcryptHash(), bcryptVerificationPrefix([]byte(password)))
 		}
 		return "", "", identity.PublicUser{}, false, ErrInvalidCredentials
 	}

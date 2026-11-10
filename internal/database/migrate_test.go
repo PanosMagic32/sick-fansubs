@@ -139,7 +139,7 @@ func TestApplyMigrations_EmptyToCurrent(t *testing.T) {
 		if string(row.Checksum) != string(m.Checksum) {
 			t.Errorf("version %d checksum mismatch", m.Version)
 		}
-		if row.AppliedAtMs <= 0 {
+		if row.AppliedAtMS <= 0 {
 			t.Errorf("version %d applied_at_ms must be > 0", m.Version)
 		}
 	}
@@ -248,10 +248,14 @@ func TestOpenApplication_Success(t *testing.T) {
 func TestOpenApplication_Unmigrated(t *testing.T) {
 	dir := testDataDir(t)
 
-	// Open without migrating first.
+	// Open without migrating first. The serving opener must refuse before
+	// SQLite creates an empty database at the live path.
 	_, err := OpenApplication(Config{DataDir: dir})
 	if err == nil {
-		t.Fatal("expected error from OpenApplication on unmigrated database")
+		t.Fatal("expected error from OpenApplication on an absent live database")
+	}
+	if _, statErr := os.Stat(filepath.Join(dir, FileName)); !os.IsNotExist(statErr) {
+		t.Fatalf("OpenApplication created an empty live database (stat error %v)", statErr)
 	}
 }
 

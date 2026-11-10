@@ -76,7 +76,10 @@ export abstract class AdminStaffPageBase extends LitElement {
     } else {
       // A role cycle (drop then upgrade, or a session error that recovers)
       // must re-run the load: the previous attempt latched against access
-      // the viewer no longer has.
+      // the viewer no longer has. Abort it so a late success cannot repaint
+      // staff data over the forbidden state.
+      this._abort?.abort();
+      this._abort = null;
       this._started = false;
     }
   }

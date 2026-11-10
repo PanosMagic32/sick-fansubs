@@ -242,12 +242,12 @@ func TestEvent_EmptyRemoteAddrIsEmitted(t *testing.T) {
 	}
 }
 
-// TestAccountSecurityEvents pins the reconciliation list exactly: the seven
+// TestAccountSecurityEvents pins the reconciliation list exactly: the eight
 // events that change durable account security state. The staged-restore
 // refusal filters on this list, so an omission silently weakens the guard and
 // an addition silently broadens it. Deliberately excluded: the ledger-only
-// events that change no credential, role, status, or account existence
-// (sign-in/out, email verification and change, session revoke), and
+// events that change no credential, role, status, account existence, or
+// recovery identifier (sign-in/out, email verification, session revoke), and
 // password_reset_requested (no durable state change).
 func TestAccountSecurityEvents(t *testing.T) {
 	want := []string{
@@ -258,6 +258,7 @@ func TestAccountSecurityEvents(t *testing.T) {
 		EventUserReactivated,
 		EventUserDeleted,
 		EventPasswordResetCompleted,
+		EventEmailChanged,
 	}
 	got := AccountSecurityEvents()
 	if !slices.Equal(got, want) {

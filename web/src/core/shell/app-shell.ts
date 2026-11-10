@@ -159,9 +159,9 @@ export class AppShell extends LitElement {
       // is EXEMPT the same way: the emailed verification link is
       // the same self-service shape.
       if (
-        window.location.pathname !== "/account" &&
-        window.location.pathname !== "/auth/reset" &&
-        window.location.pathname !== "/auth/verify"
+        normalizeAppPathname(window.location.pathname) !== "/account" &&
+        normalizeAppPathname(window.location.pathname) !== "/auth/reset" &&
+        normalizeAppPathname(window.location.pathname) !== "/auth/verify"
       ) {
         redirect("/account");
       }

@@ -52,10 +52,10 @@ const (
 // body key can reach it.
 type blogPostWriteRequest struct {
 	Title           string              `json:"title"`
-	Subtitle        *string             `json:"subtitle"`
-	Description     *string             `json:"description"`
+	Subtitle        optionalString      `json:"subtitle"`
+	Description     optionalString      `json:"description"`
 	ThumbnailPath   string              `json:"thumbnailPath"`
-	Status          *string             `json:"status"`
+	Status          optionalString      `json:"status"`
 	Downloads       []blogDownloadWrite `json:"downloads"`
 	DownloadsParsed []store.Download    `json:"-"`
 }
@@ -129,24 +129,24 @@ func parseBlogPostWrite(w http.ResponseWriter, r *http.Request, allowedStatuses 
 	req.Title = title
 
 	subtitle := ""
-	if req.Subtitle != nil {
-		subtitle = strings.TrimSpace(*req.Subtitle)
+	if req.Subtitle.set {
+		subtitle = strings.TrimSpace(req.Subtitle.value)
 		if utf8.RuneCountInString(subtitle) > maxBlogSubtitleRunes {
 			writeValidationErrors(w, r, []Violation{{Field: "subtitle", Code: "maxLength"}})
 			return req, false
 		}
 	}
-	req.Subtitle = &subtitle
+	req.Subtitle = optionalString{value: subtitle, set: true}
 
 	description := ""
-	if req.Description != nil {
-		description = strings.TrimSpace(*req.Description)
+	if req.Description.set {
+		description = strings.TrimSpace(req.Description.value)
 		if utf8.RuneCountInString(description) > maxBlogDescriptionRunes {
 			writeValidationErrors(w, r, []Violation{{Field: "description", Code: "maxLength"}})
 			return req, false
 		}
 	}
-	req.Description = &description
+	req.Description = optionalString{value: description, set: true}
 
 	if strings.TrimSpace(req.ThumbnailPath) == "" {
 		writeValidationErrors(w, r, []Violation{{Field: "thumbnailPath", Code: "required"}})
@@ -154,14 +154,14 @@ func parseBlogPostWrite(w http.ResponseWriter, r *http.Request, allowedStatuses 
 	}
 
 	status := "published" // the form defaults to published
-	if req.Status != nil {
-		status = *req.Status
+	if req.Status.set {
+		status = req.Status.value
 	}
 	if !slices.Contains(allowedStatuses, status) {
 		writeValidationErrors(w, r, []Violation{{Field: "status", Code: "invalidValue"}})
 		return req, false
 	}
-	req.Status = &status
+	req.Status = optionalString{value: status, set: true}
 
 	// Downloads: required, bounded, each row
 	// needs a resolution and at least one link; every link must pass the

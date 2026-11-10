@@ -181,8 +181,11 @@ export abstract class ContentFormBase<
         this.status = "ready";
       }
     } else if (!this._allowed()) {
-      // A demotion latches the guard's forbidden state; clear the row latch
-      // so a later promotion on the same id runs the load again.
+      // A demotion latches the guard's forbidden state; abort the row load and
+      // clear the row latch so a later promotion on the same id runs the load
+      // again. A late row success must not repaint the form over the refusal.
+      this._abort?.abort();
+      this._abort = null;
       this._startedId = null;
     }
     if (this._pendingRowLoad !== null) {
@@ -220,10 +223,14 @@ export abstract class ContentFormBase<
     this._mediaWidget()?.reset();
   }
 
-  /** True while an awaited write still belongs to the current row. */
+  /** True while an awaited write still belongs to the current row AND the
+   * element is still mounted. A detached editor must not navigate or paint a
+   * response that lands after the user left it. */
   protected _ownsAction(generation: number): boolean {
     return (
-      generation === this._actionGeneration && this._rowId === this._startedId
+      this.isConnected &&
+      generation === this._actionGeneration &&
+      this._rowId === this._startedId
     );
   }
 

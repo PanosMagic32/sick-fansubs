@@ -35,25 +35,34 @@ func (w *AuditWriter) Write(ctx context.Context, rec audit.Record) error {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 
-	eventID, err := id.New()
-	if err != nil {
-		return fmt.Errorf("store: audit event id: %w", err)
-	}
+	eventID := ""
 	now := time.Now
 	if w.Now != nil {
 		now = w.Now
 	}
-	_, err = w.DB.ExecContext(ctx, `
-		INSERT INTO audit_events
-			(id, event, result, actor_id, target_id, target_role, content_kind, content_id, comment_id, request_id, remote_addr, created_at_ms)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		eventID, rec.Event, rec.Result, nullableString(rec.ActorID), nullableString(rec.TargetID),
-		nullableString(rec.TargetRole), nullableString(rec.ContentKind), nullableString(rec.ContentID),
-		nullableString(rec.CommentID), rec.RequestID, rec.RemoteAddr, now().UnixMilli())
-	if err != nil {
-		return fmt.Errorf("store: insert audit event: %w", err)
+	var collision error
+	for range mintCollisionRetries {
+		var err error
+		eventID, err = id.New()
+		if err != nil {
+			return fmt.Errorf("store: audit event id: %w", err)
+		}
+		_, err = w.DB.ExecContext(ctx, `
+			INSERT INTO audit_events
+				(id, event, result, actor_id, target_id, target_role, content_kind, content_id, comment_id, request_id, remote_addr, created_at_ms)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			eventID, rec.Event, rec.Result, nullableString(rec.ActorID), nullableString(rec.TargetID),
+			nullableString(rec.TargetRole), nullableString(rec.ContentKind), nullableString(rec.ContentID),
+			nullableString(rec.CommentID), rec.RequestID, rec.RemoteAddr, now().UnixMilli())
+		if err == nil {
+			return nil
+		}
+		if !IsUniqueViolation(err) {
+			return fmt.Errorf("store: insert audit event: %w", err)
+		}
+		collision = err
 	}
-	return nil
+	return fmt.Errorf("store: insert audit event: %w: %v", ErrDuplicate, collision)
 }
 
 // AuditEvent is one row of the audit ledger as the super-admin browser reads

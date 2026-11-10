@@ -42,8 +42,13 @@ import (
 //     constructed once in cmd/api and passed to BOTH
 //     route trees so every verification-send surface shares one limit)
 //   - Email change: same shared bucket, checked in the handler.
-func Auth(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, publicBaseURL string, sender mail.Sender, verifySendLimiter *middleware.RateLimiter) {
-	authSvc := auth.New(db, sender, publicBaseURL)
+//
+// appBaseURL builds the reset/verification links. It is the application
+// origin (TRUSTED_ORIGIN), never PUBLIC_BASE_URL: the latter may carry a media
+// path prefix or point at a separate media host, and the auth pages are served
+// at the app root.
+func Auth(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, appBaseURL string, sender mail.Sender, verifySendLimiter *middleware.RateLimiter) {
+	authSvc := auth.New(db, sender, appBaseURL)
 
 	// Rate limiters (in-memory, reset on restart).
 	signInIPLimiter := middleware.NewRateLimiter(10, 15*time.Minute, time.Minute)
@@ -87,5 +92,6 @@ func Auth(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, publicBase
 		pathLimit{verifyIPLimiter, "/verify-email"},
 	)
 
+	mux.Handle("/api/v1/auth", notFound())
 	mux.Handle("/api/v1/auth/", http.StripPrefix("/api/v1/auth", h))
 }

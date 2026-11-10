@@ -43,7 +43,7 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 
 		nowMS := now().UnixMilli()
 		var publishedMS int64
-		if *req.Status == "published" {
+		if req.Status.value == "published" {
 			publishedMS = nowMS
 		}
 
@@ -60,10 +60,10 @@ func BlogCreate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 			post, events, err = store.CreateBlogPost(r.Context(), db, store.CreateBlogPostParams{
 				ID:            postID,
 				Title:         req.Title,
-				Subtitle:      *req.Subtitle,
-				Description:   *req.Description,
+				Subtitle:      req.Subtitle.value,
+				Description:   req.Description.value,
 				ThumbnailURL:  req.ThumbnailPath,
-				Status:        *req.Status,
+				Status:        req.Status.value,
 				CreatorID:     su.UserID,
 				UpdaterID:     su.UserID,
 				PublishedAtMS: publishedMS,
@@ -161,10 +161,10 @@ func BlogUpdate(db *sql.DB, dataDir string, publicBaseURL string, notify push.No
 
 		post, events, err := store.UpdateBlogPost(r.Context(), db, id, revision, store.UpdateBlogPostParams{
 			Title:        req.Title,
-			Subtitle:     *req.Subtitle,
-			Description:  *req.Description,
+			Subtitle:     req.Subtitle.value,
+			Description:  req.Description.value,
 			ThumbnailURL: req.ThumbnailPath,
-			Status:       *req.Status,
+			Status:       req.Status.value,
 			UpdaterID:    su.UserID,
 			NowMS:        now().UnixMilli(),
 			Downloads:    req.DownloadsParsed,

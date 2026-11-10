@@ -49,15 +49,16 @@ VPS
 
 1. Cloudflare terminates browser TLS, applies the zone settings, and proxies to origin 443; Caddy
    terminates origin TLS and reverse-proxies to `app:8080`.
-2. The router resolves three families: `/api/v1/*` (the JSON API), `/media/*` (stored media bytes),
-   and everything else to the embedded SPA shell. Hashed assets are immutable-cached, HTML
-   revalidates, and a missing `/assets/*` file is a 404 — never the shell.
+2. The router resolves four families: `/api/v1/*` (the JSON API), `/media/*` (stored media bytes),
+   the operational `/health/*` surface (unversioned liveness/readiness), and everything else to the
+   embedded SPA shell. Hashed assets are immutable-cached, HTML revalidates, and a missing
+   `/assets/*` file is a 404 — never the shell.
 3. Middleware chains are composed in one place (`internal/routes/chains.go`): request ID first, then
    the trusted-origin and session checks (every family except the plain public reads), then the
    forced-password-change gate, then CSRF on unsafe methods. The auth subtree carries path-scoped IP
    rate limits instead of the gate, and handler-level user-keyed buckets guard the abuse-sensitive
-   writes (comments, password change, verification sends, the push self-test). Rule home:
-   [patterns/go/route-chains.md](patterns/go/route-chains.md).
+   writes (comments, password change, verification sends, media and avatar uploads, the push
+   self-test). Rule home: [patterns/go/route-chains.md](patterns/go/route-chains.md).
 4. Handlers validate input, call the store, and answer JSON; errors are RFC 9457 problem bodies, and
    every request logs through the request-scoped `slog` logger. The wire contract is
    [api/openapi.yaml](api/openapi.yaml).
@@ -92,7 +93,8 @@ VPS
   backup, restore, rebuildsearch, caddy — the auxiliary images version-paired with the app through
   `AUX_TAG`, restore riding `:latest` as the break-glass path); the deploy job — gated by the
   `deploy-approval` environment — ships the compose file, the Caddyfile, and the scripts over SSH
-  and runs `deploy/deploy.sh` ([ops/deploy.md](ops/deploy.md)).
+  and runs `deploy/deploy.sh` ([ops/deploy.md](ops/deploy.md)). The app image also carries
+  `/app/resetpassword`, the version-paired break-glass reset entrypoint.
 - `deploy.sh` takes the preflight backup, stops the app, applies migrations, brings the stack up,
   and health-gates it, keeping the previous TAG and Caddyfile as the rollback target. It never rolls
   back `compose.yaml`, and a failure that has already moved the schema stops for a data decision

@@ -294,16 +294,15 @@ export interface NavigateEventDetail {
  * NAVIGATE_EVENT) to render the matching route. Components that need
  * to redirect — e.g., the sign-in page after authentication — call
  * this instead of assigning window.location.href.
+ *
+ * The target is resolved against the current URL, its pathname normalized
+ * (the router's trailing-slash canonical form), and the FULL current URL is
+ * compared before writing. A query-only change from `/search?q=x` to
+ * `/search` therefore pushes, and a registered route never keeps a
+ * noncanonical history entry.
  */
 export function navigate(path: string): void {
-  if (window.location.pathname !== path) {
-    window.history.pushState({}, "", path);
-  }
-  window.dispatchEvent(
-    new CustomEvent<NavigateEventDetail>(NAVIGATE_EVENT, {
-      detail: { path },
-    }),
-  );
+  navigateWith(path, "pushState");
 }
 
 /**
@@ -313,12 +312,34 @@ export function navigate(path: string): void {
  * history, and Back would ping-pong between the two routes forever.
  */
 export function redirect(path: string): void {
-  if (window.location.pathname !== path) {
-    window.history.replaceState({}, "", path);
+  navigateWith(path, "replaceState");
+}
+
+/** One history-write path for both navigation helpers. */
+function navigateWith(
+  path: string,
+  method: "pushState" | "replaceState",
+): void {
+  const target = new URL(path, navigationBase());
+  target.pathname = normalizeAppPathname(target.pathname);
+  const targetPath = target.pathname + target.search + target.hash;
+  if (
+    targetPath !==
+    window.location.pathname + window.location.search + window.location.hash
+  ) {
+    window.history[method]({}, "", targetPath);
   }
   window.dispatchEvent(
     new CustomEvent<NavigateEventDetail>(NAVIGATE_EVENT, {
-      detail: { path },
+      detail: { path: targetPath },
     }),
   );
+}
+
+/** The current URL when it is absolute; happy-dom's about:blank fallback is
+ * not a valid URL base, so tests and non-browser contexts get a loopback
+ * origin. */
+function navigationBase(): string {
+  if (/^https?:/i.test(window.location.href)) return window.location.href;
+  return `http://localhost${window.location.pathname}${window.location.search}${window.location.hash}`;
 }

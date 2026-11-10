@@ -32,6 +32,9 @@ func New() (string, error) {
 // Fallback returns a never-failing 32-character identifier for a caller that
 // must keep answering when New fails. It is time-ordered and unique within the
 // process — a correlation value, never a secret and never a stored identity.
+// Both generated fields are masked to their fixed widths (12 hex time digits,
+// 8 hex counter digits), so the shape cannot widen after a counter wrap.
 func Fallback() string {
-	return fmt.Sprintf("%s%012x%08x", fallbackPrefix, time.Now().UnixMilli(), fallbackSeq.Add(1))
+	return fmt.Sprintf("%s%012x%08x", fallbackPrefix,
+		time.Now().UnixMilli()&0xffffffffffff, fallbackSeq.Add(1)&0xffffffff)
 }

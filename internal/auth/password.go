@@ -62,13 +62,21 @@ func verifyPassword(storedHash, submitted []byte) (int, error) {
 	if err != nil || cost > maxBcryptCost {
 		return 0, errVerifierUnusable
 	}
-	if len(submitted) > bcryptMaxPasswordBytes {
-		submitted = submitted[:bcryptMaxPasswordBytes]
-	}
-	if err := bcrypt.CompareHashAndPassword(storedHash, submitted); err != nil {
+	if err := bcrypt.CompareHashAndPassword(storedHash, bcryptVerificationPrefix(submitted)); err != nil {
 		return 0, err
 	}
 	return cost, nil
+}
+
+// bcryptVerificationPrefix is the input bcrypt actually compares: the first
+// 72 bytes. The dummy comparisons use it too, so the timing profile of an
+// unknown-user or unusable-verifier path matches a real wrong-password check
+// for over-72-byte submissions.
+func bcryptVerificationPrefix(submitted []byte) []byte {
+	if len(submitted) > bcryptMaxPasswordBytes {
+		return submitted[:bcryptMaxPasswordBytes]
+	}
+	return submitted
 }
 
 // supportedVerifierPrefix reports whether a stored hash carries one of the

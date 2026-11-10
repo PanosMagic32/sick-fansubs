@@ -430,6 +430,9 @@ func TestBlogCreate_Validation(t *testing.T) {
 		{"mismatched thumbnail subdirectory", `{"title":"T","thumbnailPath":"media/images/cd/abcdef0123456789abcdef0123456789.jpg","status":"draft","downloads":[{"resolution":"1080p","magnetUrl":"magnet:?xt=x"}]}`, 422, "thumbnailPath", "invalidFormat"},
 		{"bad status", `{"title":"T","thumbnailPath":"` + adminThumb + `","status":"bogus","downloads":[{"resolution":"1080p","magnetUrl":"magnet:?xt=x"}]}`, 422, "status", "invalidValue"},
 		{"archived at create", `{"title":"T","thumbnailPath":"` + adminThumb + `","status":"archived","downloads":[{"resolution":"1080p","magnetUrl":"magnet:?xt=x"}]}`, 422, "status", "invalidValue"},
+		{"null status", `{"title":"T","thumbnailPath":"` + adminThumb + `","status":null,"downloads":[{"resolution":"1080p","magnetUrl":"magnet:?xt=x"}]}`, 400, "", ""},
+		{"null subtitle", `{"title":"T","subtitle":null,"thumbnailPath":"` + adminThumb + `","status":"draft","downloads":[{"resolution":"1080p","magnetUrl":"magnet:?xt=x"}]}`, 400, "", ""},
+		{"null description", `{"title":"T","description":null,"thumbnailPath":"` + adminThumb + `","status":"draft","downloads":[{"resolution":"1080p","magnetUrl":"magnet:?xt=x"}]}`, 400, "", ""},
 		{"unknown field", `{"title":"T","thumbnailPath":"` + adminThumb + `","status":"draft","downloads":[{"resolution":"1080p","magnetUrl":"magnet:?xt=x"}],"nope":1}`, 400, "", ""},
 	}
 	for _, c := range cases {

@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"os"
@@ -82,7 +81,7 @@ func TestParseLevel_Vocabulary(t *testing.T) {
 func TestRead_MissingDirectoryIsEmpty(t *testing.T) {
 	t.Parallel()
 
-	entries, err := Read(context.Background(), filepath.Join(t.TempDir(), "logs"), Filter{MinLevel: slog.LevelWarn, Limit: 10})
+	entries, err := Read(t.Context(), filepath.Join(t.TempDir(), "logs"), Filter{MinLevel: slog.LevelWarn, Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -100,7 +99,7 @@ func TestRead_NewestFirstAcrossFiles(t *testing.T) {
 	writeSinkFile(t, dir, FileName, jsonLine("ERROR", "live-old"), jsonLine("ERROR", "live-new"))
 	writeSinkFile(t, dir, FileName+".1", jsonLine("ERROR", "backup-old"), jsonLine("ERROR", "backup-new"))
 
-	entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
+	entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -119,7 +118,7 @@ func TestRead_LevelFilterKeepsTheFloorAndAbove(t *testing.T) {
 	writeSinkFile(t, dir, FileName,
 		jsonLine("DEBUG", "d"), jsonLine("INFO", "i"), jsonLine("WARN", "w"), jsonLine("ERROR", "e"))
 
-	entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
+	entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -127,7 +126,7 @@ func TestRead_LevelFilterKeepsTheFloorAndAbove(t *testing.T) {
 		t.Errorf("warn floor = %v, want %v", got, want)
 	}
 
-	entries, err = Read(context.Background(), dir, Filter{MinLevel: slog.LevelInfo, Limit: 10})
+	entries, err = Read(t.Context(), dir, Filter{MinLevel: slog.LevelInfo, Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -146,7 +145,7 @@ func TestRead_SubstringFilterIsCaseInsensitive(t *testing.T) {
 		jsonLine("ERROR", "boom", "requestId", "AbC123"),
 		jsonLine("ERROR", "quiet"))
 
-	entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Query: "abc123", Limit: 10})
+	entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Query: "abc123", Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -154,7 +153,7 @@ func TestRead_SubstringFilterIsCaseInsensitive(t *testing.T) {
 		t.Errorf("field substring = %v, want %v", got, want)
 	}
 
-	entries, err = Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Query: "QUIET", Limit: 10})
+	entries, err = Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Query: "QUIET", Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -172,7 +171,7 @@ func TestRead_LimitCapsTheResult(t *testing.T) {
 	writeSinkFile(t, dir, FileName+".1", jsonLine("ERROR", "oldest"), jsonLine("ERROR", "older"))
 	writeSinkFile(t, dir, FileName, jsonLine("ERROR", "newer"), jsonLine("ERROR", "newest"))
 
-	entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 2})
+	entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 2})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -180,7 +179,7 @@ func TestRead_LimitCapsTheResult(t *testing.T) {
 		t.Errorf("limit 2 = %v, want %v", got, want)
 	}
 
-	if entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 0}); err != nil || len(entries) != 0 {
+	if entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 0}); err != nil || len(entries) != 0 {
 		t.Errorf("limit 0 = %v/%v, want no entries and no error", msgs(entries), err)
 	}
 }
@@ -203,7 +202,7 @@ func TestRead_SkipsMalformedLines(t *testing.T) {
 		``,
 	)
 
-	entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
+	entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -222,7 +221,7 @@ func TestRead_ExtractsFields(t *testing.T) {
 		jsonLine("WARN", "flaky", "requestId", "r1", "attempt", 3),
 		jsonLine("WARN", "bare"))
 
-	entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
+	entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Limit: 10})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -288,7 +287,7 @@ func TestRead_TailOfOversizedFile(t *testing.T) {
 		t.Fatalf("seed oversized file: %v", err)
 	}
 
-	entries, err := Read(context.Background(), dir, Filter{MinLevel: slog.LevelWarn, Limit: total})
+	entries, err := Read(t.Context(), dir, Filter{MinLevel: slog.LevelWarn, Limit: total})
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}

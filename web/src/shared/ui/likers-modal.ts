@@ -214,6 +214,10 @@ export class LikersModal extends LitElement {
     }
     this._moreAbort?.abort();
     this._moreAbort = null;
+    // A superseded first-page load must be cancelled too: a batched
+    // close/reopen leaves the final open value true, so the updated() branch
+    // never sees the close.
+    this._abort?.abort();
     const controller = new AbortController();
     this._abort = controller;
     this._items = [];

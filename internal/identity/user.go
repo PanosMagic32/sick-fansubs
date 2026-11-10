@@ -19,16 +19,16 @@ package identity
 type User struct {
 	ID            string
 	Username      string // display spelling as stored
-	UsernameCanon string // lowercased, whitespace-folded lookup key
+	UsernameCanon string `json:"-"` // lowercased, whitespace-folded lookup key
 	Email         string // lowercased recovery identifier
-	Password      string
+	Password      string `json:"-"`
 	Role          string // one of the Role* values
 	Status        string // one of the Status* values
-	AuthVersion   int64  // revocation epoch; sessions match on it
+	AuthVersion   int64  `json:"-"` // revocation epoch; sessions match on it
 	// MustChangePassword is the forced-change flag: an admin reset sets it and
 	// the authenticated chain 403s every
 	// non-exempt path until the user changes their password.
-	MustChangePassword bool
+	MustChangePassword bool    `json:"-"`
 	AvatarURL          *string // served media URL, nil when unset
 	EmailVerifiedAtMS  *int64  // verification instant, nil while unverified
 	CreatedAtMS        int64   // UTC milliseconds

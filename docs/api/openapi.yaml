@@ -29,15 +29,61 @@ info:
     sign-out, sign-out-all, password change, reset-password, and session
     revoke — declare it on their own response.
 
-    Asset delivery — GET /media/images/{file} — is intentionally outside this
-    document. The serving route returns bytes with plain-text errors and
-    immutable caching, and the /media/ fallback paths are JSON 404 problems
-    kept out of the document by design; their contracts live in
+    Asset delivery is documented as GET /media/images/{file}: bytes with
+    plain-text errors and immutable caching. The /media/ fallback paths remain
+    JSON 404 problems outside the document by design; their contracts live in
     internal/routes/AGENTS.md and internal/handler/AGENTS.md.
 
 servers:
   - url: /
 paths:
+  # ── Asset delivery ──
+  /media/images/{file}:
+    get:
+      operationId: serveMedia
+      summary: Serve one processed media object
+      description: >-
+        Public immutable asset delivery outside /api/v1. The path segment is
+        exactly 32 lowercase hex characters, a dot, and jpg, jpeg, or png. The
+        id is never reused for different bytes, so the response is cached for
+        one year. Errors are plain text, not RFC 9457 problems.
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-f]{32}\.(jpg|jpeg|png)$'
+      responses:
+        "200":
+          description: The stored image bytes.
+          headers:
+            Cache-Control:
+              description: Immutable one-year cache directive.
+              schema:
+                type: string
+                example: public, max-age=31536000, immutable
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: The segment is not a valid media file name (plain text).
+          content:
+            text/plain:
+              schema:
+                type: string
+        "404":
+          description: No stored file matches the segment (plain text).
+          content:
+            text/plain:
+              schema:
+                type: string
   # ── Authentication ──
   /api/v1/auth/sign-in:
     post:
@@ -2702,8 +2748,8 @@ paths:
         actor or the maintenance actor (rendered as a system label) —
         EXCEPT on comment_removed items, whose null actor is by design
         (the moderator is never named) and renders no actor element; a
-        null contentTitle is deleted content (rendered with a generic
-        label).
+        null contentTitle is deleted or no longer published content
+        (rendered with a generic label).
       parameters:
         - name: limit
           in: query
@@ -3170,8 +3216,12 @@ paths:
         ON for EVERY role; the staff-only draft_activity is opt-in at
         EVERY role and is omitted from the list entirely below the
         moderator floor, where a write for it is the masked 404 — a
-        below-floor session never sees a toggle that could not fire. The
-        in-app feed is always on and unaffected. Floor: authenticated (401
+        below-floor session never sees a toggle that could not fire. For
+        heart, comment_reply, comment, content_updated, and comment_removed
+        the toggle controls PUSH only: their in-app feed entry is created
+        regardless. For new_content and draft_activity the same preference
+        gates BOTH the in-app entry and push, because the opted-in audience
+        is the recipient set itself. Floor: authenticated (401
         unauthenticated). No query parameters are accepted.
       responses:
         "200":
@@ -3441,7 +3491,7 @@ paths:
         containing the anchor (the target itself when top-level, its parent
         when a reply), and when the anchor is a reply outside its parent's
         inline window that parent's window becomes the fixed reply page
-        containing it (R4); a deleted/foreign/unknown anchor falls back to
+        containing it; a deleted/foreign/unknown anchor falls back to
         the first page. focus and after are mutually exclusive (400).
         Unknown, draft, archived, and unstamped content answer the masked
         404. The top sort's key is mutable: a heart committed between page
@@ -4606,7 +4656,7 @@ components:
       properties:
         id:
           type: string
-          description: 32-char hex user identifier.
+          description: Opaque URL-safe user identifier (1–64 characters; shape is not part of the contract).
         username:
           type: string
         role:
@@ -6783,7 +6833,7 @@ components:
         One comment_removed entry from the viewer's user_notifications rows: a moderator+ deleted a
         comment of the viewer's. The CommentNotificationItem field set with
         two deliberate differences. actorUsername is ALWAYS null — the
-        notice never names the moderator (the R5 detail ruling; the
+        notice never names the moderator (the moderation rule; the
         comment_deleted audit ledger is the accountability record). And the
         client navigates to /blog/{contentId} (or /projects/…) with NO
         fragment: the comment is gone, so a #comment-{commentId} fragment
@@ -7414,7 +7464,7 @@ components:
             - admin
             - super-admin
           description: >-
-            The author's staff role, exposed ONLY for staff authors (R3) —
+            The author's staff role, exposed ONLY for staff authors —
             the client colors the badge on it. Omitted entirely for a
             non-staff author.
     Comment:
@@ -7478,7 +7528,7 @@ components:
           type: integer
           minimum: 0
           description: >-
-            The total number of replies (R4) — present ONLY on top-level
+            The total number of replies — present ONLY on top-level
             items; replies holds at most the first 3 of them.
         repliesEndCursor:
           type: string

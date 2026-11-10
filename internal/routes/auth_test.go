@@ -31,6 +31,33 @@ func sendAuthRequest(t *testing.T, mux *http.ServeMux, method, path, ip string) 
 	return rec
 }
 
+// TestAuth_NamespaceRootIsJSON404 pins the bare auth namespace: it must not
+// 307-redirect to the subtree before the request-ID/problem chain runs.
+func TestAuth_NamespaceRootIsJSON404(t *testing.T) {
+	t.Parallel()
+
+	mux, db, _, _ := setupUsersMux(t)
+	Auth(mux, db, false, "http://localhost:5173", "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		req := httptest.NewRequest(method, "/api/v1/auth", strings.NewReader("{}"))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", "http://localhost:5173")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: status = %d, want 404", method, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+			t.Errorf("%s: Content-Type = %q, want problem+json", method, ct)
+		}
+		if rec.Header().Get("X-Request-ID") == "" {
+			t.Errorf("%s: X-Request-ID missing", method)
+		}
+	}
+}
+
 // TestAuth_PathIPLimits pins the per-path IP limiter table Auth() wires: each
 // limited path allows its documented per-IP boundary and answers 429 on the
 // request just past it, while a fresh client IP is still admitted — the

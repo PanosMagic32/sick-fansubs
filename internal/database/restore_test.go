@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"sick-fansubs/internal/audit"
 	"sick-fansubs/internal/store/storetest"
 )
 
@@ -49,6 +50,14 @@ func seedUserAndSession(t *testing.T, db *sql.DB) []byte {
 		VALUES (?, 'u1', 1000, 2000)`, verifyDigest); err != nil {
 		t.Fatalf("seed verification token: %v", err)
 	}
+	// One push subscription: the restore purge removes account-bound
+	// delivery rows with the sessions, so a revoked device cannot receive
+	// notifications from a restored backup.
+	if _, err := db.Exec(`INSERT INTO push_subscriptions
+		(id, user_id, endpoint, p256dh, auth, created_at_ms, updated_at_ms)
+		VALUES ('ps1', 'u1', 'https://push.example/ep1', 'p', 'a', 1000, 1000)`); err != nil {
+		t.Fatalf("seed push subscription: %v", err)
+	}
 	return digest
 }
 
@@ -56,11 +65,17 @@ func seedUserAndSession(t *testing.T, db *sql.DB) []byte {
 // created_at_ms (the reconciliation v1 compares the newest of these).
 func seedSecurityEvent(t *testing.T, db *sql.DB, createdMs int64) {
 	t.Helper()
+	seedSecurityEventNamed(t, db, "password_reset", createdMs)
+}
+
+// seedSecurityEventNamed inserts one named SUCCESSFUL security event.
+func seedSecurityEventNamed(t *testing.T, db *sql.DB, event string, createdMs int64) {
+	t.Helper()
 	if _, err := db.Exec(`INSERT INTO audit_events
 		(id, event, result, actor_id, target_id, request_id, remote_addr, created_at_ms)
-		VALUES (?, 'password_reset', 'success', 'a1', 'u1', 'req-1', '127.0.0.1', ?)`,
-		"evt-"+time.Now().Format("150405.000000000"), createdMs); err != nil {
-		t.Fatalf("seed security event: %v", err)
+		VALUES (?, ?, 'success', 'a1', 'u1', 'req-1', '127.0.0.1', ?)`,
+		"evt-"+time.Now().Format("150405.000000000"), event, createdMs); err != nil {
+		t.Fatalf("seed security event %s: %v", event, err)
 	}
 }
 
@@ -178,6 +193,13 @@ func TestStagedRestore_ActivatesAndInvalidatesSessions(t *testing.T) {
 	}
 	if found != 0 {
 		t.Fatal("the restored database still contains the revoked session digest — a restored session could authenticate")
+	}
+	var pushRows int
+	if err := app.QueryRow("SELECT COUNT(*) FROM push_subscriptions").Scan(&pushRows); err != nil {
+		t.Fatalf("count restored push subscriptions: %v", err)
+	}
+	if pushRows != 0 {
+		t.Fatalf("got %d, want 0 push subscriptions after restore", pushRows)
 	}
 	// Reset tokens die with the sessions: a restored
 	// older backup must not resurrect a consumed link.
@@ -403,6 +425,26 @@ func TestStagedRestore_RefusesNewerSecurityEvents(t *testing.T) {
 	}
 	if !res.AcknowledgedLoss || res.LiveNewestMS <= res.BackupNewestMS {
 		t.Fatalf("got %+v, want acknowledged loss with liveNewest > backupNewest", res)
+	}
+}
+
+// TestStagedRestore_RefusesNewerEmailChange pins the recovery-identifier arm:
+// an email change after the backup is an account-security event, so a restore
+// that would revive the old address refuses without the override.
+func TestStagedRestore_RefusesNewerEmailChange(t *testing.T) {
+	dir, backupPath, _ := setupRestoreFixture(t)
+
+	db, err := Open(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("open live: %v", err)
+	}
+	seedSecurityEventNamed(t, db, audit.EventEmailChanged, time.Now().UnixMilli())
+	if err := db.Close(); err != nil {
+		t.Fatalf("close live: %v", err)
+	}
+
+	if _, err := StagedRestore(StagedRestoreOptions{DataDir: dir, BackupPath: backupPath}); err == nil {
+		t.Fatal("expected refusal for a post-backup email change")
 	}
 }
 

@@ -2,7 +2,6 @@ package logging
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"log/slog"
 	"testing"
@@ -12,7 +11,7 @@ import (
 // on: a context that carries no logger still yields a usable one.
 func TestFromReturnsTheDefaultWithoutALogger(t *testing.T) {
 	t.Parallel()
-	if got := From(context.Background()); got != slog.Default() {
+	if got := From(t.Context()); got != slog.Default() {
 		t.Errorf("From(empty) = %p, want the process default %p", got, slog.Default())
 	}
 }
@@ -21,7 +20,7 @@ func TestFromReturnsTheDefaultWithoutALogger(t *testing.T) {
 // context explicitly carrying nil must not hand callers a nil logger.
 func TestFromReturnsANilFreeLogger(t *testing.T) {
 	t.Parallel()
-	if got := From(With(context.Background(), nil)); got == nil {
+	if got := From(With(t.Context(), nil)); got == nil {
 		t.Fatal("From(ctx with nil logger) = nil, want the default logger")
 	}
 }
@@ -34,7 +33,7 @@ func TestWithAndFromRoundTrip(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil)).With("requestId", "abc123")
 
-	From(With(context.Background(), logger)).InfoContext(context.Background(), "probe")
+	From(With(t.Context(), logger)).InfoContext(t.Context(), "probe")
 
 	var line map[string]any
 	if err := json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &line); err != nil {

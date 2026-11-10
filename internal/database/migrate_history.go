@@ -45,7 +45,7 @@ func appliedMigrationsCtx(ctx context.Context, db *sql.DB) (map[int]migrationRow
 	applied := make(map[int]migrationRow)
 	for rows.Next() {
 		var r migrationRow
-		if err := rows.Scan(&r.Version, &r.Name, &r.Checksum, &r.AppliedAtMs); err != nil {
+		if err := rows.Scan(&r.Version, &r.Name, &r.Checksum, &r.AppliedAtMS); err != nil {
 			return nil, fmt.Errorf("migrate: scan migration row: %w", err)
 		}
 		applied[r.Version] = r
@@ -61,7 +61,7 @@ type migrationRow struct {
 	Version     int
 	Name        string
 	Checksum    []byte
-	AppliedAtMs int64
+	AppliedAtMS int64
 }
 
 // appliedPrefixOK rejects a stored history that is not a contiguous prefix of
@@ -93,8 +93,8 @@ func checkRowInvariants(applied map[int]migrationRow) error {
 		if len(row.Checksum) != 32 {
 			return fmt.Errorf("migrate: version %d: stored checksum length %d, want 32", version, len(row.Checksum))
 		}
-		if row.AppliedAtMs < 0 {
-			return fmt.Errorf("migrate: version %d: stored applied_at_ms %d is negative", version, row.AppliedAtMs)
+		if row.AppliedAtMS < 0 {
+			return fmt.Errorf("migrate: version %d: stored applied_at_ms %d is negative", version, row.AppliedAtMS)
 		}
 	}
 	return nil

@@ -26,6 +26,32 @@ func openHealthDB(t *testing.T) *sql.DB {
 	return db
 }
 
+// TestHealth_NamespaceFallbacksAreJSON404 pins the probe-typo guard: a bare
+// or trailing-slash health path must not fall through to the SPA shell.
+func TestHealth_NamespaceFallbacksAreJSON404(t *testing.T) {
+	t.Parallel()
+
+	db := openHealthDB(t)
+	mux := http.NewServeMux()
+	Health(mux, db, testDataDir(t))
+
+	for _, path := range []string{"/health", "/health/", "/health/live/", "/health/ready/"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: status = %d, want 404", path, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+			t.Errorf("%s: Content-Type = %q, want problem+json", path, ct)
+		}
+		if rec.Header().Get("X-Request-ID") == "" {
+			t.Errorf("%s: X-Request-ID missing", path)
+		}
+	}
+}
+
 // TestHealth_CarriesTheRequestID pins the route-level contract the handler
 // tests cannot: Health applies the RequestID middleware itself, so a probe
 // response carries a server-generated ID and the readiness checker still runs

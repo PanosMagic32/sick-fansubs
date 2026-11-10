@@ -950,6 +950,51 @@ describe("blog-form-page", () => {
     expect(nav.path).toBeNull();
   });
 
+  test("a save that lands after the editor is detached is ignored", async () => {
+    let resolvePut: ((r: Response) => void) | null = null;
+    mockFetchImpl(async (input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (init?.method === "PUT") {
+        return new Promise<Response>((resolve) => {
+          resolvePut = resolve;
+        });
+      }
+      const id = url.split("/").pop() ?? "";
+      return mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: {
+          ...POST_RESPONSE,
+          id,
+          title: id === "p2" ? "Second Post" : "New Post",
+        },
+      });
+    });
+    const nav = listenForNavigation(navCleanups);
+
+    const page = await render("p1");
+    await settle();
+    await page.updateComplete;
+    submit(page);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(resolvePut).not.toBeNull();
+
+    // The user leaves the editor while the write is in flight.
+    page.remove();
+
+    resolvePut!(
+      mockResponse({
+        ok: true,
+        status: 200,
+        jsonBody: { ...POST_RESPONSE, id: "p1", title: "Late p1" },
+      }),
+    );
+    await settle();
+
+    // The detached editor must not navigate the new page.
+    expect(nav.path).toBeNull();
+  });
+
   test("a role cycle on the same row reloads after the promotion", async () => {
     let gets = 0;
     mockFetchImpl(async (_input, init) => {

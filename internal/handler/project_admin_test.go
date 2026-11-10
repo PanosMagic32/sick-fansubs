@@ -304,6 +304,23 @@ func TestProjectCreate_Validation(t *testing.T) {
 	}
 }
 
+func TestProjectCreate_NullOptionalFields(t *testing.T) {
+	t.Parallel()
+	_, _, mux := setupProjectAdminHandlers(t, nil)
+
+	for name, body := range map[string]string{
+		"null status":      `{"title":"T","status":null,"thumbnailPath":"` + adminThumb + `"}`,
+		"null description": `{"title":"T","description":null,"thumbnailPath":"` + adminThumb + `"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := serveAdmin(t, mux, adminRequest(http.MethodPost, "/api/v1/projects", body, "admin", "admin1"))
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want 400 (body %q)", rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
 func TestProjectStaffList_GateAndCursor(t *testing.T) {
 	t.Parallel()
 	db, _, mux := setupProjectAdminHandlers(t, nil)

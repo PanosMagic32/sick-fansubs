@@ -310,6 +310,25 @@ func TestPushSubscriptionCreateValidation(t *testing.T) {
 	}
 }
 
+func TestPushSubscriptionCreateValidation_MissingKeyCodes(t *testing.T) {
+	_, mux := setupPushHandlers(t)
+
+	for name, body := range map[string]string{
+		"missing p256dh": `{"endpoint":"https://fcm.googleapis.com/e","keys":{"auth":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 16)) + `"}}`,
+		"missing auth":   `{"endpoint":"https://fcm.googleapis.com/e","keys":{"p256dh":"` + validP256dhKey() + `"}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := servePush(mux, pushAuthedReq("POST", "/api/v1/push-subscriptions", "viewer", body))
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("status = %d, want 422 (body %s)", rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), `"code":"required"`) {
+				t.Fatalf("body = %s, want a required violation", rec.Body.String())
+			}
+		})
+	}
+}
+
 func TestPushSubscriptionDelete(t *testing.T) {
 	db, mux := setupPushHandlers(t)
 	if _, err := store.UpsertPushSubscription(t.Context(), db, "s1", "viewer",

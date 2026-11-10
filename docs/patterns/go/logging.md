@@ -79,13 +79,13 @@ if err != nil {
 logger := logging.From(r.Context()).With("requestId", reqID)
 ctx := logging.With(SetRequestID(r.Context(), reqID), logger)
 
-// A handler: one local, then boundary logging through the shared helper.
+// A handler: no logger parameter or local — the boundary helper resolves the
+// request-scoped logger itself.
 func BlogList(db *sql.DB, publicBaseURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.From(r.Context())
 		posts, hasNext, err := store.ListPublishedBlogPosts(r.Context(), db, limit, key)
 		if err != nil {
-			writeInternalError(w, r, logger, "blog list query failed", "error", err)
+			writeInternalError(w, r, "blog list query failed", "error", err)
 			return
 		}
 	}

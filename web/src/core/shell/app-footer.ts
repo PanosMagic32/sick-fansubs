@@ -41,6 +41,7 @@ export class AppFooter extends LitElement {
   // Which health probe owns the footer's status line: a reconnect starts a
   // new probe, and the previous one's late result must not paint over it.
   private _healthProbe = 0;
+  private _probeAbort: AbortController | null = null;
 
   static styles = [
     unsafeCSS(sharedStyles),
@@ -65,8 +66,11 @@ export class AppFooter extends LitElement {
   }
 
   disconnectedCallback() {
-    // Invalidate the in-flight probe: its result belongs to a teardown.
+    // Invalidate and cancel the in-flight probe: its result belongs to a
+    // teardown, and the network work should not outlive the element.
     this._healthProbe++;
+    this._probeAbort?.abort();
+    this._probeAbort = null;
     window.removeEventListener("online", this._onReconnect);
     document.removeEventListener("visibilitychange", this._onVisibilityChange);
     super.disconnectedCallback();
@@ -82,6 +86,7 @@ export class AppFooter extends LitElement {
 
   private _reprobe() {
     this.health = "loading";
+    this._probeAbort?.abort();
     this._checkHealth(++this._healthProbe);
   }
 
@@ -94,15 +99,22 @@ export class AppFooter extends LitElement {
   }
 
   private async _checkHealth(probe: number) {
+    const controller = new AbortController();
+    this._probeAbort = controller;
     try {
       const res = await fetch("/health/ready", {
-        signal: AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS),
+        signal: AbortSignal.any([
+          controller.signal,
+          AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS),
+        ]),
       });
       if (!this._ownsProbe(probe)) return;
       this.health = res.ok ? "online" : "offline";
     } catch {
       if (!this._ownsProbe(probe)) return;
       this.health = "offline";
+    } finally {
+      if (this._probeAbort === controller) this._probeAbort = null;
     }
   }
 

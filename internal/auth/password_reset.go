@@ -64,7 +64,7 @@ func (s *Service) ForgotPassword(ctx context.Context, identifier string) (userID
 		// as unknown). The dummy comparison equalizes
 		// the DB segment; the SMTP send on the known path remains the
 		// recorded residual.
-		_ = compareDummy(dummyBcryptHash(), []byte(identifier))
+		_ = compareDummy(dummyBcryptHash(), bcryptVerificationPrefix([]byte(identifier)))
 		return "", nil
 	}
 
@@ -100,9 +100,9 @@ func (s *Service) ForgotPassword(ctx context.Context, identifier string) (userID
 }
 
 // ResetPasswordWithToken consumes a reset token and replaces the password.
-// Validation order is token-first: a bad token never
-// reaches bcrypt, and a bad token plus a weak password reports only the
-// token outcome.
+// Validation order is token-first, then account status, then password policy:
+// a bad token or a non-active account never reaches bcrypt or a policy 422,
+// and a bad token paired with a weak password reports only the token outcome.
 //
 // Returns (userID, role, nil) on success — userID drives the conditional
 // cookie clear, role feeds the audit target snapshot. Returns
@@ -132,13 +132,10 @@ func (s *Service) ResetPasswordWithToken(ctx context.Context, token, password st
 		return "", "", fmt.Errorf("auth: lookup reset token: %w", err)
 	}
 
-	// Password policy: the registration rules (8–72 bytes, no null bytes).
-	// Never runs when the token is bad — the token-first order above.
-	if fe := validateNewPassword("password", password); fe != nil {
-		return "", "", fe
-	}
-
-	// Load the owning user for the CAS input + the audit role snapshot.
+	// Account validity precedes password policy: a suspended account answers
+	// the generic token outcome even when the submitted password is weak,
+	// and no bcrypt work runs for it. The consume transaction re-checks the
+	// status under its CAS, so this read stays advisory.
 	u, err := store.UserByID(ctx, s.db, uid)
 	if errors.Is(err, store.ErrNotFound) {
 		return "", "", ErrResetTokenInvalid
@@ -146,6 +143,23 @@ func (s *Service) ResetPasswordWithToken(ctx context.Context, token, password st
 	if err != nil {
 		return "", "", fmt.Errorf("auth: lookup reset user: %w", err)
 	}
+	if u.Status != identity.StatusActive {
+		// Suspension invalidates in-flight links immediately. The consume
+		// transaction would kill the token on its rejection branch, but the
+		// policy check must not run first; delete the digest-scoped token here.
+		if err := store.InvalidateResetToken(ctx, s.db, digest); err != nil {
+			return "", "", err
+		}
+		return "", "", ErrResetTokenInvalid
+	}
+
+	// Password policy: the registration rules (8–72 bytes, no null bytes).
+	// Never runs when the token is bad — the token-first order above.
+	if fe := validateNewPassword("password", password); fe != nil {
+		return "", "", fe
+	}
+
+	// Load the owning user for the CAS input + the audit role snapshot.
 
 	// bcrypt runs here, BEFORE the store's write transaction (bcrypt must
 	// never run inside one).

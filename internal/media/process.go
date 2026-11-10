@@ -215,7 +215,7 @@ func readBounded(r io.Reader) ([]byte, error) {
 		// A source-read failure is infrastructure, not an image-format fact;
 		// it stays unsentineled (the boundary answers its masked 500) and the
 		// cause is flattened — the reader's error type is not our contract.
-		return nil, fmt.Errorf("media: read input: %v", err)
+		return nil, fmt.Errorf("media: read input: %v", pathFreeError(err))
 	}
 	if len(raw) > MaxInputBytes {
 		return nil, ErrInputTooLarge

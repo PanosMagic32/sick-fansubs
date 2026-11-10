@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	sqlite "modernc.org/sqlite"
@@ -111,12 +113,64 @@ func BackupForPreMigration(dataDir, destDir, fileName string, deadline time.Time
 	return createBackupCore(dataDir, destDir, fileName, deadline, migrationPrefixOK)
 }
 
+// PrunePreMigrationBackups keeps the newest keep artifacts under
+// data/backups/ and removes older pre-migrate-<millis>.db files. The
+// pre-migration safety net is a per-run rollback point, not a backup unit:
+// keeping a small window bounds its plaintext footprint without touching the
+// date-stamped backup units or any foreign file. A missing backups directory
+// is not an error (no pre-migration run has happened).
+func PrunePreMigrationBackups(dataDir string, keep int) (int, error) {
+	if keep < 1 {
+		return 0, fmt.Errorf("database: pre-migration backup retention must be at least 1, got %d", keep)
+	}
+	dir := filepath.Join(dataDir, backupsDirName)
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("database: read backup directory: %w", err)
+	}
+
+	var names []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, "pre-migrate-") && strings.HasSuffix(name, ".db") {
+			names = append(names, name)
+		}
+	}
+	// The filename carries the creation millis, so descending lexical order is
+	// newest-first for the fixed-width timestamp.
+	slices.SortFunc(names, func(a, b string) int { return strings.Compare(b, a) })
+
+	removed := 0
+	for _, name := range names[min(keep, len(names)):] {
+		if err := os.Remove(filepath.Join(dir, name)); err != nil {
+			return removed, fmt.Errorf("database: prune pre-migration backup %s: %w", name, err)
+		}
+		removed++
+	}
+	return removed, nil
+}
+
 // createBackupCore is the shared online-backup workflow (docs/patterns/go/sqlite.md)
 // parameterized by publication destination and the history check.
 func createBackupCore(dataDir, destDir, fileName string, deadline time.Time, history backupHistoryCheck) (string, error) {
 	// A restore in progress makes the unready window invalid — fail closed
 	// before touching SQLite (the marker gate the strict opener uses).
 	if err := ensureNoRestoreMarker(dataDir); err != nil {
+		return "", err
+	}
+
+	// A backup source must meet the same live-data preconditions as a live
+	// opener: the restore-marker gate above is not enough. Without this guard
+	// a missing main file beside an interrupted-rollback remnant would create
+	// an empty live database before validation fails, destroying the recovery
+	// signal the remnant carries.
+	if err := ensureExistingLiveDatabase(dataDir); err != nil {
 		return "", err
 	}
 

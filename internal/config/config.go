@@ -448,7 +448,7 @@ func validatePublicBaseURL(raw string) error {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("config: PUBLIC_BASE_URL must use http or https, got %q", u.Scheme)
 	}
-	if u.Host == "" {
+	if u.Hostname() == "" {
 		return fmt.Errorf("config: PUBLIC_BASE_URL must be an absolute URL with a host")
 	}
 	if u.User != nil {
@@ -475,7 +475,7 @@ func validateTrustedOrigin(raw string) error {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("config: TRUSTED_ORIGIN must use http or https, got %q", u.Scheme)
 	}
-	if u.Host == "" {
+	if u.Hostname() == "" {
 		return fmt.Errorf("config: TRUSTED_ORIGIN must be an absolute URL with a host")
 	}
 	if u.User != nil {

@@ -409,12 +409,12 @@ func countStaffContent[T any](ctx context.Context, db *sql.DB, r contentRead[T],
 // getStaffBlogPostUngated reads one blog post with NO visibility gate — the
 // write paths' read-back for the row they just created/updated. Never expose
 // it to request handling.
-func getStaffBlogPostUngated(ctx context.Context, db *sql.DB, id string) (*StaffBlogPost, error) {
-	post, err := getUngatedContent(ctx, db, staffBlogPostRead, id)
+func getStaffBlogPostUngated(ctx context.Context, q queryer, id string) (*StaffBlogPost, error) {
+	post, err := getUngatedContent(ctx, q, staffBlogPostRead, id)
 	if err != nil {
 		return nil, err
 	}
-	post.Downloads, err = listContentDownloads(ctx, db, BlogContent, post.ID)
+	post.Downloads, err = listContentDownloads(ctx, q, BlogContent, post.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -423,12 +423,12 @@ func getStaffBlogPostUngated(ctx context.Context, db *sql.DB, id string) (*Staff
 
 // getStaffProjectUngated is the project counterpart of
 // getStaffBlogPostUngated.
-func getStaffProjectUngated(ctx context.Context, db *sql.DB, id string) (*StaffProject, error) {
-	project, err := getUngatedContent(ctx, db, staffProjectRead, id)
+func getStaffProjectUngated(ctx context.Context, q queryer, id string) (*StaffProject, error) {
+	project, err := getUngatedContent(ctx, q, staffProjectRead, id)
 	if err != nil {
 		return nil, err
 	}
-	project.Downloads, err = listContentDownloads(ctx, db, ProjectContent, project.ID)
+	project.Downloads, err = listContentDownloads(ctx, q, ProjectContent, project.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -437,8 +437,8 @@ func getStaffProjectUngated(ctx context.Context, db *sql.DB, id string) (*StaffP
 
 // getUngatedContent reads one row with no visibility gate — the write paths'
 // own read-back.
-func getUngatedContent[T any](ctx context.Context, db *sql.DB, r contentRead[T], contentID string) (*T, error) {
-	row := db.QueryRowContext(ctx,
+func getUngatedContent[T any](ctx context.Context, q queryer, r contentRead[T], contentID string) (*T, error) {
+	row := q.QueryRowContext(ctx,
 		`SELECT `+r.columns+staffDetailFrom(r.kind)+`
 		WHERE p.id = ?`, contentID)
 	item, err := r.scan(row.Scan)

@@ -35,11 +35,8 @@ var (
 )
 
 // nonOpenAPIRoutes are registered paths deliberately absent from the wire
-// contract: asset delivery serves bytes, not problems (internal/handler/
-// AGENTS.md owns its contract).
-var nonOpenAPIRoutes = map[string]bool{
-	"GET /media/images/{file}": true,
-}
+// contract. Empty today: the media serving path is documented.
+var nonOpenAPIRoutes = map[string]bool{}
 
 // TestOpenAPIRoutesMatchRegistrations pins both directions: every documented
 // operation dispatches to a registered pattern, and every registered
@@ -71,11 +68,8 @@ func TestOpenAPIRoutesMatchRegistrations(t *testing.T) {
 		}
 	}
 	for key := range registered {
-		if nonOpenAPIRoutes[key] {
-			continue
-		}
 		if !documented[key] {
-			t.Errorf("route %s is registered, but docs/api/openapi.yaml does not document it", key)
+			t.Errorf("route %s is registered, but docsapi/openapi.yaml does not document it", key)
 		}
 	}
 }
@@ -156,7 +150,7 @@ func parseOpenAPIRoutes(t *testing.T) map[string]bool {
 func scanRegisteredRoutes(t *testing.T) map[string]bool {
 	t.Helper()
 
-	if len(nonOpenAPIRoutes) != 1 {
+	if len(nonOpenAPIRoutes) != 0 {
 		t.Fatalf("nonOpenAPIRoutes has %d entries — each exemption needs a recorded reason", len(nonOpenAPIRoutes))
 	}
 

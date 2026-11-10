@@ -21,6 +21,12 @@ func OpenApplication(config Config) (*sql.DB, error) {
 	if err := ensureNoRestoreMarker(config.DataDir); err != nil {
 		return nil, err
 	}
+	// The serving process never initializes a database. Requiring the live
+	// file and the live-data guards here keeps a wrong DATA_DIR from minting
+	// an empty database that a later migration would happily bootstrap.
+	if err := ensureExistingLiveDatabase(config.DataDir); err != nil {
+		return nil, err
+	}
 	return openStrict(config.DataDir)
 }
 

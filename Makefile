@@ -55,7 +55,7 @@ backup-local: ## Create a validated, age-encrypted daily backup unit — DATA_DI
 backup-status: ## Report the newest published backup folder and its age
 	@go run ./cmd/backup -status
 
-backup-docker: ## Run the compose backup service against the sick-fansubs stack (the same command the VPS cron uses)
+backup-docker: ## Run the compose backup service against a STOPPED sick-fansubs stack (the VPS cron uses backup-now.sh, which owns the stop/restart window)
 	@docker compose --profile backup run --rm backup
 
 down: ## Back up the sick-fansubs stack, then docker compose down (the VPS runs deploy/down.sh; a raw 'docker compose down' does NOT back up)

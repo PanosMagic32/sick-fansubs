@@ -98,6 +98,29 @@ describe("app-shell forced-change routing", () => {
     el.remove();
   });
 
+  test("a trailing-slash reset or verify link stays exempt", async () => {
+    for (const path of ["/auth/reset/", "/auth/verify/"]) {
+      setHappyDOMURL(`https://example.com${path}`);
+      const el = document.createElement("app-shell") as AppShell;
+      (el as unknown as { session: unknown }).session = {
+        state: {
+          status: "authenticated",
+          mustChangePassword: true,
+          user: { id: "1", username: "alice", role: "user" },
+        },
+      };
+      document.body.appendChild(el);
+      await el.updateComplete;
+
+      for (const call of (
+        window.history.replaceState as ReturnType<typeof mock>
+      ).mock.calls) {
+        expect(call[2]).not.toBe("/account");
+      }
+      el.remove();
+    }
+  });
+
   test("an unflagged session does not force-route", async () => {
     const el = document.createElement("app-shell") as AppShell;
     (el as unknown as { session: unknown }).session = {

@@ -118,6 +118,9 @@ export class AdminLogsPage extends AdminStaffPageBase {
 
   /** The first authenticated load (the base's latch calls this once). */
   protected _start() {
+    // The latch is per load, not permanent: a demoted-then-promoted viewer
+    // must see fresh results rather than a stale forbidden verdict.
+    this._forbidden = false;
     this._readURL();
     void this._load();
     void this._loadAudit();

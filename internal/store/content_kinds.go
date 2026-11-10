@@ -172,11 +172,20 @@ func (t userRefTail) ref() *UserRef {
 	return &UserRef{ID: t.id.String, Username: t.name.String, AvatarURL: nullStringPtr(t.avatar)}
 }
 
+// queryer is the read surface shared by a pool and an open transaction. The
+// write paths read their response projection INSIDE the transaction, so a
+// read-back failure rolls the write back instead of reporting a committed
+// write as a 500.
+type queryer interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
 // listContentDownloads reads one content row's download rows in display
 // order (position, then id). The rows are the STORED values verbatim; the
 // public read masks its links at the wire boundary.
-func listContentDownloads(ctx context.Context, db *sql.DB, k ContentKind, contentID string) ([]Download, error) {
-	rows, err := db.QueryContext(ctx,
+func listContentDownloads(ctx context.Context, q queryer, k ContentKind, contentID string) ([]Download, error) {
+	rows, err := q.QueryContext(ctx,
 		`SELECT `+k.downloadLabel+`, magnet_link, torrent_link
 		 FROM `+k.downloads+`
 		 WHERE `+k.downloadFK+` = ?

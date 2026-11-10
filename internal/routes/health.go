@@ -23,4 +23,8 @@ import (
 func Health(mux *http.ServeMux, db *sql.DB, dataDir string) {
 	mux.Handle("GET /health/live", publicChain(http.HandlerFunc(handler.HealthLive)))
 	mux.Handle("GET /health/ready", publicChain(handler.HealthReady(database.DBHealthChecker{DB: db, DataDir: dataDir})))
+	// A typo or trailing slash in the namespace must not fall through to the
+	// SPA shell and report a green probe that checked nothing.
+	mux.Handle("/health", notFound())
+	mux.Handle("/health/", notFound())
 }

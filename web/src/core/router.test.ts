@@ -15,6 +15,7 @@ import { el } from "@shared/catalog/el.js";
 import {
   listenForNavigation,
   resetHappyDOMURL,
+  setHappyDOMURL,
 } from "@shared/api/test-utils.js";
 
 import {
@@ -75,6 +76,30 @@ describe("navigate", () => {
     const nav = listenForNavigation();
     try {
       navigate("/search");
+      expect(nav.path).toBe("/search");
+    } finally {
+      nav.remove();
+    }
+  });
+
+  test("a query-only change writes the URL and dispatches the new state", () => {
+    setHappyDOMURL("https://example.com/search?q=x");
+    const nav = listenForNavigation();
+    try {
+      navigate("/search");
+      expect(window.location.search).toBe("");
+      expect(nav.path).toBe("/search");
+    } finally {
+      nav.remove();
+    }
+  });
+
+  test("a trailing slash is normalized before the history write", () => {
+    setHappyDOMURL("https://example.com/blog");
+    const nav = listenForNavigation();
+    try {
+      navigate("/search/");
+      expect(window.location.pathname).toBe("/search");
       expect(nav.path).toBe("/search");
     } finally {
       nav.remove();

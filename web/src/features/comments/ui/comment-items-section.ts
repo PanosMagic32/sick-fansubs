@@ -128,6 +128,16 @@ export class CommentItemsSection implements ReactiveController {
     this.abortReplyPages();
   }
 
+  /** A sign-out inside the debounce window cancels it: the anonymous UI has
+   * already withdrawn the heart controls, so a queued mutation must not fire
+   * an unauthenticated request. */
+  hostUpdate() {
+    if (this._host.session?.state.status === "authenticated") return;
+    this._debouncer.cancel();
+    this._heartDesired.clear();
+    this.refresh();
+  }
+
   /** Abort every in-flight reply append and drop its per-item state. Called
    * by the thread on every list reload. */
   abortReplyPages() {
@@ -184,6 +194,11 @@ export class CommentItemsSection implements ReactiveController {
   /** The window for one comment expired: skip net-zero bursts (even click
    * count), else send ONE mutation for the final desired target. */
   private async _deliverHeart(id: string) {
+    if (this._host.session?.state.status !== "authenticated") {
+      this._heartDesired.delete(id);
+      this.refresh();
+      return;
+    }
     const item = this._host._findComment(id);
     if (!item) {
       // Paged out or deleted while the window was open — drop the desire.

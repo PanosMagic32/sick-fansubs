@@ -379,6 +379,8 @@ func TestNumericContractsPinned(t *testing.T) {
 		want int64
 	}{
 		{"auditRetentionWindow", int64(auditRetentionWindow / time.Millisecond), 365 * 24 * 60 * 60 * 1000},
+		{"sessionCleanupInterval", int64(sessionCleanupInterval / time.Millisecond), 60 * 60 * 1000},
+		{"auditCleanupInterval", int64(auditCleanupInterval / time.Millisecond), 60 * 60 * 1000},
 		{"mediaSweepInterval", int64(mediaSweepInterval / time.Millisecond), 60 * 60 * 1000},
 		{"walMonitorInterval", int64(walMonitorInterval / time.Millisecond), 60 * 60 * 1000},
 		{"startupPassBudget", int64(startupPassBudget / time.Millisecond), 30 * 1000},

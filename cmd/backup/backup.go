@@ -73,7 +73,7 @@ type config struct {
 func run(logger *slog.Logger, out io.Writer, status bool, dataDir, backupDir, ageRecipient string, replaceToday, preMigrate bool, now time.Time) error {
 	if status {
 		if backupDir == "" {
-			return fmt.Errorf("BACKUP_DIR must not be empty")
+			return fmt.Errorf("backup directory must not be empty")
 		}
 		return runStatus(out, absolutePath(backupDir))
 	}
@@ -92,25 +92,25 @@ func resolveConfig(dataDir, backupDir, ageRecipient string) (config, error) {
 	}
 	var ageRecipientParsed *age.X25519Recipient
 	if appEnv != appconfig.EnvDevelopment && appEnv != appconfig.EnvProduction {
-		return config{}, fmt.Errorf("APP_ENV must be %q or %q, got %q", appconfig.EnvDevelopment, appconfig.EnvProduction, appEnv)
+		return config{}, fmt.Errorf("app environment must be %q or %q, got %q", appconfig.EnvDevelopment, appconfig.EnvProduction, appEnv)
 	}
 	// Production fails closed before anything is created: published backups
 	// containing user data must never be plaintext.
 	if appEnv == appconfig.EnvProduction && ageRecipient == "" {
-		return config{}, fmt.Errorf("AGE_RECIPIENT is required in APP_ENV=production — refusing to publish a plaintext backup")
+		return config{}, fmt.Errorf("age recipient is required in APP_ENV=production — refusing to publish a plaintext backup")
 	}
 	if ageRecipient != "" {
 		r, err := age.ParseX25519Recipient(ageRecipient)
 		if err != nil {
-			return config{}, fmt.Errorf("AGE_RECIPIENT is not a valid age recipient: %w", err)
+			return config{}, fmt.Errorf("age recipient is not valid: %w", err)
 		}
 		ageRecipientParsed = r
 	}
 	if dataDir == "" {
-		return config{}, fmt.Errorf("DATA_DIR must not be empty")
+		return config{}, fmt.Errorf("data directory must not be empty")
 	}
 	if backupDir == "" {
-		return config{}, fmt.Errorf("BACKUP_DIR must not be empty")
+		return config{}, fmt.Errorf("backup directory must not be empty")
 	}
 	return config{DataDir: absolutePath(dataDir), BackupDir: absolutePath(backupDir), AgeRecipient: ageRecipientParsed}, nil
 }
@@ -278,7 +278,12 @@ func runBackup(logger *slog.Logger, out io.Writer, cfg config, replaceToday, pre
 			}
 			return publishErr
 		}
-		_ = os.RemoveAll(old)
+		if err := os.RemoveAll(old); err != nil {
+			// A retained `.previous` folder makes mega-put.sh fail closed, so the
+			// operator must see it even though the replacement itself succeeded.
+			logger.Warn("previous backup unit retained — remove it so the off-VPS push can continue",
+				"path", old, "error", err)
+		}
 		logger.Info("replacing today's existing backup unit (deploy trigger)", "folder", folder)
 	} else if err := os.Rename(stage, folder); err != nil {
 		return fmt.Errorf("publish backup unit: %w", err)

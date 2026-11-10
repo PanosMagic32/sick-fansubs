@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,6 +51,120 @@ func backupPathFor(t *testing.T, dir string) string {
 		t.Fatalf("backup: %v", err)
 	}
 	return path
+}
+
+// TestBackupRefusesMissingMainBesideRollbackRemnant pins the fail-closed
+// backup source: a missing live database beside an interrupted-rollback
+// remnant must fail before SQLite can create an empty database in its place.
+// Both daily and pre-migration backups share the guard.
+func TestBackupRefusesMissingMainBesideRollbackRemnant(t *testing.T) {
+	t.Parallel()
+
+	dir := testDataDir(t)
+	remnant := filepath.Join(dir, FileName+".broken-123")
+	if err := os.WriteFile(remnant, []byte("retained live bytes"), 0o600); err != nil {
+		t.Fatalf("write remnant: %v", err)
+	}
+
+	backups := map[string]func() (string, error){
+		"daily": func() (string, error) {
+			return BackupForDaily(dir, t.TempDir(), "daily.db", time.Now().Add(time.Minute))
+		},
+		"pre-migration": func() (string, error) {
+			return BackupForMigration(dir, time.Now().Add(time.Minute))
+		},
+	}
+	for name, backup := range backups {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if _, err := backup(); err == nil || !strings.Contains(err.Error(), "interrupted-rollback artifact") {
+				t.Fatalf("backup error = %v, want the interrupted-rollback refusal", err)
+			}
+			if _, err := os.Stat(filepath.Join(dir, FileName)); !os.IsNotExist(err) {
+				t.Fatalf("live database was created beside the remnant (stat error %v)", err)
+			}
+		})
+	}
+}
+
+// TestBackupRefusesMissingLiveDatabase pins the other half of the guard: even
+// without a remnant, a backup source must already exist. The connection would
+// otherwise mint an empty database at the live path.
+func TestBackupRefusesMissingLiveDatabase(t *testing.T) {
+	t.Parallel()
+
+	dir := testDataDir(t)
+	if _, err := BackupForDaily(dir, t.TempDir(), "daily.db", time.Now().Add(time.Minute)); err == nil || !strings.Contains(err.Error(), "live database") {
+		t.Fatalf("backup error = %v, want the missing-live-database refusal", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, FileName)); !os.IsNotExist(err) {
+		t.Fatalf("live database was created by a backup (stat error %v)", err)
+	}
+}
+
+// TestPrunePreMigrationBackups pins the bounded plaintext window: the newest
+// keep artifacts survive, older ones go, and date-stamped units or foreign
+// files are never touched.
+func TestPrunePreMigrationBackups(t *testing.T) {
+	t.Parallel()
+
+	dir := testDataDir(t)
+	backups := filepath.Join(dir, backupsDirName)
+	if err := os.MkdirAll(backups, 0o700); err != nil {
+		t.Fatalf("create backups dir: %v", err)
+	}
+	for i := range 7 {
+		name := fmt.Sprintf("pre-migrate-%013d.db", 1000+i)
+		if err := os.WriteFile(filepath.Join(backups, name), []byte("db"), 0o600); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(backups, "2026-11-09"), []byte("unit"), 0o600); err != nil {
+		t.Fatalf("write unit file: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(backups, "2026-11-08"), 0o700); err != nil {
+		t.Fatalf("create unit dir: %v", err)
+	}
+
+	removed, err := PrunePreMigrationBackups(dir, 5)
+	if err != nil {
+		t.Fatalf("PrunePreMigrationBackups: %v", err)
+	}
+	if removed != 2 {
+		t.Fatalf("removed = %d, want 2", removed)
+	}
+	entries, err := os.ReadDir(backups)
+	if err != nil {
+		t.Fatalf("read backups: %v", err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if strings.HasPrefix(name, "pre-migrate-") {
+			var ms int
+			if _, err := fmt.Sscanf(name, "pre-migrate-%d.db", &ms); err != nil {
+				t.Fatalf("parse %s: %v", name, err)
+			}
+			if ms < 1002 {
+				t.Errorf("old artifact survived: %s", name)
+			}
+		}
+	}
+	for _, keep := range []string{"2026-11-09", "2026-11-08"} {
+		if _, err := os.Stat(filepath.Join(backups, keep)); err != nil {
+			t.Errorf("foreign entry %s was removed: %v", keep, err)
+		}
+	}
+}
+
+// TestPrunePreMigrationBackups_MissingDirectoryIsNoOp pins the fresh-install
+// path: no backups directory means nothing to prune.
+func TestPrunePreMigrationBackups_MissingDirectoryIsNoOp(t *testing.T) {
+	t.Parallel()
+
+	removed, err := PrunePreMigrationBackups(testDataDir(t), 5)
+	if err != nil || removed != 0 {
+		t.Fatalf("got (%d, %v), want (0, nil)", removed, err)
+	}
 }
 
 // TestBackupForMigration_OlderPrefixHistory proves the scenario the safety

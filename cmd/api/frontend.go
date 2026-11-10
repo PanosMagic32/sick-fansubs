@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"strings"
 )
 
@@ -104,6 +105,13 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 			return
 		}
 
+		// A dotfile is not an asset: the embedded FS must never expose build
+		// scaffolding such as .gitkeep.
+		if strings.HasPrefix(filepath.Base(path), ".") {
+			http.NotFound(w, r)
+			return
+		}
+
 		// PWA special cases — these three paths are fetched with
 		// regular caching semantics, so the immutable header the generic
 		// branch applies to every embedded file would let them go stale
@@ -119,6 +127,11 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 			w.Write(cachedSW)
 			return
 		case path == "manifest.json" || strings.HasPrefix(path, "icons/"):
+			// A directory path is not an icon file; never answer a listing.
+			if strings.HasSuffix(path, "/") {
+				http.NotFound(w, r)
+				return
+			}
 			w.Header().Set("Cache-Control", "no-cache")
 			fileServer.ServeHTTP(w, r)
 			return
@@ -126,7 +139,15 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 
 		f, err := sub.Open(path)
 		if err == nil {
+			info, statErr := f.Stat()
 			f.Close()
+			// A directory path (assets/, icons/, fonts/) and a dotfile
+			// (.gitkeep) are not assets: the embedded FS must never answer a
+			// generated listing or expose build scaffolding.
+			if statErr != nil || info.IsDir() || strings.HasPrefix(filepath.Base(path), ".") {
+				http.NotFound(w, r)
+				return
+			}
 			// Vite emits content-hashed names under assets/, so those are safe
 			// to cache forever. Every other embedded file keeps its name across
 			// deploys and must revalidate (RFC 9111 freshness, RFC 8246

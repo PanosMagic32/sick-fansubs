@@ -1,6 +1,26 @@
 package identity
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+// TestSessionTimingPolicy pins the documented 30/90/7 policy directly:
+// middleware tests derive their expectations from the constants, so a silent
+// change would otherwise stay green.
+func TestSessionTimingPolicy(t *testing.T) {
+	t.Parallel()
+
+	if SessionLifetime != 30*24*time.Hour {
+		t.Errorf("SessionLifetime = %v, want 30 days", SessionLifetime)
+	}
+	if SessionMaxLifetime != 90*24*time.Hour {
+		t.Errorf("SessionMaxLifetime = %v, want 90 days", SessionMaxLifetime)
+	}
+	if SessionRenewBefore != 7*24*time.Hour {
+		t.Errorf("SessionRenewBefore = %v, want 7 days", SessionRenewBefore)
+	}
+}
 
 func TestSessionUser_IsExpired(t *testing.T) {
 	t.Parallel()

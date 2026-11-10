@@ -34,9 +34,9 @@ const (
 // body reader. Pointer fields distinguish absent from empty.
 type projectCreateRequest struct {
 	Title         string                 `json:"title"`
-	Description   *string                `json:"description"`
+	Description   optionalString         `json:"description"`
 	ThumbnailPath string                 `json:"thumbnailPath"`
-	Status        *string                `json:"status"`
+	Status        optionalString         `json:"status"`
 	Downloads     []projectDownloadWrite `json:"downloads"`
 }
 
@@ -44,10 +44,10 @@ type projectCreateRequest struct {
 // moderator-submitted slug is a 403 and the form hides the field for them.
 type projectUpdateRequest struct {
 	Title         string                 `json:"title"`
-	Description   *string                `json:"description"`
-	Slug          *string                `json:"slug"`
+	Description   optionalString         `json:"description"`
+	Slug          optionalString         `json:"slug"`
 	ThumbnailPath string                 `json:"thumbnailPath"`
-	Status        *string                `json:"status"`
+	Status        optionalString         `json:"status"`
 	Downloads     []projectDownloadWrite `json:"downloads"`
 }
 
@@ -134,13 +134,18 @@ func parseProjectUpdate(w http.ResponseWriter, r *http.Request) (projectWriteReq
 	if !ok {
 		return req, nil, false
 	}
-	return req, body.Slug, true
+	slug := (*string)(nil)
+	if body.Slug.set {
+		s := body.Slug.value
+		slug = &s
+	}
+	return req, slug, true
 }
 
 // validateProjectWrite applies the shared field checks. allowedStatuses is
 // the create form's draft|published or the update form's
 // draft|published|archived (archived is an edit-time state).
-func validateProjectWrite(w http.ResponseWriter, r *http.Request, title string, description *string, thumbnailPath string, statusField *string, downloads []projectDownloadWrite, allowedStatuses ...string) (projectWriteRequest, bool) {
+func validateProjectWrite(w http.ResponseWriter, r *http.Request, title string, description optionalString, thumbnailPath string, statusField optionalString, downloads []projectDownloadWrite, allowedStatuses ...string) (projectWriteRequest, bool) {
 	title = strings.TrimSpace(title)
 	if title == "" {
 		writeValidationErrors(w, r, []Violation{{Field: "title", Code: "required"}})
@@ -152,8 +157,8 @@ func validateProjectWrite(w http.ResponseWriter, r *http.Request, title string, 
 	}
 
 	desc := ""
-	if description != nil {
-		desc = strings.TrimSpace(*description)
+	if description.set {
+		desc = strings.TrimSpace(description.value)
 		if utf8.RuneCountInString(desc) > maxProjectDescriptionRunes {
 			writeValidationErrors(w, r, []Violation{{Field: "description", Code: "maxLength"}})
 			return projectWriteRequest{}, false
@@ -166,8 +171,8 @@ func validateProjectWrite(w http.ResponseWriter, r *http.Request, title string, 
 	}
 
 	status := "published" // the form defaults to published
-	if statusField != nil {
-		status = *statusField
+	if statusField.set {
+		status = statusField.value
 	}
 	if !slices.Contains(allowedStatuses, status) {
 		writeValidationErrors(w, r, []Violation{{Field: "status", Code: "invalidValue"}})

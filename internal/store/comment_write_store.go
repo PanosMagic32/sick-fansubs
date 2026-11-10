@@ -215,11 +215,16 @@ func UpdateComment(ctx context.Context, db *sql.DB, k ContentKind, contentID, co
 		// (the disambiguation-SELECT precedent).
 		return nil, ErrNotFound
 	}
+	// Read the response item INSIDE the transaction: a projection failure
+	// rolls the update back instead of reporting a committed write as a 500.
+	comment, err = getCommentWithReplies(ctx, tx, k, contentID, commentID, &userID)
+	if err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("store: commit comment update: %w", err)
 	}
-
-	return getCommentWithReplies(ctx, db, k, contentID, commentID, &userID)
+	return comment, nil
 }
 
 // CommentAuthorID returns one comment's author id and whether its content
@@ -334,8 +339,8 @@ func DeleteComment(ctx context.Context, db *sql.DB, k ContentKind, commentID, ac
 
 // getCommentWithReplies reads one comment (with its nested replies when
 // top-level) for a response — the PATCH handler's item.
-func getCommentWithReplies(ctx context.Context, db *sql.DB, k ContentKind, contentID, commentID string, viewerID *string) (*Comment, error) {
-	row := db.QueryRowContext(ctx,
+func getCommentWithReplies(ctx context.Context, q queryer, k ContentKind, contentID, commentID string, viewerID *string) (*Comment, error) {
+	row := q.QueryRowContext(ctx,
 		`SELECT `+commentItemSelect+`
 		FROM `+k.comments+` c
 		JOIN users u ON u.id = c.user_id
@@ -351,7 +356,7 @@ func getCommentWithReplies(ctx context.Context, db *sql.DB, k ContentKind, conte
 	}
 
 	var parentID sql.NullString
-	if err := db.QueryRowContext(ctx,
+	if err := q.QueryRowContext(ctx,
 		`SELECT parent_id FROM `+k.comments+` WHERE id = ?`, commentID).Scan(&parentID); err != nil {
 		return nil, fmt.Errorf("store: get comment parent: %w", err)
 	}
@@ -362,7 +367,7 @@ func getCommentWithReplies(ctx context.Context, db *sql.DB, k ContentKind, conte
 		return &c, nil
 	}
 
-	items, err := attachReplies(ctx, db, k, contentID, viewerID, []Comment{c}, "")
+	items, err := attachReplies(ctx, q, k, contentID, viewerID, []Comment{c}, "")
 	if err != nil {
 		return nil, err
 	}

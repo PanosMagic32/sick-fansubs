@@ -20,8 +20,10 @@ Backup and restore have their own docs.
    and `caddy` through `AUX_TAG` (`${AUX_TAG:-latest}` in `compose.yaml`, written beside `TAG` and
    reset on rollback by the deploy script). The restore and rebuildsearch one-offs ride their
    runbook's tag. The application image is
-   always the tag. A missing or stale frontend build fails packaging instead of embedding the
-   wrong files.
+   always the tag. It also carries `/app/resetpassword`, the break-glass maintenance entrypoint;
+   run it with `--entrypoint /app/resetpassword` while the app is stopped
+   (`cmd/resetpassword/AGENTS.md`). A missing or stale frontend build fails packaging instead of
+   embedding the wrong files.
 3. **Caddy is the only public ingress; the application has no published port.** Caddy terminates
    TLS (Cloudflare DNS challenge with a scoped token) and reverse-proxies to `app:8080`. It
    overwrites forwarding headers and parses `X-Forwarded-For` with `trusted_proxies` +

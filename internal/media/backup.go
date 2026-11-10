@@ -290,10 +290,11 @@ func ExtractMediaTar(dataDir, tarPath string) error {
 
 	tr := tar.NewReader(f)
 	var total int64
+	dirs := make(map[string]bool)
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
-			return nil
+			break
 		}
 		if err != nil {
 			return fmt.Errorf("media: read tarball entry: %w", err)
@@ -322,14 +323,41 @@ func ExtractMediaTar(dataDir, tarPath string) error {
 			return fmt.Errorf("media: create extraction file %q: %v", hdr.Name, err)
 		}
 		_, copyErr := io.Copy(out, io.LimitReader(tr, hdr.Size))
+		syncErr := out.Sync()
 		closeErr := out.Close()
 		if copyErr != nil {
 			return fmt.Errorf("media: extract %q: %v", hdr.Name, copyErr)
 		}
+		if syncErr != nil {
+			return fmt.Errorf("media: sync extracted file %q: %v", hdr.Name, syncErr)
+		}
 		if closeErr != nil {
 			return fmt.Errorf("media: close extracted file %q: %v", hdr.Name, closeErr)
 		}
+		dirs[filepath.Dir(dest)] = true
 	}
+
+	// Durability before the restore marker is removed: every extracted file is
+	// synced above, and every directory that gained an entry is synced here.
+	for dir := range dirs {
+		if err := syncDirPath(dir); err != nil {
+			return fmt.Errorf("media: sync extraction directory: %w", err)
+		}
+	}
+	if err := syncDirPath(mediaRoot); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("media: sync media root: %w", err)
+	}
+	return nil
+}
+
+// syncDirPath flushes a directory's entry table to stable storage.
+func syncDirPath(dir string) error {
+	f, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return f.Sync()
 }
 
 // safeExtractName rejects any entry name that could escape the media root:

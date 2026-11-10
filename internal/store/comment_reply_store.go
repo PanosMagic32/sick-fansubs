@@ -25,7 +25,7 @@ const inlineReplyWindow = 3
 // window becomes the fixed page containing the anchor instead of the first
 // page (the focus contract extended to replies). Every other item keeps
 // its first window.
-func attachReplies(ctx context.Context, db *sql.DB, k ContentKind, contentID string, viewerID *string, topItems []Comment, focusID string) ([]Comment, error) {
+func attachReplies(ctx context.Context, q queryer, k ContentKind, contentID string, viewerID *string, topItems []Comment, focusID string) ([]Comment, error) {
 	for i := range topItems {
 		topItems[i].Replies = []Comment{}
 	}
@@ -38,17 +38,17 @@ func attachReplies(ctx context.Context, db *sql.DB, k ContentKind, contentID str
 		parentIDs = append(parentIDs, c.ID)
 	}
 
-	counts, err := replyCounts(ctx, db, k, contentID, parentIDs)
+	counts, err := replyCounts(ctx, q, k, contentID, parentIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	focusParent, focusOffset, err := replyFocusOffset(ctx, db, k, contentID, parentIDs, focusID)
+	focusParent, focusOffset, err := replyFocusOffset(ctx, q, k, contentID, parentIDs, focusID)
 	if err != nil {
 		return nil, err
 	}
 
-	byParent, err := replyWindows(ctx, db, k, contentID, viewerID, parentIDs, focusParent, focusOffset)
+	byParent, err := replyWindows(ctx, q, k, contentID, viewerID, parentIDs, focusParent, focusOffset)
 	if err != nil {
 		return nil, err
 	}
@@ -70,9 +70,9 @@ func attachReplies(ctx context.Context, db *sql.DB, k ContentKind, contentID str
 
 // replyCounts returns the total reply count of every given parent (one
 // grouped query — a parent with no replies is simply absent from the map).
-func replyCounts(ctx context.Context, db *sql.DB, k ContentKind, contentID string, parentIDs []string) (map[string]int64, error) {
+func replyCounts(ctx context.Context, q queryer, k ContentKind, contentID string, parentIDs []string) (map[string]int64, error) {
 	placeholders, args := parentArgs(contentID, parentIDs)
-	rows, err := db.QueryContext(ctx,
+	rows, err := q.QueryContext(ctx,
 		`SELECT parent_id, COUNT(*) FROM `+k.comments+`
 		WHERE `+k.commentFK+` = ? AND parent_id IN (`+placeholders+`)
 		GROUP BY parent_id`, args...)
@@ -104,7 +104,7 @@ func replyCounts(ctx context.Context, db *sql.DB, k ContentKind, contentID strin
 // rank, so the window is never anchor-centered. A top-level
 // anchor, a deleted/foreign anchor, or a parent outside this page shifts
 // nothing.
-func replyFocusOffset(ctx context.Context, db *sql.DB, k ContentKind, contentID string, parentIDs []string, focusID string) (string, int64, error) {
+func replyFocusOffset(ctx context.Context, q queryer, k ContentKind, contentID string, parentIDs []string, focusID string) (string, int64, error) {
 	if focusID == "" {
 		return "", 0, nil
 	}
@@ -113,7 +113,7 @@ func replyFocusOffset(ctx context.Context, db *sql.DB, k ContentKind, contentID 
 		parent    sql.NullString
 		createdMS int64
 	)
-	err := db.QueryRowContext(ctx,
+	err := q.QueryRowContext(ctx,
 		`SELECT parent_id, created_at_ms FROM `+k.comments+` WHERE id = ? AND `+k.commentFK+` = ?`,
 		focusID, contentID).Scan(&parent, &createdMS)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -136,7 +136,7 @@ func replyFocusOffset(ctx context.Context, db *sql.DB, k ContentKind, contentID 
 	}
 
 	var before int64
-	if err := db.QueryRowContext(ctx,
+	if err := q.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM `+k.comments+`
 		WHERE `+k.commentFK+` = ? AND parent_id = ?
 			AND (created_at_ms < ? OR (created_at_ms = ? AND id < ?))`,
@@ -153,7 +153,7 @@ func replyFocusOffset(ctx context.Context, db *sql.DB, k ContentKind, contentID 
 // separately at its own offset. The window bound is a ROW_NUMBER() window
 // function, so the query never materializes an unbounded reply set (the
 // endpoint's reason to exist).
-func replyWindows(ctx context.Context, db *sql.DB, k ContentKind, contentID string, viewerID *string, parentIDs []string, focusParent string, focusOffset int64) (map[string][]Comment, error) {
+func replyWindows(ctx context.Context, q queryer, k ContentKind, contentID string, viewerID *string, parentIDs []string, focusParent string, focusOffset int64) (map[string][]Comment, error) {
 	byParent := make(map[string][]Comment, len(parentIDs))
 	shifted := focusParent != "" && focusOffset > 0
 
@@ -191,7 +191,7 @@ func replyWindows(ctx context.Context, db *sql.DB, k ContentKind, contentID stri
 		args = append([]any{viewerID}, args...)
 		args = append(args, rnArgs...)
 
-		rows, err := db.QueryContext(ctx, query, args...)
+		rows, err := q.QueryContext(ctx, query, args...)
 		if err != nil {
 			return nil, fmt.Errorf("store: list comment replies: %w", err)
 		}
@@ -207,7 +207,7 @@ func replyWindows(ctx context.Context, db *sql.DB, k ContentKind, contentID stri
 			LEFT JOIN ` + k.hearts + ` h ON h.comment_id = c.id AND h.user_id = ?
 			WHERE c.` + k.commentFK + ` = ? AND c.parent_id = ?
 			ORDER BY c.created_at_ms ASC, c.id ASC LIMIT ? OFFSET ?`
-		rows, err := db.QueryContext(ctx, query, viewerID, contentID, focusParent, inlineReplyWindow, focusOffset)
+		rows, err := q.QueryContext(ctx, query, viewerID, contentID, focusParent, inlineReplyWindow, focusOffset)
 		if err != nil {
 			return nil, fmt.Errorf("store: list focus replies: %w", err)
 		}

@@ -173,10 +173,14 @@ func validatePushSubscriptionBody(w http.ResponseWriter, r *http.Request, req pu
 		}
 	}
 
-	if !validP256dhKey(req.Keys.P256dh) {
+	if req.Keys.P256dh == "" {
+		violations = append(violations, Violation{Field: "keys.p256dh", Code: "required"})
+	} else if !validP256dhKey(req.Keys.P256dh) {
 		violations = append(violations, Violation{Field: "keys.p256dh", Code: "invalidFormat"})
 	}
-	if !validPushKey(req.Keys.Auth, authDecodedLen) {
+	if req.Keys.Auth == "" {
+		violations = append(violations, Violation{Field: "keys.auth", Code: "required"})
+	} else if !validPushKey(req.Keys.Auth, authDecodedLen) {
 		violations = append(violations, Violation{Field: "keys.auth", Code: "invalidFormat"})
 	}
 

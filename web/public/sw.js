@@ -326,33 +326,36 @@ self.addEventListener("fetch", (event) => {
 function networkFirstHTML(event) {
   const request = event.request;
   const cacheable = !isTokenBearing(new URL(request.url));
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
+  const responsePromise = fetch(request);
+  // Extend the event with a promise created synchronously in the dispatch
+  // turn. The cache write must stay inside the worker's lifetime even after
+  // respondWith settles; a detached waitUntil from a later microtask is
+  // ignored (and can throw InvalidStateError).
+  event.waitUntil(
+    responsePromise
+      .then(async (response) => {
         if (
           cacheable &&
           response.ok &&
           response.headers.get("Content-Type")?.startsWith("text/html")
         ) {
-          // Stash without blocking the navigation.
-          caches
-            .open(PAGES_CACHE)
-            .then((cache) =>
-              event.waitUntil(cache.put(request, response.clone())),
-            );
+          const cache = await caches.open(PAGES_CACHE);
+          await cache.put(request, response.clone());
         }
-        return response;
       })
-      .catch(async () => {
-        const cache = await caches.open(PAGES_CACHE);
-        if (cacheable) {
-          const hit = await cache.match(request);
-          if (hit) {
-            return hit;
-          }
+      .catch(() => {}),
+  );
+  event.respondWith(
+    responsePromise.catch(async () => {
+      const cache = await caches.open(PAGES_CACHE);
+      if (cacheable) {
+        const hit = await cache.match(request);
+        if (hit) {
+          return hit;
         }
-        return (await cache.match("/")) || fetch(request);
-      }),
+      }
+      return (await cache.match("/")) || fetch(request);
+    }),
   );
 }
 
@@ -368,7 +371,9 @@ async function cacheFirst(request, cacheName) {
   }
   const response = await fetch(request);
   if (response.ok) {
-    cache.put(request, response.clone());
+    // Await the write: a cache put after the response settles can be cut
+    // off when the worker is terminated. The write is local and small.
+    await cache.put(request, response.clone());
   }
   return response;
 }
@@ -387,7 +392,7 @@ async function mediaFirstCapped(request) {
   }
   const response = await fetch(request);
   if (response.ok) {
-    cache.put(request, response.clone());
+    await cache.put(request, response.clone());
     const keys = await cache.keys();
     if (keys.length > MEDIA_MAX_ENTRIES) {
       await cache.delete(keys[0]);

@@ -371,8 +371,13 @@ guard({
 const TOKEN_HOME = "core/shell/app-shell.css";
 /** The global document sheet cannot see the shell's custom properties
     (they are set on the shell host, inside the document), so its
-    document-level focus baseline keeps its literal fallback. */
-const HEX_EXEMPT = [TOKEN_HOME, "core/index.css"];
+    document-level focus baseline keeps ONE literal fallback. */
+const GLOBAL_FOCUS_FALLBACK = {
+  path: "core/index.css",
+  literal: "#8aaae0",
+};
+
+const HEX_EXEMPT = [TOKEN_HOME];
 
 guard({
   name: "hex literals live only in app-shell.css",
@@ -383,14 +388,20 @@ guard({
     for (const match of stripCssComments(text).matchAll(
       /#[0-9a-fA-F]{3,8}\b/g,
     )) {
+      if (
+        path === GLOBAL_FOCUS_FALLBACK.path &&
+        match[0].toLowerCase() === GLOBAL_FOCUS_FALLBACK.literal
+      ) {
+        continue;
+      }
       findings.push(`${path}: hex literal ${match[0]}`);
     }
     return findings;
   },
-  bad: { path: "features/x/x.css", text: ".a { color: #fff; }" },
+  bad: { path: "core/index.css", text: ".a { color: #fff; }" },
   clean: {
-    path: "features/x/x.css",
-    text: ".a { color: var(--sf-on-accent); }",
+    path: "core/index.css",
+    text: ".a { color: var(--sf-accent-light, #8aaae0); }",
   },
   minScanned: 25,
 });

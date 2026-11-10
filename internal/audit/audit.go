@@ -86,10 +86,11 @@ const (
 	// Self-service email change:
 	//   - EventEmailChanged — EventWithTarget (actor == target), result
 	//     success on the committed swap, failure on a wrong current
-	//     password (a recovery-reroute attempt). Ledger-only; NOT among
-	//     the account-security events (an identifier swap, not a
-	//     credential/role/status change). The email VALUE is never
-	//     carried by the event — no field exists for it.
+	//     password (a recovery-reroute attempt). The email is the account's
+	//     recovery identifier, so a staged restore must not revive a value
+	//     the owner deliberately replaced after the backup: it JOINS
+	//     accountSecurityEvents. Ledger-only in the feed. The email VALUE is
+	//     never carried by the event — no field exists for it.
 	EventEmailChanged = "email_changed"
 	// Self-service session list:
 	//   - EventSessionRevoked — one of the caller's own sessions was revoked
@@ -125,6 +126,9 @@ var accountSecurityEvents = []string{
 	// Self-service reset: changes the password AND bumps
 	// auth_version — restoring over it would revive the old credential.
 	EventPasswordResetCompleted,
+	// Self-service email change: swaps the account-recovery identifier.
+	// Restoring over it would revive the old address as the recovery path.
+	EventEmailChanged,
 }
 
 // AccountSecurityEvents returns a fresh copy of the account-security event

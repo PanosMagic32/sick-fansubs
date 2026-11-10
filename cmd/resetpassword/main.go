@@ -98,10 +98,10 @@ func run(logger *slog.Logger, username string, out io.Writer) error {
 	}
 	if err != nil {
 		if store.IsAmbiguousUser(err) {
-			return fmt.Errorf("username %q matches several accounts; use the exact spelling", username)
+			return errors.New("username matches several accounts; use the exact spelling")
 		}
 		if errors.Is(err, store.ErrNotFound) {
-			return fmt.Errorf("no user with username %q", username)
+			return errors.New("no matching account")
 		}
 		return fmt.Errorf("lookup user: %w", err)
 	}

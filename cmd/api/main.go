@@ -173,7 +173,7 @@ func main() {
 			os.Exit(1)
 		}
 		if key == "" {
-			slog.Error("SMTP configuration failed", "error", errors.New("SMTP_HOST is set but smtp_api_key is empty — refusing to start with a broken mailer"))
+			slog.Error("SMTP configuration failed", "error", errors.New("smtp host is set but smtp api key is empty — refusing to start with a broken mailer"))
 			os.Exit(1)
 		}
 		relay, err := mail.NewRelay(mail.Config{
@@ -256,7 +256,7 @@ func main() {
 	// production enables the Secure attribute and requires an explicit
 	// https TRUSTED_ORIGIN (fail-closed in internal/config). The mailer
 	// serves the forgot-password flow.
-	routes.Auth(mux, db, cfg.SecureCookies(), cfg.TrustedOrigin, cfg.PublicBaseURL, sender, verifySendLimiter)
+	routes.Auth(mux, db, cfg.SecureCookies(), cfg.TrustedOrigin, cfg.TrustedOrigin, sender, verifySendLimiter)
 
 	// Users: /api/v1/users/me — the current user's profile + favorites
 	// + the self-service avatar upload + the email change.

@@ -178,4 +178,18 @@ describe("admin-staff-page-base", () => {
     expect(page.pageStatus).toBe("loading");
     expect(page.pageError).toBe("");
   });
+
+  test("losing staff access aborts the in-flight load", async () => {
+    const page = await render();
+    const controller = page.begin();
+
+    (page as any).session = mockSession("authenticated", "user");
+    page.requestUpdate();
+    await page.updateComplete;
+    await new Promise((r) => setTimeout(r, 5));
+    await page.updateComplete;
+
+    expect(controller.signal.aborted).toBe(true);
+    expect(page.pageStatus).toBe("forbidden");
+  });
 });

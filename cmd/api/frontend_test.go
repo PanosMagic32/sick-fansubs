@@ -20,6 +20,7 @@ func testFrontendFS() fstest.MapFS {
 		"web/dist/manifest.json":        {Data: []byte(`{"name":"Sick-Fansubs","icons":[{"src":"/icons/icon-192.png"}]}`)},
 		"web/dist/icons/icon-192.png":   {Data: []byte("png-bytes")},
 		"web/dist/favicon.ico":          {Data: []byte("ico-bytes")},
+		"web/dist/.gitkeep":             {Data: []byte("")},
 		"web/dist/assets/app-abc123.js": {Data: []byte("console.log('hashed')")},
 	}
 }
@@ -118,6 +119,20 @@ func TestFrontendMissingAssetAnswers404(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), "shell") {
 		t.Error("a missing hashed asset must not answer the SPA shell")
+	}
+}
+
+func TestFrontendDirectoriesAndDotfilesAnswer404(t *testing.T) {
+	h := newTestFrontend(t, "v1")
+
+	for _, target := range []string{"/assets/", "/icons/", "/.gitkeep"} {
+		rec := doFrontend(t, h, http.MethodGet, target)
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: status = %d, want 404", target, rec.Code)
+		}
+		if strings.Contains(rec.Body.String(), "shell") {
+			t.Errorf("%s: answered the SPA shell", target)
+		}
 	}
 }
 

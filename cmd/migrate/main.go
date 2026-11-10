@@ -22,8 +22,11 @@
 // check then fails, the command restores that backup over the live files
 // (safe: the application is offline for the whole window and nothing wrote
 // between backup and rollback) and exits 1. On success the backup is
-// retained for manual rollback. Restoring an OLDER backup is cmd/restore's
-// staged workflow, not this command's hot rollback.
+// retained for manual rollback, along with the newest
+// preMigrationBackupsKeep-1 earlier artifacts; older pre-migration backups
+// are pruned so the plaintext safety-net window stays bounded.
+// Restoring an OLDER backup is cmd/restore's staged workflow, not this
+// command's hot rollback.
 //
 // Usage:
 //
@@ -48,6 +51,11 @@ import (
 // backupDeadline bounds the pre-migration backup's page-copy loop
 // (docs/patterns/go/sqlite.md: the deadline is checked between page batches).
 const backupDeadline = 2 * time.Minute
+
+// preMigrationBackupsKeep is the number of pre-migration safety nets kept in
+// data/backups/. They are plaintext copies, so an unbounded set is a disk and
+// exposure risk; the newest one is the current rollback point.
+const preMigrationBackupsKeep = 5
 
 // Migration-scoped function seams so the safety net is testable without
 // poisoning embedded migrations (production wiring passes the real ones).
@@ -145,6 +153,17 @@ func runWith(logger *slog.Logger, status statusFn, open openFn, backup backupFn,
 		// under a handle that failed to close is unsafe. The error is the
 		// operator's signal.
 		return fmt.Errorf("close after migration: %w", err)
+	}
+
+	if backupPath != "" {
+		removed, err := database.PrunePreMigrationBackups(cfg.DataDir, preMigrationBackupsKeep)
+		if err != nil {
+			// The migration succeeded; a prune failure is a retention warning,
+			// not a failed migration.
+			logger.Warn("pre-migration backup prune failed", "error", err)
+		} else if removed > 0 {
+			logger.Info("pre-migration backups pruned", "removed", removed, "keep", preMigrationBackupsKeep)
+		}
 	}
 
 	logger.Info("migrations complete", "dataDir", cfg.DataDir, "backup", backupPath)

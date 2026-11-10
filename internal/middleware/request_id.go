@@ -26,7 +26,9 @@ func RequestID() func(http.Handler) http.Handler {
 			}
 			logger := logging.From(r.Context()).With("requestId", reqID)
 			if err != nil {
-				logger.ErrorContext(r.Context(), "request id generation failed", "error", err)
+				// Degraded but correct: the fallback still carries a valid
+				// correlation ID, so this is a warning, not a 5xx-class error.
+				logger.WarnContext(r.Context(), "request id generation failed", "error", err)
 			}
 			w.Header().Set("X-Request-ID", reqID)
 			ctx := logging.With(SetRequestID(r.Context(), reqID), logger)

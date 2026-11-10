@@ -82,27 +82,54 @@ func openDSN(dsn string) (*sql.DB, error) {
 	return sql.OpenDB(connector), nil
 }
 
+// validateDataDir enforces the data-directory protection boundary shared by
+// every opener and by the backup source: the directory must exist and, on
+// POSIX systems, reject group/other access. Windows has no POSIX modes, so
+// the permission check is skipped there.
+func validateDataDir(dataDir string) error {
+	info, err := os.Stat(dataDir)
+	if err != nil {
+		return fmt.Errorf("database: data directory %q: %w", dataDir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("database: data directory %q is not a directory", dataDir)
+	}
+	if runtime.GOOS != "windows" {
+		if perm := info.Mode().Perm(); perm&0o077 != 0 {
+			return fmt.Errorf("database: data directory %q is not owner-only (mode %04o)", dataDir, perm)
+		}
+	}
+	return nil
+}
+
+// ensureExistingLiveDatabase applies the live-data preconditions a backup
+// source must meet before SQLite is allowed to connect. The connection would
+// otherwise create an empty database when the main file is absent — exactly
+// the state an interrupted rollback leaves behind for recovery.
+func ensureExistingLiveDatabase(dataDir string) error {
+	if err := validateDataDir(dataDir); err != nil {
+		return err
+	}
+	if err := ensureNoInterruptedRollback(dataDir); err != nil {
+		return err
+	}
+	if _, err := os.Stat(filepath.Join(dataDir, FileName)); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("database: live database %s is missing", FileName)
+		}
+		return fmt.Errorf("database: stat %s: %w", FileName, err)
+	}
+	return nil
+}
+
 // openDB validates the data directory, constructs the DSN, opens the pool,
 // configures pool limits, pings, and sets up WAL mode.
 //
 // It returns the opened *sql.DB and any error. Callers are responsible for
 // closing the database when done.
 func openDB(dataDir string) (*sql.DB, error) {
-	// Validate the data directory exists and is a directory.
-	info, err := os.Stat(dataDir)
-	if err != nil {
-		return nil, fmt.Errorf("database: data directory %q: %w", dataDir, err)
-	}
-	if !info.IsDir() {
-		return nil, fmt.Errorf("database: data directory %q is not a directory", dataDir)
-	}
-	// The directory is the protection boundary for the database file and its
-	// sidecars: group/other access is refused, never silently accepted. POSIX
-	// modes do not exist on Windows, so the check is skipped there.
-	if runtime.GOOS != "windows" {
-		if perm := info.Mode().Perm(); perm&0o077 != 0 {
-			return nil, fmt.Errorf("database: data directory %q is not owner-only (mode %04o)", dataDir, perm)
-		}
+	if err := validateDataDir(dataDir); err != nil {
+		return nil, err
 	}
 	// A missing main file beside interrupted-rollback remnants must fail before
 	// the connection below would create an empty database in its place.
@@ -212,7 +239,8 @@ func verifyConnSettings(db *sql.DB) error {
 		// not SQLite PRAGMA statements. They cannot be queried via PRAGMA.
 		// _dqs=0 is tested implicitly: a double-quoted string like "hello"
 		// would cause a syntax error rather than being treated as a literal.
-		// _txlock=immediate is tested through lock-behavior observation.
+		// _txlock is part of the DSN contract (TestBuildDSN pins the string);
+		// the suite does not observe the driver's immediate-lock behavior.
 	}
 
 	for _, c := range checks {
@@ -241,7 +269,9 @@ func Open(config Config) (*sql.DB, error) {
 // interface is defined in the handler package (the consumer), and this struct
 // satisfies it structurally — no import needed.
 type DBHealthChecker struct {
-	DB      *sql.DB
+	// DB is the open pool the readiness checks read.
+	DB *sql.DB
+	// DataDir holds the restore marker the gate inspects before touching DB.
 	DataDir string
 }
 

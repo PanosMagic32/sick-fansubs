@@ -168,7 +168,7 @@ var schemaSpec = map[string]tableSpec{
 		},
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"id"}},
-			{name: "idx_blog_posts_published", origin: "c", columns: []string{"published_at_ms", "id"}},
+			{name: "idx_blog_posts_published_order", origin: "c", columns: []string{"published_at_ms DESC", "id"}},
 			{name: "idx_blog_posts_creator", origin: "c", columns: []string{"creator_id"}},
 		},
 	},
@@ -207,7 +207,7 @@ var schemaSpec = map[string]tableSpec{
 			// The UNIQUE constraint on slug owns the auto-index that serves
 			// slug lookups; no named duplicate exists.
 			{origin: "u", unique: true, columns: []string{"slug"}},
-			{name: "idx_projects_published", origin: "c", columns: []string{"published_at_ms", "id"}},
+			{name: "idx_projects_published_order", origin: "c", columns: []string{"published_at_ms DESC", "id"}},
 		},
 	},
 	"project_downloads": {
@@ -306,6 +306,7 @@ var schemaSpec = map[string]tableSpec{
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"id"}},
 			{name: "idx_blog_post_comments_post", origin: "c", columns: []string{"blog_post_id", "created_at_ms", "id"}},
+			{name: "idx_blog_post_comments_post_newest", origin: "c", columns: []string{"blog_post_id", "created_at_ms DESC", "id"}},
 			{name: "idx_blog_post_comments_post_top", origin: "c", columns: []string{"blog_post_id", "hearts_count DESC", "created_at_ms DESC", "id"}},
 			{name: "idx_blog_post_comments_parent", origin: "c", columns: []string{"parent_id"}},
 		},
@@ -335,6 +336,7 @@ var schemaSpec = map[string]tableSpec{
 		indexes: []indexSpec{
 			{origin: "pk", unique: true, columns: []string{"id"}},
 			{name: "idx_project_comments_project", origin: "c", columns: []string{"project_id", "created_at_ms", "id"}},
+			{name: "idx_project_comments_project_newest", origin: "c", columns: []string{"project_id", "created_at_ms DESC", "id"}},
 			{name: "idx_project_comments_project_top", origin: "c", columns: []string{"project_id", "hearts_count DESC", "created_at_ms DESC", "id"}},
 			{name: "idx_project_comments_parent", origin: "c", columns: []string{"parent_id"}},
 		},

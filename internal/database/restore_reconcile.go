@@ -60,6 +60,23 @@ func verificationTokensEmpty(db *sql.DB) error {
 	return nil
 }
 
+// pushSubscriptionsEmpty requires exactly zero push-subscription rows. A
+// restore purges delivery rows along with sessions: a device revoked by
+// sign-out-all after the backup must not receive notifications again.
+func pushSubscriptionsEmpty(db *sql.DB) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var n int
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM push_subscriptions").Scan(&n); err != nil {
+		return fmt.Errorf("count push subscriptions: %w", err)
+	}
+	if n != 0 {
+		return fmt.Errorf("%d push subscription row(s) remain", n)
+	}
+	return nil
+}
+
 // reconciliation is the outcome of the security comparison: whether the
 // restore proceeded over newer events and the two newest timestamps.
 type reconciliation struct {

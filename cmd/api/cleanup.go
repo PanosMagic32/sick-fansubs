@@ -38,7 +38,7 @@ func cleanupExpiredSessions(ctx context.Context, db *sql.DB) (int64, error) {
 // cancelled, logging failures and retrying on the next tick. Main waits on it
 // before closing the database.
 func startSessionCleanup(ctx context.Context, db *sql.DB) {
-	ticker := time.NewTicker(time.Hour)
+	ticker := time.NewTicker(sessionCleanupInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -62,6 +62,10 @@ func startSessionCleanup(ctx context.Context, db *sql.DB) {
 // startupPassBudget bounds each startup maintenance pass — a hung pass must
 // not block the server from starting; the next hourly tick retries.
 const startupPassBudget = 30 * time.Second
+
+// sessionCleanupInterval is the expired-session cleanup cadence: hourly, the
+// same fixed cadence as the audit and media sweeps.
+const sessionCleanupInterval = time.Hour
 
 // mediaSweepInterval is the media orphan sweep cadence: hourly, like the
 // session cleanup — the 24 h grace window makes the tick
@@ -100,7 +104,7 @@ func cleanupAuditEvents(ctx context.Context, db *sql.DB) (int64, error) {
 // cleanup's cadence until ctx is cancelled, logging failures and retrying on
 // the next tick. The caller waits on it before shutting down.
 func startAuditCleanup(ctx context.Context, db *sql.DB) {
-	ticker := time.NewTicker(time.Hour)
+	ticker := time.NewTicker(auditCleanupInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -120,6 +124,10 @@ func startAuditCleanup(ctx context.Context, db *sql.DB) {
 		}
 	}
 }
+
+// auditCleanupInterval is the expired-audit-event cleanup cadence: hourly,
+// like the session and media sweeps.
+const auditCleanupInterval = time.Hour
 
 // walMonitorInterval is the WAL-size readout cadence: hourly, like the other
 // background tasks.

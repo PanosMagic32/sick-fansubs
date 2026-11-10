@@ -1826,7 +1826,10 @@ func TestAudit_ExpiredCookieSignOutEmitsNoEvent(t *testing.T) {
 	_, db, mux := setupAuthWithLogger(t, logger)
 	cookie, _ := createUser(t, mux, "TestUser", "test@example.com", "password123")
 
-	if _, err := db.Exec(`UPDATE sessions SET expires_at_ms = created_at_ms + 1`); err != nil {
+	// Move the row to an instant that is already past. The schema requires
+	// expires_at_ms > created_at_ms, and a +1 ms offset on the live clock can
+	// still be in the future when the request lands in the same millisecond.
+	if _, err := db.Exec(`UPDATE sessions SET created_at_ms = 1000, expires_at_ms = 2000`); err != nil {
 		t.Fatalf("expire sessions: %v", err)
 	}
 
