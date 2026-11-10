@@ -42,7 +42,10 @@ guards run inside the ordinary `go test ./internal/...` of `make check`.
   kind string as a string literal), and `docs/ops/deploy.md` rule 3 (the
   Caddyfile's `trusted_proxies` ranges equal the ufw `DOCKER-USER` sources in
   `deploy/bring-up.md`, set-for-set and non-vacuous, and both log blocks delete the
-  credential-bearing fields named there).
+  credential-bearing fields named there), and `docs/ops/deploy.md` rule 6 (the deploy
+  script's `SITE_DOMAIN` is a Caddyfile site address, and the loopback and public
+  probes carry the same curl policy), and rule 4 (the repair command in the script
+  and the doc is identical, with `CHOWN` and `DAC_READ_SEARCH` and no `DAC_OVERRIDE`).
 - **A guard names its doc.** A failing guard prints the offending file (with
   line and column where the rule has a position) and the pattern doc that owns
   the rule. The doc is the source: a guard is added, changed, or deleted with it.

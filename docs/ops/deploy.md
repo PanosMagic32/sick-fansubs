@@ -41,16 +41,27 @@ Backup and restore have their own docs.
    volumes) and two one-shot profiles.** `app` holds
    `sick-data:/app/data`; `caddy` holds `caddy-data`/`caddy-config`; `./backups` is a host bind the
    cron and Mega scripts read. A Caddy volume created before the non-root switch needs a one-time
-   root one-off immediately before the first non-root start: stop Caddy, run
-   `docker compose run --rm --no-deps --user root --cap-add CHOWN --cap-add DAC_OVERRIDE --entrypoint chown caddy -R 1000:1000 /data /config`,
+   root one-off immediately before the first non-root start: from `~/sick-fansubs`, stop Caddy, run
+   `docker compose run --rm --no-deps --user root --cap-add CHOWN --cap-add DAC_READ_SEARCH --entrypoint chown caddy -R 1000:1000 /data /config`,
    then start the deploy; its `up -d` starts the non-root Caddy. A fresh volume inherits the image's
-   writable `/data/caddy` and `/config/caddy` state directories.
+   `/data/caddy` and `/config/caddy` state directories, which the image creates and owns as uid 1000.
+   The deploy preflight refuses to run while a path in `/data/caddy` or `/config/caddy` is not
+   owned by uid 1000, and prints the repair. It inspects the existing caddy container's volumes
+   (running or stopped), or the volumes derived from the compose project name after a shutdown; a
+   host with both state volumes absent skips it. Ownership is the preflight test; the loopback TLS
+   probe (rule 6) is the runtime test for what Caddy can read. When the guard is bypassed (for
+   example a manual `docker compose up -d`), a skipped chown shows in the Caddy log as
+   `permission denied` on a certificate cache entry and on `last_clean.json`, then as a TLS
+   `internal error` at the origin and HTTP 525 through Cloudflare; the container still reads `Up`,
+   so container state does not reveal it.
+
    `migrate` and `backup` run only through their profiles
    (`docker compose --profile migrate run --rm migrate`). Migrations are an explicit maintenance
    step, never run by the app process, and the app only performs the strict read-only compatibility
    check at startup — the mechanics are [sqlite.md](../patterns/go/sqlite.md)'s. A routine deploy
    preserves the volume's sessions and push rows; only a staged restore deletes sessions and rolls
    push rows back to the backup instant.
+
 5. **Configuration is environment variables; secrets are Compose file secrets.** Non-secret config
    (ports, `DATA_DIR`, `APP_ENV`, `PUBLIC_BASE_URL`, `TRUSTED_ORIGIN`, SMTP relay settings) rides
    `environment`; `SMTP_API_KEY` and `VAPID_PRIVATE_KEY` mount from `/run/secrets` for uid 1000
@@ -63,18 +74,21 @@ Backup and restore have their own docs.
 6. **The deploy has two phases, and a failed phase never leaves a half-switched stack.** The two
    phases serialize on a host lock with the other backup/deploy triggers (see the lock gotcha).
    1. _Preflight_ — pull the new app image and the version-paired auxiliary images (plus the
-      restore image, `:latest`), stop the app (the single-writer window), and take the pre-deploy
+      restore image, `:latest`), refuse when Caddy's state directories are not owned by uid 1000
+      (rule 4), stop the app (the single-writer window), and take the pre-deploy
       backup (the deploy trigger may replace today's unit; see [backup.md](backup.md)). The backup
       runs on the tag being deployed's paired image, so a re-run after a schema-advanced rollback
-      validates the newer live history. Any failure
-      restarts the old stack and aborts with `.env` untouched.
+      validates the newer live history. A refusal before the stop leaves the running stack
+      untouched; any later failure restarts the old stack and aborts with `.env` untouched.
    2. _Deploy_ — run compose on the new TAG/AUX_TAG pair (exported into the shell environment;
       `.env` is committed only after the health gate, so an interrupted deploy keeps the previous
       pair as its rollback target), swap the staged `Caddyfile.new` in (keeping
       `Caddyfile.previous`), run the migrate profile, `up -d`, and wait for the health check: the
       app reports healthy through `/health/ready` **and** the caddy container is Up on two
-      consecutive samples. The job then fetches the public `PUBLIC_BASE_URL/health/ready` through
-      Cloudflare — DNS, the edge, TLS, the origin, and the app in one check — issued on the VPS
+      consecutive samples **and** a loopback TLS request for the site name answers `200` (one
+      failure it catches is rule 4's). The job then fetches the public
+      `PUBLIC_BASE_URL/health/ready` through Cloudflare — DNS, the edge, TLS, the origin, and the
+      app in one check — issued on the VPS
       over SSH: Cloudflare's free Bot Fight Mode challenges the GitHub runner's shared egress IPs
       and WAF skip rules cannot bypass it, so the probe client is the deploy host's own address
       and the zone keeps the setting on. The Cloudflare SSL mode (Full strict) stays a recorded
@@ -85,12 +99,14 @@ Backup and restore have their own docs.
    is only a rollback when the failed deploy applied no migration. If the restored stack does not
    become healthy, the schema history most likely advanced: the script prints the STOP and the
    operator decides — staged restore of the pre-deploy backup ([restore.md](restore.md)) or
-   fix-forward. The STOP names both causes — a migration applied by the failed deploy, or a
-   configuration fault — and the operator reads the compose error the rollback printed before
-   choosing. It never loops silently. After a staged restore the stack runs the NEW tag (re-run
+   fix-forward. The STOP names three causes — a migration applied by the failed deploy, a
+   configuration fault, or an edge that fails the loopback TLS probe — and the operator reads the
+   compose error and the probe line the rollback printed before choosing. It never loops silently.
+   After a staged restore the stack runs the NEW tag (re-run
    the deploy): activation applies the restore image's migration set, so the previous tag would
-   refuse the restored history. The choice: with no migration applied, the image rollback
-   is the whole recovery; with the schema advanced, a staged restore trades away every write since
+   refuse the restored history. The choice: with no migration applied and a healthy edge, the image
+   rollback is the whole recovery; an unreadable Caddy state survives the rollback and is repaired
+   by rule 4; with the schema advanced, a staged restore trades away every write since
    the pre-deploy backup while fix-forward keeps them — decide by whether those writes are worth
    preserving.
 8. **Health and smoke.** `/health/live` reports process liveness; `/health/ready` carries the
@@ -128,12 +144,12 @@ tag push ─▶ test job (Go + web) ─▶ build job (6 images → ghcr) ─▶ 
                                                scripts, backup and restore runbooks
                                           ssh: sh deploy.sh  (NEW_TAG=…)
                                                                       │
-        preflight: pull ─▶ stop app ─▶ pre-deploy backup ─────────────┤
+        preflight: pull ─▶ state check ─▶ stop app ─▶ backup ─────────┤
         deploy:    run new pair ─▶ swap Caddyfile ─▶ migrate ─▶ up -d ─▶ healthy?
                                                                       │
                               no ─▶ rollback (previous TAG + Caddyfile) ─▶ healthy?
                                                                       │
-                                                    no ─▶ STOP: staged restore or fix-forward
+                                                    no ─▶ STOP: repair edge, staged restore, or fix-forward
 ```
 
 ## Examples

@@ -190,9 +190,10 @@ jobs:
     # The owner-gated production deploy: this environment carries the owner
     # as a required reviewer, so the run pauses here before touching the VPS.
     environment: deploy-approval
-    # Hang-brake, not cost policy: the preflight backup + migrate window with
-    # headroom for a large media volume and a host-lock wait (deploy.sh
-    # prints per-phase elapsed times; revisit the ceiling against them).
+    # Hang-brake, not cost policy: the preflight state check + backup +
+    # migrate window with headroom for a large media volume and a host-lock
+    # wait (deploy.sh prints per-phase elapsed times; revisit the ceiling
+    # against them).
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -251,8 +252,8 @@ jobs:
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
         run: |
-          # The deploy script's health gate proves the app and the caddy
-          # container. This probe fetches the public path users take: DNS,
+          # The deploy script's health gate proves the app, the caddy
+          # container, and origin TLS on loopback. This probe fetches the public path users take: DNS,
           # Cloudflare, TLS, the origin, and the app — issued on the VPS, not
           # the runner: Cloudflare's free Bot Fight Mode challenges the
           # runner's shared egress IPs and cannot be skipped by WAF custom
@@ -267,7 +268,7 @@ jobs:
             -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
             "$DEPLOY_USER@$DEPLOY_HOST" "PROBE_URL='$url' sh -s" <<'PROBE'
           for i in 1 2 3 4 5; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$PROBE_URL" || true)
+            code=$(curl -q --noproxy '*' --proto '=https' -sS -o /dev/null -w '%{http_code}' --max-time 10 "$PROBE_URL" || true)
             if [ "$code" = "200" ]; then exit 0; fi
             [ "$i" = "5" ] || sleep 5
           done
