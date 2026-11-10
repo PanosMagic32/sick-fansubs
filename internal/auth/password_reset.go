@@ -159,8 +159,6 @@ func (s *Service) ResetPasswordWithToken(ctx context.Context, token, password st
 		return "", "", fe
 	}
 
-	// Load the owning user for the CAS input + the audit role snapshot.
-
 	// bcrypt runs here, BEFORE the store's write transaction (bcrypt must
 	// never run inside one).
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), s.bcryptCost)

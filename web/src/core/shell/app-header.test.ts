@@ -831,6 +831,44 @@ describe("app-header", () => {
     el.remove();
   });
 
+  test("a pathname change refetches the unread badge", async () => {
+    let badgeFetches = 0;
+    const el = renderHeader();
+    (el as any).session = {
+      state: {
+        status: "authenticated",
+        user: { id: "u1", username: "Katakuri", role: "user" },
+      },
+    };
+    mockFetch((url) => {
+      if (url.includes("/notifications/unread-count")) {
+        badgeFetches += 1;
+        return json({ unread: badgeFetches });
+      }
+      if (url.includes("/users/me")) {
+        return json({
+          id: "u1",
+          username: "Katakuri",
+          email: "k@example.com",
+          role: "user",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          avatarUrl: null,
+        });
+      }
+      return json({});
+    });
+    await el.updateComplete;
+    await flush();
+
+    const before = badgeFetches;
+    el.currentPath = "/projects";
+    await el.updateComplete;
+    await flush();
+
+    expect(badgeFetches).toBeGreaterThan(before);
+    el.remove();
+  });
+
   test("the feed's change event refetches the unread badge", async () => {
     let badgeFetches = 0;
     let readAll = false;

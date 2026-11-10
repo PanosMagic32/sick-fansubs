@@ -191,30 +191,19 @@ func startWALMonitor(ctx context.Context, dataDir string) {
 	}
 }
 
-// mediaCanonicalizer returns the layout grammar bound to the configured
-// public base URL: raw stored references (including legacy flat, wrong-
-// subdirectory, and same-origin absolute forms) map to the canonical storage
-// path the sweep protects.
-func mediaCanonicalizer(publicBaseURL string) func(string) (string, bool) {
-	return func(ref string) (string, bool) {
-		return media.CanonicalStoragePath(ref, publicBaseURL)
-	}
-}
-
 // sweepMediaOrphans runs one grace-windowed orphan sweep:
 // snapshot the referenced set from the database, then walk the media
 // directory. The reference snapshot and the deletion policy live in
 // store.ReferencedMediaPaths and media.Sweep. Each candidate is re-checked
 // against a fresh reference read immediately before removal, so a content
 // write that lands after the snapshot keeps its file.
-func sweepMediaOrphans(ctx context.Context, db *sql.DB, dataDir, publicBaseURL string) (media.SweepStats, error) {
-	canonical := mediaCanonicalizer(publicBaseURL)
-	refs, err := store.ReferencedMediaPaths(ctx, db, canonical)
+func sweepMediaOrphans(ctx context.Context, db *sql.DB, dataDir string) (media.SweepStats, error) {
+	refs, err := store.ReferencedMediaPaths(ctx, db, media.CanonicalStoragePath)
 	if err != nil {
 		return media.SweepStats{}, err
 	}
 	stillReferenced := func(ctx context.Context, path string) (bool, error) {
-		return store.MediaPathReferenced(ctx, db, path, canonical)
+		return store.MediaPathReferenced(ctx, db, path, media.CanonicalStoragePath)
 	}
 	return media.Sweep(ctx, slog.Default(), dataDir, refs, stillReferenced, time.Now(), media.SweepGrace)
 }
@@ -222,7 +211,7 @@ func sweepMediaOrphans(ctx context.Context, db *sql.DB, dataDir, publicBaseURL s
 // startMediaSweep runs the hourly media orphan sweep until ctx is cancelled,
 // logging failures and retrying on the next tick. The caller waits on it
 // before shutting down.
-func startMediaSweep(ctx context.Context, db *sql.DB, dataDir, publicBaseURL string) {
+func startMediaSweep(ctx context.Context, db *sql.DB, dataDir string) {
 	ticker := time.NewTicker(mediaSweepInterval)
 	defer ticker.Stop()
 	for {
@@ -230,7 +219,7 @@ func startMediaSweep(ctx context.Context, db *sql.DB, dataDir, publicBaseURL str
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			stats, err := sweepMediaOrphans(ctx, db, dataDir, publicBaseURL)
+			stats, err := sweepMediaOrphans(ctx, db, dataDir)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
 					slog.Warn("media orphan sweep failed", "error", err,

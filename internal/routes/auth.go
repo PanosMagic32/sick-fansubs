@@ -43,12 +43,12 @@ import (
 //     route trees so every verification-send surface shares one limit)
 //   - Email change: same shared bucket, checked in the handler.
 //
-// appBaseURL builds the reset/verification links. It is the application
-// origin (TRUSTED_ORIGIN), never PUBLIC_BASE_URL: the latter may carry a media
-// path prefix or point at a separate media host, and the auth pages are served
-// at the app root.
-func Auth(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, appBaseURL string, sender mail.Sender, verifySendLimiter *middleware.RateLimiter) {
-	authSvc := auth.New(db, sender, appBaseURL)
+// origin is the application origin: the exact origin allowed for unsafe
+// requests and the base for reset/verification links. It is never
+// PUBLIC_BASE_URL — the latter may carry a media path prefix or point at a
+// separate media host, and the auth pages are served at the app root.
+func Auth(mux *http.ServeMux, db *sql.DB, secure bool, origin string, sender mail.Sender, verifySendLimiter *middleware.RateLimiter) {
+	authSvc := auth.New(db, sender, origin)
 
 	// Rate limiters (in-memory, reset on restart).
 	signInIPLimiter := middleware.NewRateLimiter(10, 15*time.Minute, time.Minute)
@@ -84,7 +84,7 @@ func Auth(mux *http.ServeMux, db *sql.DB, secure bool, trustedOrigin, appBaseURL
 	// paths never produce a non-API body).
 	authMux.Handle("/", notFound())
 
-	h := authChain(authMux, db, secure, trustedOrigin,
+	h := authChain(authMux, db, secure, origin,
 		pathLimit{signInIPLimiter, "/sign-in"},
 		pathLimit{registerIPLimiter, "/register"},
 		pathLimit{forgotIPLimiter, "/forgot-password"},

@@ -34,13 +34,9 @@ var (
 	methodSpacePattern = regexp.MustCompile(`^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE) $`)
 )
 
-// nonOpenAPIRoutes are registered paths deliberately absent from the wire
-// contract. Empty today: the media serving path is documented.
-var nonOpenAPIRoutes = map[string]bool{}
-
 // TestOpenAPIRoutesMatchRegistrations pins both directions: every documented
 // operation dispatches to a registered pattern, and every registered
-// operation is documented (minus the recorded asset path).
+// operation is documented.
 func TestOpenAPIRoutesMatchRegistrations(t *testing.T) {
 	t.Parallel()
 
@@ -69,7 +65,7 @@ func TestOpenAPIRoutesMatchRegistrations(t *testing.T) {
 	}
 	for key := range registered {
 		if !documented[key] {
-			t.Errorf("route %s is registered, but docsapi/openapi.yaml does not document it", key)
+			t.Errorf("route %s is registered, but docs/api/openapi.yaml does not document it", key)
 		}
 	}
 }
@@ -149,10 +145,6 @@ func parseOpenAPIRoutes(t *testing.T) map[string]bool {
 // comment namespace's concatenated patterns.
 func scanRegisteredRoutes(t *testing.T) map[string]bool {
 	t.Helper()
-
-	if len(nonOpenAPIRoutes) != 0 {
-		t.Fatalf("nonOpenAPIRoutes has %d entries — each exemption needs a recorded reason", len(nonOpenAPIRoutes))
-	}
 
 	root := filepath.Join(routesRepoRoot(t), "internal", "routes")
 	out := map[string]bool{}

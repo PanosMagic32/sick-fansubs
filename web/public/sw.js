@@ -373,7 +373,13 @@ async function cacheFirst(request, cacheName) {
   if (response.ok) {
     // Await the write: a cache put after the response settles can be cut
     // off when the worker is terminated. The write is local and small.
-    await cache.put(request, response.clone());
+    // Cache storage is an optimization: quota or storage failures must
+    // never fail a response the network already delivered.
+    try {
+      await cache.put(request, response.clone());
+    } catch {
+      // Serve the network response without the cache copy.
+    }
   }
   return response;
 }
@@ -392,10 +398,16 @@ async function mediaFirstCapped(request) {
   }
   const response = await fetch(request);
   if (response.ok) {
-    await cache.put(request, response.clone());
-    const keys = await cache.keys();
-    if (keys.length > MEDIA_MAX_ENTRIES) {
-      await cache.delete(keys[0]);
+    // The cache is an optimization: a failed write or trim must not fail
+    // a media response the network already delivered.
+    try {
+      await cache.put(request, response.clone());
+      const keys = await cache.keys();
+      if (keys.length > MEDIA_MAX_ENTRIES) {
+        await cache.delete(keys[0]);
+      }
+    } catch {
+      // Serve the network response without the cache copy.
     }
   }
   return response;

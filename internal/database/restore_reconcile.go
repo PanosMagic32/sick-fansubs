@@ -111,7 +111,7 @@ func reconcileSecurity(liveDBPath, stagedDir string, acknowledge bool) (reconcil
 	newer := liveMS > stagedMS
 	if newer && !acknowledge {
 		return reconciliation{}, fmt.Errorf(
-			"database: the live database has account-security events newer than the backup (live newest %d ms, backup newest %d ms) — restoring would revive password, role, status, or account-deletion changes made after the backup; re-run with -acknowledge-loss to accept this explicitly (security reconciliation v1)",
+			"database: the live database has account-security events newer than the backup (live newest %d ms, backup newest %d ms) — restoring would revive password, recovery-address (email), role, status, or account-deletion changes made after the backup; re-run with -acknowledge-loss to accept this explicitly (security reconciliation v1)",
 			liveMS, stagedMS)
 	}
 	return reconciliation{acknowledgedLoss: newer, liveNewestMS: liveMS, backupNewestMS: stagedMS}, nil

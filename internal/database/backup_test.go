@@ -125,6 +125,14 @@ func TestPrunePreMigrationBackups(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(backups, "2026-11-08"), 0o700); err != nil {
 		t.Fatalf("create unit dir: %v", err)
 	}
+	// Foreign files that merely resemble the artifact pattern are not ours to
+	// delete: a hand-retained recovery copy and a non-numeric name both
+	// survive the prune window.
+	for _, foreign := range []string{"pre-migrate-1000-copy.db", "pre-migrate-notatime.db"} {
+		if err := os.WriteFile(filepath.Join(backups, foreign), []byte("keep"), 0o600); err != nil {
+			t.Fatalf("write foreign file %s: %v", foreign, err)
+		}
+	}
 
 	removed, err := PrunePreMigrationBackups(dir, 5)
 	if err != nil {
@@ -139,17 +147,15 @@ func TestPrunePreMigrationBackups(t *testing.T) {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if strings.HasPrefix(name, "pre-migrate-") {
-			var ms int
-			if _, err := fmt.Sscanf(name, "pre-migrate-%d.db", &ms); err != nil {
-				t.Fatalf("parse %s: %v", name, err)
-			}
-			if ms < 1002 {
-				t.Errorf("old artifact survived: %s", name)
-			}
+		ms, ours := preMigrationMillis(name)
+		if !ours {
+			continue
+		}
+		if ms < 1002 {
+			t.Errorf("old artifact survived: %s", name)
 		}
 	}
-	for _, keep := range []string{"2026-11-09", "2026-11-08"} {
+	for _, keep := range []string{"2026-11-09", "2026-11-08", "pre-migrate-1000-copy.db", "pre-migrate-notatime.db"} {
 		if _, err := os.Stat(filepath.Join(backups, keep)); err != nil {
 			t.Errorf("foreign entry %s was removed: %v", keep, err)
 		}
@@ -662,5 +668,44 @@ func TestCreateBackup_MarkerGate(t *testing.T) {
 	}
 	if _, err := BackupForDaily(dir, testDataDir(t), "daily.db", time.Now().Add(30*time.Second)); err != nil {
 		t.Errorf("BackupForDaily after marker removal: %v", err)
+	}
+}
+
+// TestPrunePreMigrationBackups_NumericOrder pins the retention order across
+// timestamp widths: production names carry the unpadded Unix-millis value, so
+// a lexical sort would rank "999" above "1000" and keep the older artifact.
+func TestPrunePreMigrationBackups_NumericOrder(t *testing.T) {
+	t.Parallel()
+
+	dir := testDataDir(t)
+	backups := filepath.Join(dir, backupsDirName)
+	if err := os.MkdirAll(backups, 0o700); err != nil {
+		t.Fatalf("create backups dir: %v", err)
+	}
+	for _, name := range []string{
+		"pre-migrate-999.db",
+		"pre-migrate-1000.db",
+		"pre-migrate-1001.db",
+		"pre-migrate-1002.db",
+	} {
+		if err := os.WriteFile(filepath.Join(backups, name), []byte("db"), 0o600); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+
+	removed, err := PrunePreMigrationBackups(dir, 3)
+	if err != nil {
+		t.Fatalf("PrunePreMigrationBackups: %v", err)
+	}
+	if removed != 1 {
+		t.Fatalf("removed = %d, want 1", removed)
+	}
+	if _, err := os.Stat(filepath.Join(backups, "pre-migrate-999.db")); !os.IsNotExist(err) {
+		t.Errorf("oldest artifact survived: %v", err)
+	}
+	for _, name := range []string{"pre-migrate-1000.db", "pre-migrate-1001.db", "pre-migrate-1002.db"} {
+		if _, err := os.Stat(filepath.Join(backups, name)); err != nil {
+			t.Errorf("newest artifact %s missing: %v", name, err)
+		}
 	}
 }

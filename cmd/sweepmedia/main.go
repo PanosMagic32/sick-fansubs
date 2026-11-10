@@ -70,7 +70,7 @@ func run(logger *slog.Logger) error {
 	defer cancel()
 
 	canonical := func(ref string) (string, bool) {
-		return media.CanonicalStoragePath(ref, cfg.PublicBaseURL)
+		return media.CanonicalStoragePath(ref)
 	}
 	refs, err := store.ReferencedMediaPaths(ctx, db, canonical)
 	if err != nil {

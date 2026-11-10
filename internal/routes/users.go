@@ -17,8 +17,8 @@ import (
 type UsersDeps struct {
 	DB                *sql.DB                 // application pool
 	Secure            bool                    // Secure attribute on session cookies
-	TrustedOrigin     string                  // exact origin allowed for unsafe requests
-	PublicBaseURL     string                  // canonical public origin for emitted URLs
+	TrustedOrigin     string                  // exact origin allowed for unsafe requests; base for auth links
+	PublicBaseURL     string                  // canonical public origin for emitted media/avatar URLs
 	DataDir           string                  // media data root
 	Sender            mail.Sender             // transactional mail relay
 	VerifySendLimiter *middleware.RateLimiter // shared verification-send bucket
@@ -83,9 +83,10 @@ func Users(mux *http.ServeMux, deps UsersDeps) {
 	// sender turns an accidental ForgotPassword call on this surface into
 	// an honest 500 (the service guards it), never a logged credential.
 	authSvc := auth.New(db, nil, "")
-	// The email-change surface DOES send mail — a second
-	// service with the real sender + base URL.
-	emailSvc := auth.New(db, sender, publicBaseURL)
+	// The email-change surface DOES send mail — a second service with the
+	// real sender. Its verification link uses the application origin (the
+	// auth pages live at the root), never the media base.
+	emailSvc := auth.New(db, sender, trustedOrigin)
 
 	// Staff list lives on the BARE namespace root (the blog-list precedent:
 	// collections address the bare path). The exact "/api/v1/users"

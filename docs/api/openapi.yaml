@@ -58,6 +58,8 @@ paths:
         "200":
           description: The stored image bytes.
           headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
             Cache-Control:
               description: Immutable one-year cache directive.
               schema:
@@ -74,12 +76,27 @@ paths:
                 format: binary
         "400":
           description: The segment is not a valid media file name (plain text).
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
           content:
             text/plain:
               schema:
                 type: string
         "404":
           description: No stored file matches the segment (plain text).
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          description: The stored file could not be read (plain text).
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
           content:
             text/plain:
               schema:
@@ -3041,7 +3058,9 @@ paths:
         not proof of consent or an authorization boundary. The endpoint must
         be an absolute https URL; p256dh/auth must be URL-safe base64
         decoding to exactly 65 and 16 bytes (the RFC 8291 shapes) —
-        violations are 422 {field, code}. Unknown body fields are 400;
+        violations are 422 {field, code}. A missing or empty key answers 422
+        with code required; a decode-shape failure answers invalidFormat.
+        Unknown body fields are 400;
         body hard-limit 4 KiB (413 beyond). Requires the trusted origin and
         a valid X-CSRF-Token (the authenticated chain).
       requestBody:
@@ -3936,7 +3955,7 @@ paths:
         Mirrors the blog thread contract exactly against
         projects — sort tabs, the optional session's hearted flag, the
         SORT-BOUND cursor (namespace pc1.), the focus deep-link window
-        (including R4's reply-window shift), the inline reply window with
+        (including the focus reply-window shift), the inline reply window with
         replyCount/repliesEndCursor (namespace pr1.), and the masked 404 for
         unpublished/unknown content. The top sort's key has the same
         mutability caveat (a concurrent heart can skip or repeat a row).
@@ -7200,10 +7219,12 @@ components:
           properties:
             p256dh:
               type: string
+              minLength: 1
               maxLength: 512
               description: URL-safe base64 decoding to the 65-byte uncompressed P-256 point.
             auth:
               type: string
+              minLength: 1
               maxLength: 512
               description: URL-safe base64 decoding to the 16-byte authentication secret.
         takeover:
@@ -7518,7 +7539,7 @@ components:
             $ref: "#/components/schemas/Comment"
           description: >-
             The item's inline reply window — at most the first 3 replies
-            (depth 1), oldest first, or the R4 focus reply page containing
+            (depth 1), oldest first, or the focus reply page containing
             the anchor when a deep link targets a reply outside that first
             window. Present ONLY on top-level
             items ([] when none; reply items omit the key entirely). Append

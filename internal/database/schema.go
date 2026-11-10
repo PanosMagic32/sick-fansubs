@@ -62,7 +62,7 @@ type tableSpec struct {
 	indexes []indexSpec
 }
 
-// schemaSpec mirrors the embedded migrations (0001–0024). Adding a table,
+// schemaSpec mirrors the embedded migrations (0001–0025). Adding a table,
 // column, or index to a migration file WITHOUT updating this spec makes every
 // migrated database fail verification — exactly the fail-closed behavior
 // docs/patterns/go/sqlite.md requires.
@@ -291,7 +291,8 @@ var schemaSpec = map[string]tableSpec{
 	// Comments thread (migration 0010): the mirror pair
 	// against blog_posts / projects with the materialized hearts_count, the
 	// one-level parent_id self-FK, and the heart join tables. The _post_top
-	// indexes pin the DESC directions (the schemaSpec direction convention).
+	// and _newest indexes pin the DESC directions (the schemaSpec direction
+	// convention).
 	"blog_post_comments": {
 		columns: map[string]columnSpec{
 			"id":            {"TEXT", true, true},

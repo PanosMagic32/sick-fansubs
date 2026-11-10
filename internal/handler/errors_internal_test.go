@@ -262,6 +262,29 @@ func TestClassifyDecodeError_PinsTheLiveDecoder(t *testing.T) {
 	}
 }
 
+// TestClassifyDecodeError_NullOptionalField pins the optionalString sentinel:
+// an explicit null reaches the generic invalid-body 400 class, while an
+// absent key stays legal.
+func TestClassifyDecodeError_NullOptionalField(t *testing.T) {
+	t.Parallel()
+
+	decode := func(body string) (optionalString, error) {
+		var dst struct {
+			Status optionalString `json:"status"`
+		}
+		err := json.Unmarshal([]byte(body), &dst)
+		return dst.Status, err
+	}
+	if _, err := decode(`{"status":null}`); err == nil {
+		t.Fatal("null optional field decoded without error")
+	} else if got := classifyDecodeError(err); !errors.Is(got, errInvalidBody) {
+		t.Errorf("classifyDecodeError(%v) = %v, want errInvalidBody", err, got)
+	}
+	if status, err := decode(`{}`); err != nil || status.set {
+		t.Errorf("absent optional field: got (%+v, %v), want unset and no error", status, err)
+	}
+}
+
 // TestReadJSONLimit_DuplicateMemberLastWins pins the recorded decoder contract
 // through the PRODUCTION body reader: a repeated object member name is accepted
 // and the LAST value wins. RFC 8259 §4 makes uniqueness a producer obligation,

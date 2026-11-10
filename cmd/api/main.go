@@ -135,7 +135,7 @@ func main() {
 	// here is non-fatal too — orphans are reclaimed on the next tick, and
 	// the sweep is hygiene, not correctness.
 	sweepCtx, cancelSweep := context.WithTimeout(ctx, startupPassBudget)
-	stats, sweepErr := sweepMediaOrphans(sweepCtx, db, cfg.DataDir, cfg.PublicBaseURL)
+	stats, sweepErr := sweepMediaOrphans(sweepCtx, db, cfg.DataDir)
 	cancelSweep()
 	if sweepErr != nil {
 		slog.Warn("startup media orphan sweep failed", "error", sweepErr,
@@ -162,9 +162,10 @@ func main() {
 	// SMTP sender wiring: a real relay when
 	// SMTP_HOST is configured (production always — config validation); the
 	// dev LogLink fallback otherwise. The fallback is loopback-only: config
-	// validation refuses any other origin without a host, so a reset link
-	// can never land in logs anywhere else. A configured relay with an
-	// empty API key fails closed at startup — broken mail must not deploy.
+	// validation refuses any non-loopback TRUSTED_ORIGIN without a host, and
+	// that origin builds every reset/verification link, so a link can never
+	// land in logs anywhere else. A configured relay with an empty API key
+	// fails closed at startup — broken mail must not deploy.
 	var sender mail.Sender
 	if cfg.SMTPHost != "" {
 		key, err := cfg.LoadSecret("smtp_api_key")
@@ -234,7 +235,7 @@ func main() {
 	// check, so an error exit never leaves tasks running.
 	var cleanupWG sync.WaitGroup
 	cleanupWG.Go(func() { startSessionCleanup(ctx, db) })
-	cleanupWG.Go(func() { startMediaSweep(ctx, db, cfg.DataDir, cfg.PublicBaseURL) })
+	cleanupWG.Go(func() { startMediaSweep(ctx, db, cfg.DataDir) })
 	cleanupWG.Go(func() { startAuditCleanup(ctx, db) })
 	cleanupWG.Go(func() { startWALMonitor(ctx, cfg.DataDir) })
 
@@ -256,7 +257,7 @@ func main() {
 	// production enables the Secure attribute and requires an explicit
 	// https TRUSTED_ORIGIN (fail-closed in internal/config). The mailer
 	// serves the forgot-password flow.
-	routes.Auth(mux, db, cfg.SecureCookies(), cfg.TrustedOrigin, cfg.TrustedOrigin, sender, verifySendLimiter)
+	routes.Auth(mux, db, cfg.SecureCookies(), cfg.TrustedOrigin, sender, verifySendLimiter)
 
 	// Users: /api/v1/users/me — the current user's profile + favorites
 	// + the self-service avatar upload + the email change.

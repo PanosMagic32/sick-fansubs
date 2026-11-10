@@ -10,7 +10,7 @@ Offline media orphan sweep: the manual trigger (`make sweep-media-local`) for th
 
 - Opens through the strict application opener (`database.OpenApplication`) — NEVER applies migrations; run `make migrate-local` first.
 - Run while the application is stopped (the `cmd/rebuildsearch` maintenance pattern).
-- The sweep logic itself lives in `internal/media.Sweep` + `store.ReferencedMediaPaths` — this command is wiring + logging only; do not duplicate policy here. It binds `media.CanonicalStoragePath` to `PUBLIC_BASE_URL` for the snapshot and passes a fresh `MediaPathReferenced` recheck to each removal (the same wiring as `cmd/api`).
+- The sweep logic itself lives in `internal/media.Sweep` + `store.ReferencedMediaPaths` — this command is wiring + logging only; do not duplicate policy here. It uses `media.CanonicalStoragePath` for the snapshot (host- and prefix-agnostic) and passes a fresh `MediaPathReferenced` recheck to each removal (the same wiring as `cmd/api`).
 - Grace window and cadence constants live in `internal/media` (`SweepGrace`) and `cmd/api` (`mediaSweepInterval`); keep the command consistent with them, not ahead of them.
 
 ## Authoritative docs

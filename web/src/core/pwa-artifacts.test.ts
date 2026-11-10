@@ -112,6 +112,16 @@ describe("PWA service worker", () => {
     expect(source).not.toContain("self.clients.claim");
   });
 
+  test("a failed cache write cannot fail a delivered network response", async () => {
+    const source = await readArtifact("sw.js");
+    // Both runtime caches await the write for worker-lifetime durability;
+    // the try/catch keeps quota or storage failures from turning a successful
+    // network response into a failed request.
+    const guardedPuts =
+      source.match(/try \{\n(?:\s*\/\/[^\n]*\n)*\s*await cache\.put\(/g) ?? [];
+    expect(guardedPuts.length).toBe(2);
+  });
+
   test("never caches token-bearing auth navigations", async () => {
     const source = await readArtifact("sw.js");
     // The reset and verification pages read a one-time token from the

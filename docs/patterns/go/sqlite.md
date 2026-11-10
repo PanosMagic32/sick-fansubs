@@ -103,9 +103,12 @@ have their own docs: [sql-mapping.md](sql-mapping.md) and [ids.md](ids.md).
     opener (explicit migrate/import/diagnostic commands) also refuses a present restore marker for
     the live data directory, and accepts an absent metadata table or a valid contiguous older
     prefix (the staged restore's own marker-exempt open of its operation subdirectory is the one
-    internal path exempt from that gate). `/health/live` stays up when SQLite is unavailable;
-    `/health/ready` verifies, with a short context, the marker's absence, a simple query, the
-    migration history, and the schema — it never runs integrity scans. Readiness failures report
+    internal path exempt from that gate). Both the application opener and every backup source
+    check that the live main file exists before SQLite connects: a missing main beside a
+    `.broken-<millis>` rollback remnant is an interrupted restore, never a fresh install.
+    `/health/live` stays up when SQLite is unavailable; `/health/ready` verifies, with a short
+    context, the marker's absence, a simple query, the migration history, and the schema — it
+    never runs integrity scans. Readiness failures report
     safely: operation names, durations, migration version, and error categories — never SQL
     arguments, credentials, personal data, raw records, session fields, or a full DSN. Setup errors
     return to `main` — this package never calls `log.Fatal` — and pool metrics are exposed only when
@@ -114,11 +117,12 @@ have their own docs: [sql-mapping.md](sql-mapping.md) and [ids.md](ids.md).
     access stays inside `internal/database` behind `sql.Conn.Raw` and a small private interface;
     the driver connection and its backup object never escape the callback. The destination is an
     unpredictable name in an owner-only directory on the same filesystem, restricted to `0600`
-    before the first page copy; pages are copied in bounded steps with the deadline checked
-    between steps and bounded `SQLITE_BUSY` handling, because a step already executing cannot be
-    cancelled by a context. `Finish` runs exactly once on success or failure, with both the
-    primary and the cleanup error preserved. An incomplete destination and its sidecars are
-    removed. The completed file is validated by an independent reopen: migration history
+    before the first page copy. The source passes the rule 10 preconditions before SQLite
+    connects, so a broken source path can never fabricate an empty database. Pages are copied in
+    bounded steps with the deadline checked between steps and bounded `SQLITE_BUSY` handling,
+    because a step already executing cannot be cancelled by a context. `Finish` runs exactly once
+    on success or failure, with both the primary and the cleanup error preserved. An incomplete
+    destination and its sidecars are removed. The completed file is validated by an independent reopen: migration history
     (exact history for the artifact that will serve it, or a contiguous prefix for a pre-migration
     or deploy-trigger unit), `PRAGMA quick_check` returning exactly one `ok` row, and
     `PRAGMA foreign_key_check` returning zero rows — then closed, synced, renamed into place on
@@ -132,8 +136,10 @@ have their own docs: [sql-mapping.md](sql-mapping.md) and [ids.md](ids.md).
     fail closed while it exists); a recent independently verified backup is the rollback artifact
     and is never overwritten; the selected backup is restored into a new owner-only operation
     subdirectory and opened through the maintenance opener; history is validated, a supported older
-    schema upgraded, full `integrity_check` and `foreign_key_check` run, every session is deleted in
-    one transaction and independently verified as zero; account-security events newer in the live
+    schema upgraded, full `integrity_check` and `foreign_key_check` run, every session, pending
+    password-reset token, pending email-verification token, and push-subscription row is deleted in
+    one transaction and independently verified as zero (a restored backup must not revive a login
+    or deliver to a device enrolled after it); account-security events newer in the live
     database than in the staged copy refuse activation unless the operator passes the explicit
     acknowledge-loss override. The staged file then passes a `wal_checkpoint(TRUNCATE)` and a
     self-containment check, the previous live main/WAL/SHM files move into a retained quarantine

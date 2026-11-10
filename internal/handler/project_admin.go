@@ -31,7 +31,8 @@ const (
 
 // projectCreateRequest is the create body: NO slug field — a
 // slug key in a create body is an unknown field and a 400 under the strict
-// body reader. Pointer fields distinguish absent from empty.
+// body reader. optionalString fields distinguish an absent key (the default
+// applies) from a present string; an explicit null is a 400.
 type projectCreateRequest struct {
 	Title         string                 `json:"title"`
 	Description   optionalString         `json:"description"`

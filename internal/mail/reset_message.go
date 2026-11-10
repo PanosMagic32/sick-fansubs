@@ -1,9 +1,10 @@
 package mail
 
 // ResetEmail builds the forgot-password message: plain text, Greek copy, one
-// reset link. The link is constructed by the caller (service layer) from
-// PUBLIC_BASE_URL + the base64url token; only that validated URL and the token
-// ever reach the message, so header injection is impossible by construction.
+// reset link. The link is constructed by the caller (service layer) from the
+// application origin (TRUSTED_ORIGIN) + the base64url token; only that
+// validated URL and the token ever reach the message, so header injection is
+// impossible by construction.
 func ResetEmail(link string) (subject, body string) {
 	subject = "Επαναφορά κωδικού πρόσβασης — Sick Fansubs"
 	// Polite register — the app's auth pages use the formal plural

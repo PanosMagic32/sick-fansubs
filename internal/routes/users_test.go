@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
@@ -8,8 +9,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"sick-fansubs/internal/database"
 	"sick-fansubs/internal/mail"
@@ -21,6 +25,20 @@ import (
 // setupUsersMux builds a ServeMux with the users routes and the API fallback
 // over a migrated database containing one active user with a live session.
 func setupUsersMux(t *testing.T) (*http.ServeMux, *sql.DB, string, string) {
+	t.Helper()
+	return setupUsersMuxWithSender(t, mail.LogLink{})
+}
+
+// setupUsersMuxWithSender is the sender-injecting variant used to inspect the
+// mail the email-change surface sends.
+func setupUsersMuxWithSender(t *testing.T, sender mail.Sender) (*http.ServeMux, *sql.DB, string, string) {
+	t.Helper()
+	return setupUsersMuxWithSenderAndPassword(t, sender, "")
+}
+
+// setupUsersMuxWithSenderAndPassword is the password-overriding variant: the
+// credential CAS needs a real verifier on the fixture user.
+func setupUsersMuxWithSenderAndPassword(t *testing.T, sender mail.Sender, passwordHash string) (*http.ServeMux, *sql.DB, string, string) {
 	t.Helper()
 
 	dir := testDataDir(t)
@@ -35,9 +53,10 @@ func setupUsersMux(t *testing.T) (*http.ServeMux, *sql.DB, string, string) {
 	t.Cleanup(func() { db.Close() })
 
 	storetest.InsertUser(t, db, storetest.UserSpec{
-		ID:          "u1",
-		Username:    "Katakuri",
-		CreatedAtMS: 1_700_000_000_000,
+		ID:           "u1",
+		Username:     "Katakuri",
+		PasswordHash: passwordHash,
+		CreatedAtMS:  1_700_000_000_000,
 	})
 
 	raw := make([]byte, 32)
@@ -65,7 +84,7 @@ func setupUsersMux(t *testing.T) (*http.ServeMux, *sql.DB, string, string) {
 		TrustedOrigin:     "http://localhost:5173",
 		PublicBaseURL:     "http://localhost:3000",
 		DataDir:           dir,
-		Sender:            mail.LogLink{},
+		Sender:            sender,
 		VerifySendLimiter: middleware.NewRateLimiter(1000, time.Hour, time.Minute),
 	})
 	APIFallback(mux)
@@ -346,7 +365,7 @@ func TestUsers_ForcePasswordChangeGate(t *testing.T) {
 	// The auth subtree is a separate registration — register it here so the
 	// exempt-path assertion has a real endpoint to hit. The mailer + base
 	// URL are placeholders (no forgot-password request in this test).
-	Auth(mux, db, false, "http://localhost:5173", "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Auth(mux, db, false, "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	cases := []struct{ method, path string }{
 		{http.MethodGet, "/api/v1/users/me"},
@@ -494,4 +513,67 @@ func TestUsers_SessionRoutesRegistered(t *testing.T) {
 	if afterRec.Code != http.StatusUnauthorized {
 		t.Fatalf("GET sessions with the revoked cookie: status = %d, want 401 (body %q)", afterRec.Code, afterRec.Body.String())
 	}
+}
+
+// captureSender records every message the email-change surface sends.
+type captureSender struct {
+	mu   sync.Mutex
+	sent []capturedMail
+}
+
+type capturedMail struct {
+	to      string
+	subject string
+	body    string
+}
+
+func (s *captureSender) Send(_ context.Context, to, subject, body string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sent = append(s.sent, capturedMail{to: to, subject: subject, body: body})
+	return nil
+}
+
+// TestUsers_EmailChangeVerificationUsesTrustedOrigin pins the wiring ruling:
+// the verification link uses the application origin, not the media base. The
+// fixture deliberately uses different values for the two so a swapped
+// argument cannot stay green.
+func TestUsers_EmailChangeVerificationUsesTrustedOrigin(t *testing.T) {
+	t.Parallel()
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 4)
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	sender := &captureSender{}
+	mux, _, cookie, _ := setupUsersMuxWithSenderAndPassword(t, sender, string(hash))
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/users/me/email",
+		strings.NewReader(`{"email":"new@example.com","currentPassword":"password123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("X-CSRF-Token", base64.RawURLEncoding.EncodeToString(make([]byte, 32)))
+	req.AddCookie(&http.Cookie{Name: "sf_session", Value: cookie})
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("email change: status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+	}
+
+	verifySubject, _ := mail.VerifyEmail("")
+	sender.mu.Lock()
+	defer sender.mu.Unlock()
+	for _, m := range sender.sent {
+		if m.subject != verifySubject {
+			continue
+		}
+		if !strings.Contains(m.body, "http://localhost:5173/auth/verify?token=") {
+			t.Errorf("verification body does not use the trusted origin: %q", m.body)
+		}
+		if strings.Contains(m.body, "http://localhost:3000/auth/verify?token=") {
+			t.Errorf("verification body uses the media base: %q", m.body)
+		}
+		return
+	}
+	t.Fatalf("no verification email captured; sent %d messages", len(sender.sent))
 }

@@ -37,7 +37,7 @@ func TestAuth_NamespaceRootIsJSON404(t *testing.T) {
 	t.Parallel()
 
 	mux, db, _, _ := setupUsersMux(t)
-	Auth(mux, db, false, "http://localhost:5173", "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Auth(mux, db, false, "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	for _, method := range []string{http.MethodGet, http.MethodPost} {
 		req := httptest.NewRequest(method, "/api/v1/auth", strings.NewReader("{}"))
@@ -68,7 +68,7 @@ func TestAuth_PathIPLimits(t *testing.T) {
 	t.Parallel()
 
 	mux, db, _, _ := setupUsersMux(t)
-	Auth(mux, db, false, "http://localhost:5173", "http://localhost:3000", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Auth(mux, db, false, "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	tests := []struct {
 		name    string
@@ -114,7 +114,7 @@ func TestAuth_SessionPathStaysUnlimited(t *testing.T) {
 	t.Parallel()
 
 	mux, db, _, _ := setupUsersMux(t)
-	Auth(mux, db, false, "http://localhost:5173", "http://localhost:3000", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Auth(mux, db, false, "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	for i := 1; i <= 12; i++ {
 		rec := sendAuthRequest(t, mux, http.MethodGet, "/api/v1/auth/session", "10.30.0.6")
@@ -131,7 +131,7 @@ func TestAuth_UntrustedOriginDoesNotSpendQuota(t *testing.T) {
 	t.Parallel()
 
 	mux, db, _, _ := setupUsersMux(t)
-	Auth(mux, db, false, "http://localhost:5173", "http://localhost:3000", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Auth(mux, db, false, "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	const ip = "10.31.0.1"
 	for i := 1; i <= 11; i++ {
@@ -162,7 +162,7 @@ func TestAuth_UnregisteredPathAnswersJSONNotFound(t *testing.T) {
 	t.Parallel()
 
 	mux, db, _, _ := setupUsersMux(t)
-	Auth(mux, db, false, "http://localhost:5173", "http://localhost:3000", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Auth(mux, db, false, "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	rec := sendAuthRequest(t, mux, http.MethodGet, "/api/v1/auth/no-such-endpoint", "10.30.0.7")
 	if rec.Code != http.StatusNotFound {
@@ -195,7 +195,7 @@ func TestAuth_StoreFailureKeepsOneRequestIdentity(t *testing.T) {
 	t.Parallel()
 
 	mux, db, _, _ := setupUsersMux(t)
-	Auth(mux, db, false, "http://localhost:5173", "http://localhost:3000", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
+	Auth(mux, db, false, "http://localhost:5173", mail.LogLink{}, middleware.NewRateLimiter(1000, time.Hour, time.Minute))
 
 	// A well-formed cookie (32 zero bytes, base64url) makes Session attempt a
 	// lookup; the closed store exercises the masked-500 branch.

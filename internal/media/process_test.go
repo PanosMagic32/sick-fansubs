@@ -464,50 +464,51 @@ func TestCanonicalStoragePath(t *testing.T) {
 	)
 
 	tests := []struct {
-		name    string
-		baseURL string
-		stored  string
-		want    string
-		ok      bool
+		name   string
+		stored string
+		want   string
+		ok     bool
 	}{
-		{"canonical", base, canonical, canonical, true},
-		{"flat served form", base, "media/images/" + validID + ".jpg", canonical, true},
-		{"wrong subdirectory", base, "media/images/cd/" + validID + ".jpg", canonical, true},
-		{"non-hex two-character subdirectory", base, "media/images/zz/" + validID + ".jpg", canonical, true},
-		{"same-origin absolute", base, base + "/media/images/" + validID + ".jpg", canonical, true},
-		{"same-origin absolute with query", base, base + "/media/images/" + validID + ".jpg?v=2", canonical, true},
-		{"same-origin absolute storage form", base, base + "/media/images/ab/" + validID + ".jpg", canonical, true},
-		{"absolute explicit default port", base, "https://sickfansubs.com:443/media/images/" + validID + ".jpg", canonical, true},
-		{"absolute non-default port", base, "https://sickfansubs.com:8443/media/images/" + validID + ".jpg", canonical, true},
-		{"absolute http same host", base, "http://sickfansubs.com/media/images/" + validID + ".jpg", canonical, true},
-		{"absolute uppercase scheme", base, "HTTPS://sickfansubs.com/media/images/" + validID + ".jpg", canonical, true},
-		{"absolute trailing-dot host", base, "https://sickfansubs.com./media/images/" + validID + ".jpg", canonical, true},
-		{"absolute www alias", base, "https://www.sickfansubs.com/media/images/" + validID + ".jpg", canonical, true},
-		{"absolute apex under www base", "https://www.sickfansubs.com", base + "/media/images/" + validID + ".jpg", canonical, true},
-		{"relative query", base, "media/images/" + validID + ".jpg?v=2", canonical, true},
-		{"relative fragment", base, "media/images/" + validID + ".jpg#frag", canonical, true},
-		{"dot segment", base, "media/images/./" + validID + ".jpg", canonical, true},
-		{"percent-encoded id", base, "media/images/%61bcdef0123456789abcdef0123456789.jpg", canonical, true},
-		{"jpeg storage form", base, jpegPath, jpegPath, true},
-		{"flat jpeg form", base, "media/images/" + validID + ".jpeg", jpegPath, true},
-		{"absolute jpeg with default port", base, "https://sickfansubs.com:443/media/images/" + validID + ".jpeg", jpegPath, true},
-		{"base URL with path prefix", "https://example.com/app", "https://example.com/app/media/images/" + validID + ".jpg", canonical, true},
-		{"other host", base, "https://other.example/media/images/" + validID + ".jpg", canonical, true},
-		{"hostname suffix", base, "https://sickfansubs.com.evil.example/media/images/" + validID + ".jpg", canonical, true},
-		{"absolute without configured base", "", base + "/media/images/" + validID + ".jpg", canonical, true},
-		{"other host storage form", base, "https://other.example/media/images/ab/" + validID + ".jpg", canonical, true},
-		{"unrelated local path", base, "media/other/" + validID + ".jpg", "", false},
-		{"escaping dot-dot", base, "media/images/../" + validID + ".jpg", "", false},
-		{"malformed escape", base, "media/images/%zz.jpg", "", false},
-		{"malformed id", base, "media/images/short.jpg", "", false},
-		{"unsupported extension", base, "media/images/" + validID + ".gif", "", false},
-		{"nested deeper", base, "media/images/ab/cd/" + validID + ".jpg", "", false},
+		{"canonical", canonical, canonical, true},
+		{"flat served form", "media/images/" + validID + ".jpg", canonical, true},
+		{"wrong subdirectory", "media/images/cd/" + validID + ".jpg", canonical, true},
+		{"non-hex two-character subdirectory", "media/images/zz/" + validID + ".jpg", canonical, true},
+		{"same-origin absolute", base + "/media/images/" + validID + ".jpg", canonical, true},
+		{"same-origin absolute with query", base + "/media/images/" + validID + ".jpg?v=2", canonical, true},
+		{"same-origin absolute storage form", base + "/media/images/ab/" + validID + ".jpg", canonical, true},
+		{"absolute explicit default port", "https://sickfansubs.com:443/media/images/" + validID + ".jpg", canonical, true},
+		{"absolute non-default port", "https://sickfansubs.com:8443/media/images/" + validID + ".jpg", canonical, true},
+		{"absolute http same host", "http://sickfansubs.com/media/images/" + validID + ".jpg", canonical, true},
+		{"absolute uppercase scheme", "HTTPS://sickfansubs.com/media/images/" + validID + ".jpg", canonical, true},
+		{"absolute trailing-dot host", "https://sickfansubs.com./media/images/" + validID + ".jpg", canonical, true},
+		{"absolute www alias", "https://www.sickfansubs.com/media/images/" + validID + ".jpg", canonical, true},
+		{"absolute apex under www base", base + "/media/images/" + validID + ".jpg", canonical, true},
+		{"relative query", "media/images/" + validID + ".jpg?v=2", canonical, true},
+		{"relative fragment", "media/images/" + validID + ".jpg#frag", canonical, true},
+		{"dot segment", "media/images/./" + validID + ".jpg", canonical, true},
+		{"percent-encoded id", "media/images/%61bcdef0123456789abcdef0123456789.jpg", canonical, true},
+		{"jpeg storage form", jpegPath, jpegPath, true},
+		{"flat jpeg form", "media/images/" + validID + ".jpeg", jpegPath, true},
+		{"absolute jpeg with default port", "https://sickfansubs.com:443/media/images/" + validID + ".jpeg", jpegPath, true},
+		{"absolute path under an app prefix", "https://example.com/app/media/images/" + validID + ".jpg", canonical, true},
+		{"old absolute prefix after base change", "https://sickfansubs.com/static/media/images/" + validID + ".jpg", canonical, true},
+		{"absolute path under an unrelated prefix", "https://sickfansubs.com/app/media/images/" + validID + ".jpg", canonical, true},
+		{"other host", "https://other.example/media/images/" + validID + ".jpg", canonical, true},
+		{"hostname suffix", "https://sickfansubs.com.evil.example/media/images/" + validID + ".jpg", canonical, true},
+		{"absolute path without any prefix", base + "/media/images/" + validID + ".jpg", canonical, true},
+		{"other host storage form", "https://other.example/media/images/ab/" + validID + ".jpg", canonical, true},
+		{"unrelated local path", "media/other/" + validID + ".jpg", "", false},
+		{"escaping dot-dot", "media/images/../" + validID + ".jpg", "", false},
+		{"malformed escape", "media/images/%zz.jpg", "", false},
+		{"malformed id", "media/images/short.jpg", "", false},
+		{"unsupported extension", "media/images/" + validID + ".gif", "", false},
+		{"nested deeper", "media/images/ab/cd/" + validID + ".jpg", "", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, ok := CanonicalStoragePath(tt.stored, tt.baseURL)
+			got, ok := CanonicalStoragePath(tt.stored)
 			if ok != tt.ok {
 				t.Fatalf("CanonicalStoragePath(%q) ok = %v, want %v", tt.stored, ok, tt.ok)
 			}

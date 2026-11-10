@@ -18,8 +18,10 @@ import (
 // content row or user avatar references; the media orphan sweep treats
 // membership as KEEP. canonical maps each raw stored reference to the layout's
 // canonical path (`media/images/<id[:2]>/<id>.<ext>`); references it rejects
-// (another host, a malformed segment) cannot name a local file and are
-// skipped. The store stays URL-free: the caller supplies the layout grammar.
+// (a path that does not name the media tree, a malformed segment) cannot name
+// a local file and are skipped. An absolute http(s) reference protects the
+// path it names regardless of host or path prefix. The store stays URL-free:
+// the caller supplies the layout grammar.
 func ReferencedMediaPaths(ctx context.Context, db *sql.DB, canonical func(string) (string, bool)) (map[string]struct{}, error) {
 	// The content legs sweep the descriptor list, so a new content kind
 	// joins the reference set without touching this function.

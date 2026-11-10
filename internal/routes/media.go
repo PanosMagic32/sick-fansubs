@@ -45,7 +45,7 @@ func Media(mux *http.ServeMux, dataDir string, db *sql.DB, secure bool, trustedO
 	upload = authenticatedChain(upload, db, secure, trustedOrigin)
 	mux.Handle("POST /api/v1/media", upload)
 
-	var delete http.Handler = handler.MediaDelete(dataDir, db, publicBaseURL)
+	var delete http.Handler = handler.MediaDelete(dataDir, db)
 	delete = authenticatedChain(delete, db, secure, trustedOrigin)
 	mux.Handle("DELETE /api/v1/media/{file}", delete)
 	// The method-less pattern catches every non-POST/DELETE method: without

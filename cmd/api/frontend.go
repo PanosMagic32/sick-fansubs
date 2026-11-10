@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"path/filepath"
+	pathpkg "path"
 	"strings"
 )
 
@@ -107,7 +107,7 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 
 		// A dotfile is not an asset: the embedded FS must never expose build
 		// scaffolding such as .gitkeep.
-		if strings.HasPrefix(filepath.Base(path), ".") {
+		if isHiddenPath(path) {
 			http.NotFound(w, r)
 			return
 		}
@@ -144,7 +144,7 @@ func newFrontendHandler(fsys fs.FS, version string) (http.Handler, error) {
 			// A directory path (assets/, icons/, fonts/) and a dotfile
 			// (.gitkeep) are not assets: the embedded FS must never answer a
 			// generated listing or expose build scaffolding.
-			if statErr != nil || info.IsDir() || strings.HasPrefix(filepath.Base(path), ".") {
+			if statErr != nil || info.IsDir() || isHiddenPath(path) {
 				http.NotFound(w, r)
 				return
 			}
@@ -200,4 +200,10 @@ func setSecurityHeaders(w http.ResponseWriter) {
 			"frame-ancestors 'none'; "+
 			"base-uri 'self'; "+
 			"form-action 'self'")
+}
+
+// isHiddenPath reports whether an embedded-FS path names a dotfile. The
+// embedded FS always uses slash separators, so path is the matching helper.
+func isHiddenPath(p string) bool {
+	return strings.HasPrefix(pathpkg.Base(p), ".")
 }

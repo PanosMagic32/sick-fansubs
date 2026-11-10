@@ -45,8 +45,9 @@ const (
 )
 
 // blogPostWriteRequest is the create/update body (strict: unknown fields
-// rejected by readJSON). Pointer fields distinguish absent from empty;
-// absent falls back to the defaults below. Downloads is the full-
+// rejected by readJSON). optionalString fields distinguish an absent key
+// (the default applies) from a present string; an explicit null is a 400.
+// Downloads is the full-
 // replacement download-row set; DownloadsParsed holds the validated rows
 // the parse function produces and is not a wire field (json:"-"), so no
 // body key can reach it.

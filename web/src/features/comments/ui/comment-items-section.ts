@@ -130,12 +130,13 @@ export class CommentItemsSection implements ReactiveController {
 
   /** A sign-out inside the debounce window cancels it: the anonymous UI has
    * already withdrawn the heart controls, so a queued mutation must not fire
-   * an unauthenticated request. */
+   * an unauthenticated request. The controller's hostUpdate runs before this
+   * render, so the cleared state is already visible here — no extra
+   * requestUpdate is needed. */
   hostUpdate() {
     if (this._host.session?.state.status === "authenticated") return;
     this._debouncer.cancel();
     this._heartDesired.clear();
-    this.refresh();
   }
 
   /** Abort every in-flight reply append and drop its per-item state. Called
@@ -220,6 +221,10 @@ export class CommentItemsSection implements ReactiveController {
       } else {
         await removeHeart(this._host.kind, this._host.contentId, id);
       }
+      // A sign-out while the mutation was in flight must not repaint the
+      // anonymous thread. The session provider updates synchronously, so the
+      // check after the await is authoritative.
+      if (this._host.session?.state.status !== "authenticated") return;
       // Confirmed update — flip only on success.
       this._host._patchComment(id, (it) => ({
         ...it,
@@ -227,6 +232,7 @@ export class CommentItemsSection implements ReactiveController {
         heartsCount: it.heartsCount + (it.hearted ? -1 : 1),
       }));
     } catch (err) {
+      if (this._host.session?.state.status !== "authenticated") return;
       this._heartErrors.set(id, mapError(err));
       this.refresh();
     } finally {

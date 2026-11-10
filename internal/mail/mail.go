@@ -286,7 +286,7 @@ type LogLink struct{}
 // useless without it, and an address in a log line is the exact class the
 // log hygiene rule forbids. This is the rule's one audited
 // exemption, and it cannot reach production (the caller gates it on
-// APP_ENV != production plus a loopback base URL).
+// APP_ENV != production plus a loopback application origin).
 func (LogLink) Send(ctx context.Context, _, subject, body string) error {
 	logging.From(ctx).InfoContext(ctx, "dev mail not sent (no SMTP configured)",
 		"subject", subject,

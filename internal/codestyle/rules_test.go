@@ -384,8 +384,8 @@ func f(w http.ResponseWriter, r *http.Request) {
 	}
 	if got := checkSource(t, check, name, `package handler
 
-func f(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
-	writeInternalError(w, r, logger, "blog list query failed", "error", err)
+func f(w http.ResponseWriter, r *http.Request) {
+	writeInternalError(w, r, "blog list query failed", "error", err)
 }
 `); len(got) != 0 {
 		t.Fatalf("check flags the shared 500 helper: %v", got)

@@ -151,6 +151,7 @@ export class AppHeader extends LitElement {
       if (this._pathSeen) {
         this.navOpen = false;
         this._menuOpen = false;
+        void this._refreshUnread();
       }
       this._pathSeen = true;
     }
@@ -323,11 +324,11 @@ export class AppHeader extends LitElement {
   };
 
   /** Every navigation closes both header panels, including a query-only
-   * change the pathname-only currentPath branch cannot see. */
+   * change the pathname branch cannot see; a pathname change refreshes the
+   * badge through that branch. */
   private _onNavigate = () => {
     this.navOpen = false;
     this._menuOpen = false;
-    void this._refreshUnread();
   };
 
   /**

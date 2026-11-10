@@ -17,8 +17,9 @@ fails. The unit's shape and the backup triggers are [backup.md](backup.md)'s.
 2. **The app is stopped for the whole run.** Restore never overwrites in place: it stages,
    validates, and activates a new file behind the restore marker — readiness reports `not_ready`
    and the application refuses to start while the marker exists. The operator-visible outcomes:
-   sessions never survive, post-backup account-security changes refuse activation unless the
-   acknowledge-loss override is passed, and the media half extracts before the marker is removed.
+   sessions, pending reset/verification tokens, and push subscriptions never survive; post-backup
+   account-security changes (including the recovery email) refuse activation unless the
+   acknowledge-loss override is passed; and the media half extracts before the marker is removed.
    The full workflow is [sqlite.md](../patterns/go/sqlite.md)'s (rule 12).
 3. **On the VPS the restore is a one-off container against the stopped stack.** The runner mounts
    the data volume read-write and the unit read-only:
@@ -157,8 +158,10 @@ ls -la ~/sick-fansubs | grep -E 'restore-unit|drill-enc' || echo 'VPS cleanup cl
   no data risk. Prefer restores outside the 03:00 host-time window.
 - **A pre-migrate DB-only artifact is rejected here on purpose.** Its rollback path is the
   migration command, which owns the narrow carve-out for a backup it created moments earlier.
-- **Sessions never survive a restore.** Every session is deleted and verified zero before
-  activation, so a restored database cannot resurrect a login.
+- **Sessions, auth tokens, and push subscriptions never survive a restore.** Every session,
+  pending password-reset token, pending email-verification token, and push-subscription row is
+  deleted and verified zero before activation, so a restored database cannot resurrect a login or
+  deliver to a device enrolled after the backup.
 - **A crashed restore resumes only through its own activation record.** A marker written by an
   older build (without the attempt identifier) cannot be resumed by this one; the command says so
   and stops for manual recovery rather than guessing at the on-disk state. The same fail-closed

@@ -2,8 +2,8 @@ package mail
 
 // VerifyEmail builds the registration-verification message: plain text,
 // Greek copy, one verification link. The link is constructed by the caller
-// (service layer) from PUBLIC_BASE_URL + the base64url token; only that
-// validated URL and the token ever reach the message.
+// (service layer) from the application origin (TRUSTED_ORIGIN) + the base64url
+// token; only that validated URL and the token ever reach the message.
 func VerifyEmail(link string) (subject, body string) {
 	subject = "Επιβεβαίωση email — Sick Fansubs"
 	// Polite register, matching the reset message.

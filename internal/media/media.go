@@ -130,13 +130,13 @@ func parseFileWithExt(file string, exts ...string) (id, ext string, ok bool) {
 // a relative form carrying a query, fragment, `.` segment, or percent-encoded
 // bytes (the browser and ServeMux clean and decode it), and an absolute
 // http(s) URL whose path names the media tree. The absolute form is deliberately
-// host-agnostic: the keep-set can only widen across a domain or base-URL change,
-// never shrink, so a stored absolute reference stays protected after the public
-// host moves. Values that cannot name a local file (an escaping path, a
-// malformed segment, an unsupported extension) are reported not-ok; callers
-// skip them.
-func CanonicalStoragePath(stored, publicBaseURL string) (string, bool) {
-	candidate, ok := localMediaPath(stored, publicBaseURL)
+// host- and prefix-agnostic: the keep-set can only widen across a domain or
+// base-URL change, never shrink, so a stored absolute reference stays protected
+// after the public host moves. Values that cannot name a local file (an
+// escaping path, a malformed segment, an unsupported extension) are reported
+// not-ok; callers skip them.
+func CanonicalStoragePath(stored string) (string, bool) {
+	candidate, ok := localMediaPath(stored)
 	if !ok {
 		return "", false
 	}
@@ -166,12 +166,12 @@ func CanonicalStoragePath(stored, publicBaseURL string) (string, bool) {
 // `media/images/...` path the read path serves, or reports not-ok. An absolute
 // http(s) URL contributes its path regardless of host: the keep-set must not
 // shrink when the public base URL changes, because a stored absolute reference
-// that is still live would otherwise become a deletion candidate. The base
-// path prefix, when present, is stripped like the serving URL does. Relative
-// values lose their query and fragment, then decode and clean exactly as the
-// browser and the router do. The leading slash anchors path.Clean, so `..` can
-// never escape the media tree.
-func localMediaPath(stored, publicBaseURL string) (string, bool) {
+// that is still live would otherwise become a deletion candidate. The media
+// tree is located by its own grammar, so a domain or path-prefix change cannot
+// drop a live reference. Relative values lose their query and fragment, then
+// decode and clean exactly as the browser and the router do. The leading slash
+// anchors path.Clean, so `..` can never escape the media tree.
+func localMediaPath(stored string) (string, bool) {
 	candidate := stored
 	if u, err := url.Parse(candidate); err == nil && u.Scheme != "" && u.Host != "" {
 		switch strings.ToLower(u.Scheme) {
@@ -183,12 +183,11 @@ func localMediaPath(stored, publicBaseURL string) (string, bool) {
 			return "", false
 		}
 		candidate = u.Path
-		if base, err := url.Parse(publicBaseURL); err == nil {
-			if prefix := strings.TrimRight(base.Path, "/"); prefix != "" && prefix != "/" {
-				if strings.HasPrefix(candidate, prefix+"/") {
-					candidate = strings.TrimPrefix(candidate, prefix)
-				}
-			}
+		// The reference may predate the current base path (a domain or prefix
+		// move). Locate the media tree by its own grammar instead of relying on
+		// the configured prefix.
+		if idx := strings.LastIndex(candidate, "/media/images/"); idx >= 0 {
+			candidate = candidate[idx+1:]
 		}
 	} else if i := strings.IndexAny(candidate, "?#"); i >= 0 {
 		candidate = candidate[:i]

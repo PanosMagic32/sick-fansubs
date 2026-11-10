@@ -62,7 +62,7 @@ func setupMediaDelete(t *testing.T) (*sql.DB, string, http.Handler) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db, delBaseURL))
+	mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db))
 	return db, dir, mux
 }
 
@@ -202,7 +202,7 @@ func TestMediaDelete_LegacyReferenceFormsConflict(t *testing.T) {
 			}
 
 			mux := http.NewServeMux()
-			mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db, delBaseURL))
+			mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db))
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, deleteRequest(http.MethodDelete, "/api/v1/media/"+delID+".jpg", identity.RoleAdmin, true))
 
@@ -260,7 +260,7 @@ func TestMediaDelete_LegacyJPEGReferenceConflicts(t *testing.T) {
 			}
 
 			mux := http.NewServeMux()
-			mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db, delBaseURL))
+			mux.HandleFunc("DELETE /api/v1/media/{file}", handler.MediaDelete(dir, db))
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, deleteRequest(http.MethodDelete, "/api/v1/media/"+delID+".jpeg", identity.RoleAdmin, true))
 

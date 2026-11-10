@@ -141,8 +141,7 @@ func TestLoadPublicBaseURL(t *testing.T) {
 				defer os.Unsetenv("PUBLIC_BASE_URL")
 			}
 			// SMTP: these cases exercise URL validation, not the mailer — a
-			// relay host keeps the custom-base-URL cases legal (the dev
-			// log-link fallback is loopback-only).
+			// relay host keeps the custom-base-URL cases legal.
 			os.Setenv("SMTP_HOST", "smtp.example.com")
 			defer os.Unsetenv("SMTP_HOST")
 
@@ -543,18 +542,23 @@ func TestLoadSMTP(t *testing.T) {
 // TestValidateMailRelay covers the API-surface-only environment
 // requirements: production host/from and the loopback-only dev fallback.
 func TestValidateMailRelay(t *testing.T) {
-	devBase := func(t *testing.T, baseURL string) *Config {
+	devBase := func(t *testing.T, publicBaseURL, trustedOrigin string) *Config {
 		t.Helper()
 		os.Unsetenv("PORT")
 		os.Unsetenv("DATA_DIR")
 		os.Unsetenv("APP_ENV")
-		if baseURL == "" {
+		if publicBaseURL == "" {
 			os.Unsetenv("PUBLIC_BASE_URL")
 		} else {
-			os.Setenv("PUBLIC_BASE_URL", baseURL)
+			os.Setenv("PUBLIC_BASE_URL", publicBaseURL)
 			t.Cleanup(func() { os.Unsetenv("PUBLIC_BASE_URL") })
 		}
-		os.Unsetenv("TRUSTED_ORIGIN")
+		if trustedOrigin == "" {
+			os.Unsetenv("TRUSTED_ORIGIN")
+		} else {
+			os.Setenv("TRUSTED_ORIGIN", trustedOrigin)
+			t.Cleanup(func() { os.Unsetenv("TRUSTED_ORIGIN") })
+		}
 		os.Unsetenv("SMTP_HOST")
 		os.Unsetenv("SMTP_PORT")
 		os.Unsetenv("SMTP_USERNAME")
@@ -566,19 +570,21 @@ func TestValidateMailRelay(t *testing.T) {
 		return cfg
 	}
 
-	t.Run("dev fallback is loopback-only", func(t *testing.T) {
-		cfg := devBase(t, "https://dev.example.com")
+	t.Run("dev fallback keys on the trusted origin", func(t *testing.T) {
+		cfg := devBase(t, defaultPublicBaseURL, "https://app.example.com")
 		if err := cfg.ValidateMailRelay(); err == nil {
-			t.Fatal("got nil, want loopback-only error")
+			t.Fatal("got nil, want loopback-only error for a non-loopback trusted origin")
 		}
-		cfg = devBase(t, "")
+		// The media base may differ: links use the trusted origin, so a
+		// custom PUBLIC_BASE_URL does not move the credential off loopback.
+		cfg = devBase(t, "https://media.example.com", "")
 		if err := cfg.ValidateMailRelay(); err != nil {
-			t.Errorf("loopback dev fallback rejected: %v", err)
+			t.Errorf("loopback trusted origin rejected: %v", err)
 		}
 	})
 
-	t.Run("dev with host passes any base URL", func(t *testing.T) {
-		cfg := devBase(t, "https://dev.example.com")
+	t.Run("dev with host passes any origin", func(t *testing.T) {
+		cfg := devBase(t, "https://media.example.com", "https://app.example.com")
 		cfg.SMTPHost = "smtp.example.com"
 		if err := cfg.ValidateMailRelay(); err != nil {
 			t.Fatalf("ValidateMailRelay: %v", err)

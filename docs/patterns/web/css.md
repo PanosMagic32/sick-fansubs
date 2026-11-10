@@ -50,7 +50,9 @@ be literal, and how layout and responsive rules stay predictable.
    set.
 4. **No fallback values inside `var()`.** `var(--sf-accent, #8aaae0)` hides a typo and a missing
    theme value behind a stale literal; write `var(--sf-accent)`. The guard's token check exists
-   precisely because the fallbacks would hide those mistakes.
+   precisely because the fallbacks would hide those mistakes. The one exception is the recorded
+   `core/index.css` global focus baseline (rule 3), whose single fallback literal is pinned by
+   `architecture.test.ts`.
 5. **Tints of a token use `color-mix()`.** A translucent variant of a token is
    `color-mix(in srgb, var(--sf-brand-tracker) 10%, transparent)` (the about page rows, the
    notification result chips) — not a hand-mixed `rgba()` of the same colour, which drifts from its

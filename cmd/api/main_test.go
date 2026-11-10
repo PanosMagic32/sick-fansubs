@@ -211,7 +211,7 @@ func TestSweepMediaOrphans(t *testing.T) {
 
 	// Both files are fresh (within grace), so the sweep deletes neither —
 	// the point here is the wiring: referenced set + sweep compose.
-	stats, err := sweepMediaOrphans(ctx, db, dir, "https://sickfansubs.com")
+	stats, err := sweepMediaOrphans(ctx, db, dir)
 	if err != nil {
 		t.Fatalf("sweepMediaOrphans: %v", err)
 	}
@@ -233,7 +233,7 @@ func TestStartMediaSweep_StopsOnCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(t.Context())
 	var wg sync.WaitGroup
-	wg.Go(func() { startMediaSweep(ctx, db, dir, "https://sickfansubs.com") })
+	wg.Go(func() { startMediaSweep(ctx, db, dir) })
 	cancel()
 
 	done := make(chan struct{})

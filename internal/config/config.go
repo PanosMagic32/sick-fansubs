@@ -83,9 +83,9 @@ type Config struct {
 	//
 	// SMTPHost (Env: SMTP_HOST): relay host, e.g. smtp.resend.com.
 	// Empty = no relay: the dev-only LogLink sender takes over, and that is
-	// only legal when PUBLIC_BASE_URL is the loopback dev origin
-	// (a reset link is a credential — it must never land in logs anywhere
-	// else). Production always requires a host.
+	// only legal when TRUSTED_ORIGIN is the loopback dev origin — the value
+	// that builds reset/verification links (a link is a credential and must
+	// never land in logs anywhere else). Production always requires a host.
 	SMTPHost string
 
 	// SMTPPort (Env: SMTP_PORT): 465/2465 implicit TLS, 25/587/2587
@@ -243,8 +243,9 @@ func (c *Config) validateSMTP() error {
 //   - production requires SMTP_HOST and SMTP_FROM (an empty From breaks
 //     SMTP, and a missing host has no fail-closed meaning);
 //   - development without SMTP_HOST falls back to the LogLink sender, which
-//     is ONLY legal with the loopback dev origin — a reset link is a
-//     credential and must never land in logs anywhere else.
+//     is ONLY legal when TRUSTED_ORIGIN is the loopback dev origin — that
+//     origin builds every reset/verification link, and a link is a
+//     credential that must never land in logs anywhere else.
 func (c *Config) ValidateMailRelay() error {
 	if c.AppEnv == EnvProduction && c.SMTPHost == "" {
 		return fmt.Errorf("config: APP_ENV=%s requires SMTP_HOST to be set", EnvProduction)
@@ -252,14 +253,15 @@ func (c *Config) ValidateMailRelay() error {
 	if c.AppEnv == EnvProduction && c.SMTPFrom == "" {
 		return fmt.Errorf("config: APP_ENV=%s requires SMTP_FROM to be set", EnvProduction)
 	}
-	if c.AppEnv == EnvDevelopment && c.SMTPHost == "" && c.PublicBaseURL != defaultPublicBaseURL {
-		return fmt.Errorf("config: SMTP_HOST is required unless PUBLIC_BASE_URL is %q (the dev log-link fallback is loopback-only)", defaultPublicBaseURL)
+	if c.AppEnv == EnvDevelopment && c.SMTPHost == "" && c.TrustedOrigin != defaultPublicBaseURL {
+		return fmt.Errorf("config: SMTP_HOST is required unless TRUSTED_ORIGIN is %q (the dev log-link fallback is loopback-only)", defaultPublicBaseURL)
 	}
 	return nil
 }
 
-// defaultPublicBaseURL is the development default origin — the only origin
-// the dev log-link mail fallback may run under.
+// defaultPublicBaseURL is the development default for both PUBLIC_BASE_URL
+// and TRUSTED_ORIGIN; the dev log-link mail fallback is legal only under this
+// origin because it builds the credential-bearing auth links.
 const defaultPublicBaseURL = "http://localhost:3000"
 
 // dataDirFromEnv reads DATA_DIR, applies the default, and resolves it to
@@ -310,7 +312,8 @@ func publicBaseURLFromEnv() string {
 }
 
 // smtpHostFromEnv reads SMTP_HOST (no default — empty means the dev
-// log-link fallback, which validateSMTP scopes to loopback dev).
+// log-link fallback, which ValidateMailRelay scopes to a loopback
+// TRUSTED_ORIGIN).
 func smtpHostFromEnv() string {
 	return strings.TrimSpace(os.Getenv("SMTP_HOST"))
 }

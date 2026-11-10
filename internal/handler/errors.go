@@ -50,6 +50,12 @@ var (
 	// errInvalidCursor reports a cursor that fails strict decode; 400 — the
 	// cursor is one opaque token, and the reason is never distinguished.
 	errInvalidCursor = errors.New("invalid cursor")
+
+	// errNullOptionalField rejects an explicit JSON null for a field the
+	// contract documents as an optional string. Absent means "use the
+	// default"; null is a present value of the wrong type, so it joins the
+	// generic invalid-body 400 class.
+	errNullOptionalField = errors.New("null is not an accepted value for this field")
 )
 
 // classifyDecodeError converts an encoding/json decode failure into the body
@@ -65,6 +71,8 @@ func classifyDecodeError(err error) error {
 	switch {
 	case strings.Contains(err.Error(), "unknown field"):
 		return errUnknownField
+	case errors.Is(err, errNullOptionalField):
+		return errInvalidBody
 	case errors.Is(err, io.EOF), errors.Is(err, io.ErrUnexpectedEOF):
 		return errEmptyBody
 	default:

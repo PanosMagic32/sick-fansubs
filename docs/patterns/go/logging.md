@@ -58,8 +58,9 @@ failed`).
    material (verifiers, bcrypt strings).** Never log a full request body, and never log a
    media file's storage path either — log the asset id. A startup record may name the
    configured data directory: the operator set it. The one audited exemption is
-   `internal/mail`'s dev-only `LogLink`, which logs the message body (the reset link) at a
-   loopback origin and can never run in production.
+   `internal/mail`'s dev-only `LogLink`, which logs the message body (the reset/verification
+   link) only while `TRUSTED_ORIGIN` is the loopback development origin; it can never run in
+   production.
 9. **Outside a request the logger is explicit.** Startup code in `cmd/` logs through
    `slog.Default()` or its own logger, and a command may install its own handler; a library
    package never calls `slog.SetDefault`. A function with no request context (for example

@@ -172,8 +172,8 @@ publish` means the unit was renamed but the directory could not be made crash-du
   deploy's migration. A daily or shutdown unit carries the exact history. The restore path accepts
   both; the validation rules are [sqlite.md](../patterns/go/sqlite.md)'s.
 - **`mega-login` takes the credentials as arguments** — the bare command only prints usage.
-- **`AGE_RECIPIENT is required in APP_ENV=production`** means `backup.env` is missing or empty on
-  the VPS; it also blocks deploys until fixed.
+- **`age recipient is required in APP_ENV=production — refusing to publish a plaintext backup`**
+  means `backup.env` is missing or empty on the VPS; it also blocks deploys until fixed.
 - **`backup folder … already exists`** means today's unit is already there: a re-run of the cron
   (resolve by hand) or a double cron.
 - **A failed push is not a lost backup.** The local unit stays published; fix the Mega session or

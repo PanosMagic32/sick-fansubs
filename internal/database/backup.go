@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -132,28 +133,66 @@ func PrunePreMigrationBackups(dataDir string, keep int) (int, error) {
 		return 0, fmt.Errorf("database: read backup directory: %w", err)
 	}
 
-	var names []string
+	type artifact struct {
+		name string
+		ms   int64
+	}
+	var artifacts []artifact
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 		name := entry.Name()
-		if strings.HasPrefix(name, "pre-migrate-") && strings.HasSuffix(name, ".db") {
-			names = append(names, name)
+		ms, ok := preMigrationMillis(name)
+		if !ok {
+			continue
 		}
+		artifacts = append(artifacts, artifact{name: name, ms: ms})
 	}
-	// The filename carries the creation millis, so descending lexical order is
-	// newest-first for the fixed-width timestamp.
-	slices.SortFunc(names, func(a, b string) int { return strings.Compare(b, a) })
+	// Sort by the parsed timestamp, not the filename width: production names
+	// carry an unpadded Unix-millis value, and a hand-retained copy that merely
+	// resembles the pattern must not be treated as one of ours.
+	slices.SortFunc(artifacts, func(a, b artifact) int {
+		if a.ms != b.ms {
+			if a.ms > b.ms {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.name, b.name)
+	})
 
 	removed := 0
-	for _, name := range names[min(keep, len(names)):] {
-		if err := os.Remove(filepath.Join(dir, name)); err != nil {
-			return removed, fmt.Errorf("database: prune pre-migration backup %s: %w", name, err)
+	for _, a := range artifacts[min(keep, len(artifacts)):] {
+		if err := os.Remove(filepath.Join(dir, a.name)); err != nil {
+			return removed, fmt.Errorf("database: prune pre-migration backup %s: %w", a.name, err)
 		}
 		removed++
 	}
 	return removed, nil
+}
+
+// preMigrationMillis parses the one artifact name this package writes:
+// `pre-migrate-<unix-millis>.db`. Anything else is foreign and never pruned.
+func preMigrationMillis(name string) (int64, bool) {
+	digits, ok := strings.CutPrefix(name, "pre-migrate-")
+	if !ok {
+		return 0, false
+	}
+	digits, ok = strings.CutSuffix(digits, ".db")
+	if !ok || digits == "" {
+		return 0, false
+	}
+	for _, c := range digits {
+		if c < '0' || c > '9' {
+			return 0, false
+		}
+	}
+	ms, err := strconv.ParseInt(digits, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return ms, true
 }
 
 // createBackupCore is the shared online-backup workflow (docs/patterns/go/sqlite.md)
