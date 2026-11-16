@@ -5,7 +5,7 @@ go 1.27.4
 require (
 	filippo.io/age v1.3.2
 	github.com/SherClockHolmes/webpush-go v1.4.0
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.59.0
 	golang.org/x/image v0.48.0
 	modernc.org/sqlite v1.62.0
 )
