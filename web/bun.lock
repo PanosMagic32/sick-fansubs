@@ -217,17 +217,17 @@
     ],
 
     "@rolldown/pluginutils": [
-      "@rolldown/pluginutils@1.1.0",
+      "@rolldown/pluginutils@1.1.1",
       "",
       {},
-      "sha512-K+NU2HDCEem4sClgHH4ZZXwdJeNFkJo+hRk479DIwdIviAPN2hFJH1KHHwg8CxHQXvi0M5XY4deTXINfIiSG6w==",
+      "sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==",
     ],
 
     "@tybys/wasm-util": [
-      "@tybys/wasm-util@0.10.4",
+      "@tybys/wasm-util@0.10.5",
       "",
       { "dependencies": { "tslib": "^2.4.0" } },
-      "sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==",
+      "sha512-dOGOPxlaNV+G046mZzN+9C0dAcQZeSKcXiVaM0TYy/LM4ttTmgSBDxYfovcYI8Em3+eAbiAYpvWLOv8+ZVRJKA==",
     ],
 
     "@types/bun": [
@@ -621,7 +621,7 @@
     ],
 
     "postcss": [
-      "postcss@8.5.32",
+      "postcss@8.5.33",
       "",
       {
         "dependencies": {
@@ -630,7 +630,7 @@
           "source-map-js": "^1.2.2",
         },
       },
-      "sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==",
+      "sha512-RVHEU9/Pp1Fnjr/MpAJsZoADukCKhfIi15OunEYiGktIkYLkPVvC1sioWolGDS7XByMTx9m/IGbro0Js13zhnQ==",
     ],
 
     "rolldown": [
@@ -665,10 +665,10 @@
     ],
 
     "source-map-js": [
-      "source-map-js@1.2.2",
+      "source-map-js@1.2.4",
       "",
       {},
-      "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==",
+      "sha512-J7ZjMvHd9O1fcT/5V09QWaaSl2BbWx3F6O08spde82Namf9UB0GxRVIPiNbVsdKkoizHiSpTodo3vp2bAy91MA==",
     ],
 
     "tinyglobby": [
@@ -776,7 +776,7 @@
     ],
 
     "ws": [
-      "ws@8.22.2",
+      "ws@8.23.0",
       "",
       {
         "peerDependencies": {
@@ -785,7 +785,7 @@
         },
         "optionalPeers": ["bufferutil", "utf-8-validate"],
       },
-      "sha512-/rEZ2ejown2N5gxVTHUu9bVVC7ttu0/Tgzf5hbTOixR3Fs7mbbXgn2DbdbcKgJOmpQMtrIUWivtYuVMnp/W/yA==",
+      "sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==",
     ],
   },
 }
